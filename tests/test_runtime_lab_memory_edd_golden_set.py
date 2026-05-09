@@ -102,3 +102,161 @@ def test_runtime_lab_memory_edd_indexed_as_conditional_guidance_only() -> None:
     assert "runtime-lab memory EDD golden set" in doc_index
     assert "runtime_lab_memory_edd_golden_set.yaml" in doc_index
     assert "runtime_lab_memory_edd_golden_set.yaml" not in active_bootstrap
+
+
+def test_runtime_lab_memory_edd_projection_adds_reviewed_dogfood_cases_only() -> None:
+    from app.memory.application.runtime_lab_candidate_extraction import (
+        build_candidate_extraction_artifact_from_edd_suite,
+    )
+    from app.memory.application.runtime_lab_dogfood_replay import (
+        build_memory_dogfood_replay_review_artifact,
+    )
+    from app.memory.application.runtime_lab_memory_edd import (
+        build_reviewed_dogfood_edd_suite_projection,
+        load_runtime_lab_memory_edd_suite,
+    )
+
+    suite = load_runtime_lab_memory_edd_suite()
+    review = build_memory_dogfood_replay_review_artifact([_reviewed_dogfood_record()])
+
+    projection = build_reviewed_dogfood_edd_suite_projection(suite, review)
+
+    assert projection["artifact_type"] == "runtime_lab_memory_edd_suite_projection"
+    assert projection["status"] == "pass"
+    assert projection["base_case_count"] == 10
+    assert projection["reviewed_dogfood_case_count"] == 1
+    assert projection["case_count"] == 11
+    assert projection["split_counts"] == {
+        "fixture": 6,
+        "holdout": 3,
+        "negative": 2,
+    }
+    assert projection["canonical_golden_set_mutated"] is False
+    assert projection["reviewed_cases_promoted_to_canonical"] is False
+    assert projection["durable_product_memory_written"] is False
+    assert projection["manager_context_packet_changed"] is False
+    assert projection["non_claims"] == [
+        "not_product_activation_evidence",
+        "not_private_self_use_approval",
+        "not_canonical_golden_set_mutation",
+    ]
+
+    extraction = build_candidate_extraction_artifact_from_edd_suite(projection)
+    assert extraction["candidate_count"] == 8
+    assert extraction["rejection_count"] == 3
+
+
+def test_runtime_lab_memory_edd_projection_blocks_missing_truth_refs() -> None:
+    from app.memory.application.runtime_lab_dogfood_replay import (
+        build_memory_dogfood_replay_review_artifact,
+    )
+    from app.memory.application.runtime_lab_memory_edd import (
+        build_reviewed_dogfood_edd_suite_projection,
+        load_runtime_lab_memory_edd_suite,
+    )
+
+    suite = load_runtime_lab_memory_edd_suite()
+    suite["golden_set_policy"] = dict(suite["golden_set_policy"])
+    suite["golden_set_policy"]["product_truth_source"] = []
+    review = build_memory_dogfood_replay_review_artifact([_reviewed_dogfood_record()])
+
+    projection = build_reviewed_dogfood_edd_suite_projection(suite, review)
+
+    assert projection["status"] == "blocked"
+    assert projection["case_count"] == 10
+    assert "missing_product_truth_source_refs" in projection["blockers"]
+    assert projection["canonical_golden_set_mutated"] is False
+
+
+def test_runtime_lab_memory_edd_projection_blocks_unpassed_dogfood_review() -> None:
+    from app.memory.application.runtime_lab_memory_edd import (
+        build_reviewed_dogfood_edd_suite_projection,
+        load_runtime_lab_memory_edd_suite,
+    )
+
+    suite = load_runtime_lab_memory_edd_suite()
+    review = {
+        "artifact_type": "runtime_lab_memory_dogfood_replay_review",
+        "status": "blocked",
+        "reviewed_case_proposals": [],
+        "blockers": ["rt-lab-dogfood-keyword.raw_keyword_semantic_oracle_blocked"],
+    }
+
+    projection = build_reviewed_dogfood_edd_suite_projection(suite, review)
+
+    assert projection["status"] == "blocked"
+    assert projection["reviewed_dogfood_case_count"] == 0
+    assert projection["blockers"] == [
+        "dogfood_review_not_pass",
+        "rt-lab-dogfood-keyword.raw_keyword_semantic_oracle_blocked",
+    ]
+
+
+def test_runtime_lab_memory_edd_projection_rejects_malformed_review_proposals() -> None:
+    from app.memory.application.runtime_lab_memory_edd import (
+        build_reviewed_dogfood_edd_suite_projection,
+        load_runtime_lab_memory_edd_suite,
+    )
+
+    suite = load_runtime_lab_memory_edd_suite()
+    proposal = dict(suite["cases"][0])
+    proposal["source"] = "dogfood_replay"
+    proposal["trace_fields"] = {"manager_decision_field": "memory_candidate_requested"}
+    proposal.pop("expected_runtime_effects")
+    review = {
+        "artifact_type": "runtime_lab_memory_dogfood_replay_review",
+        "status": "pass",
+        "reviewed_case_proposals": [proposal],
+    }
+
+    projection = build_reviewed_dogfood_edd_suite_projection(suite, review)
+
+    assert projection["status"] == "blocked"
+    assert projection["case_count"] == 10
+    assert projection["blockers"] == [
+        "duplicate_case_id:explicit_preference_confirm_candidate",
+        "explicit_preference_confirm_candidate.missing_source_refs",
+        "explicit_preference_confirm_candidate.runtime_effects",
+    ]
+
+
+def _reviewed_dogfood_record() -> dict:
+    request_id = "rt-lab-dogfood-suite-001"
+    return {
+        "trace": {
+            "request_id": request_id,
+            "trace_meta": {
+                "request_id": request_id,
+                "user_id": "user-a",
+                "bundle": "intake_execution",
+                "local_date": "2026-05-09",
+            },
+            "memory_lab_scope": {
+                "workspace_id": "workspace-a",
+                "project_id": "advanced-memory-runtime-lab",
+                "surface": "manager_runtime_lab",
+                "run_id": "suite-projection-run",
+            },
+            "request": {"user_id": "user-a", "text": "reviewed dogfood trace"},
+            "manager_final_decision": {"workflow_effect": "commit_meal_log"},
+            "memory_lab_candidate_signal": {
+                "candidate_type": "preference",
+                "manager_decision_field": "memory_candidate_requested",
+                "source_refs": ["message:dogfood-suite-001"],
+                "review_status": "pending",
+                "promotion_allowed_now": False,
+                "human_review_required": True,
+                "reason_codes": ["explicit_user_preference"],
+            },
+        },
+        "review": {
+            "reviewer_id": "fixture-human-reviewer",
+            "case_type": "explicit_preference",
+            "split": "holdout",
+            "expected_outcome": "candidate",
+            "expected_candidate_type": "preference",
+            "semantic_oracle_source": "product_rule_and_trace_fields",
+            "raw_keyword_route_allowed": False,
+            "source_ref_confirmation": True,
+        },
+    }

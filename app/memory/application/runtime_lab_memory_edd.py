@@ -47,6 +47,12 @@ REQUIRED_RUBRIC_DIMENSIONS = {
     "secret_redaction",
 }
 
+REQUIRED_PRODUCT_TRUTH_REFS = {
+    "docs/specs/L4A_MEMORY_MODEL_SPEC.md",
+    "docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md",
+    "docs/quality/ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md",
+}
+
 
 def load_runtime_lab_memory_edd_suite(
     path: Path | str = DEFAULT_SUITE_PATH,
@@ -143,9 +149,82 @@ def _validate_suite(
     return blockers
 
 
+def build_reviewed_dogfood_edd_suite_projection(
+    suite: dict[str, Any],
+    dogfood_review: dict[str, Any],
+) -> dict[str, Any]:
+    base_cases = [dict(case) for case in suite.get("cases", [])]
+    review_cases = [
+        dict(case) for case in dogfood_review.get("reviewed_case_proposals", [])
+    ]
+    blockers = _projection_blockers(suite, dogfood_review)
+
+    projected_cases = base_cases if blockers else [*base_cases, *review_cases]
+    split_counts = Counter(str(case.get("split")) for case in projected_cases)
+    case_type_counts = Counter(str(case.get("case_type")) for case in projected_cases)
+
+    return {
+        **suite,
+        "artifact_type": "runtime_lab_memory_edd_suite_projection",
+        "status": "pass" if not blockers else "blocked",
+        "base_artifact_type": suite.get("artifact_type"),
+        "dogfood_review_artifact_type": dogfood_review.get("artifact_type"),
+        "base_case_count": len(base_cases),
+        "reviewed_dogfood_case_count": 0 if blockers else len(review_cases),
+        "case_count": len(projected_cases),
+        "case_types": sorted(case_type_counts),
+        "split_counts": dict(sorted(split_counts.items())),
+        "cases": projected_cases,
+        "blockers": blockers,
+        "canonical_golden_set_mutated": False,
+        "reviewed_cases_promoted_to_canonical": False,
+        "runtime_connected": False,
+        "lab_isolated": True,
+        "durable_product_memory_written": False,
+        "manager_context_packet_changed": False,
+        "non_claims": [
+            "not_product_activation_evidence",
+            "not_private_self_use_approval",
+            "not_canonical_golden_set_mutation",
+        ],
+    }
+
+
+def _projection_blockers(
+    suite: dict[str, Any],
+    dogfood_review: dict[str, Any],
+) -> list[str]:
+    blockers: list[str] = []
+    base_case_ids = {str(case.get("case_id")) for case in suite.get("cases", [])}
+    policy = suite.get("golden_set_policy") or {}
+    truth_refs = set(policy.get("product_truth_source") or [])
+    if not REQUIRED_PRODUCT_TRUTH_REFS <= truth_refs:
+        blockers.append("missing_product_truth_source_refs")
+    if suite.get("status") != "pass":
+        blockers.append("base_suite_not_pass")
+        blockers.extend(str(blocker) for blocker in suite.get("blockers", []))
+    if dogfood_review.get("status") != "pass":
+        blockers.append("dogfood_review_not_pass")
+        blockers.extend(str(blocker) for blocker in dogfood_review.get("blockers", []))
+    if dogfood_review.get("artifact_type") != "runtime_lab_memory_dogfood_replay_review":
+        blockers.append("unsupported_dogfood_review_artifact")
+    for case in dogfood_review.get("reviewed_case_proposals", []):
+        case_id = str(case.get("case_id"))
+        if case_id in base_case_ids:
+            blockers.append(f"duplicate_case_id:{case_id}")
+        trace_fields = case.get("trace_fields") or {}
+        if not trace_fields.get("source_refs"):
+            blockers.append(f"{case_id}.missing_source_refs")
+        if case.get("expected_runtime_effects") != EXPECTED_RUNTIME_EFFECTS:
+            blockers.append(f"{case_id}.runtime_effects")
+    return blockers
+
+
 __all__ = [
     "DEFAULT_SUITE_PATH",
     "EXPECTED_RUNTIME_EFFECTS",
+    "REQUIRED_PRODUCT_TRUTH_REFS",
     "SIDECAR_ACTIVATION_CONTRACT",
+    "build_reviewed_dogfood_edd_suite_projection",
     "load_runtime_lab_memory_edd_suite",
 ]
