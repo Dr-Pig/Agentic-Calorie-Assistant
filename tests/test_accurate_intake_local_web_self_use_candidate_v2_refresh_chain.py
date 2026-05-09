@@ -742,6 +742,39 @@ def test_refresh_chain_generates_required_context_target_browser_closure_before_
     )
 
 
+def test_refresh_chain_generates_required_visual_qa_before_next_blocker(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+
+    visual_qa_path = artifact_dir / module.PRODUCT_PAGES_FLOW_ARTIFACT_PATHS[
+        "product_pages_visual_qa"
+    ].name
+    visual_qa = json.loads(visual_qa_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["status"] == "blocked"
+    assert visual_qa["status"] == "pass"
+    assert visual_qa["browser_executed"] is True
+    assert visual_qa["browser_execution_required"] is True
+    assert visual_qa["desktop_screenshots_captured"] is True
+    assert visual_qa["mobile_screenshots_captured"] is True
+    assert visual_qa["three_distinct_pages_verified"] is True
+    assert visual_qa["desktop_no_overflow"] is True
+    assert visual_qa["mobile_no_overflow"] is True
+    assert visual_qa["visible_trace_debug_terms_absent"] is True
+    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
+        "product_pages_visual_qa.unexpected_status:missing"
+    )
+    assert "product_pages_visual_qa" not in printed["closeout_navigation"]["missing_evidence"]
+
+
 def test_closeout_navigation_reports_stale_evidence_without_readiness_claims() -> None:
     from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
 
