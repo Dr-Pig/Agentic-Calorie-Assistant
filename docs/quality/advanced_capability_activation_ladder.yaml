@@ -47,6 +47,7 @@ promotion_rules:
     - human_review_decision
 
 pre_promotion_no_go_flags:
+  applies_to: mainline_runtime_activation
   user_facing_behavior_changed: false
   canonical_mutation_changed: false
   durable_product_memory_written: false
@@ -58,6 +59,35 @@ pre_promotion_no_go_flags:
   route_or_api_activation_allowed: false
   product_db_migration_allowed: false
   live_provider_delivery_path_allowed: false
+
+shadow_lab_scope:
+  goal: complete_product_capability_and_ux_tasks
+  complete_product_capability_allowed: true
+  lab_only_user_facing_surfaces_allowed: true
+  lab_only_scheduler_simulation_allowed: true
+  lab_only_isolated_mutation_ledger_allowed: true
+  lab_only_durable_memory_store_allowed: true
+  live_llm_diagnostic_allowed: true
+  real_user_feedback_replay_allowed: true
+  mainline_runtime_connection_allowed: false
+  mainline_route_or_api_mount_allowed: false
+  mainline_scheduler_delivery_allowed: false
+  canonical_product_db_mutation_allowed: false
+  manager_context_packet_production_change_allowed: false
+  required_isolation_markers:
+    lab_isolated: true
+    mainline_runtime_connected: false
+    user_facing_behavior_changed_in_mainline: false
+    canonical_mutation_changed_in_mainline: false
+    durable_product_memory_written_in_mainline: false
+    manager_context_packet_changed_in_mainline: false
+    real_scheduler_or_notification_delivery: false
+    lab_artifacts_may_include_complete_ux: true
+  merge_back_rule: >
+    Lab artifacts may model complete product UX and mechanisms, but code merged
+    to main must keep those mechanisms behind lab-only runners, isolated stores,
+    and explicit activation reviews until a later runtime activation PR promotes
+    a named surface.
 
 stage_requirements:
   contract:
