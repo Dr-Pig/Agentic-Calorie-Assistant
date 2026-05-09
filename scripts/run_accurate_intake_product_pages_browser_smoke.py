@@ -170,6 +170,11 @@ DATA_NON_CLAIMS = {
     "canonical_eval_promoted": False,
     "import_or_reset_written": False,
 }
+LAUNCHPAD_NON_CLAIMS = {
+    "frontend_semantic_owner": False,
+    "product_readiness_claimed": False,
+    "local_debug_token_in_url": False,
+}
 REQUIRED_FETCH_METHODS = {
     "/accurate-intake/chat-history": "GET",
     "/accurate-intake/feedback": "POST",
@@ -205,6 +210,10 @@ def _base_report(
         "previous_local_date": _previous_local_date(local_date),
         "browser_execution_required": browser_execution_required,
         "browser_executed": False,
+        "launchpad_page_loaded": False,
+        "launchpad_navigation_checked": False,
+        "launchpad_navigation_values": {},
+        "launchpad_non_claims": dict(LAUNCHPAD_NON_CLAIMS),
         "chat_page_loaded": False,
         "chat_sent_cjk_message": False,
         "chat_assistant_bubble_rendered": False,
@@ -409,6 +418,23 @@ def _data_export_values(payload: dict[str, Any]) -> dict[str, Any]:
         "export_path_exists": export_path.exists(),
         "manifest_path_exists": manifest_path.exists(),
     }
+
+
+def _launchpad_navigation_values(page: Any, *, user_external_id: str, local_date: str) -> dict[str, bool]:
+    return page.evaluate(
+        """({ userExternalId, localDate }) => {
+          const values = {};
+          for (const link of Array.from(document.querySelectorAll("[data-entry-target]"))) {
+            const target = link.getAttribute("data-entry-target");
+            const url = new URL(link.href, window.location.href);
+            values[target] = url.searchParams.get("user_id") === userExternalId
+              && url.searchParams.get("local_date") === localDate
+              && !url.searchParams.has("local_debug_token");
+          }
+          return values;
+        }""",
+        {"userExternalId": user_external_id, "localDate": local_date},
+    )
 
 
 def _storage_state(page: Any) -> dict[str, list[str]]:
@@ -1045,6 +1071,68 @@ def _run_data_hygiene_sequence(
     return result
 
 
+def _run_launchpad_sequence(
+    browser: Any,
+    *,
+    base_url: str,
+    user_external_id: str,
+    local_date: str,
+    timeout_ms: int,
+    local_debug_token: str,
+    viewport: dict[str, int],
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "launchpad_page_loaded": False,
+        "launchpad_navigation_checked": False,
+        "launchpad_navigation_values": {},
+        "launchpad_non_claims": dict(LAUNCHPAD_NON_CLAIMS),
+        "fetch_sequence": [],
+        "page_text": "",
+    }
+    launchpad = _open_page(
+        browser,
+        viewport=viewport,
+        url=_page_url(base_url, "local-shell", user_external_id=user_external_id, local_date=local_date),
+        timeout_ms=timeout_ms,
+        local_debug_token=local_debug_token,
+    )
+    launchpad.wait_for_selector('[data-entry-role="desktop-dogfood-launchpad"]', timeout=timeout_ms)
+    launchpad.wait_for_function(
+        """({ userExternalId, localDate }) => {
+          const links = Array.from(document.querySelectorAll("[data-entry-target]"));
+          return links.length >= 5 && links.every((link) => {
+            const url = new URL(link.href, window.location.href);
+            return url.searchParams.get("user_id") === userExternalId
+              && url.searchParams.get("local_date") === localDate
+              && !url.searchParams.has("local_debug_token");
+          });
+        }""",
+        arg={"userExternalId": user_external_id, "localDate": local_date},
+        timeout=timeout_ms,
+    )
+    result["launchpad_page_loaded"] = True
+    values = _launchpad_navigation_values(launchpad, user_external_id=user_external_id, local_date=local_date)
+    result["launchpad_navigation_values"] = values
+    result["launchpad_navigation_checked"] = all(
+        values.get(target) is True for target in ("chat", "today", "body", "feedback", "data")
+    )
+    result["launchpad_non_claims"] = {
+        "frontend_semantic_owner": (
+            launchpad.locator('[data-entry-role="desktop-dogfood-launchpad"]').evaluate(
+                "(node) => node.dataset.frontendSemanticOwner === 'true'"
+            )
+        ),
+        "product_readiness_claimed": "product_ready" in launchpad.url.lower(),
+        "local_debug_token_in_url": "local_debug_token=" in launchpad.locator(
+            '[data-entry-target="chat"]'
+        ).evaluate("(node) => node.href"),
+    }
+    result["page_text"] = launchpad.locator("body").inner_text(timeout=timeout_ms)
+    result["fetch_sequence"].extend(_capture_fetches(launchpad))
+    launchpad.close()
+    return result
+
+
 def _run_browser_sequence(
     *,
     base_url: str,
@@ -1065,6 +1153,10 @@ def _run_browser_sequence(
         "mobile_overflow": {},
         "storage": {"localStorageKeys": [], "sessionStorageKeys": []},
         "product_page_text": "",
+        "launchpad_page_loaded": False,
+        "launchpad_navigation_checked": False,
+        "launchpad_navigation_values": {},
+        "launchpad_non_claims": dict(LAUNCHPAD_NON_CLAIMS),
         "chat_body_observation_same_truth_checked": False,
         "chat_body_observation_written": False,
         "chat_body_observation_body_page_readback": False,
@@ -1104,6 +1196,22 @@ def _run_browser_sequence(
             nav_checks: list[bool] = []
             storage_keys = {"localStorageKeys": [], "sessionStorageKeys": []}
             page_texts: list[str] = []
+
+            result["current_step"] = "open_launchpad"
+            launchpad_result = _run_launchpad_sequence(
+                browser,
+                base_url=base_url,
+                user_external_id=user_external_id,
+                local_date=local_date,
+                timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
+                viewport=desktop_viewport,
+            )
+            result["launchpad_page_loaded"] = launchpad_result["launchpad_page_loaded"]
+            result["launchpad_navigation_checked"] = launchpad_result["launchpad_navigation_checked"]
+            result["launchpad_navigation_values"] = launchpad_result["launchpad_navigation_values"]
+            result["launchpad_non_claims"] = launchpad_result["launchpad_non_claims"]
+            result["fetch_sequence"].extend(launchpad_result["fetch_sequence"])
 
             result["current_step"] = "open_chat"
             chat = _open_page(
@@ -1833,6 +1941,8 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
             blockers.append(blocker)
 
     require_true("browser_executed", "browser_not_executed")
+    require_true("launchpad_page_loaded", "launchpad_page_not_loaded")
+    require_true("launchpad_navigation_checked", "launchpad_navigation_not_checked")
     require_true("chat_page_loaded", "chat_page_not_loaded")
     require_true("chat_sent_cjk_message", "chat_cjk_message_not_sent")
     require_true("chat_assistant_bubble_rendered", "chat_assistant_bubble_not_rendered")
@@ -1942,6 +2052,14 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         blockers.append("forbidden_storage_used")
 
     browser = dict(report.get("browser") or {})
+    launchpad_values = dict(report.get("launchpad_navigation_values") or {})
+    for target in ("chat", "today", "body", "feedback", "data"):
+        if launchpad_values.get(target) is not True:
+            blockers.append(f"launchpad_navigation_not_preserved:{target}")
+    launchpad_non_claims = dict(report.get("launchpad_non_claims") or {})
+    for field, expected_value in LAUNCHPAD_NON_CLAIMS.items():
+        if launchpad_non_claims.get(field) != expected_value:
+            blockers.append(f"launchpad_non_claim_overclaim:{field}")
     body_values = dict(report.get("body_plan_read_model_values") or browser.get("body_plan_read_model_values") or {})
     local_date = str(report.get("local_date") or DEFAULT_LOCAL_DATE)
     if not body_values:
