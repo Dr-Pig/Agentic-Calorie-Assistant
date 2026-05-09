@@ -57,6 +57,21 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
             "frontend_weight_parser_used": False,
             "product_readiness_claimed": False,
         },
+        "body_ui_weight_chat_readback_checked": True,
+        "body_ui_weight_chat_readback_values": {
+            "assistant_text": "Latest weight is 70.4 kg from your body log.",
+            "latest_weight": "70.4 kg",
+            "latest_weight_local_date": local_date,
+            "selected_tool": "body.get_latest_observation",
+            "manager_call_count": 2,
+        },
+        "body_ui_weight_chat_readback_non_claims": {
+            "state_mutated": False,
+            "body_plan_mutated": False,
+            "ledger_updated": False,
+            "frontend_weight_parser_used": False,
+            "product_readiness_claimed": False,
+        },
         "today_page_loaded": True,
         "today_date_switch_checked": True,
         "today_previous_day_empty_checked": True,
@@ -446,6 +461,40 @@ def test_product_pages_browser_smoke_validator_requires_chat_body_observation_sa
     assert "chat_body_observation_non_claim_overclaim:ledger_updated" in blockers
     assert "chat_body_observation_non_claim_overclaim:frontend_weight_parser_used" in blockers
     assert "chat_body_observation_non_claim_overclaim:product_readiness_claimed" in blockers
+
+
+def test_product_pages_browser_smoke_validator_requires_body_ui_weight_chat_readback() -> None:
+    report = _passing_report(local_date="2026-05-05")
+    report["body_ui_weight_chat_readback_checked"] = False
+    report["body_ui_weight_chat_readback_values"] = {
+        "assistant_text": "",
+        "latest_weight": "70 kg",
+        "latest_weight_local_date": "2026-05-04",
+        "selected_tool": "body.get_active_plan",
+        "manager_call_count": 1,
+    }
+    report["body_ui_weight_chat_readback_non_claims"] = {
+        "state_mutated": True,
+        "body_plan_mutated": True,
+        "ledger_updated": True,
+        "frontend_weight_parser_used": True,
+        "product_readiness_claimed": True,
+    }
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "body_ui_weight_chat_readback_not_checked" in blockers
+    assert "body_ui_weight_chat_readback_value_mismatch:assistant_text" in blockers
+    assert "body_ui_weight_chat_readback_value_mismatch:latest_weight" in blockers
+    assert "body_ui_weight_chat_readback_value_mismatch:latest_weight_local_date" in blockers
+    assert "body_ui_weight_chat_readback_value_mismatch:selected_tool" in blockers
+    assert "body_ui_weight_chat_readback_value_mismatch:manager_call_count" in blockers
+    assert "body_ui_weight_chat_readback_non_claim_overclaim:state_mutated" in blockers
+    assert "body_ui_weight_chat_readback_non_claim_overclaim:body_plan_mutated" in blockers
+    assert "body_ui_weight_chat_readback_non_claim_overclaim:ledger_updated" in blockers
+    assert "body_ui_weight_chat_readback_non_claim_overclaim:frontend_weight_parser_used" in blockers
+    assert "body_ui_weight_chat_readback_non_claim_overclaim:product_readiness_claimed" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_missing_reload_body_user_and_overflow() -> None:
