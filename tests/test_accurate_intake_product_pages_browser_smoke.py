@@ -118,6 +118,32 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "today_manual_target_readback_checked": True,
         "body_session_status_rendered": True,
         "body_no_debug_trace": True,
+        "feedback_page_loaded": True,
+        "feedback_submitted": True,
+        "feedback_jsonl_written": True,
+        "feedback_review_queue_ingested": True,
+        "feedback_record_values": {
+            "category": "latency",
+            "feedback_text": "Synthetic browser feedback",
+            "trace_id": "trace-browser-feedback",
+            "do_not_commit": True,
+            "manager_context_injection_allowed": False,
+            "food_kb_truth_update_allowed": False,
+            "canonical_eval_promotion_allowed": False,
+        },
+        "feedback_review_queue_values": {
+            "feedback_triage_record_count": 1,
+            "feedback_can_create_product_truth": False,
+            "feedback_can_create_fooddb_truth": False,
+            "feedback_can_create_eval_truth": False,
+        },
+        "feedback_non_claims": {
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "fooddb_truth_updated": False,
+            "canonical_eval_promoted": False,
+            "manager_context_injected": False,
+        },
         "desktop_no_overflow": True,
         "mobile_no_overflow": True,
         "mobile_populated_state_checked": True,
@@ -160,6 +186,14 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
                 {"url": f"/today/deficit-summary?user_id=product-pages&local_date={local_date}", "method": "GET"},
                 {"url": f"/today/effective-budget?user_id=product-pages&local_date={local_date}", "method": "GET"},
                 {"url": f"/today/weekly-progress?user_id=product-pages&local_date={local_date}", "method": "GET"},
+                {
+                    "url": "/accurate-intake/feedback",
+                    "method": "POST",
+                    "body": (
+                        '{"category":"latency","feedback_text":"Synthetic browser feedback",'
+                        '"trace_id":"trace-browser-feedback"}'
+                    ),
+                },
                 {
                     "url": "/weight/observation",
                     "method": "POST",
@@ -222,6 +256,42 @@ def test_product_pages_browser_smoke_validator_requires_cross_page_evidence() ->
 
     assert status == "pass"
     assert blockers == []
+
+
+def test_product_pages_browser_smoke_validator_requires_feedback_capture_loop() -> None:
+    report = _passing_report()
+    report["feedback_page_loaded"] = False
+    report["feedback_submitted"] = False
+    report["feedback_jsonl_written"] = False
+    report["feedback_review_queue_ingested"] = False
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "feedback_page_not_loaded" in blockers
+    assert "feedback_not_submitted" in blockers
+    assert "feedback_jsonl_not_written" in blockers
+    assert "feedback_review_queue_not_ingested" in blockers
+
+
+def test_product_pages_browser_smoke_validator_rejects_feedback_truth_promotion() -> None:
+    report = _passing_report()
+    record_values = dict(report["feedback_record_values"])
+    record_values["food_kb_truth_update_allowed"] = True
+    report["feedback_record_values"] = record_values
+    queue_values = dict(report["feedback_review_queue_values"])
+    queue_values["feedback_can_create_eval_truth"] = True
+    report["feedback_review_queue_values"] = queue_values
+    non_claims = dict(report["feedback_non_claims"])
+    non_claims["manager_context_injected"] = True
+    report["feedback_non_claims"] = non_claims
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "feedback_record_truth_promotion:food_kb_truth_update_allowed" in blockers
+    assert "feedback_review_queue_truth_promotion:feedback_can_create_eval_truth" in blockers
+    assert "feedback_non_claim_overclaim:manager_context_injected" in blockers
 
 
 def test_product_pages_browser_smoke_validator_requires_chat_body_observation_same_truth() -> None:
