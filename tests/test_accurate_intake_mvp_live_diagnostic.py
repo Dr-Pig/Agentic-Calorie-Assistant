@@ -514,7 +514,7 @@ def test_accurate_intake_live_trace_expectation_catches_entry_loop_regression() 
     assert checks["provider_invocation_count_at_most_2"] == "fail"
 
 
-def test_accurate_intake_live_trace_expectation_catches_extra_exact_item_call() -> None:
+def test_accurate_intake_live_trace_expectation_allows_exact_item_tool_pass_and_synthesis() -> None:
     from app.composition.accurate_intake_live_trace_expectations import grade_live_trace_expectations
 
     case = {
@@ -538,13 +538,43 @@ def test_accurate_intake_live_trace_expectation_catches_extra_exact_item_call() 
 
     grade = grade_live_trace_expectations(case)
 
+    checks = {check["check_id"]: check for check in grade["checks"]}
+    assert checks["call_topology_matches_expected"]["status"] == "pass"
+
+
+def test_accurate_intake_live_trace_expectation_catches_more_than_one_exact_item_synthesis_call() -> None:
+    from app.composition.accurate_intake_live_trace_expectations import grade_live_trace_expectations
+
+    case = {
+        "case_id": "exact_item_official_label",
+        "provider_invocations": [
+            {"diagnostic_turn": 1, "manager_loop_scope": "turn_entry_or_read_only"},
+            {"diagnostic_turn": 1, "manager_loop_scope": "intake_execution"},
+            {"diagnostic_turn": 1, "manager_loop_scope": "intake_execution"},
+            {"diagnostic_turn": 1, "manager_loop_scope": "intake_execution"},
+        ],
+        "turns": [
+            {
+                "turn": 1,
+                "manager_final_action": "commit",
+                "manager_rounds": [
+                    {"decision": {"tool_calls": [{"name": "estimate_nutrition"}]}},
+                ],
+                "state_delta": {"canonical_commit": True},
+            }
+        ],
+    }
+
+    grade = grade_live_trace_expectations(case)
+
     assert grade["required_status"] == "fail"
     checks = {check["check_id"]: check for check in grade["checks"]}
     assert checks["call_topology_matches_expected"]["status"] == "fail"
     assert checks["call_topology_matches_expected"]["observed"] == {
-        "expected_by_turn": {1: ["turn_entry_or_read_only", "intake_execution"]},
-        "observed_by_turn": {1: ["turn_entry_or_read_only", "intake_execution", "intake_execution"]},
+        "expected_by_turn": {1: ["turn_entry_or_read_only", "intake_execution", "intake_execution"]},
+        "observed_by_turn": {1: ["turn_entry_or_read_only", "intake_execution", "intake_execution", "intake_execution"]},
         "unexpected_turns": [],
+        "accepted_alternates": {1: [["turn_entry_or_read_only", "intake_execution"]]},
     }
 
 
@@ -577,6 +607,47 @@ def test_accurate_intake_live_trace_expectation_allows_listed_basket_tool_pass_a
                 ],
             },
         ],
+    }
+
+    grade = grade_live_trace_expectations(case)
+
+    checks = {check["check_id"]: check for check in grade["checks"]}
+    assert checks["call_topology_matches_expected"]["status"] == "pass"
+
+
+def test_accurate_intake_live_trace_expectation_allows_bubble_tool_pass_and_synthesis() -> None:
+    from app.composition.accurate_intake_live_trace_expectations import grade_live_trace_expectations
+
+    case = {
+        "case_id": "bubble_milk_tea_refinement",
+        "provider_invocations": [
+            {"diagnostic_turn": 1, "manager_loop_scope": "turn_entry_or_read_only"},
+            {"diagnostic_turn": 1, "manager_loop_scope": "intake_execution"},
+            {"diagnostic_turn": 1, "manager_loop_scope": "intake_execution"},
+            {"diagnostic_turn": 2, "manager_loop_scope": "turn_entry_or_read_only"},
+            {"diagnostic_turn": 2, "manager_loop_scope": "intake_execution"},
+        ],
+        "turns": [
+            {
+                "turn": 1,
+                "manager_final_action": "commit",
+                "state_delta": {"canonical_commit": True, "old_version_superseded": False},
+                "manager_rounds": [
+                    {"decision": {"tool_calls": [{"name": "estimate_nutrition"}], "final_action": "commit"}},
+                    {"decision": {"tool_calls": [], "final_action": "commit"}},
+                ],
+            },
+            {
+                "turn": 2,
+                "manager_final_action": "correction_applied",
+                "state_delta": {"old_version_superseded": True},
+                "manager_rounds": [
+                    {"decision": {"tool_calls": [{"name": "estimate_nutrition"}], "final_action": "commit"}},
+                    {"decision": {"tool_calls": [], "final_action": "correction_applied"}},
+                ],
+            },
+        ],
+        "debug_surface": {"model": {"same_truth": {"status": "pass"}}},
     }
 
     grade = grade_live_trace_expectations(case)
