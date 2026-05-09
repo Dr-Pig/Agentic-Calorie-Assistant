@@ -9,6 +9,9 @@ def _with_approved_trace(summary: dict[str, Any], trace_contract: dict[str, Any]
     approved_trace = trace_contract.get("approved_exact_macro_trace")
     if isinstance(approved_trace, dict):
         summary["approved_exact_macro_trace"] = approved_trace
+    approved_fooddb_trace = trace_contract.get("approved_fooddb_evidence_trace")
+    if isinstance(approved_fooddb_trace, dict):
+        summary["approved_fooddb_evidence_trace"] = approved_fooddb_trace
     return summary
 
 

@@ -12,15 +12,24 @@ from scripts.run_accurate_intake_one_day_realistic_web_dogfood import (  # noqa:
 )
 
 
-def test_accurate_intake_one_day_realistic_web_dogfood_honest_gap():
+def _turn_by_id(turns: list[dict], turn_id: str) -> dict:
+    return next(turn for turn in turns if turn["turn_id"] == turn_id)
+
+
+def _react_trace(turn: dict) -> dict:
+    payload = (turn.get("raw_response") or {}).get("payload") or {}
+    manager = payload.get("intake_execution_manager") or {}
+    return manager.get("react_trace") or {}
+
+
+def test_accurate_intake_one_day_realistic_web_dogfood_uses_minimal_fooddb_evidence():
     with TemporaryDirectory() as tmpdir:
         db_path = Path(tmpdir) / "test.db"
         report = build_report(db_path)
 
         scenario = report["one_day_realistic_web_dogfood"]
 
-        # Artifact block reports "diagnostic_pass_with_evidence_gap" instead of plain pass
-        assert scenario["status"] == "diagnostic_pass_with_evidence_gap"
+        assert scenario["status"] == "diagnostic_pass_with_correction_gap"
 
         # Non-goals are preserved
         assert scenario["live_provider_called"] is False
@@ -52,10 +61,17 @@ def test_accurate_intake_one_day_realistic_web_dogfood_honest_gap():
         assert t_target["state_after"]["local_date"] == "2026-05-04"
         assert t_target["mutation_or_query"] == "mutation"
 
-        # Honest representation that without LLM macros, no logs were created
+        # The food logging turns now consume runner-scoped approved FoodDB evidence
+        # through the Manager loop instead of shadow-stub kcal.
         evi = scenario["evidence"]
-        assert evi["food_logs_created"] is False
-        assert evi["evidence_gap_observed"] is True
+        assert evi["food_logs_created"] is True
+        assert evi["active_meal_count"] >= 4
+        assert evi["food_evidence_gap_observed"] is False
+        assert evi["evidence_gap_observed"] is False
+        assert evi["approved_fooddb_evidence_fixture_used"] is True
+        assert evi["fooddb_evidence_used"] is True
+        assert evi["macro_present_evidence_seen"] is True
+        assert evi["macro_missing_evidence_seen"] is True
         assert evi["manager_context_gap_observed"] is False
         assert evi["manager_fixture_call_topology_gap_observed"] is False
         assert evi["manager_gap_breakdown"]["runtime_response_turn_ids"] == [
@@ -71,7 +87,8 @@ def test_accurate_intake_one_day_realistic_web_dogfood_honest_gap():
         assert evi["manager_gap_breakdown"]["missing_manager_response_turn_ids"] == []
         assert evi["manager_gap_breakdown"]["fixture_provider_exhausted_turn_ids"] == []
         assert evi["evidence_gap_handled_without_fake_kcal"] is True
-        assert "food evidence gap prevented realistic food logging" in scenario["blockers"]
+        assert "food evidence gap prevented realistic food logging" not in scenario["blockers"]
+        assert "correction target gap prevented remove-item application" in scenario["blockers"]
         assert (
             "manager context/runtime gap prevented complete turn evaluation"
             not in scenario["blockers"]
@@ -80,6 +97,28 @@ def test_accurate_intake_one_day_realistic_web_dogfood_honest_gap():
             "dogfood manager fixture exhausted before all turns completed"
             not in scenario["blockers"]
         )
+
+        for turn_id in ("breakfast_001", "lunch_001", "tea_001", "dinner_basket_001"):
+            turn = _turn_by_id(turns, turn_id)
+            assert turn["mutation_or_query"] == "mutation"
+            assert turn["state_delta"]["canonical_commit"] is True
+            assert "estimate_nutrition" in _react_trace(turn)["executed_tools"]
+
+        lunch = _turn_by_id(turns, "lunch_001")
+        lunch_macro = lunch["raw_response"]["payload"]["sidecar"]["macro"]
+        assert lunch_macro["display_status"] == "show"
+        assert lunch_macro["guard_reason"] == "committed_and_aligned"
+        assert lunch_macro["approved_fooddb_evidence_trace"]["source_lane"] == "generic_common_serving"
+
+        dinner = _turn_by_id(turns, "dinner_basket_001")
+        dinner_macro = dinner["raw_response"]["payload"]["sidecar"]["macro"]
+        assert dinner_macro["display_status"] == "hide"
+        assert dinner_macro["guard_reason"] == "macro_alignment_fail"
+        assert dinner_macro["protein_g"] == 61
+        assert dinner_macro["carbs_g"] == 206
+        assert dinner_macro["fat_g"] == 58
+        assert dinner_macro["approved_fooddb_evidence_trace"]["source_lane"] == "listed_component"
+        assert dinner_macro["approved_fooddb_evidence_trace"]["macro_visibility_status"] == "hidden_missing_source"
 
         # Rule: Remove-item attempts the correction but correctly flags the negative guard
         # rather than faking an applied correction when the target ID is omitted!
@@ -99,6 +138,8 @@ def test_accurate_intake_one_day_realistic_web_dogfood_honest_gap():
         assert "expected_manager_decision" in t_query
         assert "manager_decision_source" in t_query
         assert t_query["mutation_or_query"] == "query"
+        assert t_query["state_after"]["consumed_kcal"] > 0
+        assert t_query["state_after"]["remaining_kcal"] < t_query["state_after"]["budget_kcal"]
         # Since it is a query, ensure state_before and state_after consumed_kcal match
         assert (
             t_query["state_before"]["consumed_kcal"]
@@ -162,11 +203,14 @@ def test_negative_guard_raw_text_inference_not_used():
         )
 
         client.close()
-        old_manager, old_search, old_extract = getattr(
-            client, "old_providers", (None, None, None)
+        old_manager, old_search, old_extract, old_estimate_tool = getattr(
+            client, "old_providers", (None, None, None, None)
         )
         intake_routes.manager_provider = old_manager
         intake_routes.search_provider = old_search
         intake_routes.extract_provider = old_extract
+        import app.composition.intake_manager_tool_batch as intake_manager_tool_batch
+
+        intake_manager_tool_batch.estimate_nutrition_tool = old_estimate_tool
         db.close()
         engine.dispose()
