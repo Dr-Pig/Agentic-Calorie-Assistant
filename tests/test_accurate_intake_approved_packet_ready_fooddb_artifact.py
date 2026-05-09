@@ -122,6 +122,25 @@ def test_build_approved_packet_ready_artifact_uses_macro_complete_exact_card() -
         "OpenFoodFacts",
         "WebSearch",
     ]
+    shadow_schema = macro_contract["shadow_schema"]
+    generic_fields = shadow_schema["generic_common_serving"]["macro_fields"]
+    assert "protein_g_point" in generic_fields
+    assert "protein_g_range" in generic_fields
+    assert "carbs_g_point" in generic_fields
+    assert "carbs_g_range" in generic_fields
+    assert "fat_g_point" in generic_fields
+    assert "fat_g_range" in generic_fields
+    assert "macro_source_strength" in generic_fields
+    assert shadow_schema["generic_common_serving"]["values_may_be_null"] is True
+    component_fields = shadow_schema["listed_component"]["macro_fields"]
+    assert "protein_g_per_unit" in component_fields
+    assert "carbs_g_per_unit" in component_fields
+    assert "fat_g_per_unit" in component_fields
+    assert shadow_schema["basket_family_alias_modifier"]["macro_fields"] == []
+    assert (
+        shadow_schema["source_evidence_candidate"]["runtime_truth_allowed"]
+        is False
+    )
 
     item = artifact["packet_ready_items"][0]
     assert item["source_lane"] == "exact_item_card"

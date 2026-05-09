@@ -233,6 +233,36 @@ def test_handoff_blocks_stale_fooddb_macro_contract_without_source_class_policy(
     assert "fooddb_macro_source_class_policy_missing" in pack["blockers"]
 
 
+def test_handoff_blocks_fooddb_macro_contract_without_shadow_schema() -> None:
+    stale_macro_contract = dict(MACRO_CONTRACT)
+    stale_macro_contract.pop("shadow_schema")
+
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(),
+        fooddb_artifact=_fooddb_artifact(macro_contract=stale_macro_contract),
+    )
+
+    assert pack["status"] == "blocked"
+    assert pack["fooddb_artifact_status"] == "blocked_invalid_fooddb_macro_contract"
+    assert "fooddb_macro_shadow_schema_missing" in pack["blockers"]
+
+
+def test_handoff_blocks_fooddb_macro_shadow_schema_missing_generic_range() -> None:
+    stale_macro_contract = json.loads(json.dumps(MACRO_CONTRACT))
+    stale_macro_contract["shadow_schema"]["generic_common_serving"]["macro_fields"].remove(
+        "protein_g_range"
+    )
+
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(),
+        fooddb_artifact=_fooddb_artifact(macro_contract=stale_macro_contract),
+    )
+
+    assert pack["status"] == "blocked"
+    assert pack["fooddb_artifact_status"] == "blocked_invalid_fooddb_macro_contract"
+    assert "fooddb_macro_shadow_schema_generic_missing:protein_g_range" in pack["blockers"]
+
+
 def test_handoff_valid_real_fooddb_metadata_allows_validation_only_integration() -> None:
     pack = build_product_loop_handoff_v3(
         _product_loop_evidence(),
@@ -328,3 +358,4 @@ def test_fooddb_handoff_docs_require_macro_packet_contract() -> None:
         assert "macro_visibility_status" in text
         assert "macro_source_basis" in text
         assert "missing_macro_policy" in text
+        assert "shadow_schema" in text

@@ -229,6 +229,7 @@ If FoodDB produces packet-ready evidence, it must report:
 - approved_packet_ready_evidence_artifact.macro_contract.packet_fields includes protein_g, carbs_g, fat_g, macro_visibility_status, macro_source_basis, macro_confidence
 - approved_packet_ready_evidence_artifact.macro_contract.macro_truth_owner = fooddb_approved_packet
 - approved_packet_ready_evidence_artifact.macro_contract.missing_macro_policy = preserve_null_do_not_invent
+- approved_packet_ready_evidence_artifact.macro_contract.shadow_schema reserves exact label, generic point/range, listed component per-unit, basket no-truth, and source-evidence candidate fields for FoodDB expansion without runtime promotion
 
 If ManagerRuntime produces trace fields, it must report:
 - context_trace_fields

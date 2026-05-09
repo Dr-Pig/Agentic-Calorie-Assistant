@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
 
 from app.nutrition.application.fooddb_macro_contract import (  # noqa: E402
     MACRO_RUNTIME_POLICY,
+    MACRO_SHADOW_SCHEMA,
     MACRO_SOURCE_CLASS_POLICY,
 )
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
@@ -285,6 +286,7 @@ def _fooddb_macro_contract_blockers(metadata: dict[str, Any]) -> list[str]:
         blockers.append("fooddb_macro_missing_policy_invalid")
     blockers.extend(_fooddb_macro_runtime_policy_blockers(macro_contract))
     blockers.extend(_fooddb_macro_source_policy_blockers(macro_contract))
+    blockers.extend(_fooddb_macro_shadow_schema_blockers(macro_contract))
     return blockers
 
 
@@ -325,6 +327,54 @@ def _fooddb_macro_source_policy_blockers(macro_contract: dict[str, Any]) -> list
         blockers.append("fooddb_macro_source_policy_basket_truth_allowed")
     if source_evidence.get("macro_truth_allowed") is not False:
         blockers.append("fooddb_macro_source_policy_evidence_candidate_truth_allowed")
+    return blockers
+
+
+def _fooddb_macro_shadow_schema_blockers(macro_contract: dict[str, Any]) -> list[str]:
+    shadow_schema = _object_dict(macro_contract.get("shadow_schema"))
+    if not shadow_schema:
+        return ["fooddb_macro_shadow_schema_missing"]
+
+    blockers: list[str] = []
+    blocker_prefix = {
+        "exact_brand_item": "exact",
+        "generic_common_serving": "generic",
+        "listed_component": "component",
+        "basket_family_alias_modifier": "basket",
+        "source_evidence_candidate": "source_evidence",
+    }
+    for source_class, required_policy in MACRO_SHADOW_SCHEMA.items():
+        actual = _object_dict(shadow_schema.get(source_class))
+        prefix = blocker_prefix[source_class]
+        if not actual:
+            blockers.append(f"fooddb_macro_shadow_schema_missing:{source_class}")
+            continue
+
+        required_macro_fields = set(required_policy.get("macro_fields") or [])
+        actual_macro_fields = {str(field) for field in list(actual.get("macro_fields") or [])}
+        for field in sorted(required_macro_fields - actual_macro_fields):
+            blockers.append(f"fooddb_macro_shadow_schema_{prefix}_missing:{field}")
+
+        required_candidate_fields = set(required_policy.get("candidate_fields") or [])
+        actual_candidate_fields = {
+            str(field) for field in list(actual.get("candidate_fields") or [])
+        }
+        for field in sorted(required_candidate_fields - actual_candidate_fields):
+            blockers.append(f"fooddb_macro_shadow_schema_{prefix}_missing:{field}")
+
+    generic = _object_dict(shadow_schema.get("generic_common_serving"))
+    component = _object_dict(shadow_schema.get("listed_component"))
+    basket = _object_dict(shadow_schema.get("basket_family_alias_modifier"))
+    source_evidence = _object_dict(shadow_schema.get("source_evidence_candidate"))
+
+    if generic.get("values_may_be_null") is not True:
+        blockers.append("fooddb_macro_shadow_schema_generic_null_unknown_missing")
+    if component.get("preferred_macro_granularity") != "per_unit":
+        blockers.append("fooddb_macro_shadow_schema_component_per_unit_missing")
+    if list(basket.get("macro_fields") or []) != []:
+        blockers.append("fooddb_macro_shadow_schema_basket_macro_fields_present")
+    if source_evidence.get("runtime_truth_allowed") is not False:
+        blockers.append("fooddb_macro_shadow_schema_source_evidence_truth_allowed")
     return blockers
 
 

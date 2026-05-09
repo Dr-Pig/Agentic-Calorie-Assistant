@@ -238,6 +238,8 @@ python scripts/build_accurate_intake_product_loop_handoff_v3.py --browser-shell-
 
 The handoff gate is validation-only. It requires the local web self-use candidate so the FoodDB handoff sees the same AppShell browser evidence chain used by Chat / Today / Body gates. Without a FoodDB artifact it stays blocked with `fooddb_artifact_status=blocked_waiting_for_fdb_artifact` and `ready_for_fdb_integration=false`. Fixture FoodDB evidence remains fixture-only and cannot be presented as a real FoodDB pass. Invalid FoodDB metadata blocks the gate and must not trigger auto-fix or FoodDB truth updates. Approved real FoodDB metadata must include `macro_contract` packet fields for `protein_g`, `carbs_g`, `fat_g`, `macro_visibility_status`, `macro_source_basis`, and `macro_confidence`, with missing macro values preserved as null/unknown rather than invented.
 
+The same `macro_contract` must also include a shadow-only `shadow_schema` for FoodDB expansion. It reserves generic common serving point/range fields, listed component per-unit fields, exact label fields, empty basket/alias/modifier macro truth, and source-evidence candidate fields such as per-100g source values. This schema is not runtime promotion; it only lets FoodDB expand data without forcing ManagerRuntime or AppShell to accept unapproved macro truth.
+
 Build the Food KB gap register from the operator review surface with:
 
 ```powershell
