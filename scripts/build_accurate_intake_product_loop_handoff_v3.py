@@ -37,6 +37,9 @@ OPERATOR_REVIEW_STATUSES = {
     "browser_diagnostic_review_with_evidence_gap",
     "diagnostic_review_with_evidence_gap",
 }
+OPERATOR_REVIEW_ARTIFACT_TYPES = {
+    "accurate_intake_dogfood_operator_review_surface",
+}
 ALLOWED_SOURCE_QUALITY = {
     "approved",
     "human_approved",
@@ -162,10 +165,30 @@ def _pl_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         if payload.get("real_fooddb_pass_claimed") is not False:
             blockers.append("browser_realistic_dogfood_real_fooddb_overclaim")
     elif group_id == "operator_review":
+        if (
+            status == "missing"
+            or payload.get("artifact_type") == "missing"
+            or payload.get("artifact_type") == "invalid_json"
+        ):
+            return [f"missing_product_loop_evidence:{group_id}"]
+        if payload.get("artifact_type") not in OPERATOR_REVIEW_ARTIFACT_TYPES:
+            blockers.append("operator_review_invalid_artifact_type")
         if status not in OPERATOR_REVIEW_STATUSES:
             blockers.append("operator_review_not_diagnostic_review")
+        if payload.get("local_only") is not True:
+            blockers.append("operator_review_not_local_only")
+        if payload.get("food_kb_truth_updated") is not False:
+            blockers.append("operator_review_food_kb_truth_updated")
         if payload.get("real_fooddb_pass_claimed") is not False:
             blockers.append("operator_review_real_fooddb_overclaim")
+        if payload.get("dogfood_pass") is not False:
+            blockers.append("operator_review_dogfood_pass_overclaim")
+        if payload.get("product_readiness_claimed") is not False:
+            blockers.append("operator_review_product_readiness_overclaim")
+        if payload.get("private_self_use_approved") is not False:
+            blockers.append("operator_review_private_self_use_overclaim")
+        if payload.get("production_readiness_claimed") is not False:
+            blockers.append("operator_review_production_readiness_overclaim")
     elif group_id == "mvp_gate":
         if status != "pass":
             blockers.append("mvp_gate_not_pass")
