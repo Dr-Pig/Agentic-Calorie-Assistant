@@ -523,6 +523,41 @@ def test_refresh_chain_generates_required_product_pages_browser_smoke_before_nex
     assert "product_pages_browser_smoke" not in printed["closeout_navigation"]["missing_evidence"]
 
 
+def test_refresh_chain_generates_required_seven_day_diary_smoke_before_next_blocker(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+
+    seven_day_path = (
+        artifact_dir
+        / module.PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["product_pages_seven_day_diary_smoke"].name
+    )
+    seven_day = json.loads(seven_day_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["status"] == "blocked"
+    assert seven_day["status"] == "pass"
+    assert seven_day["browser_executed"] is True
+    assert seven_day["browser_execution_required"] is True
+    assert seven_day["day_count_checked"] == 7
+    assert seven_day["seven_day_window_checked"] is True
+    assert seven_day["product_readiness_claimed"] is False
+    assert seven_day["private_self_use_approved"] is False
+    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
+        "product_pages_seven_day_diary_smoke.unexpected_status:missing"
+    )
+    assert (
+        "product_pages_seven_day_diary_smoke"
+        not in printed["closeout_navigation"]["missing_evidence"]
+    )
+
+
 def test_closeout_navigation_reports_stale_evidence_without_readiness_claims() -> None:
     from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
 
