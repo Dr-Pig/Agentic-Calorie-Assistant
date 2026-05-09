@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
+import subprocess
+import sys
 
 from app.runtime.application.proactive_no_send_shadow_evaluator import (
     ProactiveNoSendShadowInput,
@@ -340,3 +342,38 @@ def test_decision_pack_writer_creates_artifact(tmp_path: Path) -> None:
     payload = written.read_text(encoding="utf-8")
     assert '"artifact_type": "proactive_no_send_decision_pack"' in payload
     assert '"promotion_allowed": false' in payload
+
+
+def test_decision_pack_cli_fails_closed_for_side_effectful_input(tmp_path: Path) -> None:
+    source_path = tmp_path / "proactive_no_send_simulation.json"
+    output_path = tmp_path / "proactive_no_send_decision_pack.json"
+    side_effectful = _artifact_with_review_candidate()
+    side_effectful["proactive_sent"] = True
+    source_path.write_text(json.dumps(side_effectful, ensure_ascii=False), encoding="utf-8")
+    root = Path(__file__).resolve().parents[1]
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "build_proactive_no_send_decision_pack.py"),
+            "--input",
+            str(source_path),
+            "--output",
+            str(output_path),
+        ],
+        cwd=root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert output_path.exists()
+    pack = json.loads(output_path.read_text(encoding="utf-8"))
+    assert pack["artifact_type"] == "proactive_no_send_decision_pack"
+    assert pack["input_integrity"]["passed"] is False
+    assert "run_1_proactive_sent" in pack["input_integrity"]["blockers"]
+    assert pack["live_delivery_allowed"] is False
+    assert pack["scheduler_activation_allowed"] is False
+    assert pack["promotion_allowed"] is False
+    assert set(pack["activation_guardrails"].values()) == {False}

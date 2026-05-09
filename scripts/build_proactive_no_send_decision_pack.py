@@ -351,7 +351,8 @@ def main() -> int:
         output_path=Path(args.output) if args.output else None,
     )
     print(path)
-    return 0
+    pack = json.loads(path.read_text(encoding="utf-8"))
+    return 0 if pack.get("input_integrity", {}).get("passed") is True else 1
 
 
 if __name__ == "__main__":
