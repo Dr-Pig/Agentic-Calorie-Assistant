@@ -44,6 +44,7 @@ def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() ->
 
     assert 'data-surface-role="chat"' in html
     assert 'id="chat-scroll"' in html
+    assert 'id="chat-scroll" aria-live="polite" role="log" aria-relevant="additions text"' in html
     assert 'id="chat-day-link"' in html
     assert 'id="chat-session-user"' in html
     assert 'id="chat-session-date"' in html
@@ -75,6 +76,32 @@ def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() ->
     assert "messages.sort" not in html
     assert "localStorage" not in html
     assert "sessionStorage" not in html
+
+
+def test_chat_page_renders_assistant_replies_only_from_backend_sources() -> None:
+    html = _html(CHAT)
+
+    assert 'data-reply-source="backend_render_contract"' in html
+    assert "function appendMessage(role, text, source = \"backend_message\")" in html
+    assert "row.dataset.messageRole = role;" in html
+    assert "bubble.dataset.renderSource = source;" in html
+    assert 'data-render-source="static_welcome"' in html
+    assert 'appendMessage(role, message.content || "", "chat_history.sqlite_message_buffer");' in html
+    assert 'pending.dataset.renderSource = "estimate.coach_message";' in html
+    assert "pending.textContent = payload.coach_message ||" in html
+    assert '"estimate.coach_message"' in html
+
+    forbidden = [
+        "payload.final_action",
+        "payload.workflow_effect",
+        "payload.estimated_kcal",
+        "payload.remaining_kcal",
+        "payload.macro",
+        "coach_message.includes",
+        "message.content.includes",
+    ]
+    for fragment in forbidden:
+        assert fragment not in html
 
 
 def test_chat_page_context_status_renders_only_chat_history_structured_fields() -> None:

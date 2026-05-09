@@ -374,7 +374,7 @@
       </nav>
     </header>
     <main>
-      <section class="chat-card" aria-label="Accurate Intake chat">
+      <section class="chat-card" aria-label="Accurate Intake chat" data-reply-source="backend_render_contract">
         <header class="chat-header">
           <div>
             <h1>Chat</h1>
@@ -412,10 +412,10 @@
             </div>
           </details>
         </header>
-        <div id="chat-scroll" aria-live="polite">
-          <div class="message bot">
+        <div id="chat-scroll" aria-live="polite" role="log" aria-relevant="additions text">
+          <div class="message bot" data-message-role="bot">
             <div class="avatar">AI</div>
-            <div class="bubble">今天想記什麼？我會接著你的飲食對話繼續記錄。</div>
+            <div class="bubble" data-render-source="static_welcome">今天想記什麼？我會接著你的飲食對話繼續記錄。</div>
           </div>
         </div>
         <form id="composer" class="composer" aria-busy="false">
@@ -553,11 +553,13 @@
       }
       return { "X-Local-Debug-Token": token };
     }
-    function appendMessage(role, text) {
+    function appendMessage(role, text, source = "backend_message") {
       const row = document.createElement("div");
       row.className = `message ${role}`;
+      row.dataset.messageRole = role;
       const bubble = document.createElement("div");
       bubble.className = "bubble";
+      bubble.dataset.renderSource = source;
       bubble.textContent = text || "";
       if (role === "bot") {
         const avatar = document.createElement("div");
@@ -593,7 +595,7 @@
       }
       for (const message of messages) {
         const role = message.role === "user" ? "user" : "bot";
-        appendMessage(role, message.content || "");
+        appendMessage(role, message.content || "", "chat_history.sqlite_message_buffer");
       }
     }
     async function loadHistory() {
@@ -611,16 +613,17 @@
       const text = input.value.trim();
       if (!text) return;
       setComposerBusy(true);
-      appendMessage("user", text);
+      appendMessage("user", text, "current_user_input");
       input.value = "";
       fitComposerInput();
-      const pending = appendMessage("bot", "處理中...");
+      const pending = appendMessage("bot", "處理中...", "client_pending_placeholder");
       try {
         const payload = await requestJson(endpoints.estimate, {
           method: "POST",
           headers: { "Content-Type": "application/json; charset=utf-8" },
           body: JSON.stringify({ text, user_id: userId(), local_date: selectedDate(), allow_search: false })
         });
+        pending.dataset.renderSource = "estimate.coach_message";
         pending.textContent = payload.coach_message || "目前沒有可顯示的助理回覆。";
         await loadHistory();
       } catch (error) {
