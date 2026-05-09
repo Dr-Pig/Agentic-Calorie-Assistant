@@ -8,6 +8,9 @@ from app.memory.application.runtime_lab_candidate_records import (
     candidate_record,
     rejection_record,
 )
+from app.memory.application.runtime_lab_signal_projection import (
+    project_memory_signal_for_ingress_event,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -93,10 +96,11 @@ def build_candidate_extraction_artifact_from_ingress_events(
 
 def extract_candidate_from_ingress_event(event: Mapping[str, Any]) -> dict[str, Any]:
     request_id = str(event.get("request_id") or "unknown_request")
-    source_trace = _mapping(event.get("sanitized_source_trace"))
+    projected_event = project_memory_signal_for_ingress_event(event)
+    source_trace = _mapping(projected_event.get("sanitized_source_trace"))
     signal = _mapping(source_trace.get("memory_lab_candidate_signal"))
     if not signal:
-        return rejection_record(request_id, "no_memory_candidate_signal")
+        return rejection_record(request_id, "no_explicit_memory_signal")
     if not signal.get("manager_decision_field"):
         return rejection_record(request_id, "missing_manager_decision_field")
 
@@ -110,7 +114,7 @@ def extract_candidate_from_ingress_event(event: Mapping[str, Any]) -> dict[str, 
     candidate = candidate_record(
         case_id=request_id,
         candidate_type=candidate_type,
-        scope_keys=dict(_mapping(event.get("scope_keys"))),
+        scope_keys=dict(_mapping(projected_event.get("scope_keys"))),
         source_refs=[str(ref) for ref in signal.get("source_refs", []) if ref],
         payload=dict(signal),
         reason_codes=[str(code) for code in signal.get("reason_codes", []) if code],
