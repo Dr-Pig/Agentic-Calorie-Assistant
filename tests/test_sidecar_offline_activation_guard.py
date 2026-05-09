@@ -20,6 +20,7 @@ SIDECAR_MODULES = [
     "app.recommendation.domain.candidate_quality",
     "app.recommendation.application",
     "app.recommendation.application.candidate_quality_gate",
+    "app.recommendation.application.summary_pool_posture",
     "app.rescue",
     "app.rescue.domain",
     "app.rescue.domain.proposal_read_models",

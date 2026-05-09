@@ -11,6 +11,10 @@ from app.recommendation.application.candidate_quality_gate import (
 from app.recommendation.application.summary_consumer_candidate import (
     quality_input_from_prepared_candidate,
 )
+from app.recommendation.application.summary_pool_posture import (
+    BLOCKED_POSTURE,
+    build_summary_pool_posture,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -50,6 +54,16 @@ def build_recommendation_shadow_summary_consumer_quality_report(
             for candidate in prepared_candidates
         ]
     )
+    pool_posture = (
+        dict(BLOCKED_POSTURE)
+        if blockers
+        else build_summary_pool_posture(
+            prepared_candidates=prepared_candidates,
+            negative_preference_ids=_memory_index(memory_summary_projection)[
+                "negative_ids"
+            ],
+        )
+    )
     return {
         "artifact_type": "recommendation_shadow_summary_consumer_quality_report",
         "status": status,
@@ -64,6 +78,7 @@ def build_recommendation_shadow_summary_consumer_quality_report(
         ),
         "candidate_count": len(prepared_candidates),
         "candidate_evaluations": evaluations,
+        **pool_posture,
         "local_only": True,
         "diagnostic_only": True,
         "shadow_only": True,
