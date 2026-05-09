@@ -85,6 +85,90 @@ def test_rescue_option_generation_marks_strained_when_recovery_exceeds_ten_perce
     assert "daily_adjustment_above_10_percent" in packet["guardrail_notes"]
 
 
+def test_rescue_option_generation_aggressive_cap_can_shorten_legal_spread_without_commit() -> None:
+    from app.rescue.application.option_generation_shadow import (
+        build_rescue_option_generation_shadow_packet,
+    )
+
+    packet = build_rescue_option_generation_shadow_packet(
+        viability_shadow_packet=_viability_packet(consumed=2520, days=5),
+        adjustment_request="shorter_more_aggressive",
+    )
+
+    assert packet["status"] == "pass"
+    assert packet["rescue_needed"] is True
+    assert packet["cap_mode"] == "aggressive_20_percent"
+    assert packet["recommended_days"] == 2
+    assert packet["daily_kcal_adjustment"] == -360
+    assert packet["recovery_viability"] == "strained"
+    assert packet["special_posture"] == "aggressive_spread"
+    assert "aggressive_cap_checked" in packet["guardrail_notes"]
+    assert packet["proposal_committed"] is False
+    assert packet["ledger_entry_created"] is False
+    assert packet["runtime_effect_allowed"] is False
+
+
+def test_rescue_option_generation_aggressive_still_escalates_when_twenty_percent_exceeds_five() -> None:
+    from app.rescue.application.option_generation_shadow import (
+        build_rescue_option_generation_shadow_packet,
+    )
+
+    packet = build_rescue_option_generation_shadow_packet(
+        viability_shadow_packet=_viability_packet(consumed=4000, days=5),
+        adjustment_request="shorter_more_aggressive",
+    )
+
+    assert packet["status"] == "pass"
+    assert packet["rescue_needed"] is False
+    assert packet["recovery_viability"] == "non_viable"
+    assert packet["cap_mode"] == "aggressive_20_percent"
+    assert packet["special_posture"] == "rescue_stop_and_escalate"
+    assert "min_days_exceeds_5" in packet["blockers"]
+    assert "aggressive_cap_checked" in packet["guardrail_notes"]
+    assert packet["proposal_card"] is None
+    assert packet["proposal_committed"] is False
+
+
+def test_rescue_option_generation_longer_gentler_extends_horizon_when_legal() -> None:
+    from app.rescue.application.option_generation_shadow import (
+        build_rescue_option_generation_shadow_packet,
+    )
+
+    packet = build_rescue_option_generation_shadow_packet(
+        viability_shadow_packet=_viability_packet(consumed=2100, days=5),
+        adjustment_request="longer_gentler",
+    )
+
+    assert packet["status"] == "pass"
+    assert packet["rescue_needed"] is True
+    assert packet["cap_mode"] == "standard_15_percent"
+    assert packet["recommended_days"] == 3
+    assert packet["daily_kcal_adjustment"] == -100
+    assert packet["recovery_viability"] == "viable"
+    assert packet["special_posture"] == "longer_gentler_spread"
+    assert "gentler_horizon_extended" in packet["guardrail_notes"]
+    assert packet["proposal_headline"] is None
+    assert packet["rescue_committed"] is False
+
+
+def test_rescue_option_generation_blocks_strength_adjustment_below_safety_floor() -> None:
+    from app.rescue.application.option_generation_shadow import (
+        build_rescue_option_generation_shadow_packet,
+    )
+
+    packet = build_rescue_option_generation_shadow_packet(
+        viability_shadow_packet=_viability_packet(consumed=2100, days=5, base=1300),
+        adjustment_request="shorter_more_aggressive",
+    )
+
+    assert packet["status"] == "pass"
+    assert packet["rescue_needed"] is False
+    assert packet["recovery_viability"] == "non_viable"
+    assert packet["special_posture"] == "rescue_stop_and_escalate"
+    assert "below_safety_floor" in packet["blockers"]
+    assert packet["day_budget_mutated"] is False
+
+
 def test_rescue_option_generation_escalates_when_min_days_exceeds_five() -> None:
     from app.rescue.application.option_generation_shadow import (
         build_rescue_option_generation_shadow_packet,
