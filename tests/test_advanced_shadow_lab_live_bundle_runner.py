@@ -125,8 +125,8 @@ def test_advanced_shadow_live_bundle_runner_blocks_live_without_env(
         "provider_mode": "not_run",
         "output_guard_status": "not_run",
     }
-    assert terminal["surface_status_rows"][1]["finding"] == "live_diagnostic_not_run"
     assert terminal["surface_status_rows"][2]["finding"] == "live_diagnostic_not_run"
+    assert terminal["surface_status_rows"][3]["finding"] == "live_diagnostic_not_run"
     assert terminal["product_readiness_claimed"] is False
     assert terminal["user_facing_behavior_changed"] is False
 

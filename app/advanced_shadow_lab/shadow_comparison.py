@@ -3,6 +3,11 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.case_pairing import build_case_pairing
+from app.advanced_shadow_lab.no_send_control_comparison import (
+    compare_no_send_control_paths,
+    control_blockers_if_comparable,
+    terminal_sink_row,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -46,7 +51,12 @@ def build_advanced_shadow_comparison_artifact(
         "rescue_copy_live_diagnostic": (RESCUE_LIVE_TYPE, rescue_copy_live_diagnostic_artifact or _not_run(RESCUE_LIVE_TYPE)),
     }
     sources = {name: _typed(expected_type, artifact) for name, (expected_type, artifact) in source_inputs.items()}
+    source_statuses = {name: str(artifact.get("status") or "missing") for name, artifact in sources.items()}
     invariant = _activation_invariant_summary(sources.values())
+    control_comparison, control_row, control_blockers = compare_no_send_control_paths(
+        fixture_sink=_mapping(sources["fixture_chain"].get("terminal_review_sink")),
+        dogfood_sink=_mapping(sources["dogfood_replay"].get("terminal_review_sink_summary")),
+    )
     pairing_summary, paired_case_rows = build_case_pairing(
         baseline=list(baseline_case_artifacts or []),
         advanced=list(advanced_case_artifacts or []),
@@ -56,6 +66,7 @@ def build_advanced_shadow_comparison_artifact(
         *_source_type_blockers(source_inputs),
         *_source_status_blockers(sources),
         *[f"{row['source']}.{row['flag']}" for row in invariant["observed_true_flags"]],
+        *control_blockers_if_comparable(source_statuses=source_statuses, blockers=control_blockers),
         *pairing_summary["schema_gaps"],
         *pairing_summary["activation_violations"],
     ]
@@ -66,12 +77,17 @@ def build_advanced_shadow_comparison_artifact(
         "owner": "app/advanced_shadow_lab",
         "consumer": "future_advanced_shadow_lab_quality_gate_or_manual_review",
         "retirement_trigger": "approved_advanced_runtime_activation_plan",
-        "source_statuses": {name: str(artifact.get("status") or "missing") for name, artifact in sources.items()},
+        "source_statuses": source_statuses,
         "surface_status_rows": [
-            _terminal_sink_row(sources["fixture_chain"], sources["dogfood_replay"]),
+            terminal_sink_row(
+                fixture_chain=sources["fixture_chain"],
+                dogfood_replay=sources["dogfood_replay"],
+            ),
+            control_row,
             _live_copy_row("recommendation_prompt_reason_copy", sources["recommendation_copy_live_diagnostic"]),
             _live_copy_row("rescue_proposal_copy_posture", sources["rescue_copy_live_diagnostic"]),
         ],
+        "no_send_control_path_comparison": control_comparison,
         "activation_invariant_summary": invariant,
         "pairing_summary": pairing_summary,
         "paired_case_rows": paired_case_rows,
@@ -115,20 +131,6 @@ def _source_status_blockers(sources: Mapping[str, Mapping[str, Any]]) -> list[st
             continue
         blockers.append(f"{name}.status_{status}")
     return blockers
-
-
-def _terminal_sink_row(fixture: Mapping[str, Any], dogfood: Mapping[str, Any]) -> dict[str, str]:
-    fixture_status = _sink_status(_mapping(fixture.get("terminal_review_sink")))
-    dogfood_status = _sink_status(_mapping(dogfood.get("terminal_review_sink_summary")))
-    return {
-        "surface": "terminal_no_send_review_sink",
-        "fixture_status": fixture_status,
-        "dogfood_status": dogfood_status,
-        "live_status": "not_applicable",
-        "finding": "no_drift"
-        if fixture_status == dogfood_status == "pass"
-        else "terminal_sink_variance",
-    }
 
 
 def _live_copy_row(surface: str, live: Mapping[str, Any]) -> dict[str, str]:
@@ -182,10 +184,6 @@ def _signal(invoked: bool, used: bool, mode: str, guard: str) -> dict[str, Any]:
         "provider_mode": mode,
         "output_guard_status": guard,
     }
-
-
-def _sink_status(sink: Mapping[str, Any]) -> str:
-    return str(sink.get("status") or "missing")
 
 
 def _not_run(artifact_type: str) -> dict[str, str]:

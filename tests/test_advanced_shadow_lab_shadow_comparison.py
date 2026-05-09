@@ -33,6 +33,13 @@ def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> N
             "finding": "no_drift",
         },
         {
+            "surface": "terminal_no_send_control_paths",
+            "fixture_status": "pass",
+            "dogfood_status": "pass",
+            "live_status": "not_applicable",
+            "finding": "control_paths_match",
+        },
+        {
             "surface": "recommendation_prompt_reason_copy",
             "fixture_status": "not_applicable",
             "dogfood_status": "not_applicable",
@@ -61,6 +68,14 @@ def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> N
             "provider_mode": "builderspace_live_diagnostic",
             "output_guard_status": "pass",
         },
+    }
+    assert artifact["no_send_control_path_comparison"] == {
+        "fixture_status": "pass",
+        "dogfood_status": "pass",
+        "configured_paths_match": True,
+        "observed_actions_match": True,
+        "next_signal_required_match": True,
+        "finding": "control_paths_match",
     }
     assert artifact["mainline_runtime_connected"] is False
     assert artifact["delivery_attempted"] is False
@@ -125,7 +140,7 @@ def test_shadow_comparison_treats_live_guard_block_as_quality_finding() -> None:
 
     assert artifact["status"] == "blocked"
     assert artifact["source_statuses"]["recommendation_copy_live_diagnostic"] == "blocked"
-    assert artifact["surface_status_rows"][1] == {
+    assert artifact["surface_status_rows"][2] == {
         "surface": "recommendation_prompt_reason_copy",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",
@@ -149,7 +164,7 @@ def test_shadow_comparison_treats_rescue_live_guard_block_as_quality_finding() -
 
     assert artifact["status"] == "blocked"
     assert artifact["source_statuses"]["rescue_copy_live_diagnostic"] == "blocked"
-    assert artifact["surface_status_rows"][2] == {
+    assert artifact["surface_status_rows"][3] == {
         "surface": "rescue_proposal_copy_posture",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",
@@ -177,6 +192,58 @@ def test_shadow_comparison_blocks_required_source_status_failures() -> None:
     assert artifact["user_facing_behavior_changed"] is False
 
 
+def test_shadow_comparison_blocks_missing_no_send_control_evidence() -> None:
+    fixture = _fixture_chain()
+    fixture["terminal_review_sink"] = {"status": "pass", "record_count": 2}
+
+    artifact = build_advanced_shadow_comparison_artifact(
+        fixture_chain_artifact=fixture,
+        dogfood_replay_artifact=_dogfood_replay(),
+        recommendation_copy_live_diagnostic_artifact=_live_diagnostic(),
+        rescue_copy_live_diagnostic_artifact=_rescue_live_diagnostic(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["surface_status_rows"][1] == {
+        "surface": "terminal_no_send_control_paths",
+        "fixture_status": "missing",
+        "dogfood_status": "pass",
+        "live_status": "not_applicable",
+        "finding": "control_path_evidence_missing",
+    }
+    assert artifact["blockers"] == [
+        "terminal_no_send_control_paths.fixture_control_evidence_missing"
+    ]
+    assert artifact["user_facing_behavior_changed"] is False
+
+
+def test_shadow_comparison_blocks_no_send_control_variance() -> None:
+    dogfood = _dogfood_replay()
+    control = dict(dogfood["terminal_review_sink_summary"]["control_path_evidence"])  # type: ignore[index]
+    control["configured_paths"] = {"dismiss": True, "snooze": False, "undo": True}
+    dogfood["terminal_review_sink_summary"] = {
+        "status": "pass",
+        "record_count": 2,
+        "control_path_evidence": control,
+    }
+
+    artifact = build_advanced_shadow_comparison_artifact(
+        fixture_chain_artifact=_fixture_chain(),
+        dogfood_replay_artifact=dogfood,
+        recommendation_copy_live_diagnostic_artifact=_live_diagnostic(),
+        rescue_copy_live_diagnostic_artifact=_rescue_live_diagnostic(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["no_send_control_path_comparison"]["finding"] == (
+        "control_path_variance"
+    )
+    assert artifact["blockers"] == [
+        "terminal_no_send_control_paths.configured_paths_mismatch"
+    ]
+    assert artifact["proactive_sent"] is False
+
+
 def test_shadow_comparison_allows_rescue_live_diagnostic_to_be_absent() -> None:
     artifact = build_advanced_shadow_comparison_artifact(
         fixture_chain_artifact=_fixture_chain(),
@@ -186,7 +253,7 @@ def test_shadow_comparison_allows_rescue_live_diagnostic_to_be_absent() -> None:
 
     assert artifact["status"] == "pass"
     assert artifact["source_statuses"]["rescue_copy_live_diagnostic"] == "not_run"
-    assert artifact["surface_status_rows"][2] == {
+    assert artifact["surface_status_rows"][3] == {
         "surface": "rescue_proposal_copy_posture",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",
@@ -285,7 +352,11 @@ def _fixture_chain() -> dict[str, object]:
     return {
         "artifact_type": "advanced_shadow_e2e_fixture_chain_artifact",
         "status": "pass",
-        "terminal_review_sink": {"status": "pass", "record_count": 2},
+        "terminal_review_sink": {
+            "status": "pass",
+            "record_count": 2,
+            "control_path_evidence": _control_evidence(),
+        },
         "mainline_runtime_connected": False,
         "delivery_attempted": False,
         "scheduler_enabled": False,
@@ -301,7 +372,11 @@ def _dogfood_replay() -> dict[str, object]:
         "artifact_type": "advanced_shadow_dogfood_replay_artifact",
         "status": "pass",
         "advanced_fixture_chain_status": "pass",
-        "terminal_review_sink_summary": {"status": "pass", "record_count": 2},
+        "terminal_review_sink_summary": {
+            "status": "pass",
+            "record_count": 2,
+            "control_path_evidence": _control_evidence(include_count=False),
+        },
         "dogfood_case_summaries": [
             {"case_id": "dogfood-1", "raw_text": "private dogfood wording"}
         ],
@@ -385,3 +460,17 @@ def _case_artifact(case_id: str, artifact_type: str) -> dict[str, object]:
         "user_facing_behavior_changed": False,
         "product_readiness_claimed": False,
     }
+
+
+def _control_evidence(*, include_count: bool = True) -> dict[str, object]:
+    evidence: dict[str, object] = {
+        "status": "pass",
+        "all_candidates_have_required_controls": True,
+        "configured_paths": {"dismiss": True, "snooze": True, "undo": True},
+        "interaction_actions_observed": ["dismiss", "snooze"],
+        "observed_all_interaction_actions": False,
+        "next_signal_required_present": True,
+    }
+    if include_count:
+        evidence["candidate_count"] = 2
+    return evidence
