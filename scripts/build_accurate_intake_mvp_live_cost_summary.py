@@ -137,6 +137,9 @@ def build_accurate_intake_live_cost_summary(
     provider_request_footprint_summary = _provider_request_footprint_summary(provider_invocation_records)
     latency_root_cause_hints = build_latency_root_cause_hints(
         provider_invocation_count=provider_invocation_count,
+        provider_invocation_attribution_missing_count=int(
+            latency_breakdown.get("provider_invocation_attribution_missing_count") or 0
+        ),
         max_stage_latency_ms=max_stage_latency_ms,
         stage_overhead_ms=int(latency_breakdown.get("stage_overhead_ms") or 0),
         max_turn_non_provider_latency_ms=int(latency_breakdown.get("max_turn_non_provider_latency_ms") or 0),

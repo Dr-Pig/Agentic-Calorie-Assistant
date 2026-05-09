@@ -213,6 +213,7 @@ def test_live_cost_summary_flags_latency_root_cause_probe_without_readiness_clai
     assert summary["summary"]["cache_hit_call_count"] == 0
     assert summary["latency_root_cause_hints"] == {
         "provider_invocation_count_high": True,
+        "provider_invocation_attribution_missing": True,
         "stage_latency_high": True,
         "stage_overhead_high": False,
         "turn_non_provider_runtime_high": False,
@@ -230,6 +231,36 @@ def test_live_cost_summary_flags_latency_root_cause_probe_without_readiness_clai
     ]
     assert summary["generated_artifact_policy"]["local_diagnostic_evidence_only"] is True
     assert "readiness_claimed" not in summary
+
+
+def test_live_cost_summary_does_not_recommend_attribution_when_provider_calls_are_already_attributed() -> None:
+    summary = build_accurate_intake_live_cost_summary(
+        [
+            _live_artifact(
+                stage_id="single_case_live_probe",
+                latency_ms=90_000,
+                usage={"prompt_tokens": 300, "completion_tokens": 40, "total_tokens": 340},
+                provider_invocation_overrides=[
+                    {
+                        "latency_ms": 10_000,
+                        "diagnostic_case_id": "bubble_milk_tea_refinement",
+                        "diagnostic_turn": (index // 2) + 1,
+                        "diagnostic_turn_kind": "followup_refinement",
+                        "manager_round_index": index % 2,
+                        "manager_loop_scope": "intake_execution",
+                    }
+                    for index in range(8)
+                ],
+            )
+        ]
+    )
+
+    assert summary["latency_breakdown"]["unattributed_provider_invocation_count"] == 0
+    assert summary["latency_breakdown"]["provider_invocation_attribution_missing_count"] == 0
+    assert summary["latency_root_cause_hints"]["provider_invocation_count_high"] is True
+    assert summary["latency_root_cause_hints"]["provider_invocation_attribution_missing"] is False
+    assert "attribute_provider_invocations_to_manager_rounds" not in summary["latency_optimization_priorities"]
+    assert "reduce_provider_request_count_per_user_turn" in summary["latency_optimization_priorities"]
 
 
 def test_live_cost_summary_breaks_down_latency_by_stage_case_turn_and_slowest_call() -> None:

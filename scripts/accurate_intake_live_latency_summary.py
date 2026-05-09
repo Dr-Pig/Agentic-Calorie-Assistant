@@ -57,6 +57,9 @@ def build_latency_breakdown(
             for record in provider_invocation_records
             if not record.get("diagnostic_stage_id") and not record.get("stage")
         ),
+        "provider_invocation_attribution_missing_count": sum(
+            1 for record in provider_invocation_records if _provider_invocation_attribution_missing(record)
+        ),
         "by_diagnostic_stage": _diagnostic_stage_latency_breakdown(
             stage_latency_records=stage_latency_records,
             provider_invocation_records=provider_invocation_records,
@@ -180,9 +183,12 @@ def build_latency_root_cause_hints(
     usage_record_count: int,
     cache_reporting_call_count: int,
     cache_hit_call_count: int,
+    provider_invocation_attribution_missing_count: int = 0,
 ) -> dict[str, bool]:
     return {
         "provider_invocation_count_high": provider_invocation_count >= HIGH_PROVIDER_INVOCATION_COUNT,
+        "provider_invocation_attribution_missing": provider_invocation_count > 0
+        and provider_invocation_attribution_missing_count > 0,
         "stage_latency_high": max_stage_latency_ms >= HIGH_STAGE_LATENCY_MS,
         "stage_overhead_high": stage_overhead_ms >= HIGH_STAGE_OVERHEAD_MS,
         "turn_non_provider_runtime_high": max_turn_non_provider_latency_ms >= HIGH_TURN_NON_PROVIDER_LATENCY_MS,
@@ -260,12 +266,9 @@ def _prompt_cache_stable_group(stable_hash: str, records: list[dict[str, Any]]) 
 def latency_optimization_priorities(hints: dict[str, bool]) -> list[str]:
     priorities: list[str] = []
     if hints.get("provider_invocation_count_high"):
-        priorities.extend(
-            [
-                "attribute_provider_invocations_to_manager_rounds",
-                "reduce_provider_request_count_per_user_turn",
-            ]
-        )
+        if hints.get("provider_invocation_attribution_missing"):
+            priorities.append("attribute_provider_invocations_to_manager_rounds")
+        priorities.append("reduce_provider_request_count_per_user_turn")
     if hints.get("stage_overhead_high"):
         priorities.append("attribute_stage_overhead_to_tool_db_renderer_spans")
     if hints.get("turn_non_provider_runtime_high"):
@@ -544,6 +547,16 @@ def _slowest_turn_runtime_segments(records: list[dict[str, Any]], *, limit: int 
         for record in records
     ]
     return sorted(rows, key=lambda item: -int(item.get("turn_latency_ms") or 0))[:limit]
+
+
+def _provider_invocation_attribution_missing(record: dict[str, Any]) -> bool:
+    return (
+        not record.get("diagnostic_stage_id")
+        or not record.get("diagnostic_case_id")
+        or record.get("diagnostic_turn") is None
+        or record.get("manager_loop_scope") is None
+        or record.get("manager_round_index") is None
+    )
 
 
 def _latency_time_ledger(
