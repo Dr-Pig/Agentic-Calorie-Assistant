@@ -33,6 +33,31 @@ FORBIDDEN_OUTPUT_FIELDS = (
     "send_or_skip",
     "primary_actions",
 )
+CONTEXT_AUTHORITY_FLAGS = (
+    "runtime_effect_allowed",
+    "runtime_truth_allowed",
+    "durable_product_memory_written",
+    "manager_context_packet_changed",
+    "manager_context_injected",
+    "proposal_committed",
+    "rescue_committed",
+    "day_budget_mutated",
+    "body_plan_mutated",
+    "meal_thread_mutated",
+    "ledger_entry_created",
+    "proactive_sent",
+    "recommendation_served",
+)
+CONTEXT_ALLOWED_FIELDS = {
+    "budget_context": {"current_date", "overshoot_kcal", "remaining_budget_kcal"},
+    "body_plan_context": {"safety_floor_kcal", "target_days_count", "sex"},
+    "rescue_history_context": {
+        "recent_rescue_count",
+        "summary",
+        "rescue_viability_posture",
+    },
+    "suppression_context": {"trigger_type", "summary"},
+}
 
 
 def build_rescue_proposal_shaping_input_shadow_packet(
@@ -43,7 +68,16 @@ def build_rescue_proposal_shaping_input_shadow_packet(
     rescue_history_context: Mapping[str, Any] | None = None,
     suppression_context: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    blockers = _input_blockers(option_generation_shadow_packet)
+    context_blockers = _context_blockers(
+        budget_context=budget_context,
+        body_plan_context=body_plan_context,
+        rescue_history_context=rescue_history_context,
+        suppression_context=suppression_context,
+    )
+    blockers = [
+        *_input_blockers(option_generation_shadow_packet),
+        *context_blockers,
+    ]
     return {
         "artifact_type": "rescue_proposal_shaping_input_shadow_packet",
         "artifact_schema_version": "1.0",
@@ -59,10 +93,13 @@ def build_rescue_proposal_shaping_input_shadow_packet(
         else {
             "deterministic_option": _deterministic_option(option_generation_shadow_packet),
             "review_context": {
-                "budget_context": dict(budget_context or {}),
-                "body_plan_context": dict(body_plan_context or {}),
-                "rescue_history_context": dict(rescue_history_context or {}),
-                "suppression_context": [dict(item) for item in (suppression_context or [])],
+                "budget_context": _sanitized_mapping("budget_context", budget_context),
+                "body_plan_context": _sanitized_mapping("body_plan_context", body_plan_context),
+                "rescue_history_context": _sanitized_mapping("rescue_history_context", rescue_history_context),
+                "suppression_context": [
+                    _sanitized_mapping("suppression_context", item)
+                    for item in (suppression_context or [])
+                ],
             },
         },
         "forbidden_output_fields": list(FORBIDDEN_OUTPUT_FIELDS),
@@ -98,6 +135,43 @@ def _input_blockers(packet: Mapping[str, Any]) -> list[str]:
         if value not in (None, [], {}):
             blockers.append(f"option_generation_shadow_packet.{field}")
     return blockers
+
+
+def _context_blockers(
+    *,
+    budget_context: Mapping[str, Any] | None,
+    body_plan_context: Mapping[str, Any] | None,
+    rescue_history_context: Mapping[str, Any] | None,
+    suppression_context: list[Mapping[str, Any]] | None,
+) -> list[str]:
+    blockers = [
+        *_authority_blockers("budget_context", budget_context),
+        *_authority_blockers("body_plan_context", body_plan_context),
+        *_authority_blockers("rescue_history_context", rescue_history_context),
+    ]
+    for index, item in enumerate(suppression_context or []):
+        blockers.extend(_authority_blockers(f"suppression_context[{index}]", item))
+    return blockers
+
+
+def _authority_blockers(name: str, value: Mapping[str, Any] | None) -> list[str]:
+    if value is None:
+        return []
+    return [
+        f"{name}.{flag}"
+        for flag in CONTEXT_AUTHORITY_FLAGS
+        if value.get(flag) is True
+    ]
+
+
+def _sanitized_mapping(
+    context_name: str,
+    value: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if value is None:
+        return {}
+    allowed = CONTEXT_ALLOWED_FIELDS[context_name]
+    return {key: value[key] for key in allowed if key in value}
 
 
 def _deterministic_option(packet: Mapping[str, Any]) -> dict[str, Any]:
