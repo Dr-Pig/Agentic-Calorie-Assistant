@@ -139,6 +139,7 @@ def _clean_evidence() -> dict:
                 "renderer_source_closure_checked": True,
                 "context_target_browser_closure_checked": True,
                 "body_noplan_degraded_checked": True,
+                "body_observation_same_truth_checked": True,
                 "fixture_product_loop_steps_checked": 10,
                 "strongest_consumed_pass_type": "browser_executed",
             },
@@ -163,6 +164,7 @@ def _clean_evidence() -> dict:
                 "requires_product_pages_self_use_flow_gate": True,
                 "self_use_flow_gate_checked": True,
                 "self_use_flow_gate_strongest_pass_type": "browser_executed",
+                "body_observation_same_truth_checked": True,
             },
         },
         "manager_tool_surface_inventory": {
@@ -312,6 +314,7 @@ def test_candidate_summarizes_appshell_browser_evidence_chain() -> None:
     assert chain["renderer_source_closure_checked"] is True
     assert chain["context_target_browser_closure_checked"] is True
     assert chain["body_noplan_degraded_checked"] is True
+    assert chain["body_observation_same_truth_checked"] is True
     assert chain["live_llm_invoked"] is False
     assert chain["fooddb_evidence_used"] is False
     assert chain["websearch_evidence_used"] is False

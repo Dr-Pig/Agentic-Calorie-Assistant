@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 import json
 from typing import Any
 
+from app.composition import current_shell_body_observation_gate_contract as body_obs
 from app.composition.accurate_intake_current_shell_claim_boundary import build_current_shell_appshell_claim_boundary_fields
 from app.composition.current_shell_browser_activation_contract import (
     REQUIRED_TRUE_FLAGS as BROWSER_ACTIVATION_REQUIRED_TRUE_FLAGS,
@@ -22,6 +23,7 @@ REQUIRED_INPUTS = (
     "product_pages_browser_smoke",
     "product_pages_seven_day_diary_smoke",
     "product_pages_body_noplan_degraded_smoke",
+    body_obs.BODY_OBSERVATION_SAME_TRUTH_GATE_ID,
     "product_pages_short_term_context_smoke",
     "product_pages_target_candidate_ui_smoke",
     "product_pages_context_target_browser_closure",
@@ -37,6 +39,7 @@ EXPECTED_STATUSES = {
     "product_pages_browser_smoke": "pass",
     "product_pages_seven_day_diary_smoke": "pass",
     "product_pages_body_noplan_degraded_smoke": "pass",
+    body_obs.BODY_OBSERVATION_SAME_TRUTH_GATE_ID: body_obs.BODY_OBSERVATION_SAME_TRUTH_READY_STATUS,
     "product_pages_short_term_context_smoke": "pass",
     "product_pages_target_candidate_ui_smoke": "pass",
     "product_pages_context_target_browser_closure": "context_target_browser_closure_ready_for_self_use_flow_gate",
@@ -122,21 +125,15 @@ FORBIDDEN_TRUTHY_FLAGS = (
 )
 
 REQUIRED_TRUE_FLAGS = {
-    "ui_same_truth_contract": (
-        "frontend_render_only",
-    ),
+    "ui_same_truth_contract": ("frontend_render_only",),
     "today_macro_runtime_mirror_gate": (
         "macro_visible_case_checked",
         "macro_guarded_case_checked",
         "backend_macro_fields_required",
         "show_macro_false_suppresses_macro",
     ),
-    "product_pages_renderer_source_map": (
-        "render_only_boundary_ok",
-    ),
-    "product_pages_renderer_source_closure_gate": (
-        "route_table_checked",
-    ),
+    "product_pages_renderer_source_map": ("render_only_boundary_ok",),
+    "product_pages_renderer_source_closure_gate": ("route_table_checked",),
     "product_pages_browser_smoke": BROWSER_ACTIVATION_REQUIRED_TRUE_FLAGS["product_pages_browser_smoke"],
     "product_pages_seven_day_diary_smoke": (
         "browser_executed",
@@ -286,6 +283,7 @@ def _forbidden_claim_blockers(group_id: str, payload: dict[str, Any]) -> list[st
 
 def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
+    blockers.extend(body_obs.body_observation_same_truth_blockers(group_id, payload))
     if group_id == "product_pages_renderer_source_map":
         summary = _object_dict(payload.get("summary"))
         if _int_value(summary.get("page_count")) != 3:
@@ -426,6 +424,9 @@ def build_pl_ce_product_pages_self_use_flow_gate_artifact(
                     == EXPECTED_STATUSES["product_pages_body_noplan_degraded_smoke"]
                     and inputs["product_pages_body_noplan_degraded_smoke"].get("browser_executed") is True
                 ),
+                "body_observation_same_truth_checked": body_obs.body_observation_same_truth_checked(
+                    inputs[body_obs.BODY_OBSERVATION_SAME_TRUTH_GATE_ID]
+                ),
                 "short_term_context_checked": inputs["product_pages_short_term_context_smoke"].get("chat_history_context_fields_reloaded") is True,
                 "target_candidate_ui_checked": inputs["product_pages_target_candidate_ui_smoke"].get("target_candidate_surface_checked") is True,
                 "context_target_browser_closure_checked": (
@@ -465,7 +466,4 @@ def build_pl_ce_product_pages_self_use_flow_gate_artifact(
     return _json_safe(payload)
 
 
-__all__ = [
-    "REQUIRED_INPUTS",
-    "build_pl_ce_product_pages_self_use_flow_gate_artifact",
-]
+__all__ = ["REQUIRED_INPUTS", "build_pl_ce_product_pages_self_use_flow_gate_artifact"]

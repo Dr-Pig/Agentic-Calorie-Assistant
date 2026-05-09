@@ -199,6 +199,10 @@ def _appshell_browser_evidence_chain(evidence: dict[str, Any]) -> dict[str, Any]
             "body_noplan_degraded_checked": (
                 product_pages_summary.get("body_noplan_degraded_checked") is True
             ),
+            "body_observation_same_truth_checked": (
+                product_pages_summary.get("body_observation_same_truth_checked") is True
+                and browser_activation_summary.get("body_observation_same_truth_checked") is True
+            ),
             "fixture_product_loop_steps_checked": _int_value(
                 product_pages_summary.get("fixture_product_loop_steps_checked")
             ),

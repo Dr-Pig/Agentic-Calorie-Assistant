@@ -247,6 +247,20 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "body_observation_same_truth_gate": {
+            "artifact_type": "accurate_intake_body_observation_same_truth_gate",
+            "status": "body_observation_same_truth_gate_ready_for_human_review",
+            "pass_type": "browser_executed",
+            "upstream_runtime_gate": "rt6_bootstrap_no_plan_body_closure",
+            "journeys": ["G", "H"],
+            "blockers": [],
+            "browser_executed": True,
+            "summary": {
+                "required_browser_flag_count": 10,
+                "all_required_browser_flags_true": True,
+                "upstream_gate_green": True,
+            },
+        },
         "product_pages_short_term_context_smoke": {
             "smoke_id": "accurate_intake_product_pages_short_term_context_smoke_v1",
             "status": "pass",
@@ -410,6 +424,7 @@ def test_product_pages_self_use_flow_gate_accepts_complete_fixture_browser_chain
     assert artifact["summary"]["renderer_source_closure_checked"] is True
     assert artifact["summary"]["context_target_browser_closure_checked"] is True
     assert artifact["summary"]["body_noplan_degraded_checked"] is True
+    assert artifact["summary"]["body_observation_same_truth_checked"] is True
     assert artifact["summary"]["fixture_product_loop_steps_checked"] == 10
     assert artifact["summary"]["strongest_consumed_pass_type"] == "browser_executed"
     assert artifact["all_required_browser_artifacts_executed"] is True
@@ -531,6 +546,7 @@ def test_product_pages_self_use_flow_gate_requires_runtime_and_browser_closure_i
     inputs["today_macro_runtime_mirror_gate"]["status"] = "blocked"
     inputs["product_pages_renderer_source_closure_gate"]["route_table_checked"] = False
     inputs["product_pages_body_noplan_degraded_smoke"]["browser_executed"] = False
+    inputs["body_observation_same_truth_gate"]["summary"]["all_required_browser_flags_true"] = False  # type: ignore[index]
     inputs["product_pages_context_target_browser_closure"]["context_engineering_present"] = False
 
     artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(inputs)
@@ -543,6 +559,10 @@ def test_product_pages_self_use_flow_gate_requires_runtime_and_browser_closure_i
     )
     assert "product_pages_body_noplan_degraded_smoke.browser_not_executed" in artifact["blockers"]
     assert (
+        "body_observation_same_truth_gate.all_required_browser_flags_not_true"
+        in artifact["blockers"]
+    )
+    assert (
         "product_pages_context_target_browser_closure.context_engineering_present_not_true"
         in artifact["blockers"]
     )
@@ -550,6 +570,7 @@ def test_product_pages_self_use_flow_gate_requires_runtime_and_browser_closure_i
     assert artifact["summary"]["renderer_source_closure_checked"] is False
     assert artifact["summary"]["context_target_browser_closure_checked"] is False
     assert artifact["summary"]["body_noplan_degraded_checked"] is False
+    assert artifact["summary"]["body_observation_same_truth_checked"] is False
 
 
 def test_product_pages_self_use_flow_gate_cli_writes_from_existing_artifacts(

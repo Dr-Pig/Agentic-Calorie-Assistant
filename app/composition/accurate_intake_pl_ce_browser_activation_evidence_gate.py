@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 import json
 from typing import Any
 
+from app.composition import current_shell_body_observation_gate_contract as body_obs
 from app.composition.accurate_intake_current_shell_claim_boundary import build_current_shell_appshell_claim_boundary_fields
 from app.composition.current_shell_browser_activation_contract import (
     BROWSER_ARTIFACTS,
@@ -28,6 +29,7 @@ from app.composition.current_shell_compatibility_ids import (
     set_legacy_alias_metadata,
 )
 from app.composition.current_shell_fooddb_triad_same_truth_contract import fooddb_triad_same_truth_blockers
+
 
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
@@ -117,6 +119,7 @@ def _required_true_blockers(group_id: str, payload: dict[str, Any]) -> list[str]
 
 def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
+    blockers.extend(body_obs.body_observation_same_truth_blockers(group_id, payload))
     if group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID:
         if payload.get("activation_gate_status") != "blocked_pending_human_and_browser_activation":
             blockers.append(
@@ -280,6 +283,7 @@ def build_pl_ce_browser_activation_evidence_gate_artifact(
                 "requires_short_term_context_render": True,
                 "requires_target_candidate_ui": True,
                 "requires_body_noplan_degraded_browser": True,
+                "requires_body_observation_same_truth_gate": True,
                 "requires_fixture_full_product_loop_e2e": True,
                 "requires_product_pages_self_use_flow_gate": True,
                 "requires_visual_qa": True,
@@ -289,6 +293,12 @@ def build_pl_ce_browser_activation_evidence_gate_artifact(
                     "strongest_consumed_pass_type"
                 )
                 or "not_available",
+                "body_observation_same_truth_checked": (
+                    body_obs.body_observation_same_truth_checked(
+                        inputs[body_obs.BODY_OBSERVATION_SAME_TRUTH_GATE_ID]
+                    )
+                    and self_use_flow_summary.get("body_observation_same_truth_checked") is True
+                ),
                 "fixture_product_loop_step_count": len(
                     _list_value(inputs["fixture_full_product_loop_e2e"].get("completed_product_loop_steps"))
                 ),

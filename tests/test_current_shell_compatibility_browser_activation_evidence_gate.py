@@ -271,6 +271,20 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "body_observation_same_truth_gate": {
+            "artifact_type": "accurate_intake_body_observation_same_truth_gate",
+            "status": "body_observation_same_truth_gate_ready_for_human_review",
+            "pass_type": "browser_executed",
+            "upstream_runtime_gate": "rt6_bootstrap_no_plan_body_closure",
+            "journeys": ["G", "H"],
+            "blockers": [],
+            "browser_executed": True,
+            "summary": {
+                "required_browser_flag_count": 10,
+                "all_required_browser_flags_true": True,
+                "upstream_gate_green": True,
+            },
+        },
         "fixture_full_product_loop_e2e": {
             "artifact_type": "accurate_intake_fixture_full_product_loop_e2e",
             "status": "fixture_product_loop_e2e_diagnostic_pass",
@@ -330,6 +344,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "renderer_source_closure_checked": True,
                 "context_target_browser_closure_checked": True,
                 "body_noplan_degraded_checked": True,
+                "body_observation_same_truth_checked": True,
                 "strongest_consumed_pass_type": "browser_executed",
                 "fixture_product_loop_steps_checked": 10,
             },
@@ -353,12 +368,14 @@ def test_browser_activation_gate_requires_real_browser_evidence_without_readines
     )
     assert artifact["browser_executed_required"] is True
     assert artifact["all_required_browser_artifacts_executed"] is True
-    assert artifact["summary"]["browser_artifact_count"] == 6
+    assert artifact["summary"]["browser_artifact_count"] == 7
     assert artifact["summary"]["requires_target_candidate_ui"] is True
     assert artifact["summary"]["requires_fixture_full_product_loop_e2e"] is True
     assert artifact["summary"]["requires_body_noplan_degraded_browser"] is True
+    assert artifact["summary"]["requires_body_observation_same_truth_gate"] is True
     assert artifact["summary"]["requires_product_pages_self_use_flow_gate"] is True
     assert artifact["summary"]["self_use_flow_gate_checked"] is True
+    assert artifact["summary"]["body_observation_same_truth_checked"] is True
     assert artifact["summary"]["self_use_flow_gate_strongest_pass_type"] == "browser_executed"
     assert artifact["summary"]["fixture_product_loop_step_count"] == 10
     assert "ready_for_live_diagnostic_decision" not in artifact
@@ -477,6 +494,12 @@ def test_browser_activation_gate_blocks_missing_self_use_flow_or_body_noplan_evi
     inputs["product_pages_body_noplan_degraded_smoke"]["body_values"][  # type: ignore[index]
         "daily_target"
     ] = "1550 kcal"
+    inputs["body_observation_same_truth_gate"]["summary"][  # type: ignore[index]
+        "all_required_browser_flags_true"
+    ] = False
+    inputs["product_pages_self_use_flow_gate"]["summary"][  # type: ignore[index]
+        "body_observation_same_truth_checked"
+    ] = False
 
     artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
 
@@ -492,7 +515,16 @@ def test_browser_activation_gate_blocks_missing_self_use_flow_or_body_noplan_evi
         "product_pages_body_noplan_degraded_smoke.body_daily_target_not_hidden"
         in artifact["blockers"]
     )
+    assert (
+        "body_observation_same_truth_gate.all_required_browser_flags_not_true"
+        in artifact["blockers"]
+    )
+    assert (
+        "product_pages_self_use_flow_gate.body_observation_same_truth_not_checked"
+        in artifact["blockers"]
+    )
     assert artifact["summary"]["self_use_flow_gate_checked"] is False
+    assert artifact["summary"]["body_observation_same_truth_checked"] is False
 
 
 def test_browser_activation_gate_blocks_stale_body_read_model_values() -> None:
