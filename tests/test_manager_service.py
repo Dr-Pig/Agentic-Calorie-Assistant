@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from app.runtime.application import manager_service
-from app.runtime.agent.manager_payload_utils import stable_available_tools
+from app.runtime.agent.manager_payload_utils import compact_tool_results_prompt_payload, stable_available_tools
 from app.runtime.agent.manager_context_payload import (
     current_turn_context_prompt_payload,
     manager_context_pack_prompt_payload,
@@ -110,6 +110,46 @@ def test_stable_available_tools_normalizes_order_and_deduplicates() -> None:
     assert stable_available_tools(
         ("budget.get_today_summary", "body.get_latest_observation", "budget.get_today_summary")
     ) == ("body.get_latest_observation", "budget.get_today_summary")
+
+
+def test_compact_tool_results_preserves_latest_weight_read_model_evidence() -> None:
+    compact = compact_tool_results_prompt_payload(
+        [
+            {
+                "tool_name": "body.get_latest_observation",
+                "evidence": {
+                    "latest_weight_status": "available",
+                    "latest_weight_observation": {
+                        "observation_id": 2,
+                        "value": 70.4,
+                        "unit": "kg",
+                        "local_date": "2026-05-10",
+                        "observed_at": "2026-05-10T06:02:50",
+                        "debug_blob": "x" * 1000,
+                    },
+                },
+                "provenance": {
+                    "canonical_tool_name": "body.get_latest_observation",
+                    "truth_owner": "body_domain",
+                    "tool_kind": "read_only",
+                    "mutation_authority": False,
+                },
+                "confidence": "available",
+                "failure_family": None,
+            }
+        ]
+    )
+
+    evidence = compact[0]["evidence"]
+    assert evidence["latest_weight_status"] == "available"
+    assert evidence["latest_weight_observation"] == {
+        "observation_id": 2,
+        "value": 70.4,
+        "unit": "kg",
+        "local_date": "2026-05-10",
+    }
+    assert "debug_blob" not in str(compact)
+    assert "observed_at" not in str(compact)
 
 
 class FakeLoopProvider:

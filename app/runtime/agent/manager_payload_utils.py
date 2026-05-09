@@ -112,6 +112,12 @@ _BUDGET_SUMMARY_PROMPT_FIELDS = (
     "overshoot_kcal",
     "replaced_kcal_before",
 )
+_LATEST_WEIGHT_OBSERVATION_PROMPT_FIELDS = (
+    "observation_id",
+    "value",
+    "unit",
+    "local_date",
+)
 
 
 def compact_tool_results_prompt_payload(tool_results: Any) -> list[dict[str, Any]]:
@@ -146,6 +152,14 @@ def _compact_tool_evidence_prompt_payload(evidence: dict[str, Any]) -> dict[str,
     target_evidence_payload = _object_mapping(evidence.get("target_evidence_payload"))
     if target_evidence_payload:
         compact["target_evidence_payload"] = target_evidence_payload
+    if evidence.get("latest_weight_status") not in (None, ""):
+        compact["latest_weight_status"] = json_safe(evidence["latest_weight_status"])
+    latest_weight = _object_mapping(evidence.get("latest_weight_observation"))
+    if latest_weight:
+        compact["latest_weight_observation"] = _select_prompt_fields(
+            latest_weight,
+            _LATEST_WEIGHT_OBSERVATION_PROMPT_FIELDS,
+        )
     return compact
 
 

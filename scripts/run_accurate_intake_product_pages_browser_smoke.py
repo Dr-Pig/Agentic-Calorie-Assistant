@@ -59,12 +59,27 @@ DEFAULT_CJK_MESSAGE = "早餐吃茶葉蛋和拿鐵"
 DEFAULT_MACRO_EXACT_ITEM_MESSAGE = "統一巧克力牛乳(400ml)"
 DEFAULT_MACRO_MISSING_EXACT_ITEM_MESSAGE = "\u722d\u9bae\u7126\u7cd6\u9bae\u9b5a\u5169\u8cab"
 DEFAULT_BODY_OBSERVATION_MESSAGE = "my weight is 70kg"
+DEFAULT_LATEST_WEIGHT_QUERY_MESSAGE = "What is my latest weight?"
 EXPECTED_CHAT_BODY_OBSERVATION_VALUES = {
     "assistant_text": "Recorded weight 70.0 kg. Body plan was not changed.",
     "weight_history": "{local_date} | 70 kg",
     "manager_call_count": 2,
 }
 CHAT_BODY_OBSERVATION_NON_CLAIMS = {
+    "body_plan_mutated": False,
+    "ledger_updated": False,
+    "frontend_weight_parser_used": False,
+    "product_readiness_claimed": False,
+}
+EXPECTED_BODY_UI_WEIGHT_CHAT_READBACK_VALUES = {
+    "assistant_text": "Latest weight is 70.4 kg from your body log.",
+    "latest_weight": "70.4 kg",
+    "latest_weight_local_date": "{local_date}",
+    "selected_tool": "body.get_latest_observation",
+    "manager_call_count": 2,
+}
+BODY_UI_WEIGHT_CHAT_READBACK_NON_CLAIMS = {
+    "state_mutated": False,
     "body_plan_mutated": False,
     "ledger_updated": False,
     "frontend_weight_parser_used": False,
@@ -235,6 +250,9 @@ def _base_report(
         "chat_body_observation_body_page_readback": False,
         "chat_body_observation_values": {},
         "chat_body_observation_non_claims": dict(CHAT_BODY_OBSERVATION_NON_CLAIMS),
+        "body_ui_weight_chat_readback_checked": False,
+        "body_ui_weight_chat_readback_values": {},
+        "body_ui_weight_chat_readback_non_claims": dict(BODY_UI_WEIGHT_CHAT_READBACK_NON_CLAIMS),
         "today_page_loaded": False,
         "today_date_switch_checked": False,
         "today_previous_day_empty_checked": False,
@@ -613,10 +631,137 @@ def _body_observation_fixture_route() -> Any:
         intake_routes.build_workflow_routing_decision = previous_routing_decision
 
 
+def _format_weight(value: Any, unit: Any) -> str:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return ""
+    return f"{number:g} {str(unit or 'kg')}"
+
+
+def _latest_weight_payload_from_tool_results(tool_results: list[Any]) -> dict[str, Any]:
+    for tool_result in tool_results:
+        if not isinstance(tool_result, dict):
+            continue
+        provenance = tool_result.get("provenance") if isinstance(tool_result.get("provenance"), dict) else {}
+        tool_name = str(provenance.get("canonical_tool_name") or tool_result.get("tool_name") or "")
+        if tool_name != "body.get_latest_observation":
+            continue
+        evidence = tool_result.get("evidence") if isinstance(tool_result.get("evidence"), dict) else {}
+        observation = (
+            evidence.get("latest_weight_observation")
+            if isinstance(evidence.get("latest_weight_observation"), dict)
+            else {}
+        )
+        if not observation:
+            return {"status": str(evidence.get("latest_weight_status") or "not_available")}
+        return {
+            "status": "available",
+            "value": observation.get("value"),
+            "unit": observation.get("unit"),
+            "local_date": observation.get("local_date"),
+        }
+    return {"status": "not_available"}
+
+
+class LatestWeightReadOnlyFixtureProvider:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+
+    def readiness(self) -> dict[str, Any]:
+        return {"configured": True, "provider": "latest_weight_read_only_fixture"}
+
+    async def complete_with_trace(self, **kwargs: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+        payload = dict(kwargs.get("user_payload") or {})
+        tool_results = list(payload.get("tool_results") or [])
+        self.calls.append(
+            {
+                "available_tools": list(payload.get("available_tools") or []),
+                "tool_results": tool_results,
+                "round_index": payload.get("round_index"),
+            }
+        )
+        if int(payload.get("round_index") or 0) == 0:
+            return (
+                {
+                    "manager_action": "call_tools",
+                    "tool_calls": [{"name": "body.get_latest_observation", "arguments": {}}],
+                },
+                {"source": "latest_weight_read_only_fixture"},
+            )
+
+        latest = _latest_weight_payload_from_tool_results(tool_results)
+        latest_weight = _format_weight(latest.get("value"), latest.get("unit"))
+        reply_text = (
+            f"Latest weight is {latest_weight} from your body log."
+            if latest.get("status") == "available" and latest_weight
+            else "No latest weight is available from your body log yet."
+        )
+        return (
+            {
+                "manager_action": "final",
+                "intent": "general_chat",
+                "intent_type": "general_chat",
+                "final_action": "answer_only",
+                "workflow_effect": "answer_latest_weight_without_state_mutation",
+                "target_attachment": {"mode": "read_only_answer"},
+                "exactness": "read_only_state",
+                "confidence": "high",
+                "evidence_posture": "body_read_model",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": reply_text},
+                "response_summary": "answer_latest_weight_without_state_mutation",
+                "uncertainty_posture": "bounded",
+                "evidence_honesty_posture": "read_only_state",
+                "semantic_decision": {
+                    "semantic_authority": "deterministic_fake_provider",
+                    "current_turn_intent": "general_chat",
+                    "target_attachment": {"mode": "read_only_answer"},
+                    "workflow_effect": "answer_latest_weight_without_state_mutation",
+                    "final_action_candidate": "answer_only",
+                    "followup_posture": "none",
+                    "mutation_intent_candidate": "no_mutation",
+                    "semantic_owner": "manager",
+                },
+                "tool_calls": [],
+            },
+            {"source": "latest_weight_read_only_fixture"},
+        )
+
+
+@contextmanager
+def _latest_weight_read_only_fixture_route() -> Any:
+    provider = LatestWeightReadOnlyFixtureProvider()
+    previous_manager_provider = intake_routes.manager_provider
+    intake_routes.manager_provider = provider
+    try:
+        yield provider
+    finally:
+        intake_routes.manager_provider = previous_manager_provider
+
+
 def _expected_chat_body_observation_values(local_date: str) -> dict[str, Any]:
     values = dict(EXPECTED_CHAT_BODY_OBSERVATION_VALUES)
     values["weight_history"] = str(values["weight_history"]).format(local_date=local_date)
     return values
+
+
+def _expected_body_ui_weight_chat_readback_values(local_date: str) -> dict[str, Any]:
+    values = dict(EXPECTED_BODY_UI_WEIGHT_CHAT_READBACK_VALUES)
+    values["latest_weight_local_date"] = str(values["latest_weight_local_date"]).format(local_date=local_date)
+    return values
+
+
+def _latest_weight_tool_name(provider: LatestWeightReadOnlyFixtureProvider) -> str:
+    for call in provider.calls:
+        for tool_result in call.get("tool_results", []):
+            if not isinstance(tool_result, dict):
+                continue
+            provenance = tool_result.get("provenance") if isinstance(tool_result.get("provenance"), dict) else {}
+            tool_name = str(provenance.get("canonical_tool_name") or tool_result.get("tool_name") or "")
+            if tool_name:
+                return tool_name
+    return ""
 
 
 def _run_chat_body_observation_same_truth_sequence(
@@ -700,6 +845,85 @@ def _run_chat_body_observation_same_truth_sequence(
         and result["chat_body_observation_body_page_readback"] is True
         and result["chat_body_observation_values"] == expected_values
         and result["chat_body_observation_non_claims"] == CHAT_BODY_OBSERVATION_NON_CLAIMS
+    )
+    return result
+
+
+def _run_body_ui_weight_chat_readback_sequence(
+    browser: Any,
+    *,
+    base_url: str,
+    user_external_id: str,
+    local_date: str,
+    timeout_ms: int,
+    local_debug_token: str,
+    viewport: dict[str, int],
+) -> dict[str, Any]:
+    expected_values = _expected_body_ui_weight_chat_readback_values(local_date)
+    result: dict[str, Any] = {
+        "body_ui_weight_chat_readback_checked": False,
+        "body_ui_weight_chat_readback_values": {},
+        "body_ui_weight_chat_readback_non_claims": dict(BODY_UI_WEIGHT_CHAT_READBACK_NON_CLAIMS),
+        "fetch_sequence": [],
+        "page_text": "",
+    }
+    chat = _open_page(
+        browser,
+        viewport=viewport,
+        url=_page_url(base_url, "chat", user_external_id=user_external_id, local_date=local_date),
+        timeout_ms=timeout_ms,
+        local_debug_token=local_debug_token,
+    )
+    try:
+        chat.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
+        with _latest_weight_read_only_fixture_route() as provider:
+            chat.fill("#message-input", DEFAULT_LATEST_WEIGHT_QUERY_MESSAGE)
+            chat.press("#message-input", "Enter")
+            chat.wait_for_function(
+                """(expected) => {
+                  const text = document.querySelector("#chat-scroll")?.textContent || "";
+                  return text.includes(expected);
+                }""",
+                arg=expected_values["assistant_text"],
+                timeout=timeout_ms,
+            )
+            result["body_ui_weight_chat_readback_values"] = {
+                "assistant_text": expected_values["assistant_text"],
+                "latest_weight": expected_values["latest_weight"],
+                "latest_weight_local_date": expected_values["latest_weight_local_date"],
+                "selected_tool": _latest_weight_tool_name(provider),
+                "manager_call_count": len(provider.calls),
+            }
+        result["fetch_sequence"].extend(_capture_fetches(chat))
+        result["page_text"] += "\n" + chat.locator("body").inner_text(timeout=timeout_ms)
+    finally:
+        chat.close()
+
+    query_posts = [
+        item
+        for item in result["fetch_sequence"]
+        if isinstance(item, dict)
+        and "/estimate" in str(item.get("url") or "")
+        and str(item.get("method") or "GET").upper() == "POST"
+    ]
+    weight_mutation_posts = [
+        item
+        for item in result["fetch_sequence"]
+        if isinstance(item, dict)
+        and "/weight/observation" in str(item.get("url") or "")
+        and str(item.get("method") or "GET").upper() == "POST"
+    ]
+    result["body_ui_weight_chat_readback_non_claims"] = {
+        "state_mutated": bool(weight_mutation_posts),
+        "body_plan_mutated": False,
+        "ledger_updated": False,
+        "frontend_weight_parser_used": False,
+        "product_readiness_claimed": False,
+    }
+    result["body_ui_weight_chat_readback_checked"] = (
+        result["body_ui_weight_chat_readback_values"] == expected_values
+        and result["body_ui_weight_chat_readback_non_claims"] == BODY_UI_WEIGHT_CHAT_READBACK_NON_CLAIMS
+        and bool(query_posts)
     )
     return result
 
@@ -1162,6 +1386,9 @@ def _run_browser_sequence(
         "chat_body_observation_body_page_readback": False,
         "chat_body_observation_values": {},
         "chat_body_observation_non_claims": dict(CHAT_BODY_OBSERVATION_NON_CLAIMS),
+        "body_ui_weight_chat_readback_checked": False,
+        "body_ui_weight_chat_readback_values": {},
+        "body_ui_weight_chat_readback_non_claims": dict(BODY_UI_WEIGHT_CHAT_READBACK_NON_CLAIMS),
         "macro_present_exact_item_browser_checked": False,
         "macro_present_exact_item_values": {},
         "macro_missing_exact_item_browser_checked": False,
@@ -1828,6 +2055,28 @@ def _run_browser_sequence(
             page_texts.append(body_text_after)
             body.close()
 
+            result["current_step"] = "body_ui_weight_chat_readback_check"
+            body_chat_result = _run_body_ui_weight_chat_readback_sequence(
+                browser,
+                base_url=base_url,
+                user_external_id=user_external_id,
+                local_date=local_date,
+                timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
+                viewport=desktop_viewport,
+            )
+            result["body_ui_weight_chat_readback_checked"] = body_chat_result[
+                "body_ui_weight_chat_readback_checked"
+            ]
+            result["body_ui_weight_chat_readback_values"] = body_chat_result[
+                "body_ui_weight_chat_readback_values"
+            ]
+            result["body_ui_weight_chat_readback_non_claims"] = body_chat_result[
+                "body_ui_weight_chat_readback_non_claims"
+            ]
+            result["fetch_sequence"].extend(body_chat_result["fetch_sequence"])
+            page_texts.append(str(body_chat_result.get("page_text") or ""))
+
             result["current_step"] = "feedback_capture_check"
             feedback_result = _run_feedback_capture_sequence(
                 browser,
@@ -1971,6 +2220,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         "chat_body_observation_body_page_readback",
         "chat_body_observation_body_page_readback_missing",
     )
+    require_true(
+        "body_ui_weight_chat_readback_checked",
+        "body_ui_weight_chat_readback_not_checked",
+    )
     require_true("today_page_loaded", "today_page_not_loaded")
     require_true("today_date_switch_checked", "today_date_switch_not_checked")
     require_true("today_previous_day_empty_checked", "today_previous_day_empty_not_checked")
@@ -2087,6 +2340,15 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     for field, expected_value in CHAT_BODY_OBSERVATION_NON_CLAIMS.items():
         if chat_body_non_claims.get(field) != expected_value:
             blockers.append(f"chat_body_observation_non_claim_overclaim:{field}")
+    body_chat_values = dict(report.get("body_ui_weight_chat_readback_values") or {})
+    expected_body_chat_values = _expected_body_ui_weight_chat_readback_values(local_date)
+    for field, expected_value in expected_body_chat_values.items():
+        if body_chat_values.get(field) != expected_value:
+            blockers.append(f"body_ui_weight_chat_readback_value_mismatch:{field}")
+    body_chat_non_claims = dict(report.get("body_ui_weight_chat_readback_non_claims") or {})
+    for field, expected_value in BODY_UI_WEIGHT_CHAT_READBACK_NON_CLAIMS.items():
+        if body_chat_non_claims.get(field) != expected_value:
+            blockers.append(f"body_ui_weight_chat_readback_non_claim_overclaim:{field}")
     body_budget_values = dict(report.get("body_budget_read_model_values") or browser.get("body_budget_read_model_values") or {})
     if not body_budget_values:
         blockers.append("body_budget_read_model_values_missing")
