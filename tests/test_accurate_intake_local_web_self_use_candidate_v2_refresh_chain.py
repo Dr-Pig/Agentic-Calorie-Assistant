@@ -153,6 +153,11 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
             / module.REFRESHED_ARTIFACT_FILENAMES["pre_live_decision_pack"]
         ).read_text(encoding="utf-8")
     )
+    dogfood_review_queue = json.loads(
+        (
+            artifact_dir / module.DEFAULT_EVIDENCE_PATHS["dogfood_review_queue"].name
+        ).read_text(encoding="utf-8")
+    )
     today_macro_mirror_gate = json.loads(
         (
             artifact_dir
@@ -252,6 +257,12 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
     )
     assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
     assert "ready_for_live_diagnostic_decision" not in pre_live_pack
+    assert dogfood_review_queue["review_candidate_count"] == 1
+    assert dogfood_review_queue["review_candidates"][0]["auto_flags"] == ["evidence_gap"]
+    assert (
+        dogfood_review_queue["review_candidates"][0]["canonical_eval_promotion"]["allowed"]
+        is False
+    )
     assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is True
     assert candidate["local_web_self_use_candidate_v2"]["route_backed_macro_checked"] is True
     assert (
