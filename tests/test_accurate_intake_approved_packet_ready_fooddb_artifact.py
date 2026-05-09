@@ -127,13 +127,18 @@ def _product_loop_evidence() -> dict[str, object]:
         "operator_review": {
             "artifact_type": "accurate_intake_dogfood_operator_review_surface",
             "status": "browser_diagnostic_review_with_fixture_evidence_gap",
+            "claim_scope": "local_dogfood_operator_review_surface",
             "local_only": True,
+            "do_not_commit": True,
             "food_kb_truth_updated": False,
             "real_fooddb_pass_claimed": False,
             "dogfood_pass": False,
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
-            "production_readiness_claimed": False,
+            "classification_policy": {
+                "food_kb_truth_update_allowed": False,
+                "frontend_semantic_owner": False,
+            },
         },
         "mvp_gate": {"status": "pass"},
     }
