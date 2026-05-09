@@ -121,6 +121,17 @@ def append_desktop_feedback_record(
     return {**_json_safe(record), "feedback_store_path": str(jsonl_path)}
 
 
+def read_desktop_feedback_records(*, feedback_dir: Path) -> tuple[list[dict[str, Any]], Path]:
+    jsonl_path = feedback_dir / "accurate_intake_dogfood_feedback.jsonl"
+    if not jsonl_path.exists():
+        return [], jsonl_path
+    records: list[dict[str, Any]] = []
+    for line in jsonl_path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            records.append(_json_safe(json.loads(line)))
+    return records, jsonl_path
+
+
 def _request_text(trace: dict[str, Any]) -> str:
     message = _object_dict(trace.get("user_message"))
     return str(message.get("raw_text") or "")
@@ -291,4 +302,5 @@ __all__ = [
     "build_feedback_record_from_desktop_capture",
     "build_review_candidate_from_product_loop_diagnostic",
     "build_review_candidate_from_runtime_trace",
+    "read_desktop_feedback_records",
 ]

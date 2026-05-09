@@ -217,6 +217,8 @@ python scripts/build_accurate_intake_dogfood_review_queue.py --desktop-feedback-
 
 Feedback records are review material only. They must not enter Manager context, FoodDB truth, canonical eval truth, prompt hardening, or product readiness claims without explicit human review and owner approval.
 
+The desktop local shell exposes the same review queue in-browser at `/static/accurate-intake-review.html`. That page reads `/accurate-intake/review-queue`, which returns the existing `accurate_intake_dogfood_review_queue` shape from local feedback JSONL without writing product truth, changing Manager context, promoting FoodDB truth, or approving canonical eval cases.
+
 Start the desktop dogfood shell with a persistent local SQLite DB using:
 
 ```powershell

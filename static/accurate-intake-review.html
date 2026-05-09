@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="zh-Hant" data-page-id="accurate-intake-review-page-v1">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Accurate Intake Review</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #19212a;
+      --muted: #637083;
+      --line: #d8dee8;
+      --panel: #ffffff;
+      --accent: #0f766e;
+      --accent-soft: #e5f4f1;
+      --danger: #9f1239;
+      --bg: #f6f7f9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 24px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .brand { font-weight: 700; }
+    nav { display: flex; gap: 8px; flex-wrap: wrap; }
+    nav a, .action-link {
+      color: var(--ink);
+      text-decoration: none;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 7px 10px;
+      background: #fff;
+    }
+    nav a[aria-current="page"] {
+      background: var(--accent-soft);
+      border-color: #8fc8bf;
+      color: #0b5f59;
+    }
+    main {
+      width: min(1100px, calc(100vw - 32px));
+      margin: 24px auto;
+      display: grid;
+      gap: 16px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    h1 { margin: 0; font-size: 24px; }
+    h2 { margin: 0 0 10px; font-size: 17px; }
+    .subtle { margin: 4px 0 0; color: var(--muted); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .metric {
+      display: grid;
+      gap: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+      min-height: 78px;
+    }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .metric strong { font-size: 20px; }
+    .record-list { display: grid; gap: 10px; }
+    .record {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+    .record header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 2px 8px;
+      background: var(--accent-soft);
+      color: #0b5f59;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .record p { margin: 8px 0 0; white-space: pre-wrap; }
+    .meta {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .status { color: var(--muted); }
+    .status[data-state="error"] { color: var(--danger); }
+    .empty { color: var(--muted); margin: 0; }
+    @media (max-width: 760px) {
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .grid { grid-template-columns: 1fr 1fr; }
+      main { width: calc(100vw - 16px); margin: 8px auto; }
+    }
+    @media (max-width: 480px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Accurate Intake</div>
+    <nav aria-label="Accurate Intake pages">
+      <a data-nav-target="chat" href="/static/accurate-intake-chat.html">Chat</a>
+      <a data-nav-target="today" href="/static/accurate-intake-today.html">Today</a>
+      <a data-nav-target="body" href="/static/accurate-intake-body.html">Body</a>
+      <a data-nav-target="feedback" href="/static/accurate-intake-feedback.html">Feedback</a>
+      <a data-nav-target="review" href="/static/accurate-intake-review.html" aria-current="page">Review</a>
+      <a data-nav-target="data" href="/static/accurate-intake-data.html">Data</a>
+    </nav>
+  </header>
+  <main
+    data-surface-role="dogfood-review-queue"
+    data-claim-scope="local_dogfood_review_queue_artifact"
+    data-feedback-is-product-truth="false"
+    data-manager-context-injection="false"
+    data-fooddb-truth-update-allowed="false"
+    data-canonical-eval-promotion-allowed="false"
+    data-frontend-semantic-owner="false"
+  >
+    <section class="panel">
+      <h1>Review Queue</h1>
+      <p id="review-status" class="subtle" aria-live="polite">Loading.</p>
+    </section>
+    <section class="panel grid" aria-label="Review queue summary">
+      <div class="metric"><span>Status</span><strong id="queue-status">--</strong></div>
+      <div class="metric"><span>Feedback</span><strong id="feedback-count">--</strong></div>
+      <div class="metric"><span>Candidates</span><strong id="candidate-count">--</strong></div>
+      <div class="metric"><span>Corrections</span><strong id="correction-count">--</strong></div>
+    </section>
+    <section class="panel">
+      <h2>Feedback</h2>
+      <div id="feedback-list" class="record-list"></div>
+    </section>
+    <section class="panel">
+      <h2>Review Candidates</h2>
+      <div id="candidate-list" class="record-list"></div>
+    </section>
+    <section class="panel">
+      <h2>Policy</h2>
+      <p id="promotion-policy" class="meta">--</p>
+    </section>
+  </main>
+  <script>
+    const endpoint = "/accurate-intake/review-queue";
+    const todayIso = () => new Date().toISOString().slice(0, 10);
+    const params = new URLSearchParams(window.location.search);
+    const userId = () => params.get("user_id") || "local-self-use-001";
+    const selectedDate = () => params.get("local_date") || todayIso();
+    const el = (id) => document.getElementById(id);
+
+    function pageUrl(page) {
+      const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() }).toString();
+      return `/static/accurate-intake-${page}.html?${query}`;
+    }
+    function updateNavigationLinks() {
+      document.querySelectorAll("[data-nav-target]").forEach((link) => {
+        const target = link.getAttribute("data-nav-target");
+        if (target) {
+          link.href = pageUrl(target);
+        }
+      });
+    }
+    function localDebugHeaders() {
+      const token = (window.LOCAL_DEBUG_API_TOKEN || "").trim();
+      return token ? { "X-Local-Debug-Token": token } : {};
+    }
+    async function requestJson(url) {
+      const response = await fetch(url, {
+        headers: { Accept: "application/json", ...localDebugHeaders() }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    }
+    function writeText(id, value) {
+      el(id).textContent = value === null || value === undefined || value === "" ? "--" : String(value);
+    }
+    function text(value) {
+      return value === null || value === undefined || value === "" ? "--" : String(value);
+    }
+    function emptyState(message) {
+      const node = document.createElement("p");
+      node.className = "empty";
+      node.textContent = message;
+      return node;
+    }
+    function feedbackRecord(record) {
+      const linked = record.linked_context || {};
+      const node = document.createElement("article");
+      node.className = "record";
+      node.innerHTML = `
+        <header>
+          <span class="tag"></span>
+          <span class="meta"></span>
+        </header>
+        <p></p>
+        <p class="meta"></p>
+      `;
+      node.querySelector(".tag").textContent = text(record.category);
+      node.querySelector("header .meta").textContent = `${text(record.severity)} · ${text(record.captured_at_utc)}`;
+      node.querySelector("p").textContent = text(record.feedback_text);
+      node.querySelectorAll(".meta")[1].textContent = [
+        `trace ${text(linked.trace_id)}`,
+        `message ${text(linked.message_id)}`,
+        `page ${text(linked.page)}`,
+        `date ${text(linked.selected_date)}`
+      ].join(" · ");
+      return node;
+    }
+    function candidateRecord(record) {
+      const node = document.createElement("article");
+      node.className = "record";
+      const flags = Array.isArray(record.auto_flags) ? record.auto_flags.join(", ") : "--";
+      node.innerHTML = `
+        <header>
+          <span class="tag"></span>
+          <span class="meta"></span>
+        </header>
+        <p class="meta"></p>
+      `;
+      node.querySelector(".tag").textContent = text(record.status);
+      node.querySelector("header .meta").textContent = `trace ${text(record.trace_id)}`;
+      node.querySelector("p").textContent = `flags ${flags}`;
+      return node;
+    }
+    function renderList(id, records, renderer, emptyMessage) {
+      const list = el(id);
+      list.replaceChildren();
+      if (!records.length) {
+        list.appendChild(emptyState(emptyMessage));
+        return;
+      }
+      records.forEach((record) => list.appendChild(renderer(record)));
+    }
+    function render(payload) {
+      writeText("queue-status", payload.status);
+      writeText("feedback-count", payload.feedback_triage_record_count);
+      writeText("candidate-count", payload.review_candidate_count);
+      writeText("correction-count", payload.correction_feedback_event_count);
+      renderList("feedback-list", payload.desktop_feedback_records || [], feedbackRecord, "No feedback captured.");
+      renderList("candidate-list", payload.review_candidates || [], candidateRecord, "No review candidates generated.");
+      const policy = payload.promotion_policy || {};
+      el("promotion-policy").textContent = [
+        `feedback->product ${String(policy.feedback_can_create_product_truth === true)}`,
+        `feedback->FoodDB ${String(policy.feedback_can_create_fooddb_truth === true)}`,
+        `feedback->eval ${String(policy.feedback_can_create_eval_truth === true)}`,
+        `human approval ${String(policy.human_approval_required_for_canonical_eval === true)}`
+      ].join(" · ");
+      el("review-status").textContent = payload.source_feedback_store_exists
+        ? `Loaded ${payload.source_feedback_store_path || "feedback store"}.`
+        : "No local feedback store yet.";
+    }
+    async function loadReviewQueue() {
+      try {
+        const payload = await requestJson(endpoint);
+        render(payload);
+      } catch (error) {
+        el("review-status").dataset.state = "error";
+        el("review-status").textContent = `Review queue unavailable: ${error.message}`;
+      }
+    }
+    updateNavigationLinks();
+    loadReviewQueue();
+  </script>
+</body>
+</html>

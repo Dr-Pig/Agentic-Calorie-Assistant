@@ -14,6 +14,10 @@ from app.composition.dogfood_review_queue import (
     append_desktop_feedback_record,
     build_feedback_record_from_desktop_capture,
 )
+from app.composition.dogfood_review_queue_surface import (
+    DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH,
+    build_desktop_review_queue_response,
+)
 from app.composition.local_data_hygiene_routes import router as local_data_hygiene_router
 from app.database import get_db
 from app.intake.interface.accurate_intake_debug_surface import render_accurate_intake_debug_surface
@@ -273,3 +277,13 @@ async def accurate_intake_feedback(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return append_desktop_feedback_record(record=record, feedback_dir=DOGFOOD_FEEDBACK_DIR)
+
+
+@router.get("/accurate-intake/review-queue")
+async def accurate_intake_review_queue(
+    _local_debug_access: None = Depends(require_local_debug_access),
+) -> dict[str, Any]:
+    return build_desktop_review_queue_response(
+        feedback_dir=DOGFOOD_FEEDBACK_DIR,
+        review_queue_artifact_path=DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH,
+    )
