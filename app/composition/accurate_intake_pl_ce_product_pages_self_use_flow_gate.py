@@ -5,6 +5,9 @@ import json
 from typing import Any
 
 from app.composition.accurate_intake_current_shell_claim_boundary import build_current_shell_appshell_claim_boundary_fields
+from app.composition.current_shell_browser_activation_contract import (
+    REQUIRED_TRUE_FLAGS as BROWSER_ACTIVATION_REQUIRED_TRUE_FLAGS,
+)
 from app.composition.current_shell_compatibility_ids import (
     CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE,
     LEGACY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPES,
@@ -135,33 +138,7 @@ REQUIRED_TRUE_FLAGS = {
     "product_pages_renderer_source_closure_gate": (
         "route_table_checked",
     ),
-    "product_pages_browser_smoke": (
-        "browser_executed",
-        "chat_page_loaded",
-        "chat_sent_cjk_message",
-        "chat_assistant_bubble_rendered",
-        "chat_history_reloaded",
-        "chat_scroll_behavior_checked",
-        "chat_reload_scroll_behavior_checked",
-        "chat_no_debug_trace",
-        "today_page_loaded",
-        "today_date_switch_checked",
-        "today_summary_rendered",
-        "today_meal_list_rendered",
-        "today_no_debug_trace",
-        "body_page_loaded",
-        "body_active_plan_rendered",
-        "body_plan_readback_checked",
-        "body_plan_read_model_fields_rendered",
-        "body_latest_weight_rendered_from_backend",
-        "body_manual_target_read_model_rendered",
-        "today_manual_target_readback_checked",
-        "desktop_no_overflow",
-        "mobile_no_overflow",
-        "mobile_populated_state_checked",
-        "product_cjk_copy_rendered",
-        "nav_session_query_preserved",
-    ),
+    "product_pages_browser_smoke": BROWSER_ACTIVATION_REQUIRED_TRUE_FLAGS["product_pages_browser_smoke"],
     "product_pages_seven_day_diary_smoke": (
         "browser_executed",
         "seven_day_window_checked",

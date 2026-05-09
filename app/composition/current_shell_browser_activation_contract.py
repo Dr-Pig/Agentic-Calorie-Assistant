@@ -124,6 +124,8 @@ REQUIRED_TRUE_FLAGS = {
         "today_date_switch_checked",
         "today_summary_rendered",
         "today_meal_list_rendered",
+        "macro_present_exact_item_browser_checked",
+        "macro_missing_exact_item_browser_checked",
         "body_page_loaded",
         "body_active_plan_rendered",
         "body_plan_readback_checked",
