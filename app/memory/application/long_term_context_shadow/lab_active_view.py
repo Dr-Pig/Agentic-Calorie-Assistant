@@ -79,11 +79,21 @@ CONSUMER_SPECS: dict[str, tuple[set[str], set[str]]] = {
     ),
     "rescue_later": (
         {"rescue_later", "calibration", "proactive"},
-        {"intake_estimation_bias", "interaction_preference", "pattern"},
+        {
+            "intake_estimation_bias",
+            "interaction_preference",
+            "logging_adherence_pattern",
+            "pattern",
+        },
     ),
     "rescue_context": (
         {"rescue_later", "calibration", "proactive"},
-        {"intake_estimation_bias", "interaction_preference", "pattern"},
+        {
+            "intake_estimation_bias",
+            "interaction_preference",
+            "logging_adherence_pattern",
+            "pattern",
+        },
     ),
     "cross_surface_context": (
         {"chat_context", "intake_clarification", "proactive", "response_generation"},
