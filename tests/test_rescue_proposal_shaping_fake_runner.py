@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+import subprocess
+import sys
 
 
 def _input_packet() -> dict[str, object]:
@@ -150,3 +153,100 @@ def test_fake_runner_blocks_input_packet_drift_before_candidate_consumption() ->
     assert artifact["live_llm_invoked"] is False
     assert artifact["provider_called"] is False
     assert artifact["manager_context_injected"] is False
+
+
+def test_fake_runner_cli_writes_pass_artifact_without_raw_candidate_output(
+    tmp_path: Path,
+) -> None:
+    root = Path(__file__).resolve().parents[1]
+    input_path = tmp_path / "rescue_proposal_shaping_input_shadow_packet.json"
+    candidate_path = tmp_path / "fixture_candidate_output.json"
+    output_path = tmp_path / "rescue_proposal_shaping_fake_runner_artifact.json"
+    input_path.write_text(json.dumps(_input_packet(), ensure_ascii=False), encoding="utf-8")
+    candidate_path.write_text(
+        json.dumps(_candidate_output(), ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "build_rescue_proposal_shaping_fake_runner.py"),
+            "--proposal-shaping-input-shadow-packet",
+            str(input_path),
+            "--candidate-output",
+            str(candidate_path),
+            "--output",
+            str(output_path),
+        ],
+        cwd=root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    artifact = json.loads(output_path.read_text(encoding="utf-8"))
+    serialized = json.dumps(artifact, ensure_ascii=False)
+    assert artifact["artifact_type"] == "rescue_proposal_shaping_fake_runner_artifact"
+    assert artifact["status"] == "pass"
+    assert artifact["runner_stage"] == "fake"
+    assert artifact["validation_status"] == "pass"
+    assert artifact["live_llm_invoked"] is False
+    assert artifact["provider_called"] is False
+    assert artifact["runtime_effect_allowed"] is False
+    assert artifact["proposal_committed"] is False
+    assert artifact["day_budget_mutated"] is False
+    assert "Fixture headline, not user-facing" not in serialized
+    assert "Fixture summary, not user-facing" not in serialized
+
+
+def test_fake_runner_cli_fails_closed_after_writing_validation_artifact(
+    tmp_path: Path,
+) -> None:
+    root = Path(__file__).resolve().parents[1]
+    input_path = tmp_path / "rescue_proposal_shaping_input_shadow_packet.json"
+    candidate_path = tmp_path / "fixture_candidate_output.json"
+    output_path = tmp_path / "rescue_proposal_shaping_fake_runner_artifact.json"
+    invalid_candidate = _candidate_output()
+    invalid_candidate["recommended_days"] = 1
+    invalid_candidate["primary_actions"] = ["accept_rescue_plan"]
+    invalid_candidate["proposal_card"] = {"title": "Hidden proposal card"}
+    input_path.write_text(json.dumps(_input_packet(), ensure_ascii=False), encoding="utf-8")
+    candidate_path.write_text(
+        json.dumps(invalid_candidate, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "build_rescue_proposal_shaping_fake_runner.py"),
+            "--proposal-shaping-input-shadow-packet",
+            str(input_path),
+            "--candidate-output",
+            str(candidate_path),
+            "--output",
+            str(output_path),
+        ],
+        cwd=root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    artifact = json.loads(output_path.read_text(encoding="utf-8"))
+    serialized = json.dumps(artifact, ensure_ascii=False)
+    assert artifact["status"] == "fail"
+    assert artifact["validation_status"] == "fail"
+    assert "candidate_output.recommended_days_override" in artifact["blockers"]
+    assert "candidate_output.primary_actions_forbidden" in artifact["blockers"]
+    assert "candidate_output.proposal_card_forbidden" in artifact["blockers"]
+    assert artifact["live_llm_invoked"] is False
+    assert artifact["provider_called"] is False
+    assert artifact["runtime_effect_allowed"] is False
+    assert artifact["proposal_committed"] is False
+    assert artifact["ledger_entry_created"] is False
+    assert "accept_rescue_plan" not in serialized
+    assert "Hidden proposal card" not in serialized
