@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SIDECAR_MODULES = [
     "app.advanced_shadow_lab",
     "app.advanced_shadow_lab.manifest",
+    "app.advanced_shadow_lab.vertical_proof",
     "app.memory",
     "app.memory.domain",
     "app.memory.domain.summaries",
