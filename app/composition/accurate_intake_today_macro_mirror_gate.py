@@ -9,6 +9,7 @@ from typing import Any
 from app.composition.accurate_intake_product_pages_renderer_source_map import (
     build_product_pages_renderer_source_map_artifact,
 )
+from app.composition.accurate_intake_today_macro_runtime_flags import build_today_macro_runtime_summary_flags
 TODAY_PAGE = Path("static/accurate-intake-today.html")
 RENDERER_READY_STATUS = "product_pages_renderer_source_map_ready_for_human_review"
 TODAY_MACRO_READY_STATUS = "today_macro_mirror_gate_ready_for_human_review"
@@ -119,8 +120,6 @@ process.stdout.write(JSON.stringify(result));
 """
     completed = subprocess.run(["node", "-e", node_script], check=True, capture_output=True, text=True)
     return json.loads(completed.stdout)
-
-
 def _runtime_gate_statuses(manager_gate_ledger_artifact: dict[str, Any] | None) -> dict[str, str | None]:
     gates = (manager_gate_ledger_artifact or {}).get("gates") or []
     if not isinstance(gates, list):
@@ -341,6 +340,7 @@ def build_today_macro_runtime_mirror_gate_artifact(
             "diagnostic_only": True,
             "fixture_only": False,
             "runtime_backed": True,
+            **build_today_macro_runtime_summary_flags(base_gate, missing_payload_fields),
             "frontend_semantic_owner": False,
             "frontend_calculates_macro_values": False,
             "ready_for_live_diagnostic_decision": False,

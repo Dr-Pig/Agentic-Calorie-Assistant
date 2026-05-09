@@ -17,6 +17,7 @@ REQUIRED_CASES = [
     "calibration_apply_accept_stored_proposal_guarded",
     "calibration_apply_reject_stored_proposal_no_plan_ledger",
     "manual_daily_target_manager_structured_only",
+    "manual_daily_target_missing_structured_target_blocked",
     "manual_daily_target_out_of_bounds_blocked",
 ]
 
@@ -77,10 +78,17 @@ def test_non_fooddb_mutation_tool_guard_smoke_maps_expected_guard_postures() -> 
 
     manual_target = cases["manual_daily_target_manager_structured_only"]
     assert manual_target["selected_tool"] == "budget.set_manual_daily_target"
-    assert manual_target["inventory_alignment"] == "adjacent_pending_inventory_expansion"
+    assert manual_target["inventory_alignment"] == "inventory_backed"
     assert manual_target["manager_structured_target_required"] is True
     assert manual_target["expected_effects"]["body_plan_mutated"] is True
     assert manual_target["expected_effects"]["ledger_mutated"] is True
+
+    missing_target = cases["manual_daily_target_missing_structured_target_blocked"]
+    assert missing_target["selected_tool"] == "budget.set_manual_daily_target"
+    assert missing_target["guard_posture"] == "manager_structured_budget_target_missing"
+    assert missing_target["mutation_allowed"] is False
+    assert missing_target["expected_effects"]["body_plan_mutated"] is False
+    assert missing_target["expected_effects"]["ledger_mutated"] is False
 
 def test_non_fooddb_mutation_tool_guard_smoke_blocks_contract_drift_and_overclaims() -> None:
     artifact = build_non_fooddb_mutation_tool_guard_smoke_artifact()
@@ -98,7 +106,7 @@ def test_non_fooddb_mutation_tool_guard_smoke_blocks_contract_drift_and_overclai
     drifted_manual_target["manager_structured_target_required"] = False
     cases[7] = drifted_manual_target
 
-    drifted_manual_target_blocked = dict(cases[8])
+    drifted_manual_target_blocked = dict(cases[9])
     drifted_manual_target_blocked["mutation_allowed"] = True
     cases[8] = drifted_manual_target_blocked
 

@@ -73,6 +73,7 @@ def test_context_target_browser_closure_requires_both_browser_reports_and_manage
     assert artifact["artifact_type"] == "accurate_intake_product_pages_context_target_browser_closure"
     assert artifact["status"] == "context_target_browser_closure_ready_for_self_use_flow_gate"
     assert artifact["pass_type"] == "browser_executed"
+    assert artifact["browser_executed"] is True
     assert artifact["blockers"] == []
     assert artifact["upstream_manager_gates"] == {
         "rt4_context_packet_acceptance": "green",

@@ -83,7 +83,7 @@ def _seed_required_gate_inputs(artifact_dir: Path, *, omit_browser_target_ui: bo
         _merge_write(target_path, browser_gate_inputs["product_pages_target_candidate_ui_smoke"])
 
 
-def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime_gates_are_green(
+def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evidence_are_green(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -142,9 +142,9 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
         ).read_text(encoding="utf-8")
     )
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
-    assert printed["candidate_prepared"] is False
+    assert exit_code == 0
+    assert printed["status"] == "pass"
+    assert printed["candidate_prepared"] is True
     assert browser_activation["status"] == "browser_activation_evidence_ready_for_human_review"
     assert browser_activation["pass_type"] == "contract"
     assert (
@@ -170,9 +170,10 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
         clarify_commit_correction_same_truth_gate["status"]
         == "clarify_commit_correction_same_truth_gate_ready_for_human_review"
     )
-    assert pre_live_pack["selected_option"] == "stay_local_self_use"
+    assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
     assert "ready_for_live_diagnostic_decision" not in pre_live_pack
-    assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is True
+    assert candidate["local_web_self_use_candidate_v2"]["blockers"] == []
     chain = candidate["local_web_self_use_candidate_v2"]["appshell_browser_evidence_chain"]
     assert printed["appshell_browser_evidence_chain"] == chain
     assert chain["browser_artifact_count"] == 6
@@ -187,9 +188,6 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
     assert chain["live_llm_invoked"] is False
     assert chain["fooddb_evidence_used"] is False
     assert chain["websearch_evidence_used"] is False
-    assert "pre-live selected option: stay_local_self_use" in candidate[
-        "local_web_self_use_candidate_v2"
-    ]["blockers"]
     assert json.loads(
         (
             artifact_dir

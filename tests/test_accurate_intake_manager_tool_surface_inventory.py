@@ -20,7 +20,7 @@ def test_manager_tool_surface_inventory_covers_non_fooddb_app_state_tools() -> N
     assert artifact["scope"] == "plce_non_fooddb_app_state_tool_convergence"
     assert artifact["required_direct_lane_ids"] == list(REQUIRED_DIRECT_LANE_IDS)
     assert artifact["required_manager_tools"] == list(REQUIRED_MANAGER_TOOLS)
-    assert artifact["summary"]["direct_lane_count"] >= 6
+    assert artifact["summary"]["direct_lane_count"] >= 7
     assert artifact["summary"]["target_tool_count"] == len(REQUIRED_MANAGER_TOOLS)
     assert artifact["runtime_truth_changed"] is False
     assert artifact["mutation_changed"] is False
@@ -57,6 +57,13 @@ def test_manager_tool_surface_inventory_maps_current_direct_lanes_to_future_tool
     assert body_record["future_manager_tools"] == ["body.record_observation"]
     assert body_record["tool_kind"] == "mutation_bearing"
     assert body_record["guard_required"] is True
+
+    manual_target = lane_by_id["estimate_manual_daily_target_structured_update"]
+    assert manual_target["future_manager_tools"] == ["budget.set_manual_daily_target"]
+    assert manual_target["tool_kind"] == "mutation_bearing"
+    assert manual_target["guard_required"] is True
+    assert manual_target["manager_structured_target_required"] is True
+    assert manual_target["raw_text_authorizes_mutation"] is False
 
     calibration_action = lane_by_id["estimate_explicit_calibration_action"]
     assert calibration_action["future_manager_tools"] == ["calibration.apply_stored_proposal_action"]

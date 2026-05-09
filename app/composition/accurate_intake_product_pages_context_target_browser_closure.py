@@ -152,6 +152,10 @@ def build_context_target_browser_closure_artifact(
             "artifact_type": "accurate_intake_product_pages_context_target_browser_closure",
             "status": status,
             "pass_type": "browser_executed",
+            "browser_executed": (
+                short_term_context_report.get("browser_executed") is True
+                and target_candidate_report.get("browser_executed") is True
+            ),
             "claim_scope": "appshell_context_target_browser_closure_for_self_use_flow_gate_input",
             "generated_at_utc": datetime.now(UTC).isoformat(),
             "blockers": blockers,

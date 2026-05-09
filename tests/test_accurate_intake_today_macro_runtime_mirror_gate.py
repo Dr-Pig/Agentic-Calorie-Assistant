@@ -44,6 +44,10 @@ def test_today_macro_runtime_mirror_gate_requires_manager_gates_and_current_budg
     assert artifact["pass_type"] == "runtime_backed"
     assert artifact["blockers"] == []
     assert artifact["runtime_backed"] is True
+    assert artifact["macro_visible_case_checked"] is True
+    assert artifact["macro_guarded_case_checked"] is True
+    assert artifact["backend_macro_fields_required"] is True
+    assert artifact["show_macro_false_suppresses_macro"] is True
     assert artifact["frontend_semantic_owner"] is False
     assert artifact["frontend_calculates_macro_values"] is False
     assert artifact["truth_owner"] == "CurrentBudgetView.macro_visibility"
