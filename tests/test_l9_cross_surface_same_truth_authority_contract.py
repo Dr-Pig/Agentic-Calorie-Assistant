@@ -9,7 +9,7 @@ from app.composition.accurate_intake_today_macro_mirror_gate import (
 from app.composition.accurate_intake_ui_same_truth_render_contract import (
     build_ui_same_truth_render_contract,
 )
-from app.composition.l9_cross_surface_same_truth_authority_contract import (
+from app.shared.contracts.l9_cross_surface_same_truth_authority_contract import (
     build_l9_cross_surface_same_truth_authority_contract,
 )
 from app.intake.application.phase_c_same_truth_gate import build_phase_c_same_truth_gate
