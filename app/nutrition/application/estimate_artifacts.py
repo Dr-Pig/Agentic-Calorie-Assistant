@@ -7,6 +7,11 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.composition.request_runtime_context import RequestRuntimeContext, load_request_runtime_context
+from app.nutrition.application.fooddb_macro_contract import (
+    APPROVED_PACKET_READY_SCHEMA_VERSION,
+    APPROVED_PACKET_READY_SOURCE_QUALITY,
+    MACRO_CONTRACT,
+)
 from ...shared.contracts.common import EstimateRequest
 from ...shared.contracts.intake import ComponentEstimate, EstimatePayload
 
@@ -173,6 +178,10 @@ def build_exact_item_artifact(
             "macro_confidence": "high",
             "macro_status": "available",
         }
+    approved_exact_macro_trace = _approved_exact_macro_trace(
+        exact_candidate=exact_candidate,
+        display_macro_breakdown=display_macro_breakdown,
+    )
     serving_basis = str(exact_candidate.get("serving_basis") or "").strip() or None
     component = ComponentEstimate(
         name=title,
@@ -211,6 +220,7 @@ def build_exact_item_artifact(
             "timezone": "Asia/Taipei",
             "db_hit_type": "exact_truth",
             "macro_display_authorized": bool(display_macro_breakdown),
+            "approved_exact_macro_trace": approved_exact_macro_trace,
             "search_attempt_count": 0,
             "why_not_exact": [],
             "grounding_summary": {
@@ -246,3 +256,28 @@ def build_exact_item_artifact(
         runtime_context=runtime_context,
         payload=payload,
     )
+
+
+def _approved_exact_macro_trace(
+    *,
+    exact_candidate: dict[str, Any],
+    display_macro_breakdown: dict[str, Any],
+) -> dict[str, Any]:
+    macro_visible = bool(display_macro_breakdown)
+    return {
+        "source_lane": "exact_item_card",
+        "runtime_role": "exact_item_card",
+        "runtime_truth_allowed": True,
+        "source_quality": APPROVED_PACKET_READY_SOURCE_QUALITY,
+        "approved_packet_schema_version": APPROVED_PACKET_READY_SCHEMA_VERSION,
+        "item_id": str(exact_candidate.get("item_id") or ""),
+        "macro_truth_owner": MACRO_CONTRACT["macro_truth_owner"],
+        "missing_macro_policy": MACRO_CONTRACT["missing_macro_policy"],
+        "packet_fields": list(MACRO_CONTRACT["packet_fields"]),
+        "macro_visibility_status": "visible" if macro_visible else "hidden_missing_source",
+        "macro_source_basis": "exact_item_seed_label" if macro_visible else "unavailable",
+        "macro_confidence": str(display_macro_breakdown.get("macro_confidence") or "unknown"),
+        "live_llm_invoked": False,
+        "websearch_evidence_used": False,
+        "fooddb_truth_updated": False,
+    }
