@@ -63,6 +63,19 @@ def test_fixture_chain_terminates_in_no_send_review_sink() -> None:
     assert artifact["stage_artifacts"][1]["five_node_lab_bridge_used"] is True
     assert artifact["terminal_review_sink"]["status"] == "pass"
     assert artifact["terminal_review_sink"]["record_count"] == 2
+    assert artifact["terminal_review_sink"]["control_path_evidence"] == {
+        "status": "pass",
+        "candidate_count": 2,
+        "all_candidates_have_required_controls": True,
+        "configured_paths": {
+            "dismiss": True,
+            "snooze": True,
+            "undo": True,
+        },
+        "interaction_actions_observed": ["dismiss", "snooze"],
+        "observed_all_interaction_actions": False,
+        "next_signal_required_present": True,
+    }
     assert [
         record["trigger_type"]
         for record in artifact["terminal_review_sink"]["records"]

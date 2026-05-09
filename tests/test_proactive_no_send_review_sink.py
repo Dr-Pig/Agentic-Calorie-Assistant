@@ -45,6 +45,19 @@ def test_review_sink_records_no_send_candidate_without_delivery() -> None:
             "undo_scope": "current_no_send_candidate_only",
         }
     ]
+    assert result["control_path_evidence"] == {
+        "status": "pass",
+        "candidate_count": 1,
+        "all_candidates_have_required_controls": True,
+        "configured_paths": {
+            "dismiss": True,
+            "snooze": True,
+            "undo": True,
+        },
+        "interaction_actions_observed": ["dismiss"],
+        "observed_all_interaction_actions": False,
+        "next_signal_required_present": True,
+    }
     assert result["delivery_attempted"] is False
     assert result["scheduler_enabled"] is False
     assert result["push_or_line_delivery_connected"] is False
@@ -113,6 +126,13 @@ def test_review_sink_blocks_missing_control_paths() -> None:
         "candidate[0].undo_scope_missing",
         "candidate[0].next_signal_required_missing",
     ]
+    assert result["control_path_evidence"]["status"] == "blocked"
+    assert result["control_path_evidence"]["all_candidates_have_required_controls"] is False
+    assert result["control_path_evidence"]["configured_paths"] == {
+        "dismiss": False,
+        "snooze": False,
+        "undo": False,
+    }
     assert result["records"] == []
     assert result["delivery_attempted"] is False
 

@@ -124,11 +124,38 @@ def _case_summaries(artifact: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 def _sink_summary(chain: Mapping[str, Any]) -> dict[str, Any]:
     sink = _mapping(chain.get("terminal_review_sink"))
-    return {"status": str(sink.get("status") or "not_run"), "record_count": _int(sink.get("record_count"))}
+    return {
+        "status": str(sink.get("status") or "not_run"),
+        "record_count": _int(sink.get("record_count")),
+        "control_path_evidence": _control_summary(
+            _mapping(sink.get("control_path_evidence"))
+        ),
+    }
 
 
 def _not_run_chain() -> dict[str, Any]:
     return {"status": "not_run", "stage_trace": [], "terminal_review_sink": {"status": "not_run", "record_count": 0}}
+
+
+def _control_summary(evidence: Mapping[str, Any]) -> dict[str, Any]:
+    if not evidence:
+        return {"status": "not_run"}
+    return {
+        "status": str(evidence.get("status") or "blocked"),
+        "all_candidates_have_required_controls": bool(
+            evidence.get("all_candidates_have_required_controls")
+        ),
+        "configured_paths": dict(evidence.get("configured_paths") or {}),
+        "interaction_actions_observed": list(
+            evidence.get("interaction_actions_observed") or []
+        ),
+        "observed_all_interaction_actions": bool(
+            evidence.get("observed_all_interaction_actions")
+        ),
+        "next_signal_required_present": bool(
+            evidence.get("next_signal_required_present")
+        ),
+    }
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:
