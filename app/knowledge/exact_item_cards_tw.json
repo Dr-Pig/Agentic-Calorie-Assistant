@@ -7,6 +7,12 @@
       "brand": "\u7d71\u4e00",
       "serving_basis": "400ml",
       "kcal": 300,
+      "protein_g": 12,
+      "carb_g": 48,
+      "fat_g": 6,
+      "macro_basis": "per_package",
+      "macro_confidence": "high",
+      "macro_source_strength": "exact_item_seed",
       "kcal_band": "per_package"
     },
     {

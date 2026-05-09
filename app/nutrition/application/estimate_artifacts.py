@@ -163,6 +163,16 @@ def build_exact_item_artifact(
     protein_g = int(round(float(label_macros.get("protein_g") or exact_candidate.get("protein_g") or 0)))
     carb_g = int(round(float(label_macros.get("carb_g") or exact_candidate.get("carb_g") or 0)))
     fat_g = int(round(float(label_macros.get("fat_g") or exact_candidate.get("fat_g") or 0)))
+    display_macro_breakdown = {}
+    if any(value > 0 for value in (protein_g, carb_g, fat_g)):
+        display_macro_breakdown = {
+            "protein_g": protein_g,
+            "carb_g": carb_g,
+            "fat_g": fat_g,
+            "macro_source": "exact_item_db",
+            "macro_confidence": "high",
+            "macro_status": "available",
+        }
     serving_basis = str(exact_candidate.get("serving_basis") or "").strip() or None
     component = ComponentEstimate(
         name=title,
@@ -185,6 +195,9 @@ def build_exact_item_artifact(
         protein_g=protein_g,
         carb_g=carb_g,
         fat_g=fat_g,
+        macro_breakdown=display_macro_breakdown,
+        raw_macro_breakdown=display_macro_breakdown,
+        display_macro_breakdown=display_macro_breakdown,
         reply_text=f"{title} {kcal} kcal.",
         action_taken="direct_answer",
         route_target="direct_answer",
@@ -197,6 +210,7 @@ def build_exact_item_artifact(
             "occurred_at": f"{local_date}T12:00:00+08:00",
             "timezone": "Asia/Taipei",
             "db_hit_type": "exact_truth",
+            "macro_display_authorized": bool(display_macro_breakdown),
             "search_attempt_count": 0,
             "why_not_exact": [],
             "grounding_summary": {
