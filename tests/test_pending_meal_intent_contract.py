@@ -7,7 +7,7 @@ from app.runtime.contracts.pending_meal_intent import PendingMealIntent
 
 
 def test_pending_meal_intent_is_short_term_contract_only() -> None:
-    created_at = datetime(2026, 4, 30, 18, 0, tzinfo=timezone.utc)
+    created_at = datetime.now(timezone.utc) - timedelta(hours=1)
     intent = PendingMealIntent(
         intent_id="intent-1",
         user_id="user-1",

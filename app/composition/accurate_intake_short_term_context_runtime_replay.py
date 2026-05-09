@@ -5,6 +5,9 @@ import json
 from types import SimpleNamespace
 from typing import Any
 
+from app.composition.accurate_intake_short_term_context_replay_fixtures import (
+    short_term_context_replay_scenario_specs,
+)
 from app.intake.application.attachment_resolver import resolve_attachment_decision
 from app.intake.application.current_turn_context_assembler import build_current_turn_context_v1
 from app.intake.application.manager_context_policy import build_manager_context_packet_v1
@@ -18,6 +21,8 @@ _REQUIRED_SCENARIO_IDS = (
     "correct_previous_identity",
     "pending_followup_answer",
     "long_chat_with_pinned_pending_draft",
+    "future_meal_intent_from_recommendation",
+    "cancel_pending_meal_intent",
 )
 
 
@@ -84,161 +89,8 @@ def _resolved_state(
     )
 
 
-def _meal(
-    *,
-    thread_id: int,
-    version_id: int,
-    title: str,
-    item_names: tuple[str, ...],
-) -> dict[str, Any]:
-    return {
-        "meal_thread_id": thread_id,
-        "meal_version_id": version_id,
-        "meal_title": title,
-        "occurred_at": "2026-05-05T12:30:00",
-        "item_resolution_source": "runtime_replay_fixture_state",
-        "item_candidates": [
-            {
-                "meal_item_id": thread_id * 100 + index,
-                "canonical_name": item_name,
-                "item_index": index,
-                "estimated_kcal": 100 + index * 20,
-                "mutation_authority": False,
-                "selected_target": False,
-            }
-            for index, item_name in enumerate(item_names, start=1)
-        ],
-    }
-
-
-def _recent_chat(count: int) -> list[dict[str, Any]]:
-    return [
-        {
-            "message_id": index,
-            "role": "user" if index % 2 else "assistant",
-            "content": f"context replay prior turn {index}",
-            "created_at": f"2026-05-05T10:{index % 60:02d}:00",
-            "trace_id": f"prior-{index}",
-            "local_date": "2026-05-05",
-            "read_only": True,
-            "mutation_authority": False,
-            "source": "runtime_replay_fixture_state",
-        }
-        for index in range(1, count + 1)
-    ]
-
-
-def _target_reference(
-    *,
-    thread_id: int,
-    version_id: int,
-    title: str,
-    source: str,
-    confidence: str = "high",
-    item_id: int | None = None,
-    canonical_name: str | None = None,
-) -> dict[str, Any]:
-    ref: dict[str, Any] = {
-        "meal_thread_id": thread_id,
-        "meal_version_id": version_id,
-        "meal_title": title,
-        "target_resolution_source": source,
-        "correction_confidence": confidence,
-        "item_resolution_source": "runtime_replay_fixture_state",
-    }
-    if item_id is not None:
-        ref["meal_item_id"] = item_id
-    if canonical_name is not None:
-        ref["canonical_name"] = canonical_name
-    return ref
-
-
 def _scenario_specs() -> list[dict[str, Any]]:
-    drink_meal = _meal(thread_id=31, version_id=310, title="bubble tea", item_names=("bubble tea",))
-    rice_meal = _meal(thread_id=41, version_id=410, title="lunch rice", item_names=("rice", "egg"))
-    luwei_meal = _meal(thread_id=51, version_id=510, title="luwei", item_names=("tofu", "seaweed", "fish ball"))
-    return [
-        {
-            "scenario_id": "remove_previous_item",
-            "raw_user_input": "把剛剛那個拿掉",
-            "expected_context_posture": "ambiguous_until_manager_decision",
-            "recent_committed_meals": [luwei_meal],
-            "target_meal_reference": _target_reference(
-                thread_id=51,
-                version_id=510,
-                title="luwei",
-                source="recent_committed_meal",
-                confidence="medium",
-            ),
-        },
-        {
-            "scenario_id": "remove_named_item",
-            "raw_user_input": "豆干拿掉",
-            "expected_context_posture": "candidate_supported",
-            "recent_committed_meals": [luwei_meal],
-        },
-        {
-            "scenario_id": "modify_drink_sugar",
-            "raw_user_input": "那杯改半糖",
-            "expected_context_posture": "candidate_supported",
-            "recent_committed_meals": [drink_meal],
-        },
-        {
-            "scenario_id": "modify_rice_portion",
-            "raw_user_input": "飯改少一點",
-            "expected_context_posture": "candidate_supported",
-            "recent_committed_meals": [rice_meal],
-        },
-        {
-            "scenario_id": "correct_previous_identity",
-            "raw_user_input": "剛剛那個其實不是拿鐵",
-            "expected_context_posture": "ambiguous_until_manager_decision",
-            "recent_committed_meals": [drink_meal],
-            "target_meal_reference": _target_reference(
-                thread_id=31,
-                version_id=310,
-                title="drink",
-                source="recent_committed_meal",
-                confidence="medium",
-            ),
-        },
-        {
-            "scenario_id": "pending_followup_answer",
-            "raw_user_input": "有豆干、海帶、貢丸",
-            "expected_context_posture": "pending_followup_pinned",
-            "pending_followup": {
-                "is_open": True,
-                "meal_id": 51,
-                "meal_thread_id": 51,
-                "pending_question": "請列出滷味品項",
-                "expected_answer_type": "listed_basket_components",
-            },
-            "target_meal_reference": _target_reference(
-                thread_id=51,
-                version_id=510,
-                title="luwei",
-                source="pending_followup_state",
-            ),
-        },
-        {
-            "scenario_id": "long_chat_with_pinned_pending_draft",
-            "raw_user_input": "剛剛那份滷味裡還有米血",
-            "expected_context_posture": "pending_draft_pinned_despite_recent_window",
-            "recent_chat_turns": _recent_chat(28),
-            "pending_draft": {
-                "meal_thread_id": 61,
-                "meal_version_id": 610,
-                "meal_title": "luwei draft",
-                "resolution_status": "draft_unresolved",
-            },
-            "target_meal_reference": _target_reference(
-                thread_id=61,
-                version_id=610,
-                title="luwei draft",
-                source="pending_draft_state",
-            ),
-        },
-    ]
+    return short_term_context_replay_scenario_specs()
 
 
 def _scenario_result(spec: dict[str, Any]) -> dict[str, Any]:
@@ -298,15 +150,25 @@ def _scenario_result(spec: dict[str, Any]) -> dict[str, Any]:
         spec["expected_context_posture"] == "candidate_supported"
         and attachment.target_object_id is not None
     )
+    pending_meal_trace = dict(spec.get("pending_meal_intent_trace") or {})
     return {
         "scenario_id": spec["scenario_id"],
         "raw_user_input": spec["raw_user_input"],
         "raw_user_input_role": "display_only",
+        "case_provenance": spec.get("case_provenance", "runtime_replay_fixture_state"),
+        "replay_only": spec.get("case_provenance") == "runtime_observed_replay_seed",
         "expected_context_posture": spec["expected_context_posture"],
         "semantic_source": "manager_or_fixture_structured_decision_required",
         "runtime_attachment_reason": attachment.reason,
         "runtime_attachment_disposition": attachment.disposition,
         "runtime_attachment_target_object_id": attachment.target_object_id,
+        "pending_meal_intent_contract_scope": pending_meal_trace.get("contract_scope"),
+        "pending_intent_status": pending_meal_trace.get("status"),
+        "canonical_write_authorized": pending_meal_trace.get("canonical_write_authorized", False),
+        "dismissed_scope": pending_meal_trace.get("dismissed_scope"),
+        "runtime_effect_allowed": False,
+        "ledger_mutation_authority": False,
+        "proposal_state_changed": False,
         "context_policy_version_present": bool(packet["metadata"].get("context_policy_version")),
         "loaded_context_summary_present": bool(loaded),
         "omitted_context_summary_present": bool(omitted),
@@ -357,6 +219,19 @@ def _validate_scenarios(scenarios: list[dict[str, Any]]) -> list[str]:
             blockers.append(f"{scenario_id}.mutation_authority")
         if scenario.get("semantic_source") != "manager_or_fixture_structured_decision_required":
             blockers.append(f"{scenario_id}.semantic_source_not_manager_or_fixture")
+        if scenario.get("case_provenance") == "runtime_observed_replay_seed":
+            if scenario.get("replay_only") is not True:
+                blockers.append(f"{scenario_id}.runtime_observed_seed_not_replay_only")
+            if scenario.get("runtime_effect_allowed") is not False:
+                blockers.append(f"{scenario_id}.runtime_effect_allowed")
+            if scenario.get("pending_meal_intent_contract_scope") != "pending_meal_intent_only":
+                blockers.append(f"{scenario_id}.pending_meal_contract_scope_invalid")
+            if scenario.get("canonical_write_authorized") is not False:
+                blockers.append(f"{scenario_id}.canonical_write_authorized")
+            if scenario.get("ledger_mutation_authority") is not False:
+                blockers.append(f"{scenario_id}.ledger_mutation_authority")
+            if scenario.get("proposal_state_changed") is not False:
+                blockers.append(f"{scenario_id}.proposal_state_changed")
         for candidate in scenario.get("target_candidates") or []:
             if isinstance(candidate, dict):
                 if candidate.get("read_only") is not True:
@@ -389,6 +264,14 @@ def _validate_scenarios(scenarios: list[dict[str, Any]]) -> list[str]:
                 blockers.append(f"{scenario_id}.recent_chat_omission_not_recorded")
             if scenario.get("runtime_attachment_reason") != "resolved_target_reference":
                 blockers.append(f"{scenario_id}.pending_draft_attachment_missing")
+        if expected_posture == "short_term_context_only":
+            if scenario.get("pending_intent_status") != "created":
+                blockers.append(f"{scenario_id}.pending_intent_not_created")
+        if expected_posture == "pending_intent_dismissal_only":
+            if scenario.get("pending_intent_status") != "dismissed":
+                blockers.append(f"{scenario_id}.pending_intent_not_dismissed")
+            if scenario.get("dismissed_scope") != "current_intent_instance_only":
+                blockers.append(f"{scenario_id}.dismissed_scope_invalid")
     return list(dict.fromkeys(blockers))
 
 
@@ -438,6 +321,11 @@ def build_short_term_context_runtime_replay_artifact() -> dict[str, Any]:
                 ),
                 "target_candidate_scenarios": sum(
                     1 for scenario in scenarios if scenario["target_candidate_count"] > 0
+                ),
+                "future_intent_replay_seed_scenarios": sum(
+                    1
+                    for scenario in scenarios
+                    if scenario["case_provenance"] == "runtime_observed_replay_seed"
                 ),
                 "current_gap_scenarios": len(gap_scenarios),
                 "known_gap_signals": sorted(
