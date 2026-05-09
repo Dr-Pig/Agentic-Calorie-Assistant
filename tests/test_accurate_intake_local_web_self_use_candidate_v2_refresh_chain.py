@@ -889,7 +889,10 @@ def test_refresh_chain_aligns_legacy_prelive_inputs_to_current_shell_evidence(
     }
     assert missing.isdisjoint(stale_legacy_groups)
     assert pre_live_evidence["_evidence_metadata"]["status"] != "blocked_missing_evidence"
-    assert pre_live_pack["selected_option"] == "stay_local_self_use"
+    assert (
+        pre_live_pack["selected_option"]
+        == "ready_for_human_limited_live_canary_decision"
+    )
     blockers = set(pre_live_pack.get("blockers") or [])
     assert not any(blocker.startswith("ui_context_alignment_pack.") for blocker in blockers)
     assert not any(
@@ -897,6 +900,60 @@ def test_refresh_chain_aligns_legacy_prelive_inputs_to_current_shell_evidence(
         for blocker in blockers
     )
     assert "ready_for_live_diagnostic_decision" not in pre_live_pack
+    assert printed["private_self_use_approved"] is False
+    assert printed["product_readiness_claimed"] is False
+
+
+def test_refresh_chain_generates_current_shell_local_review_inputs_before_next_blocker(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+    local_review_manifest = json.loads(
+        (
+            artifact_dir
+            / module.REFRESHED_ARTIFACT_FILENAMES[
+                "current_shell_compatibility_local_review_evidence_manifest"
+            ]
+        ).read_text(encoding="utf-8")
+    )
+    local_review_decision = json.loads(
+        (
+            artifact_dir
+            / module.REFRESHED_ARTIFACT_FILENAMES[
+                "current_shell_compatibility_local_review_decision_pack"
+            ]
+        ).read_text(encoding="utf-8")
+    )
+    pre_live_pack = json.loads(
+        (
+            artifact_dir
+            / module.REFRESHED_ARTIFACT_FILENAMES["pre_live_decision_pack"]
+        ).read_text(encoding="utf-8")
+    )
+
+    assert exit_code == 1
+    assert printed["status"] == "blocked"
+    assert local_review_manifest["_manifest_metadata"]["status"] == "complete"
+    assert local_review_decision["status"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
+    assert local_review_decision["ready_for_live_diagnostic_decision"] is False
+    assert local_review_decision["ready_for_fdb_integration"] is False
+    assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
+    assert (
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID
+        not in printed["closeout_navigation"]["missing_evidence"]
+    )
+    first_blocking_gate = printed["closeout_navigation"]["first_blocking_gate"]
+    assert first_blocking_gate is not None
+    assert first_blocking_gate["gate_id"] == "product_loop_handoff"
+    assert printed["candidate_prepared"] is True
+    assert printed["ready_for_fdb_integration_validation"] is False
+    assert printed["product_loop_handoff_status"] == "blocked"
     assert printed["private_self_use_approved"] is False
     assert printed["product_readiness_claimed"] is False
 
