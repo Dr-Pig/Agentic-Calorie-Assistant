@@ -201,6 +201,19 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
 
     assert exit_code == 0
     assert printed["status"] == "pass"
+    assert printed["closeout_navigation"] == {
+        "missing_evidence": [],
+        "stale_evidence": [],
+        "first_blocking_gate": None,
+        "non_claims": {
+            "product_ready": False,
+            "web_ready": False,
+            "private_self_use_approved": False,
+            "production_ready": False,
+            "live_llm_ready": False,
+            "fooddb_truth_promoted": False,
+        },
+    }
     assert printed["candidate_prepared"] is True
     assert printed["route_backed_macro_checked"] is True
     assert printed["route_backed_macro_closeout_status"] == "pass"
@@ -391,6 +404,18 @@ def test_refresh_chain_honestly_blocks_when_browser_activation_dependencies_are_
 
     assert exit_code == 1
     assert printed["status"] == "blocked"
+    assert printed["closeout_navigation"]["missing_evidence"] == [
+        "product_pages_target_candidate_ui_smoke"
+    ]
+    assert printed["closeout_navigation"]["stale_evidence"] == []
+    assert printed["closeout_navigation"]["first_blocking_gate"] == {
+        "gate_id": "product_pages_self_use_flow_gate",
+        "status": "blocked",
+        "blocker_count": 13,
+        "first_blocker": "product_pages_target_candidate_ui_smoke.unexpected_status:missing",
+    }
+    assert printed["closeout_navigation"]["non_claims"]["private_self_use_approved"] is False
+    assert printed["closeout_navigation"]["non_claims"]["product_ready"] is False
     assert printed["candidate_prepared"] is False
     assert printed["ready_for_fdb_integration_validation"] is False
     assert browser_activation["status"] == "blocked"
@@ -406,6 +431,35 @@ def test_refresh_chain_honestly_blocks_when_browser_activation_dependencies_are_
         "approved_packet_ready_evidence_metadata_valid"
     )
     assert product_loop_handoff["real_fooddb_pass_claimed"] is False
+
+
+def test_closeout_navigation_reports_stale_evidence_without_readiness_claims() -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    navigation = module._build_closeout_navigation(
+        [
+            (
+                "product_pages_self_use_flow_gate",
+                {
+                    "status": "blocked",
+                    "blockers": [
+                        "product_pages_browser_smoke.unexpected_status:old_contract",
+                    ],
+                },
+            )
+        ]
+    )
+
+    assert navigation["missing_evidence"] == []
+    assert navigation["stale_evidence"] == ["product_pages_browser_smoke"]
+    assert navigation["first_blocking_gate"] == {
+        "gate_id": "product_pages_self_use_flow_gate",
+        "status": "blocked",
+        "blocker_count": 1,
+        "first_blocker": "product_pages_browser_smoke.unexpected_status:old_contract",
+    }
+    assert navigation["non_claims"]["product_ready"] is False
+    assert navigation["non_claims"]["web_ready"] is False
 
 
 def test_refresh_chain_source_stays_out_of_fooddb_live_and_shared_contract_boundaries() -> None:
