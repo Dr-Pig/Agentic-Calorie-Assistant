@@ -181,12 +181,42 @@ def test_live_cost_summary_accepts_anthropic_cache_read_usage_field() -> None:
         ]
     )
 
+    assert summary["summary"]["prompt_tokens"] == 200
+    assert summary["summary"]["completion_tokens"] == 10
+    assert summary["summary"]["total_tokens"] == 210
     assert summary["summary"]["cache_reporting_call_count"] == 1
     assert summary["summary"]["cache_hit_call_count"] == 1
     assert summary["summary"]["cached_prompt_tokens"] == 70
     assert summary["prompt_cache_reporting_capability"]["cache_reporting_status"] == "cache_hit_reported"
     assert summary["prompt_cache_reporting_capability"]["cache_hit_claim_allowed"] is True
     assert summary["prompt_cache_reporting_capability"]["cache_miss_claim_allowed"] is False
+
+
+def test_live_cost_summary_marks_cache_creation_without_read_as_reported_zero_hit() -> None:
+    summary = build_accurate_intake_live_cost_summary(
+        [
+            _live_artifact(
+                usage={
+                    "input_tokens": 64,
+                    "output_tokens": 12,
+                    "cache_creation_input_tokens": 1024,
+                },
+            )
+        ]
+    )
+
+    assert summary["summary"]["prompt_tokens"] == 1088
+    assert summary["summary"]["completion_tokens"] == 12
+    assert summary["summary"]["total_tokens"] == 1100
+    assert summary["summary"]["cache_reporting_call_count"] == 1
+    assert summary["summary"]["cache_hit_call_count"] == 0
+    assert summary["summary"]["cached_prompt_tokens_known"] is True
+    capability = summary["prompt_cache_reporting_capability"]
+    assert capability["cache_reporting_status"] == "zero_cached_tokens_reported"
+    assert capability["cached_token_count_status"] == "reported_zero_cached_tokens"
+    assert capability["cache_hit_claim_allowed"] is False
+    assert capability["cache_miss_claim_allowed"] is True
+    assert capability["cached_tokens_unknown"] is False
 
 
 def test_live_cost_summary_flags_latency_root_cause_probe_without_readiness_claim() -> None:

@@ -1549,6 +1549,9 @@ def _runtime_stage_timing_summary(stage_timings: list[dict[str, Any]]) -> dict[s
 def _provider_invocation_summary(invocations: list[dict[str, Any]]) -> dict[str, Any]:
     usage_records = [_dict(_dict(invocation).get("provider_trace")).get("usage") for invocation in invocations]
     usage_dicts = [_dict(usage) for usage in usage_records]
+    cache_reporting_call_count = sum(1 for usage in usage_dicts if _cached_tokens_from_usage(usage) is not None)
+    cache_hit_call_count = sum(1 for usage in usage_dicts if int(_cached_tokens_from_usage(usage) or 0) > 0)
+    cached_tokens_known = len(usage_dicts) == cache_reporting_call_count
     transport_summaries = [
         _transport_attempt_summary(_dict(_dict(invocation).get("provider_trace"))) for invocation in invocations
     ]
@@ -1559,7 +1562,11 @@ def _provider_invocation_summary(invocations: list[dict[str, Any]]) -> dict[str,
         "prompt_tokens": sum(_usage_prompt_tokens(usage) for usage in usage_dicts),
         "completion_tokens": sum(_usage_completion_tokens(usage) for usage in usage_dicts),
         "cached_tokens": sum(_cached_tokens_from_usage(usage) or 0 for usage in usage_dicts),
-        "cache_reporting_call_count": sum(1 for usage in usage_dicts if _cached_tokens_from_usage(usage) is not None),
+        "cache_reporting_call_count": cache_reporting_call_count,
+        "cache_hit_call_count": cache_hit_call_count,
+        "cached_tokens_known": cached_tokens_known,
+        "cached_tokens_unknown": len(usage_dicts) > cache_reporting_call_count,
+        "cache_miss_claim_allowed": bool(usage_dicts) and cached_tokens_known and cache_hit_call_count == 0,
         "provider_wrapper_overhead_ms": sum(
             int(item.get("provider_wrapper_overhead_ms") or 0) for item in invocations
         ),
@@ -2413,7 +2420,13 @@ def _optional_int(value: Any) -> int | None:
 
 
 def _usage_prompt_tokens(usage: dict[str, Any]) -> int:
-    return int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
+    if "prompt_tokens" in usage:
+        return int(usage.get("prompt_tokens") or 0)
+    cache_read_tokens = _optional_usage_int(usage, "cache_read_input_tokens")
+    cache_creation_tokens = _optional_usage_int(usage, "cache_creation_input_tokens")
+    if cache_read_tokens is not None or cache_creation_tokens is not None:
+        return int(usage.get("input_tokens") or 0) + int(cache_read_tokens or 0) + int(cache_creation_tokens or 0)
+    return int(usage.get("input_tokens") or 0)
 
 
 def _usage_completion_tokens(usage: dict[str, Any]) -> int:
@@ -2429,6 +2442,16 @@ def _cached_tokens_from_usage(usage: dict[str, Any]) -> int | None:
         return int(input_details.get("cached_tokens") or 0)
     if "cached_tokens" in usage:
         return int(usage.get("cached_tokens") or 0)
+    if "cache_read_input_tokens" in usage:
+        return int(usage.get("cache_read_input_tokens") or 0)
+    if "cache_creation_input_tokens" in usage:
+        return 0
+    return None
+
+
+def _optional_usage_int(usage: dict[str, Any], key: str) -> int | None:
+    if key in usage:
+        return int(usage.get(key) or 0)
     return None
 
 
