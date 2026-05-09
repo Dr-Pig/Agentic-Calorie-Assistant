@@ -14,6 +14,9 @@ from app.memory.application.runtime_lab_candidate_extraction import (  # noqa: E
     build_candidate_extraction_artifact_from_edd_suite,
     build_candidate_extraction_artifact_from_ingress_events,
 )
+from app.memory.application.runtime_lab_consumer_summary_pack import (  # noqa: E402
+    build_runtime_lab_memory_consumer_summary_pack,
+)
 from app.memory.application.runtime_lab_lifecycle_validator import (  # noqa: E402
     build_lifecycle_decision_artifact,
 )
@@ -44,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--store-root", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--as-of", required=True)
+    parser.add_argument("--review-contract-json", type=Path)
     args = parser.parse_args(argv)
 
     suite = load_runtime_lab_memory_edd_suite()
@@ -70,6 +74,11 @@ def main(argv: list[str] | None = None) -> int:
         context_pack,
         enable_lab_injection=True,
     )
+    consumer_summary_projection = None
+    if args.review_contract_json:
+        consumer_summary_projection = build_runtime_lab_memory_consumer_summary_pack(
+            read_json_artifact(args.review_contract_json)
+        )
     report = build_runtime_lab_memory_quality_report(
         suite=suite,
         fixture_extraction=fixture_extraction,
@@ -77,6 +86,7 @@ def main(argv: list[str] | None = None) -> int:
         lifecycle=lifecycle,
         context_pack=context_pack,
         injection=injection,
+        consumer_summary_projection=consumer_summary_projection,
         optional_live_run_invoked=os.getenv("RUNTIME_LAB_MEMORY_OPTIONAL_LIVE_REPORT")
         == "1",
     )
