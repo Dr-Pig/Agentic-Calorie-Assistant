@@ -43,6 +43,18 @@ def test_dogfood_replay_projects_reviewed_trace_into_advanced_chain() -> None:
     assert artifact["terminal_review_sink_summary"] == {
         "status": "pass",
         "record_count": 2,
+        "control_path_evidence": {
+            "status": "pass",
+            "all_candidates_have_required_controls": True,
+            "configured_paths": {
+                "dismiss": True,
+                "snooze": True,
+                "undo": True,
+            },
+            "interaction_actions_observed": ["dismiss", "snooze"],
+            "observed_all_interaction_actions": False,
+            "next_signal_required_present": True,
+        },
     }
     assert [row["status"] for row in artifact["chain_stage_trace"]] == [
         "pass",
@@ -81,6 +93,7 @@ def test_dogfood_replay_blocks_missing_scope_before_chain_projection() -> None:
     assert artifact["terminal_review_sink_summary"] == {
         "status": "not_run",
         "record_count": 0,
+        "control_path_evidence": {"status": "not_run"},
     }
     assert artifact["blockers"] == [
         "memory_dogfood_replay_review.status_blocked",

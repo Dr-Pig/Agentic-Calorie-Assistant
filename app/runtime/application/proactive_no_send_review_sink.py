@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.runtime.application.proactive_no_send_control_path_evidence import (
+    build_no_send_control_path_evidence,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -52,6 +55,10 @@ def build_no_send_review_sink(
     interaction_artifacts: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     interactions = list(interaction_artifacts or [])
+    control_evidence = build_no_send_control_path_evidence(
+        no_send_candidates=no_send_candidates,
+        interaction_artifacts=interactions,
+    )
     blockers = [
         *_candidate_blockers(no_send_candidates),
         *_interaction_blockers(interactions),
@@ -67,6 +74,7 @@ def build_no_send_review_sink(
         "retirement_trigger": "approved_proactive_scheduler_runtime_activation_plan",
         "record_count": len(records),
         "records": records,
+        "control_path_evidence": control_evidence,
         "blockers": blockers,
         "non_claims": list(NON_CLAIMS),
         **dict(FALSE_FLAGS),
