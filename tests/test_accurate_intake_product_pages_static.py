@@ -6,6 +6,7 @@ from pathlib import Path
 CHAT = Path("static/accurate-intake-chat.html")
 TODAY = Path("static/accurate-intake-today.html")
 BODY = Path("static/accurate-intake-body.html")
+FEEDBACK = Path("static/accurate-intake-feedback.html")
 
 
 def _html(path: Path) -> str:
@@ -32,6 +33,7 @@ def test_product_pages_preserve_user_and_date_in_nav_without_token_query() -> No
         assert 'data-nav-target="chat"' in html
         assert 'data-nav-target="today"' in html
         assert 'data-nav-target="body"' in html
+        assert 'data-nav-target="feedback"' in html
         assert "function updateNavigationLinks()" in html
         assert "encodeURIComponent(userId())" in html
         assert "local_date=${encodeURIComponent(selectedDate())}" in html
@@ -292,6 +294,54 @@ def test_body_page_refetches_read_model_when_selected_date_changes() -> None:
         "    });"
     )
     assert expected in html
+
+
+def test_feedback_page_is_local_only_trace_linked_capture_without_frontend_semantics() -> None:
+    html = _html(FEEDBACK)
+
+    assert 'data-page-id="accurate-intake-feedback-page-v1"' in html
+    assert 'data-surface-role="dogfood-feedback"' in html
+    assert 'data-claim-scope="local_dogfood_feedback_triage_record"' in html
+    assert 'data-feedback-owner="human_operator"' in html
+    assert 'data-feedback-is-product-truth="false"' in html
+    assert 'data-manager-context-injection="false"' in html
+    assert 'data-fooddb-truth-update-allowed="false"' in html
+    assert 'data-canonical-eval-promotion-allowed="false"' in html
+    assert 'data-nav-target="chat"' in html
+    assert 'data-nav-target="today"' in html
+    assert 'data-nav-target="body"' in html
+    assert 'data-nav-target="feedback"' in html
+    assert 'feedback: "/accurate-intake/feedback"' in html
+    assert 'chatHistory: "/accurate-intake/chat-history"' in html
+    assert 'name="category"' in html
+    assert 'value="manager_behavior"' in html
+    assert 'value="nutrition_estimate"' in html
+    assert 'value="macro_gap"' in html
+    assert 'value="fooddb_gap"' in html
+    assert 'value="ui_ux"' in html
+    assert 'value="bug"' in html
+    assert 'value="latency"' in html
+    assert 'value="product_feedback"' in html
+    assert '"X-Local-Debug-Token": token' in html
+    assert "window.LOCAL_DEBUG_API_TOKEN" in html
+    assert "trace_id: el(\"trace-id\").value.trim() || null" in html
+    assert "feedback_text: el(\"feedback-text\").value.trim()" in html
+
+    forbidden = [
+        "final_action",
+        "workflow_effect",
+        "estimated_kcal",
+        "remaining_kcal",
+        "message.content.includes",
+        "message.content.match",
+        "localStorage",
+        "sessionStorage",
+        "fooddb_truth_updated=true",
+        "product_readiness_claimed=true",
+        "private_self_use_approved=true",
+    ]
+    for fragment in forbidden:
+        assert fragment not in html
 
 
 def test_body_page_covers_plan_weight_goal_activity_inputs_without_frontend_tdee_math() -> None:

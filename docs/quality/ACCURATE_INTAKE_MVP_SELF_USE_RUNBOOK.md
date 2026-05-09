@@ -209,6 +209,14 @@ python scripts/build_accurate_intake_dogfood_review_queue.py --trace-json path/t
 
 This local-only review artifact is dogfood triage material. It may mark `review_candidate` records from deterministic flags or reviewer-agent suggestions, but raw traces remain observation only and cannot become Food KB truth, golden truth, or canonical eval cases without human approval, product semantic source, stable expected behavior, and eval registration. The artifact can contain personal diet logs; keep it local and do not commit generated review artifacts.
 
+The desktop local shell also exposes a feedback capture page at `/static/accurate-intake-feedback.html`. The page posts local-only triage records to `/accurate-intake/feedback`, which appends JSONL records under `workspace_data/local_dogfood_feedback`. To fold those captured records into the existing review queue artifact, run:
+
+```powershell
+python scripts/build_accurate_intake_dogfood_review_queue.py --desktop-feedback-jsonl workspace_data/local_dogfood_feedback/accurate_intake_dogfood_feedback.jsonl --output artifacts/accurate_intake_dogfood_review_queue.json
+```
+
+Feedback records are review material only. They must not enter Manager context, FoodDB truth, canonical eval truth, prompt hardening, or product readiness claims without explicit human review and owner approval.
+
 Build the operator review surface from the one-day realistic dogfood diagnostic with:
 
 ```powershell

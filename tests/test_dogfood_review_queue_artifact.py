@@ -5,6 +5,7 @@ from pathlib import Path
 
 from app.composition.dogfood_review_queue import (
     build_dogfood_review_queue_artifact,
+    build_feedback_record_from_desktop_capture,
     build_review_candidate_from_runtime_trace,
 )
 
@@ -92,6 +93,65 @@ def test_review_queue_artifact_is_local_only_and_preserves_correction_events_as_
     assert artifact["correction_feedback_events"][0]["food_kb_truth_update_allowed"] is False
 
 
+def test_desktop_feedback_capture_is_trace_linked_local_triage_not_product_truth() -> None:
+    feedback = build_feedback_record_from_desktop_capture(
+        category="nutrition_estimate",
+        feedback_text="The bubble tea estimate looked too low.",
+        page="chat",
+        selected_date="2026-05-10",
+        user_external_id="local-self-use-001",
+        trace_id="trace-bubble-tea",
+        message_id="assistant-message-9",
+        severity="medium",
+        ui_event={"route": "/static/accurate-intake-chat.html", "api_duration_ms": 1234},
+    )
+
+    assert feedback["artifact_type"] == "accurate_intake_dogfood_feedback_record"
+    assert feedback["status"] == "captured"
+    assert feedback["claim_scope"] == "local_dogfood_feedback_triage_record"
+    assert feedback["local_only"] is True
+    assert feedback["contains_personal_diet_logs"] is True
+    assert feedback["do_not_commit"] is True
+    assert feedback["category"] == "nutrition_estimate"
+    assert feedback["feedback_text"] == "The bubble tea estimate looked too low."
+    assert feedback["linked_context"] == {
+        "page": "chat",
+        "selected_date": "2026-05-10",
+        "user_external_id": "local-self-use-001",
+        "trace_id": "trace-bubble-tea",
+        "message_id": "assistant-message-9",
+        "meal_id": None,
+    }
+    assert feedback["ui_event"]["route"] == "/static/accurate-intake-chat.html"
+    assert feedback["frontend_semantic_owner"] is False
+    assert feedback["mutation_authority"] is False
+    assert feedback["manager_context_injection_allowed"] is False
+    assert feedback["food_kb_truth_update_allowed"] is False
+    assert feedback["canonical_eval_promotion_allowed"] is False
+
+
+def test_review_queue_artifact_preserves_desktop_feedback_records_without_promotion() -> None:
+    feedback = build_feedback_record_from_desktop_capture(
+        category="ui_ux",
+        feedback_text="Date switching was hard to notice.",
+        page="today",
+        selected_date="2026-05-10",
+        user_external_id="local-self-use-001",
+        trace_id=None,
+    )
+
+    artifact = build_dogfood_review_queue_artifact(
+        review_candidates=[],
+        desktop_feedback_records=[feedback],
+    )
+
+    assert artifact["feedback_triage_record_count"] == 1
+    assert artifact["desktop_feedback_records"][0]["category"] == "ui_ux"
+    assert artifact["promotion_policy"]["feedback_can_create_product_truth"] is False
+    assert artifact["promotion_policy"]["feedback_can_create_fooddb_truth"] is False
+    assert artifact["promotion_policy"]["feedback_can_create_eval_truth"] is False
+
+
 def test_review_queue_builder_script_writes_artifact_from_runtime_trace(tmp_path: Path) -> None:
     trace_path = tmp_path / "runtime_trace.json"
     output_path = tmp_path / "review_queue.json"
@@ -153,3 +213,47 @@ def test_review_queue_builder_script_captures_browser_realistic_evidence_gap(
     assert candidate["raw_trace"]["raw_trace_is_truth"] is False
     assert candidate["canonical_eval_promotion"]["allowed"] is False
     assert candidate["review_candidate"]["reviewer_agent_can_approve"] is False
+
+
+def test_review_queue_builder_script_ingests_desktop_feedback_jsonl(
+    tmp_path: Path,
+) -> None:
+    feedback = build_feedback_record_from_desktop_capture(
+        category="latency",
+        feedback_text="The turn took too long.",
+        page="chat",
+        selected_date="2026-05-10",
+        user_external_id="local-self-use-001",
+        trace_id="trace-latency-001",
+    )
+    feedback_jsonl = tmp_path / "feedback.jsonl"
+    output_path = tmp_path / "review_queue.json"
+    feedback_jsonl.write_text(json.dumps(feedback, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    from scripts.build_accurate_intake_dogfood_review_queue import main
+
+    exit_code = main(
+        [
+            "--desktop-feedback-jsonl",
+            str(feedback_jsonl),
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    assert exit_code == 0
+    artifact = json.loads(output_path.read_text(encoding="utf-8"))
+    assert artifact["feedback_triage_record_count"] == 1
+    assert artifact["desktop_feedback_records"][0]["category"] == "latency"
+    assert artifact["promotion_policy"]["feedback_can_create_product_truth"] is False
+
+
+def test_self_use_runbook_documents_desktop_feedback_capture_path() -> None:
+    runbook = Path("docs/quality/ACCURATE_INTAKE_MVP_SELF_USE_RUNBOOK.md").read_text(
+        encoding="utf-8-sig"
+    )
+
+    assert "/static/accurate-intake-feedback.html" in runbook
+    assert "/accurate-intake/feedback" in runbook
+    assert "--desktop-feedback-jsonl" in runbook
+    assert "workspace_data/local_dogfood_feedback" in runbook

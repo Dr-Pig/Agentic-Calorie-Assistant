@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="zh-Hant" data-page-id="accurate-intake-feedback-page-v1">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Accurate Intake Feedback</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #19212a;
+      --muted: #637083;
+      --line: #d8dee8;
+      --panel: #ffffff;
+      --accent: #0f766e;
+      --accent-soft: #e5f4f1;
+      --danger: #9f1239;
+      --bg: #f6f7f9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 24px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .brand { font-weight: 700; }
+    nav { display: flex; gap: 8px; flex-wrap: wrap; }
+    nav a, .action-link {
+      color: var(--ink);
+      text-decoration: none;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 7px 10px;
+      background: #fff;
+    }
+    nav a[aria-current="page"] {
+      background: var(--accent-soft);
+      border-color: #8fc8bf;
+      color: #0b5f59;
+    }
+    main {
+      width: min(980px, calc(100vw - 32px));
+      margin: 24px auto;
+      display: grid;
+      gap: 16px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    h1 { margin: 0 0 4px; font-size: 24px; }
+    .subtle { margin: 0; color: var(--muted); }
+    .session-strip, .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    label { display: grid; gap: 6px; font-weight: 650; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    textarea { min-height: 136px; resize: vertical; }
+    .wide { grid-column: 1 / -1; }
+    .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    button {
+      border: 0;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #fff;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.55; cursor: wait; }
+    .status { color: var(--muted); }
+    .status[data-state="error"] { color: var(--danger); }
+    @media (max-width: 720px) {
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .session-strip, .form-grid { grid-template-columns: 1fr; }
+      main { width: calc(100vw - 16px); margin: 8px auto; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Accurate Intake</div>
+    <nav aria-label="Accurate Intake pages">
+      <a data-nav-target="chat" href="/static/accurate-intake-chat.html">Chat</a>
+      <a data-nav-target="today" href="/static/accurate-intake-today.html">Today</a>
+      <a data-nav-target="body" href="/static/accurate-intake-body.html">Body</a>
+      <a data-nav-target="feedback" href="/static/accurate-intake-feedback.html" aria-current="page">Feedback</a>
+    </nav>
+  </header>
+  <main
+    data-surface-role="dogfood-feedback"
+    data-claim-scope="local_dogfood_feedback_triage_record"
+    data-feedback-owner="human_operator"
+    data-feedback-is-product-truth="false"
+    data-manager-context-injection="false"
+    data-fooddb-truth-update-allowed="false"
+    data-canonical-eval-promotion-allowed="false"
+  >
+    <section class="panel">
+      <h1>Feedback</h1>
+      <p class="subtle">Local dogfood review.</p>
+    </section>
+    <section class="panel session-strip" aria-label="Feedback context">
+      <label>User ID
+        <input id="user-id" value="local-self-use-001" autocomplete="off" />
+      </label>
+      <label>Date
+        <input id="local-date" type="date" />
+      </label>
+      <label>Trace ID
+        <input id="trace-id" autocomplete="off" />
+      </label>
+    </section>
+    <form id="feedback-form" class="panel form-grid" aria-busy="false">
+      <label>Category
+        <select id="category" name="category">
+          <option value="manager_behavior">Manager behavior</option>
+          <option value="nutrition_estimate">Nutrition estimate</option>
+          <option value="macro_gap">Macro gap</option>
+          <option value="fooddb_gap">FoodDB gap</option>
+          <option value="ui_ux">UI / UX</option>
+          <option value="bug">Bug</option>
+          <option value="latency">Latency</option>
+          <option value="product_feedback">Product feedback</option>
+        </select>
+      </label>
+      <label>Severity
+        <select id="severity" name="severity">
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+          <option value="high">High</option>
+        </select>
+      </label>
+      <label>Message ID
+        <input id="message-id" autocomplete="off" />
+      </label>
+      <label class="wide">Note
+        <textarea id="feedback-text" name="feedback_text" required></textarea>
+      </label>
+      <div class="actions wide">
+        <button id="submit-feedback" type="submit">Submit</button>
+        <a class="action-link" data-nav-target="chat" href="/static/accurate-intake-chat.html">Back to Chat</a>
+        <span id="feedback-status" class="status" aria-live="polite">Not submitted.</span>
+      </div>
+    </form>
+  </main>
+  <script>
+    const endpoints = {
+      feedback: "/accurate-intake/feedback",
+      chatHistory: "/accurate-intake/chat-history"
+    };
+    const todayIso = () => new Date().toISOString().slice(0, 10);
+    const el = (id) => document.getElementById(id);
+    const params = new URLSearchParams(window.location.search);
+    el("user-id").value = params.get("user_id") || el("user-id").value;
+    el("local-date").value = params.get("local_date") || todayIso();
+    el("trace-id").value = params.get("trace_id") || "";
+    el("message-id").value = params.get("message_id") || "";
+
+    function userId() {
+      return el("user-id").value.trim() || "default_user";
+    }
+    function selectedDate() {
+      return el("local-date").value || todayIso();
+    }
+    function pageUrl(page) {
+      return `/static/accurate-intake-${page}.html?user_id=${encodeURIComponent(userId())}&local_date=${encodeURIComponent(selectedDate())}`;
+    }
+    function updateNavigationLinks() {
+      document.querySelectorAll("[data-nav-target]").forEach((link) => {
+        const target = link.getAttribute("data-nav-target");
+        if (target) {
+          link.href = pageUrl(target);
+        }
+      });
+    }
+    function updateCurrentUrl() {
+      const nextUrl = pageUrl("feedback");
+      const resolved = new URL(nextUrl, window.location.href);
+      if (window.location.search !== resolved.search) {
+        window.history.replaceState(null, "", nextUrl);
+      }
+    }
+    function localDebugHeaders() {
+      const token = (window.LOCAL_DEBUG_API_TOKEN || "").trim();
+      return token ? { "X-Local-Debug-Token": token } : {};
+    }
+    async function requestJson(url, options = {}) {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          Accept: "application/json",
+          ...(options.headers || {}),
+          ...localDebugHeaders()
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    }
+    async function loadLatestTraceContext() {
+      const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
+      const payload = await requestJson(`${endpoints.chatHistory}?${query.toString()}`);
+      const messages = Array.isArray(payload.messages) ? payload.messages : [];
+      const latest = [...messages].reverse().find((message) => message.trace_id);
+      if (latest) {
+        el("trace-id").value = el("trace-id").value || latest.trace_id || "";
+        el("message-id").value = el("message-id").value || latest.message_id || "";
+      }
+    }
+    function feedbackPayload() {
+      return {
+        category: el("category").value,
+        severity: el("severity").value,
+        feedback_text: el("feedback-text").value.trim(),
+        page: "feedback",
+        selected_date: selectedDate(),
+        user_external_id: userId(),
+        trace_id: el("trace-id").value.trim() || null,
+        message_id: el("message-id").value.trim() || null,
+        meal_id: null,
+        ui_event: {
+          route: window.location.pathname,
+          selected_date: selectedDate()
+        }
+      };
+    }
+    function setBusy(isBusy) {
+      el("feedback-form").setAttribute("aria-busy", isBusy ? "true" : "false");
+      el("submit-feedback").disabled = isBusy;
+    }
+    el("feedback-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      el("feedback-status").dataset.state = "";
+      if (!el("feedback-text").value.trim()) {
+        el("feedback-status").dataset.state = "error";
+        el("feedback-status").textContent = "Feedback text is required.";
+        return;
+      }
+      setBusy(true);
+      try {
+        const payload = await requestJson(endpoints.feedback, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(feedbackPayload())
+        });
+        el("feedback-status").textContent = `Captured ${payload.feedback_id || "feedback"}.`;
+        el("feedback-text").value = "";
+      } catch (error) {
+        el("feedback-status").dataset.state = "error";
+        el("feedback-status").textContent = `Could not submit feedback: ${error.message}`;
+      } finally {
+        setBusy(false);
+      }
+    });
+    ["user-id", "local-date"].forEach((id) => {
+      el(id).addEventListener("change", () => {
+        updateCurrentUrl();
+        updateNavigationLinks();
+      });
+    });
+    updateNavigationLinks();
+    updateCurrentUrl();
+    loadLatestTraceContext().catch(() => {
+      el("feedback-status").textContent = "Context not loaded.";
+    });
+  </script>
+</body>
+</html>

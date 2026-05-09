@@ -17,6 +17,14 @@ from app.composition.dogfood_review_queue import (  # noqa: E402
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
 
 
+def _read_jsonl_records(path: Path) -> list[dict]:
+    records: list[dict] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            records.append(json.loads(line))
+    return records
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Build a local-only Accurate Intake dogfood review queue artifact."
@@ -40,6 +48,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Product-loop diagnostic JSON file. May be passed more than once.",
     )
     parser.add_argument(
+        "--desktop-feedback-jsonl",
+        action="append",
+        default=[],
+        help="Desktop dogfood feedback JSONL file. May be passed more than once.",
+    )
+    parser.add_argument(
         "--output",
         default="artifacts/accurate_intake_dogfood_review_queue.json",
         help="Output artifact path.",
@@ -58,9 +72,15 @@ def main(argv: list[str] | None = None) -> int:
         read_json_artifact(Path(path))
         for path in args.correction_event_json
     ]
+    desktop_feedback_records = [
+        record
+        for path in args.desktop_feedback_jsonl
+        for record in _read_jsonl_records(Path(path))
+    ]
     artifact = build_dogfood_review_queue_artifact(
         review_candidates=review_candidates,
         correction_feedback_events=correction_feedback_events,
+        desktop_feedback_records=desktop_feedback_records,
     )
     write_json_artifact(Path(args.output), artifact)
     print(json.dumps({"artifact": args.output, "status": artifact["status"]}, ensure_ascii=False))
