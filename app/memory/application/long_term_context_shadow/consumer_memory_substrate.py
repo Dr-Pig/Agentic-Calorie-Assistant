@@ -6,6 +6,9 @@ from app.memory.application.long_term_context_shadow.consumer_memory_bundles imp
     consumer_memory_bundles,
 )
 from app.memory.application.long_term_context_shadow.contracts import _base_artifact
+from app.memory.application.long_term_context_shadow.lab_active_view import (
+    reviewed_lab_context_view,
+)
 from app.memory.domain.long_term_context_candidates import LongTermContextCandidate
 
 
@@ -28,6 +31,10 @@ def _consumer_memory_substrate_shadow_artifact(
             ],
             "memory_layers": _memory_layers(),
             "global_selection_policy": _global_selection_policy(),
+            "reviewed_lab_context_view": reviewed_lab_context_view(
+                fixture,
+                candidates,
+            ),
             "consumer_memory_bundles": consumer_memory_bundles(candidates),
         },
     )
