@@ -111,6 +111,38 @@ def _consumer_summary_projection() -> dict:
     }
 
 
+def _review_contract(status: str = "pass") -> dict:
+    return {
+        "artifact_type": "runtime_lab_memory_candidate_review_contract",
+        "status": status,
+        "reviewed_shadow_candidates": [
+            {
+                "candidate_id": "reviewed-pref-1",
+                "candidate_type": "preference",
+                "scope_keys": {
+                    "user_id": "user-a",
+                    "workspace_id": "workspace-a",
+                    "project_id": "advanced-memory-runtime-lab",
+                    "surface": "manager_runtime_lab",
+                    "run_id": "report-run-001",
+                },
+                "source_trace_ids": ["trace:reviewed-pref-1"],
+                "source_object_refs": ["message:reviewed-pref-1"],
+                "review_status": "accepted_shadow",
+                "payload": {"summary": "prefers lighter lunch suggestions"},
+                "promotion_allowed_now": False,
+                "runtime_effect_allowed": False,
+                "durable_product_memory_written": False,
+                "manager_context_packet_changed": False,
+            }
+        ],
+        "blockers": [] if status == "pass" else ["fixture_review_contract_blocker"],
+        "runtime_effect_allowed": False,
+        "durable_product_memory_written": False,
+        "manager_context_packet_changed": False,
+    }
+
+
 def test_quality_report_schema_claim_boundaries_and_shadow_readiness(
     tmp_path: Path,
 ) -> None:
@@ -333,3 +365,97 @@ def test_quality_report_runner_writes_non_claim_artifact(tmp_path: Path) -> None
     assert report["optional_live_run_invoked"] is False
     assert report["claim_boundaries"]["product_activation_ready"] is False
     assert report["live_evidence_required_for_merge"] is False
+
+
+def test_quality_report_runner_threads_review_contract_into_summary_projection(
+    tmp_path: Path,
+) -> None:
+    trace_path = tmp_path / "trace.json"
+    review_contract_path = tmp_path / "review_contract.json"
+    output_path = tmp_path / "quality_report.json"
+    store_root = tmp_path / "store"
+    trace_path.write_text(json.dumps(_trace()), encoding="utf-8")
+    review_contract_path.write_text(json.dumps(_review_contract()), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "build_runtime_lab_memory_quality_report.py"),
+            "--trace-json",
+            str(trace_path),
+            "--store-root",
+            str(store_root),
+            "--output",
+            str(output_path),
+            "--as-of",
+            "2026-05-09T00:00:00+08:00",
+            "--review-contract-json",
+            str(review_contract_path),
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    assert report["coverage"]["consumer_summary_projection_present"] is True
+    assert (
+        report["coverage"]["consumer_summary_projection_artifact_type"]
+        == "runtime_lab_memory_consumer_summary_projection"
+    )
+    assert report["next_allowed_downstream_slices"] == [
+        "recommendation_shadow_summary_consumer",
+        "rescue_shadow_summary_consumer",
+        "proactive_no_send_summary_consumer",
+    ]
+    assert all(
+        item["status"] == "ready_for_shadow_build"
+        for item in report["downstream_shadow_readiness"].values()
+    )
+    assert report["claim_boundaries"]["durable_product_memory_written"] is False
+
+
+def test_quality_report_runner_blocks_failed_review_contract_projection(
+    tmp_path: Path,
+) -> None:
+    trace_path = tmp_path / "trace.json"
+    review_contract_path = tmp_path / "blocked_review_contract.json"
+    output_path = tmp_path / "quality_report.json"
+    store_root = tmp_path / "store"
+    trace_path.write_text(json.dumps(_trace()), encoding="utf-8")
+    review_contract_path.write_text(
+        json.dumps(_review_contract(status="blocked")),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "build_runtime_lab_memory_quality_report.py"),
+            "--trace-json",
+            str(trace_path),
+            "--store-root",
+            str(store_root),
+            "--output",
+            str(output_path),
+            "--as-of",
+            "2026-05-09T00:00:00+08:00",
+            "--review-contract-json",
+            str(review_contract_path),
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    assert report["status"] == "blocked"
+    assert "consumer_summary_projection.status_not_pass" in report["blockers"]
+    assert all(
+        item["status"] == "blocked_by_claim_boundary"
+        for item in report["downstream_shadow_readiness"].values()
+    )
