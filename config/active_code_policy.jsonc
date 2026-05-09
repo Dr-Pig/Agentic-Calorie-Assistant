@@ -78,6 +78,10 @@
       "category": "domain_helper_policy"
     },
     {
+      "pattern": "app/advanced_shadow_lab/*.py",
+      "category": "boundary_surface"
+    },
+    {
       "pattern": "app/shared/infra/*.py",
       "category": "adapter_infrastructure"
     },
@@ -150,6 +154,7 @@
     "knowledge": "thin_future_skeleton",
     "memory": "offline_sidecar_scaffold",
     "nutrition": "active_wave1_implementation",
+    "advanced_shadow_lab": "offline_sidecar_scaffold",
     "providers": "active_wave1_implementation",
     "recommendation": "offline_sidecar_scaffold",
     "rescue": "offline_sidecar_scaffold",
