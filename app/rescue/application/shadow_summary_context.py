@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from app.memory.application.runtime_lab_downstream_boundary import (
+from app.shared.contracts.runtime_lab_downstream_boundary import (
     consumer_summary_projection_blockers,
 )
 from app.rescue.domain.shadow_status import RESCUE_SHADOW_NON_RUNTIME_FLAGS

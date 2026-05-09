@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.nutrition.infrastructure.web_search.exact_item_lookup import resolve_exact_item_fts
+from app.nutrition.application.exact_item_lookup_port import (
+    ExactItemLookupPort,
+    default_exact_item_lookup_port,
+)
 from app.nutrition.application.retrieval_intent import build_raw_text_retrieval_hint
 from .exact_item_candidate_support import (
     augment_exact_candidate,
@@ -17,10 +20,12 @@ def resolve_exact_item(
     active_brand_context: str | None = None,
     required_slots: list[str] | None = None,
     limit: int = 5,
+    lookup_port: ExactItemLookupPort | None = None,
 ) -> list[dict[str, Any]]:
     search_queries = _candidate_search_queries(query, active_brand_context=active_brand_context)
+    exact_lookup = lookup_port or default_exact_item_lookup_port()
     for search_query in search_queries:
-        raw_candidates = resolve_exact_item_fts(search_query, limit=max(limit * 2, 6))
+        raw_candidates = exact_lookup.resolve_exact_item_fts(search_query, limit=max(limit * 2, 6))
         exact_candidates: list[dict[str, Any]] = []
         for candidate in raw_candidates:
             merged_aliases = [str(item) for item in candidate.get("aliases", []) if str(item).strip()]
@@ -71,12 +76,14 @@ def build_exact_item_lane_packet(
     active_brand_context: str | None = None,
     required_slots: list[str] | None = None,
     limit: int = 5,
+    lookup_port: ExactItemLookupPort | None = None,
 ) -> dict[str, Any]:
     exact_candidates = resolve_exact_item(
         query,
         active_brand_context=active_brand_context,
         required_slots=required_slots,
         limit=limit,
+        lookup_port=lookup_port,
     )
     exact_lane_count = len(exact_candidates)
     top_exact_candidate = exact_candidates[0] if exact_candidates else None
