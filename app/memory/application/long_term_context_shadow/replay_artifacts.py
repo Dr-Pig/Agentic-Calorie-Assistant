@@ -6,6 +6,9 @@ from app.memory.application.long_term_context_shadow.contracts import _base_arti
 from app.memory.application.long_term_context_shadow.extraction_engine_artifact import (
     _menu_scan_shadow_context,
 )
+from app.memory.application.long_term_context_shadow.reviewed_product_replay import (
+    reviewed_memory_product_loop_replay,
+)
 from app.memory.domain.long_term_context_candidates import LongTermContextCandidate
 
 
@@ -17,6 +20,7 @@ def _shadow_replay_evaluators_artifact(
     intake = _intake_clarification_shadow_replay(candidates)
     calibration = _calibration_bias_shadow_replay(candidates)
     conversation = _conversation_recall_shadow_replay(candidates)
+    reviewed_product = reviewed_memory_product_loop_replay(fixture, candidates)
     return _base_artifact(
         artifact_type="shadow_replay_evaluators",
         fixture=fixture,
@@ -30,8 +34,9 @@ def _shadow_replay_evaluators_artifact(
                 "intake_clarification_shadow_replay": intake,
                 "calibration_bias_shadow_replay": calibration,
                 "conversation_recall_shadow_replay": conversation,
+                "reviewed_memory_product_loop_replay": reviewed_product,
             },
-            "replay_count": 4,
+            "replay_count": 5,
         },
     )
 

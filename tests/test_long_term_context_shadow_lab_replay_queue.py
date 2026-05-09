@@ -24,7 +24,16 @@ def test_shadow_replay_evaluators_explain_used_and_ignored_context() -> None:
         "intake_clarification_shadow_replay",
         "calibration_bias_shadow_replay",
         "conversation_recall_shadow_replay",
+        "reviewed_memory_product_loop_replay",
     }
+
+    reviewed_product = artifact["replays"]["reviewed_memory_product_loop_replay"]
+    assert reviewed_product["source_review_artifact"] == "memory_lab_review_loop_state"
+    assert reviewed_product["recommendation_served"] is False
+    assert reviewed_product["scheduler_activated"] is False
+    assert reviewed_product["rescue_committed"] is False
+    assert reviewed_product["durable_memory_written"] is False
+    assert reviewed_product["runtime_effect_allowed"] is False
 
     recommendation = artifact["replays"]["recommendation_shadow_replay"]
     assert recommendation["expected_user_value"] == "better_candidate_ranking_review"
