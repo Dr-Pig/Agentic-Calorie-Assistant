@@ -315,6 +315,123 @@ def test_quality_report_activation_ladder_status_is_explicit(tmp_path: Path) -> 
     }
 
 
+def test_quality_report_read_only_runtime_pack_requires_reviewed_projection(
+    tmp_path: Path,
+) -> None:
+    from app.memory.application.runtime_lab_quality_report import (
+        build_runtime_lab_memory_quality_report,
+    )
+
+    report = build_runtime_lab_memory_quality_report(**_fixture_artifacts(tmp_path))
+    pack = report["read_only_runtime_lab_pack"]
+
+    assert pack["artifact_type"] == "runtime_lab_memory_read_only_runtime_lab_pack"
+    assert pack["status"] == "incomplete"
+    assert pack["current_stage"] == "shadow"
+    assert pack["target_stage"] == "read_only_runtime"
+    assert pack["manual_promotion_review_allowed"] is False
+    assert pack["automatic_stage_promotion_allowed"] is False
+    assert pack["blockers"] == ["consumer_summary_projection_missing"]
+    assert pack["manager_context_packet_changed"] is False
+    assert pack["durable_product_memory_written"] is False
+    assert report["status"] == "pass"
+
+
+def test_quality_report_read_only_runtime_pack_records_paired_baseline_evidence(
+    tmp_path: Path,
+) -> None:
+    from app.memory.application.runtime_lab_quality_report import (
+        build_runtime_lab_memory_quality_report,
+    )
+
+    report = build_runtime_lab_memory_quality_report(
+        **_fixture_artifacts(tmp_path),
+        consumer_summary_projection=_consumer_summary_projection(),
+    )
+    pack = report["read_only_runtime_lab_pack"]
+
+    assert pack["status"] == "pass"
+    assert pack["manual_promotion_review_allowed"] is True
+    assert pack["automatic_stage_promotion_allowed"] is False
+    assert pack["reviewed_memory_pack_loaded"] is True
+    assert pack["stage_evidence"] == {
+        "scope_isolation_check": True,
+        "paired_baseline_comparison": True,
+        "omission_trace_present": True,
+        "latency_budget_observed": True,
+        "no_commit_fallback": True,
+    }
+    assert pack["paired_baseline_evidence"]["baseline_run_type"] == (
+        "baseline_trace_replay"
+    )
+    assert pack["paired_baseline_evidence"]["memory_context_run_type"] == (
+        "memory_context_trace_replay"
+    )
+    assert pack["paired_baseline_evidence"]["tool_calls_blocked"] is True
+    assert pack["paired_baseline_evidence"]["mutation_attempts_blocked"] is True
+    assert pack["source_artifacts"] == [
+        "runtime_lab_memory_edd_suite",
+        "runtime_lab_memory_candidate_extraction",
+        "runtime_lab_memory_lifecycle_decision",
+        "shadow_memory_context_pack",
+        "runtime_lab_manager_memory_injection_comparison",
+        "runtime_lab_memory_consumer_summary_projection",
+    ]
+    assert pack["mainline_runtime_connected"] is False
+    assert pack["manager_context_packet_changed"] is False
+    assert pack["manager_context_packet_changed_in_mainline"] is False
+    assert pack["durable_product_memory_written"] is False
+    assert pack["user_facing_behavior_changed"] is False
+    assert pack["canonical_mutation_changed"] is False
+    assert pack["non_claims"] == [
+        "not_stage_promotion_decision",
+        "not_mainline_runtime_activation",
+        "not_manager_context_packet_memory_injection",
+        "not_durable_memory_write",
+        "not_downstream_recommendation_rescue_or_proactive_behavior",
+    ]
+
+
+def test_quality_report_runner_emits_read_only_runtime_pack_with_review_contract(
+    tmp_path: Path,
+) -> None:
+    trace_path = tmp_path / "trace.json"
+    review_contract_path = tmp_path / "review_contract.json"
+    output_path = tmp_path / "quality_report.json"
+    store_root = tmp_path / "store"
+    trace_path.write_text(json.dumps(_trace()), encoding="utf-8")
+    review_contract_path.write_text(json.dumps(_review_contract()), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "build_runtime_lab_memory_quality_report.py"),
+            "--trace-json",
+            str(trace_path),
+            "--store-root",
+            str(store_root),
+            "--output",
+            str(output_path),
+            "--as-of",
+            "2026-05-09T00:00:00+08:00",
+            "--review-contract-json",
+            str(review_contract_path),
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    pack = report["read_only_runtime_lab_pack"]
+    assert pack["status"] == "pass"
+    assert pack["reviewed_memory_pack_loaded"] is True
+    assert pack["mainline_runtime_connected"] is False
+    assert pack["automatic_stage_promotion_allowed"] is False
+
+
 def test_quality_report_blocks_behavior_or_mutation_claim_drift(tmp_path: Path) -> None:
     from app.memory.application.runtime_lab_quality_report import (
         build_runtime_lab_memory_quality_report,
