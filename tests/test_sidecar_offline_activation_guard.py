@@ -29,6 +29,7 @@ SIDECAR_MODULES = [
     "app.rescue.application.no_commit_viability",
     "app.rescue.application.option_generation_shadow",
     "app.rescue.application.proposal_shaping_input_shadow",
+    "app.rescue.application.proposal_shaping_output_validator_shadow",
     "app.runtime.contracts.pending_meal_intent",
     "app.runtime.contracts.proactive_gate",
     "app.runtime.application.proactive_deterministic_gate",
