@@ -9,6 +9,9 @@ from app.runtime.application.proactive_no_send_shadow_evaluator import (
 from app.runtime.application.proactive_recommendation_prompt_bridge import (
     NO_RECOMMENDATION_PROMPT_REVIEW,
 )
+from app.runtime.application.proactive_rescue_nudge_bridge import (
+    NO_RESCUE_NUDGE_REVIEW,
+)
 from scripts.build_proactive_no_send_decision_pack import (
     build_proactive_no_send_decision_pack,
     write_proactive_no_send_decision_pack,
@@ -67,6 +70,19 @@ def _artifact_with_prompt_review(review: dict[str, object] | None) -> dict[str, 
     )
 
 
+def _artifact_with_rescue_review(review: dict[str, object] | None) -> dict[str, object]:
+    return build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="rescue_nudge",
+                data_sufficiency_status="higher",
+                user_benefit_strength="strong",
+                rescue_nudge_review=review,
+            )
+        ]
+    )
+
+
 def _prompt_review(
     status: str,
     *,
@@ -85,6 +101,23 @@ def _prompt_review(
         "prompt_posture": "invitation_only" if status == "candidate_for_human_review" else "silent",
         "suppression_reasons": [suppression_reason] if suppression_reason else [],
         "blockers": [blocker] if blocker else [],
+    }
+
+
+def _rescue_review(
+    status: str,
+    *,
+    suppression_reason: str | None = None,
+    blocker: str | None = None,
+) -> dict[str, object]:
+    return {
+        **NO_RESCUE_NUDGE_REVIEW,
+        "source_projection_used": True,
+        "status": status,
+        "prompt_posture": "later_only_review_context" if status == "context_available" else "silent",
+        "suppression_reasons": [suppression_reason] if suppression_reason else [],
+        "blockers": [blocker] if blocker else [],
+        "history_review_notes": ["private rescue note should not be in decision pack"],
     }
 
 
@@ -178,6 +211,43 @@ def test_decision_pack_does_not_leak_prompt_review_candidate_details() -> None:
     assert pack["summary"]["recommendation_prompt_blocker_counts"] == {
         "recommendation_quality_report.recommendation_served": 1
     }
+
+
+def test_decision_pack_summarizes_rescue_nudge_review_posture() -> None:
+    suppressed = _rescue_review(
+        "suppressed",
+        suppression_reason="rescue_context_not_actionable",
+    )
+    blocked = _rescue_review(
+        "blocked",
+        blocker="rescue_projection.day_budget_mutated",
+    )
+    pack = build_proactive_no_send_decision_pack(
+        [
+            _artifact_with_rescue_review(_rescue_review("context_available")),
+            _artifact_with_rescue_review(suppressed),
+            _artifact_with_rescue_review(blocked),
+            _artifact_with_rescue_review(None),
+        ]
+    )
+    pack_text = json.dumps(pack, sort_keys=True)
+
+    assert pack["summary"]["rescue_nudge_review_status_counts"] == {
+        "blocked": 1,
+        "context_available": 1,
+        "not_evaluated": 1,
+        "suppressed": 1,
+    }
+    assert pack["summary"]["rescue_nudge_suppression_reason_counts"] == {
+        "rescue_context_not_actionable": 1
+    }
+    assert pack["summary"]["rescue_nudge_blocker_counts"] == {
+        "rescue_projection.day_budget_mutated": 1
+    }
+    assert "private rescue note should not be in decision pack" not in pack_text
+    assert pack["live_delivery_allowed"] is False
+    assert pack["scheduler_activation_allowed"] is False
+    assert pack["promotion_allowed"] is False
 
 
 def test_decision_pack_surfaces_copy_review_suppression_risk() -> None:
