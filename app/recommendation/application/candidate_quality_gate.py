@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.recommendation.domain.candidate_quality import (
+    RecommendationCandidatePoolDecisionResult,
     RecommendationCandidateQualityInput,
     RecommendationCandidateQualityResult,
 )
@@ -69,6 +70,42 @@ def evaluate_recommendation_candidate_quality(
     )
 
 
+def decide_recommendation_candidate_pool(
+    candidates: list[RecommendationCandidateQualityInput],
+) -> RecommendationCandidatePoolDecisionResult:
+    evaluations = [evaluate_recommendation_candidate_quality(item) for item in candidates]
+    passed = [item for item in evaluations if item.passed]
+    high = [item for item in passed if item.quality_tier == "high"]
+    medium = [item for item in passed if item.quality_tier == "medium"]
+    rejected_ids = [item.candidate_id for item in evaluations if not item.passed]
+
+    if high:
+        primary = high[0]
+        backup_ids = [item.candidate_id for item in [*high[1:], *medium]][:2]
+        if backup_ids:
+            return RecommendationCandidatePoolDecisionResult(
+                pool_decision="primary_plus_backup",
+                primary_candidate_id=primary.candidate_id,
+                backup_candidate_ids=backup_ids,
+                rejected_candidate_ids=rejected_ids,
+                candidate_quality=evaluations,
+            )
+
+    if passed:
+        return RecommendationCandidatePoolDecisionResult(
+            pool_decision="offer",
+            offer_candidate_ids=[item.candidate_id for item in passed[:3]],
+            rejected_candidate_ids=rejected_ids,
+            candidate_quality=evaluations,
+        )
+
+    return RecommendationCandidatePoolDecisionResult(
+        pool_decision="silent_no_qualified_candidate",
+        rejected_candidate_ids=rejected_ids,
+        candidate_quality=evaluations,
+    )
+
+
 def _over_budget(candidate: RecommendationCandidateQualityInput) -> bool:
     if candidate.remaining_budget_kcal is None:
         return False
@@ -76,3 +113,10 @@ def _over_budget(candidate: RecommendationCandidateQualityInput) -> bool:
     if kcal_to_check is None:
         return False
     return kcal_to_check > candidate.remaining_budget_kcal
+
+
+__all__ = [
+    "SIDECAR_ACTIVATION_CONTRACT",
+    "decide_recommendation_candidate_pool",
+    "evaluate_recommendation_candidate_quality",
+]
