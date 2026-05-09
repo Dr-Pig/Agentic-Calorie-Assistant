@@ -59,6 +59,12 @@ REQUIRED_FETCH_METHODS = {
     "/accurate-intake/chat-history": "GET",
     "/estimate": "POST",
 }
+FIRST_PASS_READ_TOOL_MARKERS = {
+    "budget.get_today_summary",
+    "body.get_active_plan",
+    "read_day_budget",
+    "read_body_plan",
+}
 TURN_FIXTURES = [
     {
         "turn_id": "breakfast_001",
@@ -115,6 +121,24 @@ TURN_FIXTURES = [
         "target_attachment": {"mode": "none"},
     },
 ]
+EXPECTED_TURN_DECISIONS = {
+    str(turn["turn_id"]): {
+        "intent_type": turn["intent_type"],
+        "workflow_effect": turn["workflow_effect"],
+        "final_action": turn["final_action"],
+        "mutation_intent_candidate": turn["mutation_intent_candidate"],
+        "target_attachment": turn["target_attachment"],
+    }
+    for turn in TURN_FIXTURES
+}
+REQUIRED_TURN_IDS = tuple(str(turn["turn_id"]) for turn in TURN_FIXTURES)
+REQUIRED_RELOAD_SURFACE_FLAGS = (
+    "today_summary_rendered",
+    "debug_surface_rendered",
+    "runtime_status_surface_rendered",
+    "meal_threads_rendered",
+    "backend_local_date_rendered",
+)
 
 
 def _session_factory(db_path: Path) -> tuple[Any, sessionmaker[Session]]:
@@ -162,7 +186,7 @@ class _BrowserRealisticManagerProvider:
         available_tools = {str(item) for item in list(user_payload.get("available_tools") or [])}
         round_index = int(user_payload.get("round_index") or 0)
         raw_user_input = str(user_payload.get("raw_user_input") or "")
-        if {"read_body_plan", "read_day_budget"}.intersection(available_tools):
+        if FIRST_PASS_READ_TOOL_MARKERS.intersection(available_tools):
             self.active_turn = dict(TURN_FIXTURES[min(self.turn_index, len(TURN_FIXTURES) - 1)])
             self.turn_index += 1
         turn = dict(self.active_turn or TURN_FIXTURES[min(self.turn_index, len(TURN_FIXTURES) - 1)])
@@ -407,8 +431,16 @@ def _run_browser_sequence(*, base_url: str, local_debug_token: str, timeout_ms: 
                 timeout=timeout_ms,
             )
             turn_results = []
+            surfaces_after_turn = []
             for turn in TURN_FIXTURES:
                 result = _send_message(page, message=str(turn["raw_user_input"]), timeout_ms=timeout_ms)
+                page.evaluate("""async () => { await syncSurfaces(); }""")
+                surfaces_after_turn.append(
+                    {
+                        "turn_id": turn["turn_id"],
+                        "surface": _surface_state(page, local_date=LOCAL_DATE),
+                    }
+                )
                 turn_results.append(
                     {
                         "turn_id": turn["turn_id"],
@@ -461,6 +493,7 @@ def _run_browser_sequence(*, base_url: str, local_debug_token: str, timeout_ms: 
                 else "not_available",
                 "evidence_gap_observed": True,
                 "turn_results": turn_results,
+                "surfaces_after_turn": surfaces_after_turn,
                 "after_reload_surface": after_reload,
                 "fetch_sequence": _combined_fetch_sequence(
                     before_reload=before_reload_fetch_sequence,
@@ -488,6 +521,8 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         ("today_summary_rendered", "today_summary_not_rendered"),
         ("debug_surface_rendered", "debug_surface_not_rendered"),
         ("runtime_status_surface_rendered", "runtime_status_surface_not_rendered"),
+        ("meal_threads_rendered", "meal_threads_not_rendered"),
+        ("backend_local_date_rendered", "backend_local_date_not_rendered"),
         ("browser_reload_checked", "browser_reload_not_checked"),
         ("chat_history_reloaded", "chat_history_not_reloaded"),
         ("cjk_messages_rendered", "cjk_messages_not_rendered"),
@@ -495,6 +530,60 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     ):
         if browser.get(key) is not True:
             blockers.append(blocker)
+    after_reload_surface = dict(browser.get("after_reload_surface") or {})
+    for key in REQUIRED_RELOAD_SURFACE_FLAGS:
+        if after_reload_surface.get(key) is not True:
+            blockers.append(f"after_reload_surface.{key.removesuffix('_rendered')}_not_rendered")
+    if after_reload_surface.get("observed_today_summary") != browser.get("observed_today_summary"):
+        blockers.append("after_reload_surface.today_summary_mismatch")
+    turn_results = {
+        str(item.get("turn_id") or ""): dict(item)
+        for item in list(browser.get("turn_results") or [])
+        if isinstance(item, dict)
+    }
+    for turn_id in REQUIRED_TURN_IDS:
+        turn_result = turn_results.get(turn_id)
+        if not turn_result:
+            blockers.append(f"turn_result_missing:{turn_id}")
+            continue
+        if turn_result.get("last_payload_parseable") is not True:
+            blockers.append(f"turn_result_unparseable:{turn_id}")
+        if turn_result.get("runtime_error_present") is True:
+            blockers.append(f"turn_result_runtime_error:{turn_id}")
+        expected_decision = EXPECTED_TURN_DECISIONS[turn_id]
+        observed_decision = dict(turn_result.get("expected_manager_decision") or {})
+        for field, expected_value in expected_decision.items():
+            if observed_decision.get(field) != expected_value:
+                blockers.append(f"turn_result_decision_mismatch:{turn_id}.{field}")
+    surfaces_after_turn = {
+        str(item.get("turn_id") or ""): dict(item.get("surface") or {})
+        for item in list(browser.get("surfaces_after_turn") or [])
+        if isinstance(item, dict)
+    }
+    dinner_draft_surface = surfaces_after_turn.get("dinner_draft_001")
+    if not dinner_draft_surface:
+        blockers.append("surface_after_turn_missing:dinner_draft_001")
+    elif dinner_draft_surface.get("pending_followup_surface_rendered") is not True:
+        blockers.append("surface_after_turn.pending_followup_not_rendered:dinner_draft_001")
+    for turn_id in ("dinner_basket_001", "dinner_remove_001"):
+        surface = surfaces_after_turn.get(turn_id)
+        if not surface:
+            blockers.append(f"surface_after_turn_missing:{turn_id}")
+            continue
+        if surface.get("meal_threads_rendered") is not True:
+            blockers.append(f"surface_after_turn.meal_threads_not_rendered:{turn_id}")
+        if surface.get("backend_local_date_rendered") is not True:
+            blockers.append(f"surface_after_turn.backend_local_date_not_rendered:{turn_id}")
+    first_pass_calls = []
+    for item in list(report.get("manager_provider_calls") or []):
+        if not isinstance(item, dict):
+            continue
+        available_tools = {str(tool) for tool in list(item.get("available_tools") or [])}
+        round_index = int(item.get("round_index") or 0)
+        if round_index == 0 and FIRST_PASS_READ_TOOL_MARKERS.intersection(available_tools):
+            first_pass_calls.append(dict(item))
+    if [str(item.get("turn_id") or "") for item in first_pass_calls] != list(REQUIRED_TURN_IDS):
+        blockers.append("fixture_manager_turn_sequence_mismatch")
     manager_context_status = str(browser.get("manager_context_status") or "")
     if manager_context_status not in {"not_available", "not_checked", "missing_context_snapshot"}:
         blockers.append("manager_context_status_overclaim")
