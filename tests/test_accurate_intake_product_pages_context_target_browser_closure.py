@@ -31,6 +31,8 @@ def _short_term_report() -> dict[str, object]:
         "chat_context_status_ui_rendered": True,
         "assistant_followup_bubble_rendered": True,
         "assistant_commit_bubble_rendered": True,
+        "today_no_meal_before_followup_answer": True,
+        "today_consumed_zero_before_followup_answer": True,
         "today_same_day_meal_rendered": True,
         "today_summary_rendered": True,
         "product_pages_no_debug_trace": True,

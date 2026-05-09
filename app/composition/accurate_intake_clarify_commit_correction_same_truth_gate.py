@@ -18,6 +18,8 @@ REQUIRED_SHORT_TERM_CONTEXT_FLAGS = (
     "chat_history_context_fields_reloaded",
     "assistant_followup_bubble_rendered",
     "assistant_commit_bubble_rendered",
+    "today_no_meal_before_followup_answer",
+    "today_consumed_zero_before_followup_answer",
     "today_same_day_meal_rendered",
     "today_summary_rendered",
     "product_pages_no_debug_trace",
@@ -184,6 +186,12 @@ def build_clarify_commit_correction_same_truth_gate_artifact(
                 ),
                 "assistant_commit_bubble_rendered": short_term_context_smoke.get(
                     "assistant_commit_bubble_rendered"
+                ),
+                "today_no_meal_before_followup_answer": short_term_context_smoke.get(
+                    "today_no_meal_before_followup_answer"
+                ),
+                "today_consumed_zero_before_followup_answer": short_term_context_smoke.get(
+                    "today_consumed_zero_before_followup_answer"
                 ),
                 "target_candidate_count_rendered": target_candidate_ui_smoke.get(
                     "target_candidate_count_rendered"

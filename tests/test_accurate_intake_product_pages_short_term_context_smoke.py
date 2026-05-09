@@ -26,6 +26,8 @@ def _passing_report() -> dict[str, object]:
         "chat_cjk_roundtrip_rendered": True,
         "assistant_followup_bubble_rendered": True,
         "assistant_commit_bubble_rendered": True,
+        "today_no_meal_before_followup_answer": True,
+        "today_consumed_zero_before_followup_answer": True,
         "today_same_day_meal_rendered": True,
         "today_summary_rendered": True,
         "product_pages_no_debug_trace": True,
@@ -282,6 +284,8 @@ def test_product_pages_short_term_context_validator_requires_fetches_and_product
     report["chat_cjk_roundtrip_rendered"] = False
     report["assistant_followup_bubble_rendered"] = False
     report["assistant_commit_bubble_rendered"] = False
+    report["today_no_meal_before_followup_answer"] = False
+    report["today_consumed_zero_before_followup_answer"] = False
     report["today_same_day_meal_rendered"] = False
     report["today_summary_rendered"] = False
     report["product_pages_no_debug_trace"] = False
@@ -293,6 +297,8 @@ def test_product_pages_short_term_context_validator_requires_fetches_and_product
     assert "chat_cjk_roundtrip_not_rendered" in blockers
     assert "assistant_followup_bubble_not_rendered" in blockers
     assert "assistant_commit_bubble_not_rendered" in blockers
+    assert "today_meal_logged_before_followup_answer" in blockers
+    assert "today_consumed_before_followup_answer" in blockers
     assert "today_same_day_meal_not_rendered" in blockers
     assert "today_summary_not_rendered" in blockers
     assert "product_pages_debug_trace_leaked" in blockers
