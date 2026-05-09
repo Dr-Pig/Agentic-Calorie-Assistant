@@ -38,26 +38,10 @@ def manager_context_pack_prompt_payload(
     *,
     primary_packet_present: bool,
 ) -> dict[str, Any] | None:
+    if primary_packet_present:
+        return None
     full_payload = manager_context_pack_payload(manager_context_pack)
-    if full_payload is None or not primary_packet_present:
-        return full_payload
-    manager_context = dict(full_payload.get("manager_context") or {})
-    available_if_needed = dict(full_payload.get("available_if_needed") or {})
-    return {
-        "prompt_payload_kind": "manager_context_pack_lineage_summary",
-        "primary_context_source": "manager_context_packet_v1",
-        "legacy_payload_mode": "packet_primary_reference",
-        "policy": {
-            "must_inject_count": _list_count(dict(full_payload.get("policy") or {}).get("must_inject")),
-            "available_if_needed_field_count": len(available_if_needed),
-        },
-        "context_packet_carries_full_fields": True,
-        "manager_context_field_count": len(manager_context),
-        "full_context_omitted_from_prompt": True,
-        "read_only": True,
-        "mutation_authority": False,
-        "deterministic_semantic_authority": False,
-    }
+    return full_payload
 
 
 def current_turn_context_prompt_payload(
@@ -66,18 +50,9 @@ def current_turn_context_prompt_payload(
 ) -> dict[str, Any] | None:
     if current_turn_context is None:
         return None
-    payload = current_turn_context.model_dump(mode="json")
     if primary_packet_present:
-        return {
-            "prompt_payload_kind": "current_turn_context_lineage_summary",
-            "primary_context_source": "manager_context_packet_v1",
-            "legacy_payload_mode": "packet_primary_reference",
-            "context_packet_carries_full_fields": True,
-            "full_context_omitted_from_prompt": True,
-            "read_only": True,
-            "mutation_authority": False,
-            "deterministic_semantic_authority": False,
-        }
+        return None
+    payload = current_turn_context.model_dump(mode="json")
     exposed_keys = (
         "current_interaction_event",
         "active_meal_thread_ref",
@@ -185,14 +160,20 @@ def _compact_current_turn(current_turn: dict[str, Any]) -> dict[str, Any]:
     return {
         "channel": current_turn.get("channel"),
         "manager_mode": current_turn.get("manager_mode"),
-        "interaction_event": current_turn.get("interaction_event"),
+        "interaction_event": _compact_interaction_event_prompt_payload(
+            current_turn.get("interaction_event")
+        ),
         "read_only": True,
         "mutation_authority": False,
     }
 
 
-def _list_count(value: Any) -> int:
-    return len(value) if isinstance(value, list) else 0
+def _compact_interaction_event_prompt_payload(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    payload = dict(value)
+    payload.pop("raw_text", None)
+    return payload
 
 
 def manager_context_packet_v1_trace_payload(packet: dict[str, Any] | None) -> dict[str, Any] | None:

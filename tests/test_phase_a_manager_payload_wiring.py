@@ -313,11 +313,8 @@ async def test_run_intake_manager_sends_manager_context_packet_v1_sidecar_withou
 
     payload = provider.calls[0]["user_payload"]
     sidecar_trace = result.trace["manager_rounds"][0]["phase_a_input"]["manager_context_packet_v1"]
-    assert payload["phase_a_manager_context_pack"]["prompt_payload_kind"] == "manager_context_pack_lineage_summary"
-    assert payload["phase_a_manager_context_pack"]["primary_context_source"] == "manager_context_packet_v1"
-    assert payload["phase_a_manager_context_pack"]["legacy_payload_mode"] == "packet_primary_reference"
-    assert "manager_context" not in payload["phase_a_manager_context_pack"]
-    assert payload["phase_a_manager_context_pack"]["context_packet_carries_full_fields"] is True
+    assert payload["phase_a_current_turn_context"] is None
+    assert payload["phase_a_manager_context_pack"] is None
     assert payload["manager_context_packet_v1"]["prompt_payload_kind"] == "manager_context_packet_v1_prompt_compact"
     assert payload["manager_context_packet_v1"]["metadata"]["context_policy_version"] == MANAGER_CONTEXT_POLICY_VERSION
     assert payload["manager_context_packet_v1"]["recent_chat_window"]["loaded_message_count"] == 2
@@ -362,24 +359,8 @@ async def test_run_intake_manager_uses_packet_primary_progressive_context_disclo
     context_pack_payload = payload["phase_a_manager_context_pack"]
     packet_payload = payload["manager_context_packet_v1"]
 
-    assert current_payload["prompt_payload_kind"] == "current_turn_context_lineage_summary"
-    assert current_payload["primary_context_source"] == "manager_context_packet_v1"
-    assert current_payload["legacy_payload_mode"] == "packet_primary_reference"
-    assert current_payload["full_context_omitted_from_prompt"] is True
-    assert current_payload["context_packet_carries_full_fields"] is True
-    assert "candidate_attachment_targets" not in current_payload
-    assert "pending_followup" not in current_payload
-    assert "recent_chat_turns" not in current_payload
-
-    assert context_pack_payload["prompt_payload_kind"] == "manager_context_pack_lineage_summary"
-    assert context_pack_payload["primary_context_source"] == "manager_context_packet_v1"
-    assert context_pack_payload["legacy_payload_mode"] == "packet_primary_reference"
-    assert context_pack_payload["full_context_omitted_from_prompt"] is True
-    assert context_pack_payload["context_packet_carries_full_fields"] is True
-    assert "manager_context" not in context_pack_payload
-    assert "manager_context_summary" not in context_pack_payload
-    assert len(json.dumps(current_payload, ensure_ascii=False)) < 500
-    assert len(json.dumps(context_pack_payload, ensure_ascii=False)) < 500
+    assert current_payload is None
+    assert context_pack_payload is None
 
     assert packet_payload["prompt_payload_kind"] == "manager_context_packet_v1_prompt_compact"
     assert packet_payload["hard_pins"]["pending_followup"]["meal_thread_id"] == 77
@@ -388,7 +369,7 @@ async def test_run_intake_manager_uses_packet_primary_progressive_context_disclo
     progressive = result.manager_rounds[0]["prompt_layer_contract"]["progressive_disclosure"]
     assert progressive["context_packet_primary"] is True
     assert progressive["full_context_in_user_payload"] is False
-    assert progressive["legacy_context_payload_mode"] == "packet_primary_reference"
+    assert progressive["legacy_context_payload_mode"] == "packet_primary_omitted_legacy_refs"
 
 
 @pytest.mark.asyncio

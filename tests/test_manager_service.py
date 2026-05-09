@@ -5,6 +5,11 @@ import pytest
 
 from app.runtime.application import manager_service
 from app.runtime.agent.manager_payload_utils import stable_available_tools
+from app.runtime.agent.manager_context_payload import (
+    current_turn_context_prompt_payload,
+    manager_context_pack_prompt_payload,
+    manager_context_packet_v1_prompt_payload,
+)
 
 
 def test_manager_service_exposes_single_entrypoint_and_bounded_rounds() -> None:
@@ -670,6 +675,65 @@ async def test_run_intake_manager_stably_normalizes_available_tools_in_user_payl
         "body.get_latest_observation",
         "budget.get_today_summary",
     ]
+
+
+def test_manager_context_packet_prompt_omits_duplicate_interaction_raw_text() -> None:
+    packet = {
+        "metadata": {
+            "local_date": "2026-05-02",
+            "context_policy_version": "accurate_intake_mvp_context_policy_v1",
+            "claim_scope": "current_session_current_day_manager_input_evidence",
+        },
+        "current_turn": {
+            "raw_user_input": "remove this",
+            "channel": "web_shell",
+            "manager_mode": "fixture",
+            "interaction_event": {
+                "source": "web",
+                "surface_mode": "today_diary",
+                "event_type": "quick_action",
+                "raw_text": "remove this",
+                "target_object_type": "meal_item",
+                "target_object_id": "item-42",
+                "read_only": True,
+                "mutation_authority": False,
+            },
+        },
+        "context_loading_artifact": {
+            "loaded_message_count": 0,
+            "omitted_count": 0,
+            "char_truncated": False,
+            "token_budget_status": "within_budget",
+        },
+        "recent_chat_window": {"messages": []},
+        "hard_pins": {},
+        "active_day_state": {},
+        "target_candidates": {},
+        "constraints": [],
+    }
+
+    payload = manager_context_packet_v1_prompt_payload(packet)
+
+    interaction_event = payload["current_turn"]["interaction_event"]
+    assert "raw_text" not in interaction_event
+    assert "raw_text_omitted_from_prompt" not in interaction_event
+    assert "raw_text_source" not in interaction_event
+    assert interaction_event["target_object_type"] == "meal_item"
+    assert interaction_event["target_object_id"] == "item-42"
+
+
+def test_primary_context_packet_omits_legacy_lineage_prompt_payloads() -> None:
+    class UnexpectedLegacyPayload:
+        def model_dump(self, **_: object) -> dict[str, object]:
+            raise AssertionError("primary packet prompt should not serialize legacy current-turn context")
+
+        def __getattr__(self, name: str) -> object:
+            raise AssertionError(f"primary packet prompt should not read legacy pack field {name}")
+
+    legacy_payload = UnexpectedLegacyPayload()
+
+    assert current_turn_context_prompt_payload(legacy_payload, primary_packet_present=True) is None
+    assert manager_context_pack_prompt_payload(legacy_payload, primary_packet_present=True) is None
 
 
 @pytest.mark.asyncio
