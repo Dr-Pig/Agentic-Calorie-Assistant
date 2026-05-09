@@ -33,6 +33,34 @@ def resolve_correction_target_tool(
     resolved_state: Any,
 ) -> dict[str, Any]:
     target = ((resolved_state.injected_context or {}).get("TARGET_MEAL_REFERENCE") or {}).copy()
+    item_candidates = [
+        dict(item) for item in (target.get("item_candidates") or []) if isinstance(item, dict)
+    ]
+    seen_candidate_ids = {
+        item.get("meal_item_id") for item in item_candidates if item.get("meal_item_id") is not None
+    }
+    for meal in (resolved_state.injected_context or {}).get("RECENT_COMMITTED_MEALS_SUMMARY") or []:
+        if not isinstance(meal, dict):
+            continue
+        for item in meal.get("item_candidates") or []:
+            if not isinstance(item, dict):
+                continue
+            meal_item_id = item.get("meal_item_id")
+            if meal_item_id in seen_candidate_ids:
+                continue
+            seen_candidate_ids.add(meal_item_id)
+            item_candidates.append(
+                {
+                    **dict(item),
+                    "meal_thread_id": meal.get("meal_thread_id"),
+                    "meal_version_id": meal.get("meal_version_id"),
+                    "source": "recent_committed_meal",
+                    "mutation_authority": False,
+                    "selected_target": False,
+                }
+            )
+    if item_candidates:
+        target["item_candidates"] = item_candidates
     pending = conversation_pending_followup(getattr(resolved_state, "conversation_state", None))
     if pending.get("is_open"):
         target["target_resolution_source"] = "pending_followup_state"

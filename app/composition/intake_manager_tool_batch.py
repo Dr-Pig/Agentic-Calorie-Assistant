@@ -20,11 +20,9 @@ from app.shared.contracts.correction_operation import structured_correction_oper
 
 def payload_trace_contract(payload: Any) -> dict[str, Any]:
     return dict(getattr(payload, "trace_contract", None) or {})
-
 def payload_unresolved_info(payload: Any) -> list[str]:
     raw = payload_trace_contract(payload).get("unresolved_info") or []
     return [str(item) for item in raw if str(item).strip()]
-
 def macro_summary(payload: Any | None) -> dict[str, Any]:
     return build_payload_macro_summary(payload)
 
@@ -140,6 +138,8 @@ def validate_manager_target_proposal(
         }
     return {
         **dict(correction_target),
+        "meal_thread_id": matched.get("meal_thread_id") or correction_target.get("meal_thread_id"),
+        "meal_version_id": matched.get("meal_version_id") or correction_target.get("meal_version_id"),
         "meal_item_id": matched.get("meal_item_id"),
         "canonical_name": matched.get("canonical_name"),
         "observed_canonical_name": matched.get("canonical_name"),

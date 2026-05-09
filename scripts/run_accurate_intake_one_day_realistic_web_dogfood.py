@@ -152,7 +152,7 @@ ONE_DAY_TURN_FIXTURES = [
             "estimation_posture": "target_evidence_only",
             "evidence_posture": "target_evidence_required",
         },
-        "expected_behavior": "Explicit removal fails to apply due to no unique existing item ID.",
+        "expected_behavior": "Explicit removal resolves the existing item target before applying canonical removal.",
     },
     {
         "turn_id": "query_001",
@@ -562,6 +562,31 @@ class _ChineseOneDayManagerProvider:
             and item.get("confidence") == "available"
             for item in tool_results
         )
+        has_correction_target = self._has_resolved_correction_target(tool_results)
+        if (
+            dec["final_action"] == "correction_applied"
+            and "resolve_correction_target" in {
+                str(item) for item in user_payload.get("available_tools") or []
+            }
+            and not has_correction_target
+        ):
+            return (
+                {
+                    "manager_action": "call_tools",
+                    "response_mode": "tool_call",
+                    "tool_calls": [
+                        {
+                            "name": "resolve_correction_target",
+                            "arguments": self._target_proposal(dec),
+                        }
+                    ],
+                },
+                self._trace(
+                    fixture_turn_id=str(fixture["turn_id"]),
+                    fixture_binding=fixture_binding,
+                    stage="correction_target_tool_request",
+                ),
+            )
         if dec["final_action"] == "commit" and not has_nutrition:
             return (
                 {
@@ -587,6 +612,26 @@ class _ChineseOneDayManagerProvider:
             fixture_turn_id=str(fixture["turn_id"]),
             fixture_binding=fixture_binding,
         )
+
+    def _has_resolved_correction_target(self, tool_results: list[dict[str, Any]]) -> bool:
+        for item in tool_results:
+            if str(item.get("tool_name") or "") != "resolve_correction_target":
+                continue
+            target = dict((item.get("provenance") or {}).get("correction_target") or {})
+            validation = dict(target.get("manager_target_proposal_validation") or {})
+            if (
+                item.get("confidence") == "available"
+                and validation.get("status") == "accepted"
+                and target.get("meal_item_id") is not None
+            ):
+                return True
+        return False
+
+    def _target_proposal(self, dec: dict[str, Any]) -> dict[str, Any]:
+        proposal = dict(dec.get("target_attachment") or {})
+        proposal["target_proposal_source"] = "chinese_one_day_manager_fixture.target_attachment"
+        proposal["semantic_owner"] = "manager"
+        return proposal
 
     def _tool_semantic_decision(self, dec: dict[str, Any]) -> dict[str, Any]:
         return {
