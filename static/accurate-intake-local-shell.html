@@ -521,6 +521,7 @@
       bodyPlan: "/body-plan/active",
       debug: "/accurate-intake/debug",
       chatHistory: "/accurate-intake/chat-history",
+      localDebugSession: "/accurate-intake/local-debug-session",
       manualTarget: "/body-plan/manual-daily-target"
     };
 
@@ -584,6 +585,27 @@
         }
       }
       return { "X-Local-Debug-Token": token };
+    }
+
+    async function establishLocalDebugSession() {
+      const inputToken = el("local-debug-token")?.value.trim() || "";
+      const globalToken = typeof window.LOCAL_DEBUG_API_TOKEN === "string" ? window.LOCAL_DEBUG_API_TOKEN.trim() : "";
+      const token = inputToken || globalToken;
+      if (!token) {
+        return false;
+      }
+      const response = await fetch(endpoints.localDebugSession, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        body: JSON.stringify({ token })
+      });
+      if (!response.ok) {
+        throw new Error(`local debug session HTTP ${response.status}`);
+      }
+      return true;
     }
 
     function setSyncStatus(value) {
@@ -795,6 +817,7 @@
 
     async function syncSurfaces() {
       setSyncStatus("loading");
+      await establishLocalDebugSession();
       const userQuery = new URLSearchParams({ user_id: userId() });
       const budget = await requestJson(`${endpoints.budget}?${userQuery.toString()}`);
       const nextBackendLocalDate = budget.local_date || null;
@@ -827,6 +850,7 @@
       const pending = appendMessage("bot", "Runtime processing...");
       setBusy(true);
       try {
+        await establishLocalDebugSession();
         const payload = await requestJson(endpoints.estimate, {
           method: "POST",
           headers: {
@@ -857,6 +881,7 @@
       }
       setBusy(true);
       try {
+        await establishLocalDebugSession();
         const payload = await requestJson(endpoints.manualTarget, {
           method: "POST",
           headers: { "Content-Type": "application/json; charset=utf-8" },

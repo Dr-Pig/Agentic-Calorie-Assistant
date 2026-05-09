@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 
 from app.body.application.active_body_plan_read_model import build_active_body_plan_view
@@ -21,12 +21,17 @@ from app.composition.dogfood_review_queue_surface import (
 from app.composition.local_data_hygiene_routes import router as local_data_hygiene_router
 from app.database import get_db
 from app.intake.interface.accurate_intake_debug_surface import render_accurate_intake_debug_surface
-from app.runtime.interface.local_debug_auth import require_local_debug_access
+from app.runtime.interface.local_debug_auth import (
+    LOCAL_DEBUG_SESSION_COOKIE,
+    require_local_debug_access,
+    validate_local_debug_token,
+)
 from app.shared.infra.models import MessageBuffer, User
 
 router = APIRouter()
 router.include_router(local_data_hygiene_router)
 DOGFOOD_FEEDBACK_DIR = Path("workspace_data/local_dogfood_feedback")
+LOCAL_DEBUG_SESSION_MAX_AGE_SECONDS = 8 * 60 * 60
 
 _NOT_CLAIMING = [
     "product_ready",
@@ -220,6 +225,24 @@ def build_accurate_intake_chat_history_payload(
         "message_count": len(messages),
         "messages": messages,
     }
+
+
+@router.post("/accurate-intake/local-debug-session", status_code=204)
+async def accurate_intake_local_debug_session(
+    request: Request,
+    payload: dict[str, Any] = Body(...),
+) -> Response:
+    token = validate_local_debug_token(request, str(payload.get("token") or ""))
+    response = Response(status_code=204)
+    response.set_cookie(
+        key=LOCAL_DEBUG_SESSION_COOKIE,
+        value=token,
+        max_age=LOCAL_DEBUG_SESSION_MAX_AGE_SECONDS,
+        path="/",
+        httponly=True,
+        samesite="strict",
+    )
+    return response
 
 
 @router.get("/accurate-intake/debug")

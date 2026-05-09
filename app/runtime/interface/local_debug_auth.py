@@ -3,10 +3,11 @@ from __future__ import annotations
 from hmac import compare_digest
 import os
 
-from fastapi import Header, HTTPException, Request
+from fastapi import Cookie, Header, HTTPException, Request
 
 LOCAL_DEBUG_API_TOKEN_ENV = "LOCAL_DEBUG_API_TOKEN"
 LOCAL_DEBUG_API_TOKEN_HEADER = "X-Local-Debug-Token"
+LOCAL_DEBUG_SESSION_COOKIE = "local_debug_session"
 
 _PLACEHOLDER_TOKENS = {
     "change-me",
@@ -33,6 +34,7 @@ def _request_is_local(request: Request) -> bool:
 def require_local_debug_access(
     request: Request,
     x_local_debug_token: str | None = Header(default=None, alias=LOCAL_DEBUG_API_TOKEN_HEADER),
+    local_debug_session: str | None = Cookie(default=None, alias=LOCAL_DEBUG_SESSION_COOKIE),
 ) -> None:
     expected_token = _configured_local_debug_token()
     if not expected_token:
@@ -41,5 +43,23 @@ def require_local_debug_access(
         raise HTTPException(status_code=404, detail="Not found")
 
     supplied_token = (x_local_debug_token or "").strip()
-    if not supplied_token or not compare_digest(supplied_token, expected_token):
+    supplied_session = (local_debug_session or "").strip()
+    if compare_digest(supplied_token, expected_token):
+        return
+    if compare_digest(supplied_session, expected_token):
+        return
+    if not supplied_token and not supplied_session:
         raise HTTPException(status_code=403, detail="Forbidden")
+    raise HTTPException(status_code=403, detail="Forbidden")
+
+
+def validate_local_debug_token(request: Request, supplied_token: str) -> str:
+    expected_token = _configured_local_debug_token()
+    if not expected_token:
+        raise HTTPException(status_code=404, detail="Not found")
+    if not _request_is_local(request):
+        raise HTTPException(status_code=404, detail="Not found")
+    token = supplied_token.strip()
+    if not token or not compare_digest(token, expected_token):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return expected_token
