@@ -382,7 +382,7 @@ def test_refresh_chain_regenerates_current_shell_local_review_decision_from_evid
     assert decision["ready_for_fdb_integration"] is False
 
 
-def test_refresh_chain_honestly_blocks_when_browser_activation_dependencies_are_missing(
+def test_refresh_chain_generates_fixture_dependency_before_browser_activation_gate(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -411,31 +411,26 @@ def test_refresh_chain_honestly_blocks_when_browser_activation_dependencies_are_
         ).read_text(encoding="utf-8")
     )
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
-    assert printed["closeout_navigation"]["missing_evidence"] == [
+    assert exit_code == 0
+    assert printed["status"] == "pass"
+    assert (
         "fixture_full_product_loop_e2e"
-    ]
-    assert printed["closeout_navigation"]["stale_evidence"] == []
-    assert printed["closeout_navigation"]["first_blocking_gate"] == {
-        "gate_id": "product_pages_self_use_flow_gate",
-        "status": "blocked",
-        "blocker_count": 13,
-        "first_blocker": "fixture_full_product_loop_e2e.unexpected_status:missing",
-    }
+        not in printed["closeout_navigation"]["missing_evidence"]
+    )
+    first_blocking_gate = printed["closeout_navigation"]["first_blocking_gate"]
+    assert first_blocking_gate is None or first_blocking_gate["first_blocker"] != (
+        "fixture_full_product_loop_e2e.unexpected_status:missing"
+    )
     assert printed["closeout_navigation"]["non_claims"]["private_self_use_approved"] is False
     assert printed["closeout_navigation"]["non_claims"]["product_ready"] is False
-    assert printed["candidate_prepared"] is False
-    assert printed["ready_for_fdb_integration_validation"] is False
-    assert browser_activation["status"] == "blocked"
-    assert (
-        "fixture_full_product_loop_e2e.unexpected_status:missing"
-        in browser_activation["blockers"]
-    )
-    assert pre_live_pack["selected_option"] == "stay_local_self_use"
+    assert printed["candidate_prepared"] is True
+    assert printed["ready_for_fdb_integration_validation"] is True
+    assert browser_activation["status"] == "browser_activation_evidence_ready_for_human_review"
+    assert browser_activation["blockers"] == []
+    assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
     assert "ready_for_live_diagnostic_decision" not in pre_live_pack
-    assert product_loop_handoff["status"] == "blocked"
-    assert product_loop_handoff["ready_for_fdb_integration"] is False
+    assert product_loop_handoff["status"] == "product_loop_handoff_ready_for_fdb_integration_validation"
+    assert product_loop_handoff["ready_for_fdb_integration"] is True
     assert product_loop_handoff["fooddb_artifact_status"] == (
         "approved_packet_ready_evidence_metadata_valid"
     )
@@ -773,6 +768,40 @@ def test_refresh_chain_generates_required_visual_qa_before_next_blocker(
         "product_pages_visual_qa.unexpected_status:missing"
     )
     assert "product_pages_visual_qa" not in printed["closeout_navigation"]["missing_evidence"]
+
+
+def test_refresh_chain_generates_required_fixture_full_product_loop_before_next_blocker(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+
+    fixture_loop_path = artifact_dir / module.PRODUCT_PAGES_FLOW_ARTIFACT_PATHS[
+        "fixture_full_product_loop_e2e"
+    ].name
+    fixture_loop = json.loads(fixture_loop_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["status"] == "blocked"
+    assert fixture_loop["status"] == "fixture_product_loop_e2e_diagnostic_pass"
+    assert fixture_loop["browser_executed"] is True
+    assert fixture_loop["diagnostic_only"] is True
+    assert fixture_loop["local_only"] is True
+    assert fixture_loop["product_readiness_claimed"] is False
+    assert fixture_loop["private_self_use_approved"] is False
+    assert (
+        printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"]
+        != "fixture_full_product_loop_e2e.unexpected_status:missing"
+    )
+    assert (
+        "fixture_full_product_loop_e2e"
+        not in printed["closeout_navigation"]["missing_evidence"]
+    )
 
 
 def test_closeout_navigation_reports_stale_evidence_without_readiness_claims() -> None:
