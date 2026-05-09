@@ -53,11 +53,14 @@ FAST_PASS_PREFIXES = (
     "tests/test_runtime_lab_memory_",
     "tests/test_recommendation_shadow_summary_consumer.py",
     "tests/test_rescue_shadow_summary_context.py",
+    "tests/test_proactive_no_send_summary_consumer.py",
     "tests/test_accurate_intake_approved_packet_ready_fooddb_artifact.py",
 )
 FAST_PASS_EXACT = {
     "app/rescue/domain/shadow_status.py",
     "app/memory/application/runtime_lab_downstream_boundary.py",
+    "app/runtime/application/proactive_summary_consumer.py",
+    "tests/test_sidecar_offline_activation_guard.py",
 }
 
 
