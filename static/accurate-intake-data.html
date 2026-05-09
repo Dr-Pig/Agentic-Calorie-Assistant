@@ -240,6 +240,7 @@
       el("import-allowed").textContent = String(payload.import_allowed ?? "--");
       el("local-only").textContent = String(payload.local_only ?? "--");
       el("data-result").textContent = JSON.stringify({
+        artifact_type: payload.artifact_type,
         status: payload.status,
         db_class: payload.db_class,
         backup_required_before_reset: payload.backup_required_before_reset,
@@ -251,6 +252,7 @@
         import_allowed: payload.import_allowed,
         local_only: payload.local_only,
         do_not_commit: payload.do_not_commit,
+        production_db_used: payload.production_db_used,
         fooddb_truth_updated: payload.fooddb_truth_updated,
         product_readiness_claimed: payload.product_readiness_claimed,
         private_self_use_approved: payload.private_self_use_approved

@@ -21,7 +21,7 @@ from app.composition.current_shell_fooddb_triad_same_truth_contract import (  # 
     EXPECTED_FOODDB_TRIAD_SAME_TRUTH_CASES,
     FOODDB_TRIAD_SAME_TRUTH_REQUIRED_NON_CLAIMS,
 )
-from app.composition import accurate_intake_debug_routes, intake_routes  # noqa: E402
+from app.composition import accurate_intake_debug_routes, intake_routes, local_data_hygiene_routes  # noqa: E402
 from app.composition.dogfood_review_queue import build_dogfood_review_queue_artifact  # noqa: E402
 from app.database import get_or_create_user  # noqa: E402
 from app.runtime.interface.local_debug_auth import LOCAL_DEBUG_API_TOKEN_ENV  # noqa: E402
@@ -135,9 +135,47 @@ FEEDBACK_NON_CLAIMS = {
     "canonical_eval_promoted": False,
     "manager_context_injected": False,
 }
+EXPECTED_DATA_INSPECT_VALUES = {
+    "artifact_type": "accurate_intake_local_operator_data_hygiene_bundle",
+    "status": "local_operator_data_hygiene_ready",
+    "local_only": True,
+    "do_not_commit": True,
+    "writes_performed": False,
+    "import_allowed": False,
+    "fooddb_truth_updated": False,
+    "product_readiness_claimed": False,
+    "private_self_use_approved": False,
+}
+EXPECTED_DATA_BACKUP_VALUES = {
+    "status": "pass",
+    "local_only": True,
+    "do_not_commit": True,
+    "production_db_used": False,
+    "fooddb_truth_updated": False,
+    "backup_path_exists": True,
+}
+EXPECTED_DATA_EXPORT_VALUES = {
+    "status": "pass",
+    "local_only": True,
+    "do_not_commit": True,
+    "production_db_used": False,
+    "fooddb_truth_updated": False,
+    "export_path_exists": True,
+    "manifest_path_exists": True,
+}
+DATA_NON_CLAIMS = {
+    "product_readiness_claimed": False,
+    "private_self_use_approved": False,
+    "fooddb_truth_updated": False,
+    "canonical_eval_promoted": False,
+    "import_or_reset_written": False,
+}
 REQUIRED_FETCH_METHODS = {
     "/accurate-intake/chat-history": "GET",
     "/accurate-intake/feedback": "POST",
+    "/accurate-intake/local-data-hygiene": "GET",
+    "/accurate-intake/local-data-hygiene/backup": "POST",
+    "/accurate-intake/local-data-hygiene/export": "POST",
     "/estimate": "POST",
     "/today/current-budget": "GET",
     "/body-plan/active": "GET",
@@ -238,6 +276,14 @@ def _base_report(
         "feedback_review_queue_values": {},
         "feedback_non_claims": dict(FEEDBACK_NON_CLAIMS),
         "feedback_store_path": "",
+        "data_page_loaded": False,
+        "data_inspected": False,
+        "data_backup_created": False,
+        "data_export_created": False,
+        "data_inspect_values": {},
+        "data_backup_values": {},
+        "data_export_values": {},
+        "data_non_claims": dict(DATA_NON_CLAIMS),
         "desktop_no_overflow": False,
         "mobile_no_overflow": False,
         "mobile_populated_state_checked": False,
@@ -322,6 +368,46 @@ def _feedback_review_queue_values(artifact: dict[str, Any]) -> dict[str, Any]:
         "feedback_can_create_product_truth": promotion_policy.get("feedback_can_create_product_truth"),
         "feedback_can_create_fooddb_truth": promotion_policy.get("feedback_can_create_fooddb_truth"),
         "feedback_can_create_eval_truth": promotion_policy.get("feedback_can_create_eval_truth"),
+    }
+
+
+def _data_inspect_values(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "artifact_type": payload.get("artifact_type"),
+        "status": payload.get("status"),
+        "local_only": payload.get("local_only"),
+        "do_not_commit": payload.get("do_not_commit"),
+        "writes_performed": payload.get("writes_performed"),
+        "import_allowed": payload.get("import_allowed"),
+        "fooddb_truth_updated": payload.get("fooddb_truth_updated"),
+        "product_readiness_claimed": payload.get("product_readiness_claimed"),
+        "private_self_use_approved": payload.get("private_self_use_approved"),
+    }
+
+
+def _data_backup_values(payload: dict[str, Any]) -> dict[str, Any]:
+    backup_path = Path(str(payload.get("backup_path") or ""))
+    return {
+        "status": payload.get("status"),
+        "local_only": payload.get("local_only"),
+        "do_not_commit": payload.get("do_not_commit"),
+        "production_db_used": payload.get("production_db_used"),
+        "fooddb_truth_updated": payload.get("fooddb_truth_updated"),
+        "backup_path_exists": backup_path.exists(),
+    }
+
+
+def _data_export_values(payload: dict[str, Any]) -> dict[str, Any]:
+    export_path = Path(str(payload.get("export_path") or ""))
+    manifest_path = Path(str(payload.get("manifest_path") or ""))
+    return {
+        "status": payload.get("status"),
+        "local_only": payload.get("local_only"),
+        "do_not_commit": payload.get("do_not_commit"),
+        "production_db_used": payload.get("production_db_used"),
+        "fooddb_truth_updated": payload.get("fooddb_truth_updated"),
+        "export_path_exists": export_path.exists(),
+        "manifest_path_exists": manifest_path.exists(),
     }
 
 
@@ -897,6 +983,68 @@ def _run_feedback_capture_sequence(
     return result
 
 
+def _run_data_hygiene_sequence(
+    browser: Any,
+    *,
+    base_url: str,
+    user_external_id: str,
+    local_date: str,
+    timeout_ms: int,
+    local_debug_token: str,
+    viewport: dict[str, int],
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "fetch_sequence": [],
+        "data_page_loaded": False,
+        "data_inspected": False,
+        "data_backup_created": False,
+        "data_export_created": False,
+        "data_inspect_values": {},
+        "data_backup_values": {},
+        "data_export_values": {},
+        "data_non_claims": dict(DATA_NON_CLAIMS),
+        "page_text": "",
+    }
+    data_page = _open_page(
+        browser,
+        viewport=viewport,
+        url=_page_url(base_url, "data", user_external_id=user_external_id, local_date=local_date),
+        timeout_ms=timeout_ms,
+        local_debug_token=local_debug_token,
+    )
+    data_page.wait_for_selector('[data-surface-role="local-data-hygiene"]', timeout=timeout_ms)
+    result["data_page_loaded"] = True
+    data_page.wait_for_function(
+        """() => document.querySelector("#hygiene-status")?.textContent?.trim() !== "--" """,
+        timeout=timeout_ms,
+    )
+    inspect_payload = json.loads(data_page.locator("#data-result").inner_text(timeout=timeout_ms))
+    result["data_inspect_values"] = _data_inspect_values(inspect_payload)
+    result["data_inspected"] = result["data_inspect_values"] == EXPECTED_DATA_INSPECT_VALUES
+
+    data_page.click("#backup-data")
+    data_page.wait_for_function(
+        """() => (document.querySelector("#data-status")?.textContent || "").includes("backup pass")""",
+        timeout=timeout_ms,
+    )
+    backup_payload = json.loads(data_page.locator("#data-result").inner_text(timeout=timeout_ms))
+    result["data_backup_values"] = _data_backup_values(backup_payload)
+    result["data_backup_created"] = result["data_backup_values"] == EXPECTED_DATA_BACKUP_VALUES
+
+    data_page.click("#export-data")
+    data_page.wait_for_function(
+        """() => (document.querySelector("#data-status")?.textContent || "").includes("export pass")""",
+        timeout=timeout_ms,
+    )
+    export_payload = json.loads(data_page.locator("#data-result").inner_text(timeout=timeout_ms))
+    result["data_export_values"] = _data_export_values(export_payload)
+    result["data_export_created"] = result["data_export_values"] == EXPECTED_DATA_EXPORT_VALUES
+    result["page_text"] = data_page.locator("body").inner_text(timeout=timeout_ms)
+    result["fetch_sequence"].extend(_capture_fetches(data_page))
+    data_page.close()
+    return result
+
+
 def _run_browser_sequence(
     *,
     base_url: str,
@@ -937,6 +1085,14 @@ def _run_browser_sequence(
         "feedback_review_queue_values": {},
         "feedback_non_claims": dict(FEEDBACK_NON_CLAIMS),
         "feedback_store_path": "",
+        "data_page_loaded": False,
+        "data_inspected": False,
+        "data_backup_created": False,
+        "data_export_created": False,
+        "data_inspect_values": {},
+        "data_backup_values": {},
+        "data_export_values": {},
+        "data_non_claims": dict(DATA_NON_CLAIMS),
     }
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=headless)
@@ -1585,6 +1741,26 @@ def _run_browser_sequence(
             result["feedback_store_path"] = feedback_result["feedback_store_path"]
             result["fetch_sequence"].extend(feedback_result["fetch_sequence"])
 
+            result["current_step"] = "data_hygiene_check"
+            data_result = _run_data_hygiene_sequence(
+                browser,
+                base_url=base_url,
+                user_external_id=user_external_id,
+                local_date=local_date,
+                timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
+                viewport=desktop_viewport,
+            )
+            result["data_page_loaded"] = data_result["data_page_loaded"]
+            result["data_inspected"] = data_result["data_inspected"]
+            result["data_backup_created"] = data_result["data_backup_created"]
+            result["data_export_created"] = data_result["data_export_created"]
+            result["data_inspect_values"] = data_result["data_inspect_values"]
+            result["data_backup_values"] = data_result["data_backup_values"]
+            result["data_export_values"] = data_result["data_export_values"]
+            result["data_non_claims"] = data_result["data_non_claims"]
+            result["fetch_sequence"].extend(data_result["fetch_sequence"])
+
             result["current_step"] = "mobile_overflow_check"
             for page_name in ("chat", "today", "body"):
                 mobile = _open_page(
@@ -1751,6 +1927,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("feedback_submitted", "feedback_not_submitted")
     require_true("feedback_jsonl_written", "feedback_jsonl_not_written")
     require_true("feedback_review_queue_ingested", "feedback_review_queue_not_ingested")
+    require_true("data_page_loaded", "data_page_not_loaded")
+    require_true("data_inspected", "data_hygiene_not_inspected")
+    require_true("data_backup_created", "data_backup_not_created")
+    require_true("data_export_created", "data_export_not_created")
     require_true("desktop_no_overflow", "desktop_overflow_detected")
     require_true("mobile_no_overflow", "mobile_overflow_detected")
     require_true("mobile_populated_state_checked", "mobile_populated_state_not_checked")
@@ -1849,6 +2029,22 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     for field, expected_value in FEEDBACK_NON_CLAIMS.items():
         if feedback_non_claims.get(field) != expected_value:
             blockers.append(f"feedback_non_claim_overclaim:{field}")
+    data_inspect_values = dict(report.get("data_inspect_values") or {})
+    for field, expected_value in EXPECTED_DATA_INSPECT_VALUES.items():
+        if data_inspect_values.get(field) != expected_value:
+            blockers.append(f"data_inspect_value_mismatch:{field}")
+    data_backup_values = dict(report.get("data_backup_values") or {})
+    for field, expected_value in EXPECTED_DATA_BACKUP_VALUES.items():
+        if data_backup_values.get(field) != expected_value:
+            blockers.append(f"data_backup_value_mismatch:{field}")
+    data_export_values = dict(report.get("data_export_values") or {})
+    for field, expected_value in EXPECTED_DATA_EXPORT_VALUES.items():
+        if data_export_values.get(field) != expected_value:
+            blockers.append(f"data_export_value_mismatch:{field}")
+    data_non_claims = dict(report.get("data_non_claims") or {})
+    for field, expected_value in DATA_NON_CLAIMS.items():
+        if data_non_claims.get(field) != expected_value:
+            blockers.append(f"data_non_claim_overclaim:{field}")
     fetches = list(report.get("fetch_sequence") or browser.get("fetch_sequence") or [])
     for expected, method in REQUIRED_FETCH_METHODS.items():
         if not any(
@@ -1956,7 +2152,12 @@ def build_product_pages_browser_smoke_report(
     feedback_dir = db_path.parent / f"{db_path.stem}_feedback_{secrets.token_hex(6)}"
     report["feedback_store_path"] = str(_feedback_jsonl_path(feedback_dir))
     previous_feedback_dir = accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR
+    previous_backup_dir = local_data_hygiene_routes.DOGFOOD_BACKUP_DIR
+    previous_export_dir = local_data_hygiene_routes.DOGFOOD_EXPORT_DIR
+    data_hygiene_dir = ROOT / ".pytest_tmp_local" / "product_pages_data_hygiene" / secrets.token_hex(6)
     accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR = feedback_dir
+    local_data_hygiene_routes.DOGFOOD_BACKUP_DIR = data_hygiene_dir / "backups"
+    local_data_hygiene_routes.DOGFOOD_EXPORT_DIR = data_hygiene_dir / "exports"
     server, thread = _run_uvicorn_in_thread(app, port=port)
     try:
         base_url = f"http://127.0.0.1:{port}"
@@ -1997,6 +2198,8 @@ def build_product_pages_browser_smoke_report(
         thread.join(timeout=5)
         _restore_runtime(app)
         accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR = previous_feedback_dir
+        local_data_hygiene_routes.DOGFOOD_BACKUP_DIR = previous_backup_dir
+        local_data_hygiene_routes.DOGFOOD_EXPORT_DIR = previous_export_dir
         if previous_debug_token is None:
             os.environ.pop(LOCAL_DEBUG_API_TOKEN_ENV, None)
         else:
