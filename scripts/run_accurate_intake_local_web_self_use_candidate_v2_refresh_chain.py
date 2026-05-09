@@ -47,6 +47,10 @@ from app.composition.accurate_intake_pl_ce_product_pages_self_use_flow_gate impo
 from app.composition.accurate_intake_today_macro_mirror_gate import (  # noqa: E402
     build_today_macro_mirror_gate_artifact,
 )
+from app.composition.dogfood_review_queue import (  # noqa: E402
+    build_dogfood_review_queue_artifact,
+    build_review_candidate_from_product_loop_diagnostic,
+)
 from app.nutrition.application.approved_packet_ready_fooddb_artifact import (  # noqa: E402
     build_approved_packet_ready_fooddb_artifact,
 )
@@ -115,6 +119,7 @@ REFRESHED_ARTIFACT_FILENAMES = {
     "current_shell_compatibility_local_review_decision_pack": (
         "accurate_intake_current_shell_compatibility_local_review_decision_pack.json"
     ),
+    "dogfood_review_queue": "accurate_intake_dogfood_review_queue.json",
     "pre_live_evidence": "accurate_intake_pre_live_evidence.json",
     "pre_live_decision_pack": "accurate_intake_pre_live_self_use_decision_pack.json",
     "local_web_candidate": "accurate_intake_local_web_self_use_candidate_v2.json",
@@ -457,6 +462,24 @@ def _product_loop_handoff_evidence(
     }
 
 
+def _dogfood_review_candidates_from_closeout_diagnostics(
+    artifacts_dir: Path,
+) -> list[dict[str, Any]]:
+    browser_realistic = _read_payload(
+        _artifact_path(
+            artifacts_dir,
+            PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["browser_realistic_dogfood"],
+        )
+    )
+    if (
+        browser_realistic.get("artifact_type")
+        == "accurate_intake_browser_realistic_web_dogfood_v2"
+        and "evidence_gap" in str(browser_realistic.get("status") or "")
+    ):
+        return [build_review_candidate_from_product_loop_diagnostic(browser_realistic)]
+    return []
+
+
 def build_local_web_self_use_candidate_refresh_chain(
     *,
     artifacts_dir: Path,
@@ -613,6 +636,18 @@ def build_local_web_self_use_candidate_refresh_chain(
             )
         )
         write_json_artifact(local_review_decision_path, local_review_decision_pack)
+
+    dogfood_review_queue = build_dogfood_review_queue_artifact(
+        review_candidates=_dogfood_review_candidates_from_closeout_diagnostics(artifacts_dir),
+        correction_feedback_events=[],
+    )
+    write_json_artifact(
+        _artifact_path(
+            artifacts_dir,
+            REFRESHED_ARTIFACT_FILENAMES["dogfood_review_queue"],
+        ),
+        dogfood_review_queue,
+    )
 
     pre_live_evidence = build_local_web_candidate_gate_evidence(
         path_overrides=_local_gate_path_overrides(artifacts_dir)
