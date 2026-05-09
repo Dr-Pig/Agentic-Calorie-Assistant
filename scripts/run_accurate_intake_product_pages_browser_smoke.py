@@ -40,11 +40,21 @@ DEFAULT_USER_ID = "product-pages-browser-smoke-user"
 DEFAULT_LOCAL_DATE = resolve_today_local_date(None)
 DEFAULT_CJK_MESSAGE = "早餐吃茶葉蛋和拿鐵"
 DEFAULT_MACRO_EXACT_ITEM_MESSAGE = "統一巧克力牛乳(400ml)"
+DEFAULT_MACRO_MISSING_EXACT_ITEM_MESSAGE = "\u722d\u9bae\u7126\u7cd6\u9bae\u9b5a\u5169\u8cab"
 EXPECTED_MACRO_EXACT_ITEM_VALUES = {
     "macro_state": "visible",
     "protein_text": "12",
     "carbs_text": "48",
     "fat_text": "6",
+}
+EXPECTED_MACRO_MISSING_EXACT_ITEM_VALUES = {
+    "macro_state": "guarded",
+    "macro_grid_hidden": True,
+    "macro_guard_reason_hidden": False,
+    "macro_guard_reason_text": "no_macro_data",
+    "protein_text": "--",
+    "carbs_text": "--",
+    "fat_text": "--",
 }
 REQUIRED_FETCH_METHODS = {
     "/accurate-intake/chat-history": "GET",
@@ -105,6 +115,8 @@ def _base_report(
         "today_meal_list_rendered": False,
         "macro_present_exact_item_browser_checked": False,
         "macro_present_exact_item_values": {},
+        "macro_missing_exact_item_browser_checked": False,
+        "macro_missing_exact_item_values": {},
         "today_session_status_rendered": False,
         "today_no_debug_trace": False,
         "body_page_loaded": False,
@@ -263,6 +275,33 @@ def _macro_panel_values(page: Any, *, timeout_ms: int) -> dict[str, str]:
     }
 
 
+def _macro_guarded_panel_values(page: Any, *, timeout_ms: int) -> dict[str, Any]:
+    page.wait_for_function(
+        """() => {
+          const panel = document.querySelector("#macro-panel");
+          const reason = document.querySelector("#macro-guard-reason")?.textContent?.trim();
+          const protein = document.querySelector("#protein-g")?.textContent?.trim();
+          const carbs = document.querySelector("#carbs-g")?.textContent?.trim();
+          const fat = document.querySelector("#fat-g")?.textContent?.trim();
+          return panel?.dataset?.macroState === "guarded"
+            && reason === "no_macro_data"
+            && protein === "--"
+            && carbs === "--"
+            && fat === "--";
+        }""",
+        timeout=timeout_ms,
+    )
+    return {
+        "macro_state": page.locator("#macro-panel").evaluate("(node) => node.dataset.macroState"),
+        "macro_grid_hidden": page.locator("#macro-grid").evaluate("(node) => node.hidden"),
+        "macro_guard_reason_hidden": page.locator("#macro-guard-reason").evaluate("(node) => node.hidden"),
+        "macro_guard_reason_text": page.locator("#macro-guard-reason").inner_text(timeout=timeout_ms).strip(),
+        "protein_text": page.locator("#protein-g").inner_text(timeout=timeout_ms).strip(),
+        "carbs_text": page.locator("#carbs-g").inner_text(timeout=timeout_ms).strip(),
+        "fat_text": page.locator("#fat-g").inner_text(timeout=timeout_ms).strip(),
+    }
+
+
 def _run_macro_present_exact_item_sequence(
     browser: Any,
     *,
@@ -324,6 +363,65 @@ def _run_macro_present_exact_item_sequence(
     return result
 
 
+def _run_macro_missing_exact_item_sequence(
+    browser: Any,
+    *,
+    base_url: str,
+    user_external_id: str,
+    local_date: str,
+    timeout_ms: int,
+    local_debug_token: str,
+    viewport: dict[str, int],
+) -> dict[str, Any]:
+    macro_user_id = f"{user_external_id}-macro-missing"
+    result: dict[str, Any] = {
+        "macro_missing_exact_item_browser_checked": False,
+        "macro_missing_exact_item_values": {},
+        "fetch_sequence": [],
+        "page_text": "",
+    }
+    chat = _open_page(
+        browser,
+        viewport=viewport,
+        url=_page_url(base_url, "chat", user_external_id=macro_user_id, local_date=local_date),
+        timeout_ms=timeout_ms,
+        local_debug_token=local_debug_token,
+    )
+    chat.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
+    chat.fill("#message-input", DEFAULT_MACRO_MISSING_EXACT_ITEM_MESSAGE)
+    chat.press("#message-input", "Enter")
+    chat.wait_for_function(
+        """() => {
+          const text = document.querySelector("#chat-scroll")?.textContent || "";
+          return text.includes("Logged.");
+        }""",
+        timeout=timeout_ms,
+    )
+    result["fetch_sequence"].extend(_capture_fetches(chat))
+    chat.close()
+
+    today = _open_page(
+        browser,
+        viewport=viewport,
+        url=_page_url(base_url, "today", user_external_id=macro_user_id, local_date=local_date),
+        timeout_ms=timeout_ms,
+        local_debug_token=local_debug_token,
+    )
+    today.wait_for_selector('[data-surface-role="today-diary"]', timeout=timeout_ms)
+    today.wait_for_function(
+        """() => (document.querySelector("#meal-list")?.textContent || "").includes("kcal") """,
+        timeout=timeout_ms,
+    )
+    result["macro_missing_exact_item_values"] = _macro_guarded_panel_values(today, timeout_ms=timeout_ms)
+    result["macro_missing_exact_item_browser_checked"] = (
+        result["macro_missing_exact_item_values"] == EXPECTED_MACRO_MISSING_EXACT_ITEM_VALUES
+    )
+    result["page_text"] = today.locator("body").inner_text(timeout=timeout_ms)
+    result["fetch_sequence"].extend(_capture_fetches(today))
+    today.close()
+    return result
+
+
 def _run_browser_sequence(
     *,
     base_url: str,
@@ -343,6 +441,10 @@ def _run_browser_sequence(
         "mobile_overflow": {},
         "storage": {"localStorageKeys": [], "sessionStorageKeys": []},
         "product_page_text": "",
+        "macro_present_exact_item_browser_checked": False,
+        "macro_present_exact_item_values": {},
+        "macro_missing_exact_item_browser_checked": False,
+        "macro_missing_exact_item_values": {},
     }
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=headless)
@@ -565,6 +667,23 @@ def _run_browser_sequence(
             result["macro_present_exact_item_values"] = macro_result["macro_present_exact_item_values"]
             result["fetch_sequence"].extend(macro_result["fetch_sequence"])
             page_texts.append(str(macro_result.get("page_text") or ""))
+
+            result["current_step"] = "macro_missing_exact_item_browser_check"
+            macro_missing_result = _run_macro_missing_exact_item_sequence(
+                browser,
+                base_url=base_url,
+                user_external_id=user_external_id,
+                local_date=local_date,
+                timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
+                viewport=desktop_viewport,
+            )
+            result["macro_missing_exact_item_browser_checked"] = macro_missing_result[
+                "macro_missing_exact_item_browser_checked"
+            ]
+            result["macro_missing_exact_item_values"] = macro_missing_result["macro_missing_exact_item_values"]
+            result["fetch_sequence"].extend(macro_missing_result["fetch_sequence"])
+            page_texts.append(str(macro_missing_result.get("page_text") or ""))
 
             result["current_step"] = "open_today"
             today = _open_page(
@@ -999,6 +1118,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         "macro_present_exact_item_browser_checked",
         "macro_present_exact_item_browser_not_checked",
     )
+    require_true(
+        "macro_missing_exact_item_browser_checked",
+        "macro_missing_exact_item_browser_not_checked",
+    )
     require_true("today_session_status_rendered", "today_session_status_not_rendered")
     require_true("today_no_debug_trace", "today_debug_trace_leaked")
     require_true("body_page_loaded", "body_page_not_loaded")
@@ -1080,6 +1203,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     for field, expected_value in EXPECTED_MACRO_EXACT_ITEM_VALUES.items():
         if macro_values.get(field) != expected_value:
             blockers.append(f"macro_present_exact_item_value_mismatch:{field}")
+    macro_missing_values = dict(report.get("macro_missing_exact_item_values") or {})
+    for field, expected_value in EXPECTED_MACRO_MISSING_EXACT_ITEM_VALUES.items():
+        if macro_missing_values.get(field) != expected_value:
+            blockers.append(f"macro_missing_exact_item_value_mismatch:{field}")
     fetches = list(report.get("fetch_sequence") or browser.get("fetch_sequence") or [])
     for expected, method in REQUIRED_FETCH_METHODS.items():
         if not any(
