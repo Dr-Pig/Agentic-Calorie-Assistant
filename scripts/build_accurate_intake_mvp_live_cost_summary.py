@@ -49,6 +49,7 @@ _CACHE_REPORTING_FIELD_CANDIDATES = [
     "input_tokens_details.cached_tokens",
     "cached_tokens",
     "cache_read_input_tokens",
+    "cache_creation_input_tokens",
 ]
 
 
@@ -118,6 +119,8 @@ def build_accurate_intake_live_cost_summary(
     cached_prompt_tokens = sum(int(record.get("cached_tokens") or 0) for record in usage_records)
     cache_reporting_call_count = sum(1 for record in usage_records if record.get("cached_tokens_reported") is True)
     cache_hit_call_count = sum(1 for record in usage_records if int(record.get("cached_tokens") or 0) > 0)
+    cached_prompt_tokens_observed = cached_prompt_tokens if cache_reporting_call_count > 0 else None
+    cached_prompt_tokens_known = bool(usage_records) and cache_reporting_call_count == len(usage_records)
     max_prompt_tokens_per_usage_record = max((int(record.get("prompt_tokens") or 0) for record in usage_records), default=0)
     reported_cost_usd = sum(float(record["cost_usd"]) for record in cost_records) if cost_records else None
     cost_unavailable = bool(usage_records) and not cost_records
@@ -183,6 +186,8 @@ def build_accurate_intake_live_cost_summary(
                 "total_tokens": total_tokens,
                 "max_prompt_tokens_per_usage_record": max_prompt_tokens_per_usage_record,
                 "cached_prompt_tokens": cached_prompt_tokens,
+                "cached_prompt_tokens_observed": cached_prompt_tokens_observed,
+                "cached_prompt_tokens_known": cached_prompt_tokens_known,
                 "cache_reporting_call_count": cache_reporting_call_count,
                 "cache_hit_call_count": cache_hit_call_count,
                 "reported_cost_record_count": len(cost_records),
@@ -536,12 +541,24 @@ def _prompt_cache_reporting_capability(
             cache_reporting_call_count=cache_reporting_call_count,
             cache_hit_call_count=cache_hit_call_count,
         ),
+        "cached_token_count_status": _cached_token_count_status(
+            usage_record_count=usage_record_count,
+            cache_reporting_call_count=cache_reporting_call_count,
+            cache_hit_call_count=cache_hit_call_count,
+        ),
         "usage_record_count": usage_record_count,
         "cache_reporting_call_count": cache_reporting_call_count,
         "cache_hit_call_count": cache_hit_call_count,
         "cached_prompt_tokens": cached_prompt_tokens,
+        "cached_prompt_tokens_observed": cached_prompt_tokens if cache_reporting_call_count > 0 else None,
+        "cached_tokens_unknown": usage_record_count > cache_reporting_call_count,
         "cache_hit_claim_allowed": cache_hit_call_count > 0,
         "cache_miss_claim_allowed": (
+            usage_record_count > 0
+            and cache_reporting_call_count == usage_record_count
+            and cache_hit_call_count == 0
+        ),
+        "zero_cached_tokens_claim_allowed": (
             usage_record_count > 0
             and cache_reporting_call_count == usage_record_count
             and cache_hit_call_count == 0
@@ -566,6 +583,23 @@ def _cache_reporting_status(
     if cache_reporting_call_count > 0:
         return "zero_cached_tokens_reported"
     return "not_reported"
+
+
+def _cached_token_count_status(
+    *,
+    usage_record_count: int,
+    cache_reporting_call_count: int,
+    cache_hit_call_count: int,
+) -> str:
+    if usage_record_count <= 0:
+        return "no_usage_records"
+    if cache_reporting_call_count <= 0:
+        return "unknown_provider_not_reported"
+    if cache_reporting_call_count < usage_record_count:
+        return "partial_provider_reported"
+    if cache_hit_call_count > 0:
+        return "reported_with_cache_hit"
+    return "reported_zero_cached_tokens"
 
 
 def _artifact_hash(artifact: dict[str, Any]) -> str:

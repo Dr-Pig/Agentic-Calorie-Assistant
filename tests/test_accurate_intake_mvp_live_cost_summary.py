@@ -109,6 +109,8 @@ def test_live_cost_summary_totals_token_usage_and_reported_costs() -> None:
         "total_tokens": 20,
         "max_prompt_tokens_per_usage_record": 12,
         "cached_prompt_tokens": 0,
+        "cached_prompt_tokens_observed": None,
+        "cached_prompt_tokens_known": False,
         "cache_reporting_call_count": 0,
         "cache_hit_call_count": 0,
         "reported_cost_record_count": 1,
@@ -120,12 +122,16 @@ def test_live_cost_summary_totals_token_usage_and_reported_costs() -> None:
     assert summary["prompt_cache_reporting_capability"] == {
         "truth_source": "provider_reported_usage_only",
         "cache_reporting_status": "not_reported",
+        "cached_token_count_status": "unknown_provider_not_reported",
         "usage_record_count": 1,
         "cache_reporting_call_count": 0,
         "cache_hit_call_count": 0,
         "cached_prompt_tokens": 0,
+        "cached_prompt_tokens_observed": None,
+        "cached_tokens_unknown": True,
         "cache_hit_claim_allowed": False,
         "cache_miss_claim_allowed": False,
+        "zero_cached_tokens_claim_allowed": False,
         "latency_may_infer_cache_hit": False,
         "provider_passthrough_gap_possible": True,
         "requires_provider_usage_passthrough": True,
@@ -134,6 +140,7 @@ def test_live_cost_summary_totals_token_usage_and_reported_costs() -> None:
             "input_tokens_details.cached_tokens",
             "cached_tokens",
             "cache_read_input_tokens",
+            "cache_creation_input_tokens",
         ],
     }
     assert summary["source_artifacts"][0]["sha256"]
