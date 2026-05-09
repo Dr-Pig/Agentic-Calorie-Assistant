@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.runtime.application.proactive_recommendation_prompt_bridge import (
+    NO_RECOMMENDATION_PROMPT_REVIEW,
+    build_recommendation_prompt_no_send_review,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -29,12 +33,19 @@ NON_CLAIMS = [
 
 def build_proactive_no_send_summary_consumer_projection(
     consumer_summary_projection: Mapping[str, Any],
+    *,
+    recommendation_quality_report: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     blockers = _projection_blockers(consumer_summary_projection)
     preference_context = [] if blockers else _preference_context(consumer_summary_projection)
     golden_context = [] if blockers else _golden_context(consumer_summary_projection)
     suppression_context = [] if blockers else _suppression_context(consumer_summary_projection)
     review_context = [*preference_context, *golden_context, *suppression_context]
+    recommendation_prompt_review = (
+        dict(NO_RECOMMENDATION_PROMPT_REVIEW)
+        if blockers or recommendation_quality_report is None
+        else build_recommendation_prompt_no_send_review(recommendation_quality_report)
+    )
     return {
         "artifact_type": "proactive_no_send_summary_consumer_projection",
         "artifact_schema_version": "1.0",
@@ -67,6 +78,7 @@ def build_proactive_no_send_summary_consumer_projection(
         "preference_review_context": preference_context,
         "golden_order_review_context": golden_context,
         "suppression_review_context": suppression_context,
+        "recommendation_prompt_review": recommendation_prompt_review,
         "review_context": review_context,
         "blockers": blockers,
         "non_claims": list(NON_CLAIMS),
