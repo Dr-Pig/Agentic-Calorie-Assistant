@@ -12,6 +12,7 @@ SIDECAR_MODULES = [
     "app.advanced_shadow_lab.e2e_fixture_chain",
     "app.advanced_shadow_lab.manifest",
     "app.advanced_shadow_lab.recommendation_copy_live_diagnostic",
+    "app.advanced_shadow_lab.shadow_comparison",
     "app.advanced_shadow_lab.vertical_proof",
     "app.memory",
     "app.memory.domain",
