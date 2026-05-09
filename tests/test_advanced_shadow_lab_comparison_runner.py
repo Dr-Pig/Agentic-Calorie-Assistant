@@ -69,7 +69,11 @@ def _fixture_chain() -> dict[str, object]:
     return {
         "artifact_type": "advanced_shadow_e2e_fixture_chain_artifact",
         "status": "pass",
-        "terminal_review_sink": {"status": "pass", "record_count": 2},
+        "terminal_review_sink": {
+            "status": "pass",
+            "record_count": 2,
+            "control_path_evidence": _control_evidence(),
+        },
         "mainline_runtime_connected": False,
         "delivery_attempted": False,
         "scheduler_enabled": False,
@@ -84,7 +88,11 @@ def _dogfood_replay() -> dict[str, object]:
     return {
         "artifact_type": "advanced_shadow_dogfood_replay_artifact",
         "status": "pass",
-        "terminal_review_sink_summary": {"status": "pass", "record_count": 2},
+        "terminal_review_sink_summary": {
+            "status": "pass",
+            "record_count": 2,
+            "control_path_evidence": _control_evidence(include_count=False),
+        },
         "mainline_runtime_connected": False,
         "delivery_attempted": False,
         "scheduler_enabled": False,
@@ -143,3 +151,17 @@ def _case_artifact(case_id: str, artifact_type: str) -> dict[str, object]:
         "user_facing_behavior_changed": False,
         "product_readiness_claimed": False,
     }
+
+
+def _control_evidence(*, include_count: bool = True) -> dict[str, object]:
+    evidence: dict[str, object] = {
+        "status": "pass",
+        "all_candidates_have_required_controls": True,
+        "configured_paths": {"dismiss": True, "snooze": True, "undo": True},
+        "interaction_actions_observed": ["dismiss", "snooze"],
+        "observed_all_interaction_actions": False,
+        "next_signal_required_present": True,
+    }
+    if include_count:
+        evidence["candidate_count"] = 2
+    return evidence
