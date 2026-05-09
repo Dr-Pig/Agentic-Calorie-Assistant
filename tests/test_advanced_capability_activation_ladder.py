@@ -82,6 +82,7 @@ def test_pre_promotion_no_go_flags_block_runtime_drift() -> None:
     contract = _contract()
     no_go = contract["pre_promotion_no_go_flags"]
 
+    assert no_go["applies_to"] == "mainline_runtime_activation"
     for field in (
         "user_facing_behavior_changed",
         "canonical_mutation_changed",
@@ -113,6 +114,42 @@ def test_read_only_runtime_stage_allows_observation_without_authority() -> None:
         "paired_baseline_comparison",
         "omission_trace",
     ]
+
+
+def test_shadow_lab_can_build_complete_product_capability_without_mainline_activation() -> None:
+    contract = _contract()
+    lab_scope = contract["shadow_lab_scope"]
+
+    assert lab_scope["goal"] == "complete_product_capability_and_ux_tasks"
+    assert lab_scope["complete_product_capability_allowed"] is True
+    assert lab_scope["lab_only_user_facing_surfaces_allowed"] is True
+    assert lab_scope["lab_only_scheduler_simulation_allowed"] is True
+    assert lab_scope["lab_only_isolated_mutation_ledger_allowed"] is True
+    assert lab_scope["lab_only_durable_memory_store_allowed"] is True
+    assert lab_scope["live_llm_diagnostic_allowed"] is True
+    assert lab_scope["real_user_feedback_replay_allowed"] is True
+
+    assert lab_scope["mainline_runtime_connection_allowed"] is False
+    assert lab_scope["mainline_route_or_api_mount_allowed"] is False
+    assert lab_scope["mainline_scheduler_delivery_allowed"] is False
+    assert lab_scope["canonical_product_db_mutation_allowed"] is False
+    assert lab_scope["manager_context_packet_production_change_allowed"] is False
+
+
+def test_lab_complete_capability_requires_explicit_isolation_markers() -> None:
+    contract = _contract()
+    isolation = contract["shadow_lab_scope"]["required_isolation_markers"]
+
+    assert isolation == {
+        "lab_isolated": True,
+        "mainline_runtime_connected": False,
+        "user_facing_behavior_changed_in_mainline": False,
+        "canonical_mutation_changed_in_mainline": False,
+        "durable_product_memory_written_in_mainline": False,
+        "manager_context_packet_changed_in_mainline": False,
+        "real_scheduler_or_notification_delivery": False,
+        "lab_artifacts_may_include_complete_ux": True,
+    }
 
 
 def test_contract_records_best_practice_and_harness_minimization_boundaries() -> None:
