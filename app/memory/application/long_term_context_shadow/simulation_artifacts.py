@@ -3,6 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 from app.memory.application.long_term_context_shadow.contracts import _base_artifact
+from app.memory.application.long_term_context_shadow.lab_product_shadow_inputs import (
+    reviewed_consumer_shadow_input,
+    reviewed_lab_memory_triggers,
+    reviewed_lab_rescue_packets,
+)
 from app.memory.application.long_term_context_shadow.memory_action_artifacts import (
     _memory_promotion_demotion_shadow_artifact,
     _memory_review_action_shadow_artifact,
@@ -22,6 +27,7 @@ def _proactive_no_send_artifact(
     fixture: dict[str, Any],
     candidates: list[LongTermContextCandidate],
 ) -> dict[str, Any]:
+    reviewed = reviewed_consumer_shadow_input(fixture, candidates, "proactive_context")
     triggers = [
         {
             "trigger_id": f"trigger-{candidate.candidate_id}",
@@ -48,6 +54,15 @@ def _proactive_no_send_artifact(
                 " ".join(str(trigger.get("reason") or "") for trigger in triggers)
             ),
             "candidate_triggers": triggers,
+            "reviewed_lab_view_status": reviewed["reviewed_lab_view_status"],
+            "reviewed_lab_context_source_artifact": reviewed[
+                "reviewed_lab_context_source_artifact"
+            ],
+            "reviewed_lab_record_ids": reviewed["reviewed_lab_record_ids"],
+            "reviewed_lab_record_summaries": reviewed[
+                "reviewed_lab_record_summaries"
+            ],
+            "reviewed_lab_memory_triggers": reviewed_lab_memory_triggers(reviewed),
         },
     )
 
@@ -58,8 +73,14 @@ def _recommendation_shadow_artifact(
 ) -> dict[str, Any]:
     pool = _list_of_dicts(fixture.get("candidate_pool"))
     context_candidates = _recommendation_context_candidates(candidates)
+    reviewed = reviewed_consumer_shadow_input(fixture, candidates, "recommendation")
     evaluations = [
-        _recommendation_candidate_evaluation(item, index, context_candidates)
+        _recommendation_candidate_evaluation(
+            item,
+            index,
+            context_candidates,
+            reviewed["reviewed_lab_record_ids"],
+        )
         for index, item in enumerate(pool or [{"candidate_id": "fixture-empty-pool"}])
     ]
     return _base_artifact(
@@ -70,6 +91,14 @@ def _recommendation_shadow_artifact(
             "intake_commit_requested": False,
             "used_context_candidate_ids": [
                 candidate.candidate_id for candidate in context_candidates
+            ],
+            "reviewed_lab_view_status": reviewed["reviewed_lab_view_status"],
+            "reviewed_lab_context_source_artifact": reviewed[
+                "reviewed_lab_context_source_artifact"
+            ],
+            "used_reviewed_lab_record_ids": reviewed["reviewed_lab_record_ids"],
+            "reviewed_lab_record_summaries": reviewed[
+                "reviewed_lab_record_summaries"
             ],
             "candidate_evaluations": evaluations,
         },
@@ -96,6 +125,7 @@ def _recommendation_candidate_evaluation(
     item: dict[str, Any],
     index: int,
     context_candidates: list[LongTermContextCandidate],
+    reviewed_lab_record_ids: list[str],
 ) -> dict[str, Any]:
     positive = [
         candidate.candidate_id
@@ -121,6 +151,7 @@ def _recommendation_candidate_evaluation(
         "used_context_candidate_ids": [
             candidate.candidate_id for candidate in context_candidates
         ],
+        "used_reviewed_lab_record_ids": reviewed_lab_record_ids,
         "review_only_rank_signal": index + 1,
         "review_only_score": score,
         "positive_context_matches": positive,
@@ -167,6 +198,7 @@ def _rescue_shadow_artifact(
     fixture: dict[str, Any],
     candidates: list[LongTermContextCandidate],
 ) -> dict[str, Any]:
+    reviewed = reviewed_consumer_shadow_input(fixture, candidates, "rescue_context")
     rescue_relevant = [
         candidate
         for candidate in candidates
@@ -193,6 +225,15 @@ def _rescue_shadow_artifact(
             "budget_mutation_requested": False,
             "proposal_acceptance_side_effect": False,
             "candidate_packets": packets,
+            "reviewed_lab_view_status": reviewed["reviewed_lab_view_status"],
+            "reviewed_lab_context_source_artifact": reviewed[
+                "reviewed_lab_context_source_artifact"
+            ],
+            "reviewed_lab_record_ids": reviewed["reviewed_lab_record_ids"],
+            "reviewed_lab_record_summaries": reviewed[
+                "reviewed_lab_record_summaries"
+            ],
+            "reviewed_lab_candidate_packets": reviewed_lab_rescue_packets(reviewed),
         },
     )
 
