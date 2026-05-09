@@ -25,8 +25,20 @@ def _product_loop_evidence(**overrides: dict) -> dict:
             "real_fooddb_pass_claimed": False,
         },
         "operator_review": {
+            "artifact_type": "accurate_intake_dogfood_operator_review_surface",
             "status": "browser_diagnostic_review_with_fixture_evidence_gap",
+            "claim_scope": "local_dogfood_operator_review_surface",
+            "local_only": True,
+            "do_not_commit": True,
+            "food_kb_truth_updated": False,
             "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "classification_policy": {
+                "food_kb_truth_update_allowed": False,
+                "frontend_semantic_owner": False,
+            },
         },
         "mvp_gate": {"status": "pass"},
     }
@@ -295,6 +307,69 @@ def test_handoff_blocks_product_loop_overclaims_before_fooddb_validation() -> No
 
     assert pack["status"] == "blocked"
     assert "browser_realistic_dogfood_real_fooddb_overclaim" in pack["blockers"]
+    assert pack["ready_for_fdb_integration"] is False
+
+
+def test_handoff_blocks_status_only_operator_review_stub() -> None:
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(
+            operator_review={
+                "status": "browser_diagnostic_review_with_fixture_evidence_gap",
+                "real_fooddb_pass_claimed": False,
+            }
+        ),
+        fooddb_artifact=_fooddb_artifact(),
+    )
+
+    assert pack["status"] == "blocked"
+    assert "operator_review_invalid_artifact_type" in pack["blockers"]
+    assert "operator_review_not_local_only" in pack["blockers"]
+    assert "operator_review_missing_do_not_commit" in pack["blockers"]
+    assert "operator_review_claim_scope_invalid" in pack["blockers"]
+    assert pack["ready_for_fdb_integration"] is False
+
+
+def test_handoff_blocks_operator_review_overclaims() -> None:
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(
+            operator_review={
+                "artifact_type": "accurate_intake_dogfood_operator_review_surface",
+                "status": "browser_diagnostic_review_with_fixture_evidence_gap",
+                "claim_scope": "local_dogfood_operator_review_surface",
+                "local_only": True,
+                "do_not_commit": True,
+                "food_kb_truth_updated": True,
+                "fooddb_truth_updated": True,
+                "real_fooddb_pass_claimed": True,
+                "dogfood_pass": True,
+                "product_readiness_claimed": True,
+                "private_self_use_approved": True,
+                "production_selected": True,
+                "production_db_used": True,
+                "live_llm_invoked": True,
+                "web_tavily_used": True,
+                "classification_policy": {
+                    "food_kb_truth_update_allowed": True,
+                    "frontend_semantic_owner": True,
+                },
+            }
+        ),
+        fooddb_artifact=_fooddb_artifact(),
+    )
+
+    assert pack["status"] == "blocked"
+    assert "operator_review_food_kb_truth_updated" in pack["blockers"]
+    assert "operator_review_fooddb_truth_updated" in pack["blockers"]
+    assert "operator_review_real_fooddb_overclaim" in pack["blockers"]
+    assert "operator_review_dogfood_pass_overclaim" in pack["blockers"]
+    assert "operator_review_product_readiness_overclaim" in pack["blockers"]
+    assert "operator_review_private_self_use_overclaim" in pack["blockers"]
+    assert "operator_review_production_selected" in pack["blockers"]
+    assert "operator_review_production_db_used" in pack["blockers"]
+    assert "operator_review_live_llm_invoked" in pack["blockers"]
+    assert "operator_review_web_tavily_used" in pack["blockers"]
+    assert "operator_review_food_kb_truth_update_allowed" in pack["blockers"]
+    assert "operator_review_frontend_semantic_owner" in pack["blockers"]
     assert pack["ready_for_fdb_integration"] is False
 
 
