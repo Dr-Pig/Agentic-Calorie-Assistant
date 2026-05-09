@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.advanced_shadow_lab.case_pairing import build_case_pairing
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -34,6 +35,8 @@ def build_advanced_shadow_comparison_artifact(
     dogfood_replay_artifact: Mapping[str, Any],
     recommendation_copy_live_diagnostic_artifact: Mapping[str, Any],
     rescue_copy_live_diagnostic_artifact: Mapping[str, Any] | None = None,
+    baseline_case_artifacts: list[Mapping[str, Any]] | None = None,
+    advanced_case_artifacts: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     source_inputs = {
         "fixture_chain": (FIXTURE_TYPE, fixture_chain_artifact),
@@ -43,12 +46,16 @@ def build_advanced_shadow_comparison_artifact(
     }
     sources = {name: _typed(expected_type, artifact) for name, (expected_type, artifact) in source_inputs.items()}
     invariant = _activation_invariant_summary(sources.values())
+    pairing_summary, paired_case_rows = build_case_pairing(
+        baseline=list(baseline_case_artifacts or []),
+        advanced=list(advanced_case_artifacts or []),
+        false_flags=FALSE_FLAG_NAMES,
+    )
     blockers = [
         *_source_type_blockers(source_inputs),
-        *[
-            f"{row['source']}.{row['flag']}"
-            for row in invariant["observed_true_flags"]
-        ],
+        *[f"{row['source']}.{row['flag']}" for row in invariant["observed_true_flags"]],
+        *pairing_summary["schema_gaps"],
+        *pairing_summary["activation_violations"],
     ]
     return {
         "artifact_type": "advanced_shadow_comparison_artifact",
@@ -64,11 +71,14 @@ def build_advanced_shadow_comparison_artifact(
             _live_copy_row("rescue_proposal_copy_posture", sources["rescue_copy_live_diagnostic"]),
         ],
         "activation_invariant_summary": invariant,
+        "pairing_summary": pairing_summary,
+        "paired_case_rows": paired_case_rows,
         "live_diagnostic_signals": {
             "recommendation_copy_live_diagnostic": _live_diagnostic_signal(sources["recommendation_copy_live_diagnostic"]),
             "rescue_copy_live_diagnostic": _live_diagnostic_signal(sources["rescue_copy_live_diagnostic"]),
         },
         "blockers": blockers,
+        "runtime_connected": False,
         "non_claims": list(NON_CLAIMS),
         **dict(FALSE_FLAGS),
     }
