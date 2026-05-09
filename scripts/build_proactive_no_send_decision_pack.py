@@ -50,6 +50,22 @@ def build_proactive_no_send_decision_pack(no_send_artifacts: list[dict[str, Any]
         "live_delivery_allowed": False,
         "scheduler_activation_allowed": False,
         "promotion_allowed": False,
+        "artifact_governance": {
+            "owner": "app/runtime",
+            "consumer": "future_proactive_scheduler_activation_review",
+            "retirement_trigger": "approved_proactive_scheduler_runtime_activation_plan",
+        },
+        "activation_guardrails": dict.fromkeys(
+            (
+                "runtime_connected",
+                "scheduler_connected",
+                "push_or_line_delivery_connected",
+                "manager_context_packet_connected",
+                "mutation_path_connected",
+                "live_llm_invoked",
+            ),
+            False,
+        ),
         "input_integrity": input_integrity,
         "summary": summary,
         "promotion_gate": {
@@ -127,6 +143,7 @@ def _summary(no_send_artifacts: list[dict[str, Any]]) -> dict[str, Any]:
             no_send_artifacts,
             "review_decision_counts",
         ),
+        "suppression_reason_counts": _aggregate_suppression_reasons(no_send_artifacts),
         "copy_suppressed_count": sum(
             _artifact_summary_int(artifact, "copy_suppressed_count")
             for artifact in no_send_artifacts
@@ -190,6 +207,21 @@ def _artifact_summary_int(artifact: dict[str, Any], key: str) -> int:
     if not isinstance(value, int):
         return 0
     return value
+
+
+def _aggregate_suppression_reasons(no_send_artifacts: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for artifact in no_send_artifacts:
+        rows = artifact.get("trigger_evaluations")
+        if not isinstance(rows, list):
+            continue
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            for reason in row.get("suppression_reasons") or []:
+                reason_key = str(reason)
+                counts[reason_key] = counts.get(reason_key, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 def _aggregate_summary_counts(no_send_artifacts: list[dict[str, Any]], key: str) -> dict[str, int]:
