@@ -144,6 +144,45 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
             "canonical_eval_promoted": False,
             "manager_context_injected": False,
         },
+        "data_page_loaded": True,
+        "data_inspected": True,
+        "data_backup_created": True,
+        "data_export_created": True,
+        "data_inspect_values": {
+            "artifact_type": "accurate_intake_local_operator_data_hygiene_bundle",
+            "status": "local_operator_data_hygiene_ready",
+            "local_only": True,
+            "do_not_commit": True,
+            "writes_performed": False,
+            "import_allowed": False,
+            "fooddb_truth_updated": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
+        "data_backup_values": {
+            "status": "pass",
+            "local_only": True,
+            "do_not_commit": True,
+            "production_db_used": False,
+            "fooddb_truth_updated": False,
+            "backup_path_exists": True,
+        },
+        "data_export_values": {
+            "status": "pass",
+            "local_only": True,
+            "do_not_commit": True,
+            "production_db_used": False,
+            "fooddb_truth_updated": False,
+            "export_path_exists": True,
+            "manifest_path_exists": True,
+        },
+        "data_non_claims": {
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "fooddb_truth_updated": False,
+            "canonical_eval_promoted": False,
+            "import_or_reset_written": False,
+        },
         "desktop_no_overflow": True,
         "mobile_no_overflow": True,
         "mobile_populated_state_checked": True,
@@ -194,6 +233,9 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
                         '"trace_id":"trace-browser-feedback"}'
                     ),
                 },
+                {"url": "/accurate-intake/local-data-hygiene", "method": "GET"},
+                {"url": "/accurate-intake/local-data-hygiene/backup", "method": "POST"},
+                {"url": "/accurate-intake/local-data-hygiene/export", "method": "POST"},
                 {
                     "url": "/weight/observation",
                     "method": "POST",
@@ -292,6 +334,42 @@ def test_product_pages_browser_smoke_validator_rejects_feedback_truth_promotion(
     assert "feedback_record_truth_promotion:food_kb_truth_update_allowed" in blockers
     assert "feedback_review_queue_truth_promotion:feedback_can_create_eval_truth" in blockers
     assert "feedback_non_claim_overclaim:manager_context_injected" in blockers
+
+
+def test_product_pages_browser_smoke_validator_requires_data_hygiene_loop() -> None:
+    report = _passing_report()
+    report["data_page_loaded"] = False
+    report["data_inspected"] = False
+    report["data_backup_created"] = False
+    report["data_export_created"] = False
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "data_page_not_loaded" in blockers
+    assert "data_hygiene_not_inspected" in blockers
+    assert "data_backup_not_created" in blockers
+    assert "data_export_not_created" in blockers
+
+
+def test_product_pages_browser_smoke_validator_rejects_data_truth_or_import_claims() -> None:
+    report = _passing_report()
+    inspect_values = dict(report["data_inspect_values"])
+    inspect_values["product_readiness_claimed"] = True
+    report["data_inspect_values"] = inspect_values
+    backup_values = dict(report["data_backup_values"])
+    backup_values["production_db_used"] = True
+    report["data_backup_values"] = backup_values
+    non_claims = dict(report["data_non_claims"])
+    non_claims["import_or_reset_written"] = True
+    report["data_non_claims"] = non_claims
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "data_inspect_value_mismatch:product_readiness_claimed" in blockers
+    assert "data_backup_value_mismatch:production_db_used" in blockers
+    assert "data_non_claim_overclaim:import_or_reset_written" in blockers
 
 
 def test_product_pages_browser_smoke_validator_requires_chat_body_observation_same_truth() -> None:

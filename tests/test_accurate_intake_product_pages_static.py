@@ -7,6 +7,7 @@ CHAT = Path("static/accurate-intake-chat.html")
 TODAY = Path("static/accurate-intake-today.html")
 BODY = Path("static/accurate-intake-body.html")
 FEEDBACK = Path("static/accurate-intake-feedback.html")
+DATA = Path("static/accurate-intake-data.html")
 
 
 def _html(path: Path) -> str:
@@ -18,27 +19,62 @@ def test_product_pages_are_three_separate_static_surfaces_with_shared_nav() -> N
         (CHAT, "accurate-intake-chat-page-v1"),
         (TODAY, "accurate-intake-today-page-v1"),
         (BODY, "accurate-intake-body-page-v1"),
+        (FEEDBACK, "accurate-intake-feedback-page-v1"),
+        (DATA, "accurate-intake-data-page-v1"),
     ):
         html = _html(path)
         assert f'data-page-id="{page_id}"' in html
         assert 'href="/static/accurate-intake-chat.html"' in html
         assert 'href="/static/accurate-intake-today.html"' in html
         assert 'href="/static/accurate-intake-body.html"' in html
+        assert 'href="/static/accurate-intake-feedback.html"' in html
+        assert 'href="/static/accurate-intake-data.html"' in html
 
 
 def test_product_pages_preserve_user_and_date_in_nav_without_token_query() -> None:
-    for path in (CHAT, TODAY, BODY):
+    for path in (CHAT, TODAY, BODY, FEEDBACK, DATA):
         html = _html(path)
 
         assert 'data-nav-target="chat"' in html
         assert 'data-nav-target="today"' in html
         assert 'data-nav-target="body"' in html
         assert 'data-nav-target="feedback"' in html
+        assert 'data-nav-target="data"' in html
         assert "function updateNavigationLinks()" in html
         assert "encodeURIComponent(userId())" in html
         assert "local_date=${encodeURIComponent(selectedDate())}" in html
         assert "updateNavigationLinks();" in html
         assert "local_debug_token" not in html
+
+
+def test_data_page_is_local_only_export_surface_not_truth_or_readiness_surface() -> None:
+    html = _html(DATA)
+
+    assert 'data-surface-role="local-data-hygiene"' in html
+    assert 'data-claim-scope="local_operator_data_hygiene_review_checkpoint"' in html
+    assert 'data-product-truth-owner="backend_local_sqlite"' in html
+    assert 'data-fooddb-truth-update-allowed="false"' in html
+    assert 'data-canonical-eval-promotion-allowed="false"' in html
+    assert 'hygiene: "/accurate-intake/local-data-hygiene"' in html
+    assert 'backup: "/accurate-intake/local-data-hygiene/backup"' in html
+    assert 'export: "/accurate-intake/local-data-hygiene/export"' in html
+    assert 'id="inspect-data"' in html
+    assert 'id="backup-data"' in html
+    assert 'id="export-data"' in html
+    assert 'id="data-status"' in html
+    assert "backup_required_before_reset" in html
+    assert "operation_previews" in html
+    for forbidden in (
+        "localStorage",
+        "sessionStorage",
+        "product_ready",
+        "private_self_use_approved: true",
+        "fooddb_truth_updated: true",
+        "canonical_eval_promoted: true",
+        "/accurate-intake/local-data-hygiene/reset",
+        "/accurate-intake/local-data-hygiene/import",
+    ):
+        assert forbidden not in html
 
 
 def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() -> None:
