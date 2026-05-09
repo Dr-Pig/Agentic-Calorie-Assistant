@@ -39,6 +39,7 @@ For the current default mainline:
 | post-self-use no-runtime capability scaffolds | [docs/quality/POST_SELF_USE_NO_RUNTIME_CAPABILITY_DEVELOPMENT_FLOW.md](quality/POST_SELF_USE_NO_RUNTIME_CAPABILITY_DEVELOPMENT_FLOW.md) |
 | advanced memory mechanism build order | [docs/quality/ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md](quality/ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md), [docs/quality/advanced_memory_mechanism_contract.yaml](quality/advanced_memory_mechanism_contract.yaml) |
 | runtime-lab memory EDD golden set | [docs/quality/runtime_lab_memory_edd_golden_set.yaml](quality/runtime_lab_memory_edd_golden_set.yaml) |
+| advanced capability activation ladder | [docs/quality/advanced_capability_activation_ladder.yaml](quality/advanced_capability_activation_ladder.yaml) |
 | historical pre-self-use runtime interpretation | [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) |
 
 ## Not Active Bootstrap
