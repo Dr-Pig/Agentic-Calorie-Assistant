@@ -56,6 +56,29 @@ EXPECTED_MACRO_MISSING_EXACT_ITEM_VALUES = {
     "carbs_text": "--",
     "fat_text": "--",
 }
+EXPECTED_MACRO_PRESENT_CURRENT_BUDGET = {
+    "consumed_kcal": 300,
+    "consumed_protein": 12,
+    "consumed_carbs": 48,
+    "consumed_fat": 6,
+    "show_macro": True,
+    "macro_guard_reason": "committed_and_aligned",
+}
+EXPECTED_MACRO_MISSING_CURRENT_BUDGET = {
+    "consumed_kcal": 130,
+    "consumed_protein": 0,
+    "consumed_carbs": 0,
+    "consumed_fat": 0,
+    "show_macro": False,
+    "macro_guard_reason": "no_macro_data",
+}
+ROUTE_BACKED_MACRO_NON_CLAIMS = {
+    "live_llm_invoked": False,
+    "web_tavily_used": False,
+    "fooddb_truth_updated": False,
+    "product_readiness_claimed": False,
+    "private_self_use_approved": False,
+}
 REQUIRED_FETCH_METHODS = {
     "/accurate-intake/chat-history": "GET",
     "/estimate": "POST",
@@ -117,6 +140,10 @@ def _base_report(
         "macro_present_exact_item_values": {},
         "macro_missing_exact_item_browser_checked": False,
         "macro_missing_exact_item_values": {},
+        "route_backed_macro_browser_checked": False,
+        "route_backed_macro_present_current_budget": {},
+        "route_backed_macro_missing_current_budget": {},
+        "route_backed_macro_non_claims": dict(ROUTE_BACKED_MACRO_NON_CLAIMS),
         "today_session_status_rendered": False,
         "today_no_debug_trace": False,
         "body_page_loaded": False,
@@ -302,6 +329,29 @@ def _macro_guarded_panel_values(page: Any, *, timeout_ms: int) -> dict[str, Any]
     }
 
 
+def _current_budget_payload(page: Any, *, user_external_id: str, local_date: str) -> dict[str, Any]:
+    payload = page.evaluate(
+        """async ({ userExternalId, localDate }) => {
+          const params = new URLSearchParams({ user_id: userExternalId, local_date: localDate });
+          const response = await fetch(`/today/current-budget?${params.toString()}`);
+          return await response.json();
+        }""",
+        {"userExternalId": user_external_id, "localDate": local_date},
+    )
+    return payload if isinstance(payload, dict) else {}
+
+
+def _current_budget_macro_fields(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "consumed_kcal": payload.get("consumed_kcal"),
+        "consumed_protein": payload.get("consumed_protein"),
+        "consumed_carbs": payload.get("consumed_carbs"),
+        "consumed_fat": payload.get("consumed_fat"),
+        "show_macro": payload.get("show_macro"),
+        "macro_guard_reason": payload.get("macro_guard_reason"),
+    }
+
+
 def _run_macro_present_exact_item_sequence(
     browser: Any,
     *,
@@ -316,6 +366,7 @@ def _run_macro_present_exact_item_sequence(
     result: dict[str, Any] = {
         "macro_present_exact_item_browser_checked": False,
         "macro_present_exact_item_values": {},
+        "route_backed_macro_present_current_budget": {},
         "fetch_sequence": [],
         "page_text": "",
     }
@@ -354,8 +405,13 @@ def _run_macro_present_exact_item_sequence(
         timeout=timeout_ms,
     )
     result["macro_present_exact_item_values"] = _macro_panel_values(today, timeout_ms=timeout_ms)
+    result["route_backed_macro_present_current_budget"] = _current_budget_macro_fields(
+        _current_budget_payload(today, user_external_id=macro_user_id, local_date=local_date)
+    )
     result["macro_present_exact_item_browser_checked"] = (
         result["macro_present_exact_item_values"] == EXPECTED_MACRO_EXACT_ITEM_VALUES
+        and result["route_backed_macro_present_current_budget"]
+        == EXPECTED_MACRO_PRESENT_CURRENT_BUDGET
     )
     result["page_text"] = today.locator("body").inner_text(timeout=timeout_ms)
     result["fetch_sequence"].extend(_capture_fetches(today))
@@ -377,6 +433,7 @@ def _run_macro_missing_exact_item_sequence(
     result: dict[str, Any] = {
         "macro_missing_exact_item_browser_checked": False,
         "macro_missing_exact_item_values": {},
+        "route_backed_macro_missing_current_budget": {},
         "fetch_sequence": [],
         "page_text": "",
     }
@@ -413,8 +470,13 @@ def _run_macro_missing_exact_item_sequence(
         timeout=timeout_ms,
     )
     result["macro_missing_exact_item_values"] = _macro_guarded_panel_values(today, timeout_ms=timeout_ms)
+    result["route_backed_macro_missing_current_budget"] = _current_budget_macro_fields(
+        _current_budget_payload(today, user_external_id=macro_user_id, local_date=local_date)
+    )
     result["macro_missing_exact_item_browser_checked"] = (
         result["macro_missing_exact_item_values"] == EXPECTED_MACRO_MISSING_EXACT_ITEM_VALUES
+        and result["route_backed_macro_missing_current_budget"]
+        == EXPECTED_MACRO_MISSING_CURRENT_BUDGET
     )
     result["page_text"] = today.locator("body").inner_text(timeout=timeout_ms)
     result["fetch_sequence"].extend(_capture_fetches(today))
@@ -665,6 +727,9 @@ def _run_browser_sequence(
                 "macro_present_exact_item_browser_checked"
             ]
             result["macro_present_exact_item_values"] = macro_result["macro_present_exact_item_values"]
+            result["route_backed_macro_present_current_budget"] = macro_result[
+                "route_backed_macro_present_current_budget"
+            ]
             result["fetch_sequence"].extend(macro_result["fetch_sequence"])
             page_texts.append(str(macro_result.get("page_text") or ""))
 
@@ -682,6 +747,18 @@ def _run_browser_sequence(
                 "macro_missing_exact_item_browser_checked"
             ]
             result["macro_missing_exact_item_values"] = macro_missing_result["macro_missing_exact_item_values"]
+            result["route_backed_macro_missing_current_budget"] = macro_missing_result[
+                "route_backed_macro_missing_current_budget"
+            ]
+            result["route_backed_macro_non_claims"] = dict(ROUTE_BACKED_MACRO_NON_CLAIMS)
+            result["route_backed_macro_browser_checked"] = (
+                result["macro_present_exact_item_browser_checked"] is True
+                and result["macro_missing_exact_item_browser_checked"] is True
+                and result["route_backed_macro_present_current_budget"]
+                == EXPECTED_MACRO_PRESENT_CURRENT_BUDGET
+                and result["route_backed_macro_missing_current_budget"]
+                == EXPECTED_MACRO_MISSING_CURRENT_BUDGET
+            )
             result["fetch_sequence"].extend(macro_missing_result["fetch_sequence"])
             page_texts.append(str(macro_missing_result.get("page_text") or ""))
 
@@ -1122,6 +1199,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         "macro_missing_exact_item_browser_checked",
         "macro_missing_exact_item_browser_not_checked",
     )
+    require_true(
+        "route_backed_macro_browser_checked",
+        "route_backed_macro_browser_not_checked",
+    )
     require_true("today_session_status_rendered", "today_session_status_not_rendered")
     require_true("today_no_debug_trace", "today_debug_trace_leaked")
     require_true("body_page_loaded", "body_page_not_loaded")
@@ -1207,6 +1288,18 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     for field, expected_value in EXPECTED_MACRO_MISSING_EXACT_ITEM_VALUES.items():
         if macro_missing_values.get(field) != expected_value:
             blockers.append(f"macro_missing_exact_item_value_mismatch:{field}")
+    route_macro_present = dict(report.get("route_backed_macro_present_current_budget") or {})
+    for field, expected_value in EXPECTED_MACRO_PRESENT_CURRENT_BUDGET.items():
+        if route_macro_present.get(field) != expected_value:
+            blockers.append(f"route_backed_macro_present_current_budget_mismatch:{field}")
+    route_macro_missing = dict(report.get("route_backed_macro_missing_current_budget") or {})
+    for field, expected_value in EXPECTED_MACRO_MISSING_CURRENT_BUDGET.items():
+        if route_macro_missing.get(field) != expected_value:
+            blockers.append(f"route_backed_macro_missing_current_budget_mismatch:{field}")
+    route_macro_non_claims = dict(report.get("route_backed_macro_non_claims") or {})
+    for field, expected_value in ROUTE_BACKED_MACRO_NON_CLAIMS.items():
+        if route_macro_non_claims.get(field) != expected_value:
+            blockers.append(f"route_backed_macro_non_claim_overclaim:{field}")
     fetches = list(report.get("fetch_sequence") or browser.get("fetch_sequence") or [])
     for expected, method in REQUIRED_FETCH_METHODS.items():
         if not any(
