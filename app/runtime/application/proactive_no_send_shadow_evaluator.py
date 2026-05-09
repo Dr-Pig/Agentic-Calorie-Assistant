@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any, Literal, Mapping
 
 from pydantic import BaseModel, Field
 
@@ -23,36 +23,12 @@ RiskLevel = Literal["low", "medium", "high"]
 DeliverySurface = Literal["background", "app_open", "chat_open"]
 FeedbackAdaptation = Literal["none", "lower_frequency", "suppress_once", "category_suppressed"]
 WakeSource = Literal["scheduled_check", "state_threshold", "event_driven", "app_open", "manual_shadow_review"]
-CopyPosture = Literal[
-    "not_generated",
-    "invitation",
-    "informational",
-    "directive",
-    "shaming",
-    "fake_precision",
-    "decision_or_mutation",
-]
+CopyPosture = Literal["not_generated", "invitation", "informational", "directive", "shaming", "fake_precision", "decision_or_mutation"]
 
 
-LEVEL_2_TRIGGERS = {
-    "pre_meal_budget_awareness",
-    "overshoot_risk",
-    "calibration_insight",
-    "recommendation_prompt",
-}
-LEVEL_2_REQUIRED = [
-    "higher_data_sufficiency",
-    "lower_frequency",
-    "stronger_user_benefit",
-    "explicit_suppression_reason_if_skipped",
-]
-LATER_ONLY_TRIGGERS = {
-    "rescue_nudge",
-    "location_based_food_push",
-    "strict_multi_day_correction",
-    "emotional_coaching_nudge",
-    "memory_driven_intervention",
-}
+LEVEL_2_TRIGGERS = {"pre_meal_budget_awareness", "overshoot_risk", "calibration_insight", "recommendation_prompt"}
+LEVEL_2_REQUIRED = ["higher_data_sufficiency", "lower_frequency", "stronger_user_benefit", "explicit_suppression_reason_if_skipped"]
+LATER_ONLY_TRIGGERS = {"rescue_nudge", "location_based_food_push", "strict_multi_day_correction", "emotional_coaching_nudge", "memory_driven_intervention"}
 SAFE_COPY_POSTURES = {"invitation", "informational"}
 PERMISSION_POSTURE_BY_TRIGGER = {
     "weekly_insight": "user_expected",
@@ -110,6 +86,7 @@ class ProactiveNoSendShadowInput(BaseModel):
     confidence: float = 0.0
     annoyance_risk: RiskLevel = "medium"
     harm_if_wrong: RiskLevel = "low"
+    recommendation_prompt_review: dict[str, Any] | None = None
 
 
 def build_proactive_no_send_simulation(
@@ -153,6 +130,7 @@ def _evaluate_trigger(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
     suppression_reasons.extend(_permission_suppression_reasons(item))
     suppression_reasons.extend(_interaction_feedback_suppression_reasons(item))
     suppression_reasons.extend(_reason_suppression_reasons(item))
+    suppression_reasons.extend(_recommendation_prompt_suppression_reasons(item))
     suppression_reasons.extend(_copy_suppression_reasons(item))
     if _deferred_later_only(item) and "later_only_trigger_not_live_eligible" not in suppression_reasons:
         suppression_reasons.append("later_only_trigger_not_live_eligible")
@@ -189,9 +167,12 @@ def _evaluate_trigger(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
         "copy_review": _copy_review(item),
         "user_callable_when_suppressed": True,
         "stay_silent_until_signal": _stay_silent_until_signal(item),
+        "proactive_sent": False,
     }
     if level_2_gate is not None:
         row["level_2_gate"] = level_2_gate
+    if item.trigger_type == "recommendation_prompt":
+        row["recommendation_prompt_review"] = _recommendation_prompt_review(item)
     _add_trigger_boundaries(row, item.trigger_type)
     return row
 
@@ -263,6 +244,30 @@ def _reason_suppression_reasons(item: ProactiveNoSendShadowInput) -> list[str]:
     return []
 
 
+def _recommendation_prompt_suppression_reasons(item: ProactiveNoSendShadowInput) -> list[str]:
+    if item.trigger_type != "recommendation_prompt":
+        return []
+    review = _recommendation_prompt_review(item)
+    if any(review.get(flag) is True for flag in ("actual_candidates_included", "candidate_ids_exposed", "runtime_effect_allowed", "recommendation_served", "proactive_sent", "scheduler_enabled", "live_delivery_allowed", "scheduler_activation_allowed", "manager_context_injected")):
+        return ["recommendation_prompt_review_blocked"]
+    status = str(review.get("status") or "")
+    if status == "candidate_for_human_review":
+        return []
+    if status == "suppressed":
+        return [str(reason) for reason in review.get("suppression_reasons") or []] or ["recommendation_prompt_review_suppressed"]
+    if status == "blocked":
+        return ["recommendation_prompt_review_blocked"]
+    return ["recommendation_prompt_review_required"]
+
+
+def _recommendation_prompt_review(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
+    review = item.recommendation_prompt_review
+    if not isinstance(review, Mapping):
+        return {}
+    allowed = ("source_report_used", "status", "recommendation_pool_decision", "prompt_posture", "suppression_reasons", "blockers", "actual_candidates_included", "candidate_ids_exposed", "runtime_effect_allowed", "recommendation_served", "proactive_sent", "scheduler_enabled", "live_delivery_allowed", "scheduler_activation_allowed", "manager_context_injected", "review_decision")
+    return {key: review[key] for key in allowed if key in review}
+
+
 def _copy_suppression_reasons(item: ProactiveNoSendShadowInput) -> list[str]:
     if not _candidate_copy_provided(item):
         return []
@@ -291,12 +296,7 @@ def _copy_review(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
         "candidate_copy_provided": _candidate_copy_provided(item),
         "posture": item.copy_posture,
         "passed": not reasons,
-        "checks": {
-            "user_agency": item.copy_has_user_agency,
-            "no_shame": item.copy_has_no_shame,
-            "uncertainty_honest": item.copy_uncertainty_honest,
-            "invitation_only": item.copy_invitation_only,
-        },
+        "checks": {"user_agency": item.copy_has_user_agency, "no_shame": item.copy_has_no_shame, "uncertainty_honest": item.copy_uncertainty_honest, "invitation_only": item.copy_invitation_only},
         "deterministic_role": "validate_or_suppress_only",
         "llm_role": "write_or_judge_candidate_copy_before_shadow_input",
         "rewritten_by_evaluator": False,
@@ -304,13 +304,7 @@ def _copy_review(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
 
 
 def _interaction_feedback(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
-    return {
-        "ignored_count": item.ignored_count,
-        "dismissed_count": item.dismissed_count,
-        "accepted_count": item.accepted_count,
-        "explicit_trigger_opt_out": item.explicit_trigger_opt_out,
-        "adaptation": _feedback_adaptation(item),
-    }
+    return {"ignored_count": item.ignored_count, "dismissed_count": item.dismissed_count, "accepted_count": item.accepted_count, "explicit_trigger_opt_out": item.explicit_trigger_opt_out, "adaptation": _feedback_adaptation(item)}
 
 
 def _feedback_adaptation(item: ProactiveNoSendShadowInput) -> FeedbackAdaptation:

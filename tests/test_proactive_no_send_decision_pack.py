@@ -5,6 +5,9 @@ from app.runtime.application.proactive_no_send_shadow_evaluator import (
     ProactiveNoSendShadowInput,
     build_proactive_no_send_simulation,
 )
+from app.runtime.application.proactive_recommendation_prompt_bridge import (
+    NO_RECOMMENDATION_PROMPT_REVIEW,
+)
 from scripts.build_proactive_no_send_decision_pack import (
     build_proactive_no_send_decision_pack,
     write_proactive_no_send_decision_pack,
@@ -20,6 +23,13 @@ def _artifact_with_review_candidate() -> dict[str, object]:
                 user_benefit_strength="strong",
                 lower_frequency_ready=True,
                 delivery_surface="app_open",
+                recommendation_prompt_review={
+                    **NO_RECOMMENDATION_PROMPT_REVIEW,
+                    "source_report_used": True,
+                    "status": "candidate_for_human_review",
+                    "recommendation_pool_decision": "primary_plus_backup",
+                    "prompt_posture": "invitation_only",
+                },
             )
         ]
     )

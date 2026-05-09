@@ -4,6 +4,9 @@ from app.runtime.application.proactive_no_send_shadow_evaluator import (
     ProactiveNoSendShadowInput,
     build_proactive_no_send_simulation,
 )
+from app.runtime.application.proactive_recommendation_prompt_bridge import (
+    NO_RECOMMENDATION_PROMPT_REVIEW,
+)
 from scripts.build_proactive_no_send_simulation import write_proactive_no_send_simulation
 
 
@@ -11,6 +14,16 @@ def _by_type(artifact: dict[str, object]) -> dict[str, dict[str, object]]:
     rows = artifact["trigger_evaluations"]
     assert isinstance(rows, list)
     return {str(row["trigger_type"]): row for row in rows}
+
+
+def _reviewable_recommendation_prompt_review() -> dict[str, object]:
+    return {
+        **NO_RECOMMENDATION_PROMPT_REVIEW,
+        "source_report_used": True,
+        "status": "candidate_for_human_review",
+        "recommendation_pool_decision": "primary_plus_backup",
+        "prompt_posture": "invitation_only",
+    }
 
 
 def test_no_send_simulation_records_permission_posture_and_side_effect_guards() -> None:
@@ -140,6 +153,7 @@ def test_recommendation_prompt_is_invitation_only_not_recommendation_runtime() -
                 user_benefit_strength="strong",
                 lower_frequency_ready=True,
                 delivery_surface="app_open",
+                recommendation_prompt_review=_reviewable_recommendation_prompt_review(),
             )
         ]
     )
@@ -378,6 +392,7 @@ def test_safe_candidate_copy_is_reviewable_but_still_no_send() -> None:
                 delivery_surface="app_open",
                 candidate_copy="If you are choosing dinner, I can help pick a few steady options.",
                 copy_posture="invitation",
+                recommendation_prompt_review=_reviewable_recommendation_prompt_review(),
             )
         ]
     )
@@ -404,6 +419,7 @@ def test_review_decision_taxonomy_prioritizes_why_trigger_is_not_reviewable() ->
                 delivery_surface="app_open",
                 candidate_copy="If you are choosing dinner, I can help pick a few steady options.",
                 copy_posture="invitation",
+                recommendation_prompt_review=_reviewable_recommendation_prompt_review(),
             ),
             ProactiveNoSendShadowInput(
                 trigger_type="calibration_insight",
@@ -575,6 +591,7 @@ def test_no_send_summary_groups_review_candidates_and_promotion_blockers() -> No
                 user_benefit_strength="strong",
                 lower_frequency_ready=True,
                 delivery_surface="app_open",
+                recommendation_prompt_review=_reviewable_recommendation_prompt_review(),
             ),
             ProactiveNoSendShadowInput(
                 trigger_type="calibration_insight",
