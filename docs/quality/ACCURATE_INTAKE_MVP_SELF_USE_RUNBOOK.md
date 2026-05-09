@@ -227,7 +227,7 @@ Build the minimal approved packet-ready FoodDB artifact from the existing exact 
 python scripts/build_accurate_intake_approved_packet_ready_fooddb_artifact.py --output artifacts/accurate_intake_approved_packet_ready_fooddb_artifact.json
 ```
 
-This artifact is the first real FoodDB handoff input for Current Shell validation. It selects only tracked exact item cards that already have kcal plus complete label macros, reports `fixture_or_real=real`, and includes the `macro_contract` required by the Current Shell handoff. It does not broaden FoodDB coverage, ingest WebSearch, promote raw source rows, update runtime truth, or claim dogfood pass.
+This artifact is the first real FoodDB handoff input for Current Shell validation. It selects a minimal three-lane packet set: one tracked exact item card with kcal plus complete label macros, one approved generic common-serving anchor with kcal/range and macro values preserved as null/unknown, and one approved listed-component anchor with kcal/range and macro values preserved as null/unknown. It reports `fixture_or_real=real`, includes the `macro_contract` required by the Current Shell handoff, and exposes lane counts for exact / generic / listed-component coverage. It does not broaden FoodDB coverage, ingest WebSearch, promote raw source rows, update runtime truth, or claim dogfood pass.
 
 Build the legacy-named CurrentShell/FoodDB handoff v3 metadata gate without the FoodDB artifact to keep the previous blocked posture, or with the minimal approved artifact to validate the handoff:
 

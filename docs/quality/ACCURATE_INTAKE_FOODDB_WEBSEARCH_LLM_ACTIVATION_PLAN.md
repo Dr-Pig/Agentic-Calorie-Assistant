@@ -141,6 +141,11 @@ manager_packet_allowed:
       - macro_runtime_policy
       - source_class_policy
       - shadow_schema
+  - minimal packet-ready lane counts:
+      - exact_item_card
+      - generic_common_serving
+      - listed_component
+  - generic/listed macro values may be null/unknown while kcal/range remains usable
   - runtime_usage_boundary
   - followup_hints
   - compact source_provenance

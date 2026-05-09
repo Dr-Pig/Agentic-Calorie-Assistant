@@ -31,6 +31,62 @@ def _macro_complete_card(**overrides: object) -> dict[str, object]:
     return card
 
 
+def _generic_common_anchor(**overrides: object) -> dict[str, object]:
+    anchor = {
+        "record_kind": "generic_anchor",
+        "anchor_id": "generic_test_chicken_bento",
+        "canonical_name": "Test Chicken Bento",
+        "aliases": ["Test Chicken Bento"],
+        "runtime_role": "common_serving_anchor",
+        "runtime_truth_allowed": True,
+        "composition_posture": "estimable_generic_meal",
+        "serving_basis": "common_serving",
+        "portion_basis": {"portion_unit": "box", "portion_quantity": 1},
+        "kcal_point": 780,
+        "kcal_range": [650, 900],
+        "source_provenance": {
+            "source_id": "test_small_anchor_store",
+            "source_file": "test_small_anchor_store.json",
+            "record_id": "generic_test_chicken_bento",
+        },
+        "approval_metadata": {
+            "approval_mode": "internal_seed_batch_approved",
+            "runtime_truth_allowed": True,
+        },
+        "runtime_usage_boundary": "generic_range_estimate_only_not_exact",
+    }
+    anchor.update(overrides)
+    return anchor
+
+
+def _listed_component_anchor(**overrides: object) -> dict[str, object]:
+    anchor = {
+        "record_kind": "generic_anchor",
+        "anchor_id": "listed_test_tofu_dried",
+        "canonical_name": "Test Dried Tofu",
+        "aliases": ["Test Dried Tofu"],
+        "runtime_role": "common_serving_anchor",
+        "runtime_truth_allowed": True,
+        "composition_posture": "listed_item_component",
+        "serving_basis": "common_serving",
+        "portion_basis": {"portion_unit": "piece", "portion_quantity": 1},
+        "kcal_point": 95,
+        "kcal_range": [70, 120],
+        "source_provenance": {
+            "source_id": "test_tfda_source",
+            "source_file": "test_source.xlsx",
+            "record_id": "listed_test_tofu_dried",
+        },
+        "approval_metadata": {
+            "approval_mode": "batch_policy_approved",
+            "runtime_truth_allowed": True,
+        },
+        "runtime_usage_boundary": "listed_component_only",
+    }
+    anchor.update(overrides)
+    return anchor
+
+
 def _product_loop_evidence() -> dict[str, object]:
     return {
         "browser_shell_smoke": {"status": "pass", "browser_executed": True},
@@ -154,18 +210,76 @@ def test_build_approved_packet_ready_artifact_uses_macro_complete_exact_card() -
     assert item["macro_confidence"] == "high"
 
 
+def test_build_approved_packet_ready_artifact_includes_minimal_triad_lanes() -> None:
+    artifact = build_approved_packet_ready_fooddb_artifact(
+        exact_item_cards=[_macro_complete_card()],
+        small_anchor_records=[_generic_common_anchor(), _listed_component_anchor()],
+        artifact_path="artifacts/approved_packet_ready_fooddb_min1.json",
+    )
+
+    assert artifact["status"] == "approved_packet_ready_fooddb_artifact_ready"
+    assert artifact["ready_for_other_tracks"] is True
+    assert artifact["summary"]["packet_ready_item_count"] == 3
+    assert artifact["summary"]["packet_ready_lane_counts"] == {
+        "exact_item_card": 1,
+        "generic_common_serving": 1,
+        "listed_component": 1,
+    }
+    by_lane = {item["source_lane"]: item for item in artifact["packet_ready_items"]}
+    generic = by_lane["generic_common_serving"]
+    assert generic["runtime_truth_allowed"] is True
+    assert generic["kcal_point"] == 780
+    assert generic["kcal_range"] == [650, 900]
+    assert generic["protein_g"] is None
+    assert generic["carbs_g"] is None
+    assert generic["fat_g"] is None
+    assert generic["macro_visibility_status"] == "hidden_missing_source"
+    assert generic["macro_source_basis"] == "unknown"
+    assert generic["macro_confidence"] == "unknown"
+    assert generic["runtime_usage_boundary"] == "generic_range_estimate_only_not_exact"
+
+    component = by_lane["listed_component"]
+    assert component["runtime_truth_allowed"] is True
+    assert component["kcal_point"] == 95
+    assert component["kcal_range"] == [70, 120]
+    assert component["protein_g"] is None
+    assert component["carbs_g"] is None
+    assert component["fat_g"] is None
+    assert component["macro_visibility_status"] == "hidden_missing_source"
+    assert component["runtime_usage_boundary"] == "listed_component_only"
+    assert component["approval_metadata"]["approval_scope"] == (
+        "minimal_current_shell_listed_component_macro_unknown"
+    )
+
+
+def test_build_approved_packet_ready_artifact_blocks_without_required_triad_lanes() -> None:
+    artifact = build_approved_packet_ready_fooddb_artifact(
+        exact_item_cards=[_macro_complete_card()],
+        small_anchor_records=[_generic_common_anchor()],
+        artifact_path="artifacts/approved_packet_ready_fooddb_min1.json",
+    )
+
+    assert artifact["status"] == "blocked_missing_packet_ready_lane"
+    assert artifact["ready_for_other_tracks"] is False
+    assert "no_packet_ready_listed_component" in artifact["blockers"]
+    assert artifact["summary"]["packet_ready_lane_counts"] == {
+        "exact_item_card": 1,
+        "generic_common_serving": 1,
+        "listed_component": 0,
+    }
+
+
 def test_build_approved_packet_ready_artifact_blocks_without_macro_complete_card() -> None:
     artifact = build_approved_packet_ready_fooddb_artifact(
         exact_item_cards=[_macro_complete_card(protein_g=0, carb_g=0, fat_g=0)],
+        small_anchor_records=[_generic_common_anchor(), _listed_component_anchor()],
         artifact_path="artifacts/approved_packet_ready_fooddb_min1.json",
     )
 
     metadata = artifact["approved_packet_ready_evidence_artifact"]
-    assert artifact["status"] == "blocked_no_macro_complete_exact_item"
+    assert artifact["status"] == "blocked_missing_packet_ready_lane"
     assert artifact["ready_for_other_tracks"] is False
-    assert metadata["fixture_or_real"] == "real"
     assert metadata["ready_for_product_loop"] is False
-    assert artifact["packet_ready_items"] == []
     assert "no_macro_complete_exact_item_card" in artifact["blockers"]
 
 
@@ -177,8 +291,17 @@ def test_default_repo_artifact_builds_from_tracked_exact_item_seed() -> None:
     assert artifact["status"] == "approved_packet_ready_fooddb_artifact_ready"
     assert artifact["ready_for_other_tracks"] is True
     assert artifact["summary"]["source_file"] == "app/knowledge/exact_item_cards_tw.json"
-    assert artifact["summary"]["packet_ready_item_count"] == 1
-    assert artifact["packet_ready_items"][0]["macro_visibility_status"] == "visible"
+    assert artifact["summary"]["small_anchor_source_file"] == "app/knowledge/small_anchor_store_tw.json"
+    assert artifact["summary"]["packet_ready_item_count"] == 3
+    assert artifact["summary"]["packet_ready_lane_counts"] == {
+        "exact_item_card": 1,
+        "generic_common_serving": 1,
+        "listed_component": 1,
+    }
+    by_lane = {item["source_lane"]: item for item in artifact["packet_ready_items"]}
+    assert by_lane["exact_item_card"]["macro_visibility_status"] == "visible"
+    assert by_lane["generic_common_serving"]["macro_visibility_status"] == "hidden_missing_source"
+    assert by_lane["listed_component"]["macro_visibility_status"] == "hidden_missing_source"
 
 
 def test_artifact_is_accepted_by_product_loop_handoff_validation_only() -> None:
@@ -225,6 +348,7 @@ def test_approved_packet_ready_fooddb_artifact_cli_writes_json(tmp_path: Path) -
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
     assert artifact["status"] == "approved_packet_ready_fooddb_artifact_ready"
     assert artifact["approved_packet_ready_evidence_artifact"]["path"] == str(output_path)
+    assert artifact["summary"]["packet_ready_item_count"] == 3
 
 
 def test_runbook_documents_minimal_fooddb_packet_ready_artifact() -> None:
