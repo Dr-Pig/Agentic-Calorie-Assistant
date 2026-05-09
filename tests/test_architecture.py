@@ -55,3 +55,27 @@ def test_architecture_shared_does_not_depend_on_business_domains():
                     violations.append(f"{py_file} imports app.{bd} ({imp})")
                     
     assert not violations, f"Architecture violation: Shared must not depend on business domains. Found: {violations}"
+
+
+def test_agent_layers_do_not_import_domain_infrastructure_directly():
+    from pathlib import Path
+
+    app_dir = Path("app")
+    violations = []
+
+    for agent_dir in app_dir.glob("*/agent"):
+        if not agent_dir.is_dir():
+            continue
+        domain_name = agent_dir.parent.name
+        forbidden_prefix = f"app.{domain_name}.infrastructure"
+
+        for py_file in agent_dir.rglob("*.py"):
+            imports = get_all_imports_in_module(py_file)
+            for imp in imports:
+                if imp == forbidden_prefix or imp.startswith(f"{forbidden_prefix}."):
+                    violations.append(f"{py_file} imports {imp}")
+
+    assert not violations, (
+        "Architecture violation: agent layers must depend on application ports, "
+        f"not domain infrastructure. Found: {violations}"
+    )
