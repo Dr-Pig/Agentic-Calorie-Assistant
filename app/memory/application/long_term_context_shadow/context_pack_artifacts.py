@@ -95,6 +95,11 @@ def _long_term_context_pack_shadow_artifact(
     fixture: dict[str, Any],
     candidates: list[LongTermContextCandidate],
 ) -> dict[str, Any]:
+    from app.memory.application.long_term_context_shadow.lab_active_view import (
+        reviewed_lab_context_view,
+    )
+
+    reviewed_view = reviewed_lab_context_view(fixture, candidates)
     return _base_artifact(
         artifact_type="long_term_context_pack_shadow_eval",
         fixture=fixture,
@@ -104,7 +109,7 @@ def _long_term_context_pack_shadow_artifact(
             "manager_context_packet_injection_allowed": False,
             "summary_first": True,
             "structured_state_first": True,
-            "context_packs": _consumer_context_packs(candidates),
+            "context_packs": _consumer_context_packs(candidates, reviewed_view),
         },
     )
 
