@@ -176,6 +176,8 @@ def test_today_page_is_daily_diary_with_date_navigation_and_no_trace_panel() -> 
     html = _html(TODAY)
 
     assert 'data-surface-role="today-diary"' in html
+    assert 'data-read-model-source="/today/current-budget"' in html
+    assert 'data-overshoot-source="backend_explicit_field_required"' in html
     assert 'id="selected-date"' in html
     assert 'id="user-id"' in html
     assert 'id="today-session-user"' in html
@@ -206,6 +208,8 @@ def test_today_page_is_daily_diary_with_date_navigation_and_no_trace_panel() -> 
     assert 'currentBudget: "/today/current-budget"' in html
     assert 'chatLink.href = `/static/accurate-intake-chat.html?user_id=${encodeURIComponent(userId())}&local_date=${selectedDate()}`;' in html
     assert "function updateSessionStrip()" in html
+    assert "function renderBudgetSummary(payload)" in html
+    assert "renderBudgetSummary(payload);" in html
     assert "function renderMacroPanel(payload)" in html
     assert "renderMacroPanel(payload);" in html
     assert 'el("today-session-user").textContent = userId();' in html
@@ -215,6 +219,43 @@ def test_today_page_is_daily_diary_with_date_navigation_and_no_trace_panel() -> 
     assert "/accurate-intake/debug" not in html
     assert "message.content.includes" not in html
     assert "payload.coach_message" not in html
+
+
+def test_today_page_budget_and_macro_fields_are_backend_read_model_render_sources() -> None:
+    html = _html(TODAY)
+
+    for field_id, backend_field in (
+        ("budget-kcal", "payload.budget_kcal"),
+        ("consumed-kcal", "payload.consumed_kcal"),
+        ("remaining-kcal", "payload.remaining_kcal"),
+        ("protein-g", "payload.consumed_protein"),
+        ("carbs-g", "payload.consumed_carbs"),
+        ("fat-g", "payload.consumed_fat"),
+        ("macro-guard-reason", "payload.macro_guard_reason"),
+    ):
+        assert f'id="{field_id}"' in html
+        assert f'data-render-field="{backend_field}"' in html
+
+    assert 'data-render-field="payload.show_macro"' in html
+    assert 'data-render-status="render_backend_structured_fields_only"' in html
+    assert 'writeText("budget-kcal", payload.budget_kcal);' in html
+    assert 'writeText("consumed-kcal", payload.consumed_kcal);' in html
+    assert 'writeText("remaining-kcal", payload.remaining_kcal);' in html
+    assert 'const showMacro = payload.show_macro === true;' in html
+
+    forbidden = [
+        "payload.remaining_kcal < 0",
+        "payload.remaining_kcal <= 0",
+        "Math.abs(payload.remaining_kcal)",
+        "remaining_kcal <",
+        "frontend_infer_overshoot",
+        "payload.consumed_protein +",
+        "payload.consumed_carbs +",
+        "payload.consumed_fat +",
+        "target - consumed",
+    ]
+    for fragment in forbidden:
+        assert fragment not in html
 
 
 

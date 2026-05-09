@@ -80,6 +80,7 @@ PAGE_SPECS = {
         "render_functions": (
             "renderDayStrip",
             "renderMeals",
+            "renderBudgetSummary",
             "renderMacroPanel",
             "loadToday",
             "writeText",
