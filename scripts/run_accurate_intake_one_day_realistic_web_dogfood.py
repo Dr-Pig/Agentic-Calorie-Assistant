@@ -156,6 +156,27 @@ class _ChineseOneDayManagerProvider:
     def _format_decision(
         self, dec: dict[str, Any]
     ) -> tuple[dict[str, Any], dict[str, Any]]:
+        target_attachment = dict(dec["target_attachment"])
+        answer_contract: dict[str, Any] = {
+            "reply_text": "one-day dogfood manager fixture decision",
+        }
+        if isinstance(target_attachment.get("daily_target_kcal"), int):
+            answer_contract["daily_target_kcal"] = target_attachment["daily_target_kcal"]
+        semantic_decision = {
+            "semantic_authority": "deterministic_fake_provider",
+            "current_turn_intent": dec["intent_type"],
+            "target_attachment": target_attachment,
+            "workflow_effect": dec["workflow_effect"],
+            "final_action_candidate": dec["final_action"],
+            "estimation_posture": "not_applicable",
+            "followup_posture": "none",
+            "followup_targets": [],
+            "mutation_intent_candidate": dec["mutation_intent_candidate"],
+            "uncertainty_posture": "bounded",
+            "source": "chinese_one_day_manager_fixture",
+            "semantic_owner": "manager",
+            "deterministic_role": "fixture_simulates_manager_output_only",
+        }
         return (
             {
                 "manager_action": "final",
@@ -163,19 +184,17 @@ class _ChineseOneDayManagerProvider:
                 "intent_type": dec["intent_type"],
                 "final_action": dec["final_action"],
                 "workflow_effect": dec["workflow_effect"],
-                "target_attachment": dec["target_attachment"],
-                "semantic_decision": {
-                    "current_turn_intent": dec["intent_type"],
-                    "target_attachment": dec["target_attachment"],
-                    "workflow_effect": dec["workflow_effect"],
-                    "final_action_candidate": dec["final_action"],
-                    "mutation_intent_candidate": dec["mutation_intent_candidate"],
-                    "daily_target_kcal": dec["target_attachment"].get(
-                        "daily_target_kcal"
-                    ),
-                    "source": "chinese_one_day_manager_fixture",
-                    "deterministic_role": "fixture_simulates_manager_output_only",
-                },
+                "target_attachment": target_attachment,
+                "exactness": "deterministic_fixture",
+                "confidence": "high",
+                "evidence_posture": "read_only_state",
+                "repair_ack": False,
+                "answer_contract": answer_contract,
+                "response_summary": "one_day_dogfood_manager_fixture_decision",
+                "uncertainty_posture": "bounded",
+                "evidence_honesty_posture": "not_applicable",
+                "semantic_decision": semantic_decision,
+                "tool_calls": [],
             },
             {"live_llm_invoked": False},
         )
@@ -256,6 +275,7 @@ def _build_report(db_path: Path, *, debug_headers: dict[str, str]) -> dict[str, 
                 json={
                     "text": fixture["raw_user_input"],
                     "user_id": user_id,
+                    "local_date": local_date,
                     "allow_search": False,
                 },
             )
