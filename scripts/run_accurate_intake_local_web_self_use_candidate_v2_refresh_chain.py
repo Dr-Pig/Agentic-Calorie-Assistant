@@ -134,6 +134,14 @@ PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES = {
     "browser_realistic_dogfood": "accurate_intake_browser_realistic_web_dogfood_v2.json",
     "operator_review": "accurate_intake_dogfood_operator_review_v2.json",
 }
+CLOSEOUT_NON_CLAIMS = {
+    "product_ready": False,
+    "web_ready": False,
+    "private_self_use_approved": False,
+    "production_ready": False,
+    "live_llm_ready": False,
+    "fooddb_truth_promoted": False,
+}
 ROUTE_BACKED_MACRO_LOCAL_DATE = "2026-05-09"
 ROUTE_BACKED_MACRO_PRESENT_TEXT = "\u7d71\u4e00\u5de7\u514b\u529b\u725b\u4e73(400ml)"
 ROUTE_BACKED_MACRO_MISSING_TEXT = "\u722d\u9bae \u7126\u7cd6\u9bae\u9b5a(\u5169\u8cab)"
@@ -170,6 +178,93 @@ def _read_payload(path: Path) -> dict[str, Any]:
 
 def _object_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def _string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value if item is not None]
+
+
+def _payload_status(payload: dict[str, Any]) -> str:
+    return str(payload.get("status") or "")
+
+
+def _payload_blockers(payload: dict[str, Any]) -> list[str]:
+    blockers = _string_list(payload.get("blockers"))
+    metadata = _object_dict(payload.get("_manifest_metadata"))
+    blockers.extend(f"missing_evidence:{item}" for item in _string_list(metadata.get("missing_evidence")))
+    blockers.extend(f"missing_evidence:{item}" for item in _string_list(payload.get("missing_evidence")))
+    return blockers
+
+
+def _missing_evidence_from_blockers(ordered_payloads: list[tuple[str, dict[str, Any]]]) -> list[str]:
+    root_missing: list[str] = []
+    downstream_missing: list[str] = []
+    aliases = {
+        "target_candidate_ui_smoke": "product_pages_target_candidate_ui_smoke",
+    }
+    for _gate_id, payload in ordered_payloads:
+        for blocker in _payload_blockers(payload):
+            if ".unexpected_status:missing" in blocker:
+                item = blocker.split(".", 1)[0]
+                root_missing.append(aliases.get(item, item))
+            elif blocker.startswith("missing_evidence:"):
+                downstream_missing.append(blocker.split(":", 1)[1])
+            elif blocker.startswith("pre-live missing evidence: "):
+                downstream_missing.append(blocker.removeprefix("pre-live missing evidence: "))
+            elif blocker.startswith("missing evidence: "):
+                downstream_missing.append(blocker.removeprefix("missing evidence: "))
+    selected = root_missing if root_missing else downstream_missing
+    return sorted({item for item in selected if item})
+
+
+def _stale_evidence_from_blockers(ordered_payloads: list[tuple[str, dict[str, Any]]]) -> list[str]:
+    if _missing_evidence_from_blockers(ordered_payloads):
+        return []
+    stale: list[str] = []
+    for _gate_id, payload in ordered_payloads:
+        for blocker in _payload_blockers(payload):
+            if ".unexpected_status:" in blocker and ".unexpected_status:missing" not in blocker:
+                stale.append(blocker.split(".", 1)[0])
+            elif blocker.startswith("failed evidence: "):
+                stale.append(blocker.removeprefix("failed evidence: ").split(" ", 1)[0])
+    return sorted({item for item in stale if item})
+
+
+def _first_blocking_gate(
+    ordered_payloads: list[tuple[str, dict[str, Any]]],
+) -> dict[str, Any] | None:
+    blocking_statuses = {
+        "blocked",
+        "blocked_missing_evidence",
+        "fail",
+        "failed",
+        "invalid_json",
+        "missing",
+    }
+    for gate_id, payload in ordered_payloads:
+        status = _payload_status(payload)
+        blockers = _payload_blockers(payload)
+        if status in blocking_statuses or blockers:
+            return {
+                "gate_id": gate_id,
+                "status": status,
+                "blocker_count": len(blockers),
+                "first_blocker": blockers[0] if blockers else None,
+            }
+    return None
+
+
+def _build_closeout_navigation(
+    ordered_payloads: list[tuple[str, dict[str, Any]]],
+) -> dict[str, Any]:
+    return {
+        "missing_evidence": _missing_evidence_from_blockers(ordered_payloads),
+        "stale_evidence": _stale_evidence_from_blockers(ordered_payloads),
+        "first_blocking_gate": _first_blocking_gate(ordered_payloads),
+        "non_claims": dict(CLOSEOUT_NON_CLAIMS),
+    }
 
 
 def _append_mismatch(
@@ -722,6 +817,25 @@ def build_local_web_self_use_candidate_refresh_chain(
         candidate_payload.get("appshell_browser_evidence_chain") or {}
     )
     candidate_prepared = candidate_payload.get("candidate_prepared") is True
+    closeout_payloads = [
+        ("route_backed_macro_closeout", route_backed_macro_closeout),
+        ("product_pages_self_use_flow_gate", product_pages_self_use_flow_gate),
+        ("today_macro_mirror_gate", today_macro_mirror_gate),
+        ("bootstrap_same_truth_gate", bootstrap_same_truth_gate),
+        ("body_observation_same_truth_gate", body_observation_same_truth_gate),
+        (
+            "clarify_commit_correction_same_truth_gate",
+            clarify_commit_correction_same_truth_gate,
+        ),
+        ("browser_activation_evidence_gate", browser_activation_evidence_gate),
+        ("context_live_diagnostic_gate", context_live_diagnostic_gate),
+        ("dogfood_review_queue", dogfood_review_queue),
+        ("pre_live_evidence", pre_live_evidence),
+        ("pre_live_decision_pack", pre_live_decision_pack),
+        ("local_web_candidate", local_web_candidate_payload),
+        ("approved_packet_ready_fooddb_artifact", approved_fooddb_artifact),
+        ("product_loop_handoff", product_loop_handoff),
+    ]
     return {
         "artifact_type": "accurate_intake_local_web_self_use_candidate_v2_refresh_chain",
         "status": "pass" if candidate_prepared and route_backed_macro_checked else "blocked",
@@ -730,6 +844,7 @@ def build_local_web_self_use_candidate_refresh_chain(
             group_id: str(_artifact_path(artifacts_dir, filename))
             for group_id, filename in REFRESHED_ARTIFACT_FILENAMES.items()
         },
+        "closeout_navigation": _build_closeout_navigation(closeout_payloads),
         "route_backed_macro_checked": route_backed_macro_checked,
         "route_backed_macro_closeout_status": route_backed_macro_closeout.get("status"),
         "route_backed_macro_closeout": route_backed_macro_closeout,
