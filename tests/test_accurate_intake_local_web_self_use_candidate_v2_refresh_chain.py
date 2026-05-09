@@ -277,7 +277,7 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
         clarify_commit_correction_same_truth_gate["status"]
         == "clarify_commit_correction_same_truth_gate_ready_for_human_review"
     )
-    assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
+    assert pre_live_pack["selected_option"] == "stay_local_self_use"
     assert "ready_for_live_diagnostic_decision" not in pre_live_pack
     assert dogfood_review_queue["review_candidate_count"] == 1
     assert dogfood_review_queue["review_candidates"][0]["auto_flags"] == ["evidence_gap"]
@@ -411,8 +411,8 @@ def test_refresh_chain_generates_fixture_dependency_before_browser_activation_ga
         ).read_text(encoding="utf-8")
     )
 
-    assert exit_code == 0
-    assert printed["status"] == "pass"
+    assert exit_code == 1
+    assert printed["status"] == "blocked"
     assert (
         "fixture_full_product_loop_e2e"
         not in printed["closeout_navigation"]["missing_evidence"]
@@ -423,14 +423,14 @@ def test_refresh_chain_generates_fixture_dependency_before_browser_activation_ga
     )
     assert printed["closeout_navigation"]["non_claims"]["private_self_use_approved"] is False
     assert printed["closeout_navigation"]["non_claims"]["product_ready"] is False
-    assert printed["candidate_prepared"] is True
-    assert printed["ready_for_fdb_integration_validation"] is True
+    assert printed["candidate_prepared"] is False
+    assert printed["ready_for_fdb_integration_validation"] is False
     assert browser_activation["status"] == "browser_activation_evidence_ready_for_human_review"
     assert browser_activation["blockers"] == []
-    assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
+    assert pre_live_pack["selected_option"] == "stay_local_self_use"
     assert "ready_for_live_diagnostic_decision" not in pre_live_pack
-    assert product_loop_handoff["status"] == "product_loop_handoff_ready_for_fdb_integration_validation"
-    assert product_loop_handoff["ready_for_fdb_integration"] is True
+    assert product_loop_handoff["status"] == "blocked"
+    assert product_loop_handoff["ready_for_fdb_integration"] is False
     assert product_loop_handoff["fooddb_artifact_status"] == (
         "approved_packet_ready_evidence_metadata_valid"
     )
@@ -801,6 +801,47 @@ def test_refresh_chain_generates_required_fixture_full_product_loop_before_next_
     assert (
         "fixture_full_product_loop_e2e"
         not in printed["closeout_navigation"]["missing_evidence"]
+    )
+
+
+def test_refresh_chain_generates_local_mvp_candidate_bundle_before_browser_activation(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+
+    bundle_path = artifact_dir / module.BROWSER_GATE_ARTIFACT_PATHS[
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID
+    ].name
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    browser_activation = json.loads(
+        (
+            artifact_dir
+            / module.REFRESHED_ARTIFACT_FILENAMES["browser_activation_evidence_gate"]
+        ).read_text(encoding="utf-8")
+    )
+
+    assert exit_code == 1
+    assert printed["status"] == "blocked"
+    assert bundle["status"] == "pl_ce_local_mvp_candidate_ready_for_human_review"
+    assert bundle["local_only"] is True
+    assert bundle["diagnostic_only"] is True
+    assert bundle["product_readiness_claimed"] is False
+    assert bundle["private_self_use_approved"] is False
+    assert browser_activation["status"] == "browser_activation_evidence_ready_for_human_review"
+    assert browser_activation["blockers"] == []
+    assert (
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID
+        not in printed["closeout_navigation"]["missing_evidence"]
+    )
+    first_blocking_gate = printed["closeout_navigation"]["first_blocking_gate"]
+    assert first_blocking_gate is None or first_blocking_gate["first_blocker"] != (
+        f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID}.unexpected_status:missing"
     )
 
 
