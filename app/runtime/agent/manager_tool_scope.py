@@ -6,6 +6,15 @@ from typing import Any
 INTAKE_EXECUTION_TOOLS = frozenset({"estimate_nutrition", "resolve_correction_target", "compare_against_budget"})
 
 
+def default_manager_loop_scope(available_tools: tuple[str, ...]) -> str:
+    tool_names = set(available_tools)
+    if "body.record_observation" in tool_names:
+        return "body_observation"
+    if tool_names.intersection(INTAKE_EXECUTION_TOOLS):
+        return "intake_execution"
+    return "turn_entry_or_read_only"
+
+
 def safe_failure_payload() -> dict[str, Any]:
     return {
         "intent": "manager_unavailable",
@@ -109,4 +118,9 @@ def _route_to_intake_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return routed
 
 
-__all__ = ["manager_scope_policy_payload", "safe_failure_payload", "tool_call_scope_boundary"]
+__all__ = [
+    "default_manager_loop_scope",
+    "manager_scope_policy_payload",
+    "safe_failure_payload",
+    "tool_call_scope_boundary",
+]

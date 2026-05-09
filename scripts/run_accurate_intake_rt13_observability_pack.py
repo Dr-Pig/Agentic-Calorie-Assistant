@@ -97,6 +97,7 @@ def _evaluate_react_trace_case() -> dict[str, Any]:
             {
                 "round_index": 1,
                 "stage": "pass_1",
+                "latency_ms": 180,
                 "decision": {
                     "manager_action": "call_tools",
                     "workflow_effect": "commit_with_followup",
@@ -109,6 +110,7 @@ def _evaluate_react_trace_case() -> dict[str, Any]:
             {
                 "round_index": 2,
                 "stage": "pass_2",
+                "latency_ms": 260,
                 "decision": {
                     "manager_action": "final",
                     "final_action": "commit_with_followup",
@@ -126,6 +128,37 @@ def _evaluate_react_trace_case() -> dict[str, Any]:
         ],
         guard_outcome={"verdict": "pass"},
         failure_family=None,
+        call_topology=[
+            {
+                "operation": "manager_provider_round",
+                "stage": "pass_1",
+                "round_index": 1,
+                "duration_ms": 180,
+            },
+            {
+                "operation": "tool_batch",
+                "stage": "manager_tool_execution",
+                "round_index": 1,
+                "duration_ms": 420,
+                "tool_names": ["estimate_nutrition", "compare_against_budget"],
+                "tool_count": 2,
+            },
+            {
+                "operation": "manager_provider_round",
+                "stage": "pass_2",
+                "round_index": 2,
+                "duration_ms": 260,
+            },
+            {
+                "operation": "guard_check",
+                "stage": "manager_transition_guard",
+                "round_index": 2,
+                "duration_ms": 40,
+                "guard_ok": True,
+            },
+        ],
+        repair_round_used=False,
+        total_latency_ms=980,
     )
     if trace.get("trace_schema_version") != "manager_react_trace.v1":
         blockers.append("trace_schema_version_missing")
@@ -139,6 +172,28 @@ def _evaluate_react_trace_case() -> dict[str, Any]:
         blockers.append("manager_pass_1_missing")
     if not isinstance(trace.get("manager_pass_final"), dict):
         blockers.append("manager_pass_final_missing")
+    if trace.get("manager_round_count") != 2:
+        blockers.append("manager_round_count_incorrect")
+    if trace.get("manager_round_latency_ms") != [180, 260]:
+        blockers.append("manager_round_latency_ms_incorrect")
+    if trace.get("tool_batch_latency_ms") != 420:
+        blockers.append("tool_batch_latency_ms_incorrect")
+    if trace.get("guard_latency_ms") != 40:
+        blockers.append("guard_latency_ms_incorrect")
+    if trace.get("tool_call_count") != 2:
+        blockers.append("tool_call_count_incorrect")
+    if trace.get("total_latency_ms") != 980:
+        blockers.append("total_latency_ms_incorrect")
+    if trace.get("orchestration_latency_ms") != 80:
+        blockers.append("orchestration_latency_ms_incorrect")
+    topology = trace.get("call_topology")
+    if not isinstance(topology, list) or [event.get("operation") for event in topology] != [
+        "manager_provider_round",
+        "tool_batch",
+        "manager_provider_round",
+        "guard_check",
+    ]:
+        blockers.append("call_topology_incorrect")
     return {
         "case_id": "react_trace_contains_passes_and_tool_lineage",
         "status": _status(blockers),
@@ -257,6 +312,8 @@ def build_rt13_observability_pack_artifact(
             "observability_contracts": [
                 "prompt_registry_version_ids",
                 "react_trace_schema",
+                "react_trace_call_topology",
+                "react_trace_layer_latency",
                 "request_trace_linkage",
                 "latency_tracking_summary",
                 "route_latency_bucket",

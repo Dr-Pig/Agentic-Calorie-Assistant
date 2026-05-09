@@ -11,6 +11,8 @@ def test_rt13_observability_pack_artifact_passes_and_targets_gate() -> None:
     assert artifact["pass_type"] == "contract"
     assert artifact["summary"]["case_count"] == 5
     assert artifact["summary"]["passed_case_count"] == 5
+    assert "react_trace_call_topology" in artifact["summary"]["observability_contracts"]
+    assert "react_trace_layer_latency" in artifact["summary"]["observability_contracts"]
 
 
 def test_rt13_observability_pack_records_prompt_registry_and_trace_lineage() -> None:
@@ -26,6 +28,19 @@ def test_rt13_observability_pack_records_prompt_registry_and_trace_lineage() -> 
     assert react_trace["trace_schema_version"] == "manager_react_trace.v1"
     assert react_trace["requested_tools"] == ["estimate_nutrition", "compare_against_budget"]
     assert react_trace["executed_tools"] == ["estimate_nutrition", "compare_against_budget"]
+    assert react_trace["manager_round_count"] == 2
+    assert react_trace["manager_round_latency_ms"] == [180, 260]
+    assert react_trace["tool_batch_latency_ms"] == 420
+    assert react_trace["guard_latency_ms"] == 40
+    assert react_trace["tool_call_count"] == 2
+    assert react_trace["total_latency_ms"] == 980
+    assert react_trace["orchestration_latency_ms"] == 80
+    assert [event["operation"] for event in react_trace["call_topology"]] == [
+        "manager_provider_round",
+        "tool_batch",
+        "manager_provider_round",
+        "guard_check",
+    ]
     assert (
         react_trace["manager_pass_1"]["prompt_layer_contract"]["contract_version"]
         == "manager_prompt_layer_contract.v1"
