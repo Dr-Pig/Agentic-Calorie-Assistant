@@ -29,6 +29,8 @@ SIDECAR_MODULES = [
     "app.recommendation.domain.candidate_quality",
     "app.recommendation.application",
     "app.recommendation.application.candidate_quality_gate",
+    "app.recommendation.application.five_node_shadow_fixture",
+    "app.recommendation.application.five_node_shadow_runner",
     "app.recommendation.application.intake_hint_shadow",
     "app.recommendation.application.summary_pool_posture",
     "app.recommendation.application.three_node_shadow_contract",
