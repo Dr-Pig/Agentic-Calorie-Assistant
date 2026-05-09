@@ -1,20 +1,26 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 
 from app.body.application.active_body_plan_read_model import build_active_body_plan_view
 from app.budget.interface.today_surface import resolve_today_local_date
 from app.composition.accurate_intake_debug_read_model import build_accurate_intake_debug_read_model
 from app.composition.current_budget_read_model import build_current_budget_view
+from app.composition.dogfood_review_queue import (
+    append_desktop_feedback_record,
+    build_feedback_record_from_desktop_capture,
+)
 from app.database import get_db
 from app.intake.interface.accurate_intake_debug_surface import render_accurate_intake_debug_surface
 from app.runtime.interface.local_debug_auth import require_local_debug_access
 from app.shared.infra.models import MessageBuffer, User
 
 router = APIRouter()
+DOGFOOD_FEEDBACK_DIR = Path("workspace_data/local_dogfood_feedback")
 
 _NOT_CLAIMING = [
     "product_ready",
@@ -239,3 +245,26 @@ async def accurate_intake_debug_surface(
         content=render_accurate_intake_debug_surface(payload),
         media_type="text/html; charset=utf-8",
     )
+
+
+@router.post("/accurate-intake/feedback")
+async def accurate_intake_feedback(
+    payload: dict[str, Any] = Body(...),
+    _local_debug_access: None = Depends(require_local_debug_access),
+) -> dict[str, Any]:
+    try:
+        record = build_feedback_record_from_desktop_capture(
+            category=str(payload.get("category") or ""),
+            feedback_text=str(payload.get("feedback_text") or ""),
+            page=str(payload.get("page") or ""),
+            selected_date=str(payload.get("selected_date") or ""),
+            user_external_id=str(payload.get("user_external_id") or ""),
+            trace_id=payload.get("trace_id"),
+            message_id=payload.get("message_id"),
+            meal_id=payload.get("meal_id"),
+            severity=str(payload.get("severity") or "medium"),
+            ui_event=payload.get("ui_event") if isinstance(payload.get("ui_event"), dict) else {},
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return append_desktop_feedback_record(record=record, feedback_dir=DOGFOOD_FEEDBACK_DIR)

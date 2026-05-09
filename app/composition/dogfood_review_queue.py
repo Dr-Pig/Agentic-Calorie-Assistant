@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from app.composition.dogfood_trace_policy import (
     build_dogfood_review_record,
@@ -21,6 +23,17 @@ REVIEW_QUEUE_TAXONOMY = [
     "frontend_display_bug",
 ]
 
+DESKTOP_FEEDBACK_CATEGORIES = [
+    "manager_behavior",
+    "nutrition_estimate",
+    "macro_gap",
+    "fooddb_gap",
+    "ui_ux",
+    "bug",
+    "latency",
+    "product_feedback",
+]
+
 
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
@@ -28,6 +41,84 @@ def _json_safe(value: Any) -> Any:
 
 def _object_dict(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
+
+
+def _clean_optional_text(value: Any) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _required_text(value: Any, *, field: str) -> str:
+    text = _clean_optional_text(value)
+    if text is None:
+        raise ValueError(f"{field}_required")
+    return text
+
+
+def _normalized_feedback_category(category: Any) -> str:
+    value = _required_text(category, field="category")
+    if value not in DESKTOP_FEEDBACK_CATEGORIES:
+        raise ValueError("unsupported_feedback_category")
+    return value
+
+
+def build_feedback_record_from_desktop_capture(
+    *,
+    category: str,
+    feedback_text: str,
+    page: str,
+    selected_date: str,
+    user_external_id: str,
+    trace_id: str | None = None,
+    message_id: str | None = None,
+    meal_id: str | None = None,
+    severity: str = "medium",
+    ui_event: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return _json_safe(
+        {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_dogfood_feedback_record",
+            "status": "captured",
+            "feedback_id": f"feedback-{uuid4()}",
+            "captured_at_utc": datetime.now(UTC).isoformat(),
+            "claim_scope": "local_dogfood_feedback_triage_record",
+            "local_only": True,
+            "contains_personal_diet_logs": True,
+            "do_not_commit": True,
+            "category": _normalized_feedback_category(category),
+            "severity": _clean_optional_text(severity) or "medium",
+            "feedback_text": _required_text(feedback_text, field="feedback_text"),
+            "linked_context": {
+                "page": _required_text(page, field="page"),
+                "selected_date": _required_text(selected_date, field="selected_date"),
+                "user_external_id": _required_text(user_external_id, field="user_external_id"),
+                "trace_id": _clean_optional_text(trace_id),
+                "message_id": _clean_optional_text(message_id),
+                "meal_id": _clean_optional_text(meal_id),
+            },
+            "ui_event": _object_dict(ui_event),
+            "feedback_owner": "human_operator",
+            "frontend_semantic_owner": False,
+            "mutation_authority": False,
+            "manager_context_injection_allowed": False,
+            "food_kb_truth_update_allowed": False,
+            "canonical_eval_promotion_allowed": False,
+            "product_truth_update_allowed": False,
+        }
+    )
+
+
+def append_desktop_feedback_record(
+    *,
+    record: dict[str, Any],
+    feedback_dir: Path,
+) -> dict[str, Any]:
+    feedback_dir.mkdir(parents=True, exist_ok=True)
+    jsonl_path = feedback_dir / "accurate_intake_dogfood_feedback.jsonl"
+    with jsonl_path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(_json_safe(record), ensure_ascii=False) + "\n")
+    return {**_json_safe(record), "feedback_store_path": str(jsonl_path)}
 
 
 def _request_text(trace: dict[str, Any]) -> str:
@@ -160,8 +251,10 @@ def build_dogfood_review_queue_artifact(
     *,
     review_candidates: list[dict[str, Any]],
     correction_feedback_events: list[dict[str, Any]] | None = None,
+    desktop_feedback_records: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     correction_events = [_json_safe(event) for event in correction_feedback_events or []]
+    desktop_feedback = [_json_safe(record) for record in desktop_feedback_records or []]
     return {
         "artifact_schema_version": "1.0",
         "artifact_type": "accurate_intake_dogfood_review_queue",
@@ -177,17 +270,25 @@ def build_dogfood_review_queue_artifact(
             "reviewer_agent_can_approve_canonical_eval": False,
             "human_approval_required_for_canonical_eval": True,
             "food_kb_truth_update_from_correction_allowed": False,
+            "feedback_can_create_product_truth": False,
+            "feedback_can_create_fooddb_truth": False,
+            "feedback_can_create_eval_truth": False,
         },
         "review_candidate_count": len(review_candidates),
         "correction_feedback_event_count": len(correction_events),
+        "feedback_triage_record_count": len(desktop_feedback),
         "review_candidates": [_json_safe(candidate) for candidate in review_candidates],
         "correction_feedback_events": correction_events,
+        "desktop_feedback_records": desktop_feedback,
     }
 
 
 __all__ = [
     "REVIEW_QUEUE_TAXONOMY",
+    "DESKTOP_FEEDBACK_CATEGORIES",
+    "append_desktop_feedback_record",
     "build_dogfood_review_queue_artifact",
+    "build_feedback_record_from_desktop_capture",
     "build_review_candidate_from_product_loop_diagnostic",
     "build_review_candidate_from_runtime_trace",
 ]
