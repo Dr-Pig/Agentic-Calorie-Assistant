@@ -4,6 +4,9 @@ import pytest
 from pydantic import ValidationError
 
 from app.runtime.contracts.pending_meal_intent import PendingMealIntent
+from app.runtime.contracts.pending_meal_intent_replay_seeds import (
+    pending_meal_intent_replay_seed_traces,
+)
 
 
 def test_pending_meal_intent_is_short_term_contract_only() -> None:
@@ -100,3 +103,15 @@ def test_pending_meal_intent_is_active_property_respects_expiry() -> None:
     intent = intent.model_copy(update={"expires_at": now - timedelta(minutes=1)})
 
     assert intent.is_active is False
+
+
+def test_pending_meal_intent_replay_seeds_stay_contract_only() -> None:
+    traces = pending_meal_intent_replay_seed_traces()
+
+    assert [trace["status"] for trace in traces] == ["created", "dismissed"]
+    for trace in traces:
+        assert trace["contract_scope"] == "pending_meal_intent_only"
+        assert trace["canonical_write_authorized"] is False
+        assert trace["source_surface"] == "recommendation_card"
+
+    assert traces[1]["dismissed_scope"] == "current_intent_instance_only"

@@ -146,7 +146,7 @@ def test_context_quality_pack_combines_ce_diagnostics_without_fault_claims() -> 
     assert pack["summary"]["pending_pin_scenarios"] >= 2
     assert pack["summary"]["manager_semantic_required_scenarios"] == 1
     assert pack["summary"]["outside_current_day_omitted_scenarios"] == 1
-    assert pack["summary"]["short_term_runtime_replay_scenario_count"] == 9
+    assert pack["summary"]["short_term_runtime_replay_scenario_count"] == 7
     assert pack["summary"]["fake_provider_handoff_scenario_count"] >= 6
     assert pack["short_term_context_runtime_replay_checked"] is True
     assert pack["short_term_context_current_gap_scenarios"] == 0

@@ -13,7 +13,7 @@ def test_short_term_context_runtime_replay_matrix_reports_runtime_context_withou
 
     assert artifact["artifact_type"] == "accurate_intake_short_term_context_runtime_replay"
     assert artifact["status"] == "runtime_replay_diagnostic_pass"
-    assert artifact["scenario_count"] == 9
+    assert artifact["scenario_count"] == 7
     assert artifact["runtime_trace_backed"] is True
     assert artifact["diagnostic_only"] is True
     assert artifact["context_engineering_fault_claimed"] is False
@@ -26,7 +26,6 @@ def test_short_term_context_runtime_replay_matrix_reports_runtime_context_withou
     assert artifact["fooddb_truth_updated"] is False
     assert artifact["summary"]["pending_pin_scenarios"] >= 2
     assert artifact["summary"]["target_candidate_scenarios"] >= 4
-    assert artifact["summary"]["future_intent_replay_seed_scenarios"] == 2
     assert artifact["summary"]["current_gap_scenarios"] == 0
 
 
@@ -64,32 +63,6 @@ def test_short_term_context_runtime_replay_keeps_back_reference_ambiguous_until_
     assert by_id["long_chat_with_pinned_pending_draft"]["pending_draft_present"] is True
     assert by_id["long_chat_with_pinned_pending_draft"]["recent_chat_messages_loaded"] == 20
     assert by_id["long_chat_with_pinned_pending_draft"]["recent_chat_messages_omitted"] > 0
-
-
-def test_short_term_context_runtime_replay_keeps_future_intent_replay_seeds_replay_only() -> None:
-    artifact = build_short_term_context_runtime_replay_artifact()
-    by_id = {scenario["scenario_id"]: scenario for scenario in artifact["scenarios"]}
-
-    future = by_id["future_meal_intent_from_recommendation"]
-    cancel = by_id["cancel_pending_meal_intent"]
-
-    for scenario in (future, cancel):
-        assert scenario["case_provenance"] == "runtime_observed_replay_seed"
-        assert scenario["replay_only"] is True
-        assert scenario["runtime_effect_allowed"] is False
-        assert scenario["pending_meal_intent_contract_scope"] == "pending_meal_intent_only"
-        assert scenario["canonical_write_authorized"] is False
-        assert scenario["ledger_mutation_authority"] is False
-        assert scenario["proposal_state_changed"] is False
-        assert scenario["mutation_authority"] is False
-
-    assert future["expected_context_posture"] == "short_term_context_only"
-    assert future["pending_intent_status"] == "created"
-    assert future["dismissed_scope"] is None
-
-    assert cancel["expected_context_posture"] == "pending_intent_dismissal_only"
-    assert cancel["pending_intent_status"] == "dismissed"
-    assert cancel["dismissed_scope"] == "current_intent_instance_only"
 
 
 def test_short_term_context_runtime_replay_validator_rejects_missing_required_context() -> None:
