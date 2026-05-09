@@ -494,6 +494,35 @@ def test_refresh_chain_generates_static_product_page_inputs_before_reporting_bro
     assert renderer_closure["mutation_authority"] is False
 
 
+def test_refresh_chain_generates_required_product_pages_browser_smoke_before_next_blocker(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+
+    browser_smoke_path = (
+        artifact_dir / module.PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["product_pages_browser_smoke"].name
+    )
+    browser_smoke = json.loads(browser_smoke_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["status"] == "blocked"
+    assert browser_smoke["status"] == "pass"
+    assert browser_smoke["browser_executed"] is True
+    assert browser_smoke["browser_execution_required"] is True
+    assert browser_smoke["fooddb_triad_same_truth_non_claims"]["real_fooddb_pass_claimed"] is False
+    assert browser_smoke["fooddb_triad_same_truth_non_claims"]["product_readiness_claimed"] is False
+    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
+        "product_pages_browser_smoke.unexpected_status:missing"
+    )
+    assert "product_pages_browser_smoke" not in printed["closeout_navigation"]["missing_evidence"]
+
+
 def test_closeout_navigation_reports_stale_evidence_without_readiness_claims() -> None:
     from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
 
