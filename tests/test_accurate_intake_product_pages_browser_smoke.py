@@ -13,6 +13,20 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "browser_executed": True,
         "local_date": local_date,
         "previous_local_date": previous_local_date,
+        "launchpad_page_loaded": True,
+        "launchpad_navigation_checked": True,
+        "launchpad_navigation_values": {
+            "chat": True,
+            "today": True,
+            "body": True,
+            "feedback": True,
+            "data": True,
+        },
+        "launchpad_non_claims": {
+            "frontend_semantic_owner": False,
+            "product_readiness_claimed": False,
+            "local_debug_token_in_url": False,
+        },
         "chat_page_loaded": True,
         "chat_sent_cjk_message": True,
         "chat_assistant_bubble_rendered": True,
@@ -370,6 +384,36 @@ def test_product_pages_browser_smoke_validator_rejects_data_truth_or_import_clai
     assert "data_inspect_value_mismatch:product_readiness_claimed" in blockers
     assert "data_backup_value_mismatch:production_db_used" in blockers
     assert "data_non_claim_overclaim:import_or_reset_written" in blockers
+
+
+def test_product_pages_browser_smoke_validator_requires_launchpad_navigation() -> None:
+    report = _passing_report()
+    report["launchpad_page_loaded"] = False
+    report["launchpad_navigation_checked"] = False
+    values = dict(report["launchpad_navigation_values"])
+    values["feedback"] = False
+    report["launchpad_navigation_values"] = values
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "launchpad_page_not_loaded" in blockers
+    assert "launchpad_navigation_not_checked" in blockers
+    assert "launchpad_navigation_not_preserved:feedback" in blockers
+
+
+def test_product_pages_browser_smoke_validator_rejects_launchpad_truth_or_token_claims() -> None:
+    report = _passing_report()
+    non_claims = dict(report["launchpad_non_claims"])
+    non_claims["frontend_semantic_owner"] = True
+    non_claims["local_debug_token_in_url"] = True
+    report["launchpad_non_claims"] = non_claims
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "launchpad_non_claim_overclaim:frontend_semantic_owner" in blockers
+    assert "launchpad_non_claim_overclaim:local_debug_token_in_url" in blockers
 
 
 def test_product_pages_browser_smoke_validator_requires_chat_body_observation_same_truth() -> None:

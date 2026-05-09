@@ -328,6 +328,35 @@
       word-break: break-word;
     }
 
+    .launchpad-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .launchpad-list a {
+      display: block;
+      min-height: 44px;
+      border: 1px solid rgba(23, 33, 29, 0.12);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 800;
+      text-decoration: none;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .launchpad-list a:focus-visible {
+      outline: 3px solid rgba(31, 122, 61, 0.34);
+      outline-offset: 2px;
+      border-color: var(--accent);
+    }
+
     .danger { color: var(--danger); }
     .warning { color: var(--warning); }
 
@@ -344,7 +373,8 @@
 
     @media (max-width: 640px) {
       .metric-grid,
-      .boundary-list {
+      .boundary-list,
+      .launchpad-list {
         grid-template-columns: 1fr;
       }
     }
@@ -361,6 +391,7 @@
     data-chat-history-endpoint="/accurate-intake/chat-history"
     data-frontend-semantic-owner="false"
     data-live-llm-required="false"
+    data-entry-role="desktop-dogfood-launchpad"
   >
     <section class="phone" aria-label="Local chat shell">
       <header>
@@ -373,6 +404,13 @@
           <span class="pill">read model mirror</span>
           <span class="pill">no rollout claim</span>
         </div>
+        <ul id="desktop-launchpad-list" class="launchpad-list" aria-label="Desktop dogfood entry paths">
+          <li><a data-entry-target="chat" href="/static/accurate-intake-chat.html">Chat</a></li>
+          <li><a data-entry-target="today" href="/static/accurate-intake-today.html">Today</a></li>
+          <li><a data-entry-target="body" href="/static/accurate-intake-body.html">Body</a></li>
+          <li><a data-entry-target="feedback" href="/static/accurate-intake-feedback.html">Feedback</a></li>
+          <li><a data-entry-target="data" href="/static/accurate-intake-data.html">Data</a></li>
+        </ul>
       </header>
 
       <div id="chat-log" class="chat" aria-live="polite">
@@ -492,6 +530,29 @@
     }
 
     let backendLocalDate = null;
+
+    function launchpadLocalDate() {
+      const params = new URLSearchParams(window.location.search);
+      return new URLSearchParams(window.location.search).get("local_date") || backendLocalDate || params.get("date") || "";
+    }
+
+    function applyUrlSessionState() {
+      const params = new URLSearchParams(window.location.search);
+      const user = params.get("user_id");
+      if (user) {
+        el("user-id").value = user;
+      }
+    }
+
+    function updateLaunchpadLinks() {
+      const date = launchpadLocalDate();
+      const query = `user_id=${encodeURIComponent(userId())}${date ? `&local_date=${encodeURIComponent(date)}` : ""}`;
+      document.querySelectorAll("[data-entry-target]").forEach((link) => {
+        const url = new URL(link.getAttribute("href"), window.location.href);
+        url.search = query;
+        link.href = url.pathname + url.search;
+      });
+    }
 
     function writeText(id, value) {
       const target = el(id);
@@ -746,6 +807,7 @@
       const chatHistory = await requestJson(`${endpoints.chatHistory}?${debugQuery.toString()}`, debugOptions);
       backendLocalDate = nextBackendLocalDate;
       writeText("local-date-display", backendLocalDate);
+      updateLaunchpadLinks();
       renderBudget(budget);
       renderBodyPlan(bodyPlan);
       renderDebug(debug);
@@ -816,6 +878,9 @@
 
     el("composer").addEventListener("submit", submitMessage);
     el("set-target").addEventListener("click", submitDailyTarget);
+    el("user-id").addEventListener("input", updateLaunchpadLinks);
+    applyUrlSessionState();
+    updateLaunchpadLinks();
     syncSurfaces().catch((error) => {
       setSyncStatus("failed");
       appendMessage("bot", `Surface sync failed: ${error.message}`);

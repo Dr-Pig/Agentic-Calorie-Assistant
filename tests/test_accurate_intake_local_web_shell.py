@@ -111,13 +111,25 @@ def test_local_web_shell_operator_ui_polish_preserves_information_architecture()
     html = _shell_html()
 
     assert 'data-ui-polish-version="plce-ui-same-truth-polish-v1"' in html
+    assert 'data-entry-role="desktop-dogfood-launchpad"' in html
     assert 'data-read-model-owner="backend"' in html
     assert 'data-mutation-authority="backend-route-only"' in html
+    assert 'id="desktop-launchpad-list"' in html
     assert 'id="operator-boundary-list"' in html
     assert 'id="sync-status"' in html
     assert 'id="local-debug-token"' in html
     assert "mutation_submit=backend_route_only" in html
     for selector in (
+        'data-entry-target="chat"',
+        'data-entry-target="today"',
+        'data-entry-target="body"',
+        'data-entry-target="feedback"',
+        'data-entry-target="data"',
+        'href="/static/accurate-intake-chat.html"',
+        'href="/static/accurate-intake-today.html"',
+        'href="/static/accurate-intake-body.html"',
+        'href="/static/accurate-intake-feedback.html"',
+        'href="/static/accurate-intake-data.html"',
         'id="budget-kcal"',
         'id="consumed-kcal"',
         'id="remaining-kcal"',
@@ -137,6 +149,12 @@ def test_local_web_shell_operator_ui_polish_preserves_information_architecture()
 def test_local_web_shell_ui_polish_uses_accessible_control_and_focus_tokens() -> None:
     html = _shell_html()
 
+    assert "function updateLaunchpadLinks()" in html
+    assert "encodeURIComponent(userId())" in html
+    assert "new URLSearchParams(window.location.search).get(\"local_date\") || backendLocalDate" in html
+    assert "function applyUrlSessionState()" in html
+    assert "params.get(\"user_id\")" in html
+    assert "updateLaunchpadLinks();" in html
     assert "min-height: 44px" in html
     assert ":focus-visible" in html
     assert "outline:" in html
@@ -239,6 +257,7 @@ def test_local_web_shell_uses_explicit_local_debug_token_without_storage() -> No
     assert '"X-Local-Debug-Token": token' in html
     assert "localDebugHeaders()" in html
     assert "window.LOCAL_DEBUG_API_TOKEN" in html
+    assert "local_debug_token" not in html
     assert "localStorage" not in html
     assert "sessionStorage" not in html
 
