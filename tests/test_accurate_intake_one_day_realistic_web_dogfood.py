@@ -57,14 +57,19 @@ def test_accurate_intake_one_day_realistic_web_dogfood_honest_gap():
         assert evi["food_logs_created"] is False
         assert evi["evidence_gap_observed"] is True
         assert evi["manager_context_gap_observed"] is False
-        assert evi["manager_fixture_call_topology_gap_observed"] is True
-        assert evi["manager_gap_breakdown"]["missing_manager_response_turn_ids"] == []
-        assert evi["manager_gap_breakdown"]["fixture_provider_exhausted_turn_ids"] == [
+        assert evi["manager_fixture_call_topology_gap_observed"] is False
+        assert evi["manager_gap_breakdown"]["runtime_response_turn_ids"] == [
+            "target_001",
+            "breakfast_001",
+            "lunch_001",
+            "tea_001",
             "dinner_draft_001",
             "dinner_basket_001",
             "dinner_remove_001",
             "query_001",
         ]
+        assert evi["manager_gap_breakdown"]["missing_manager_response_turn_ids"] == []
+        assert evi["manager_gap_breakdown"]["fixture_provider_exhausted_turn_ids"] == []
         assert evi["evidence_gap_handled_without_fake_kcal"] is True
         assert "food evidence gap prevented realistic food logging" in scenario["blockers"]
         assert (
@@ -73,7 +78,7 @@ def test_accurate_intake_one_day_realistic_web_dogfood_honest_gap():
         )
         assert (
             "dogfood manager fixture exhausted before all turns completed"
-            in scenario["blockers"]
+            not in scenario["blockers"]
         )
 
         # Rule: Remove-item attempts the correction but correctly flags the negative guard
@@ -125,9 +130,8 @@ def test_negative_guard_raw_text_inference_not_used():
         provider = _ChineseOneDayManagerProvider()
         client = _build_test_client(db, provider)
 
-        # We mutate the raw user input structurally! Since the provider evaluates strictly
-        # by turn_index (ordered sequential evaluation) and not text, it should output
-        # the exact identical decision corresponding to turn_index 0 ("set_manual_daily_target").
+        # We mutate the raw user input structurally. Unknown fixture input falls back to the
+        # first scripted structured decision; the provider must not infer target intent from text.
         res = client.post(
             "/estimate",
             json={

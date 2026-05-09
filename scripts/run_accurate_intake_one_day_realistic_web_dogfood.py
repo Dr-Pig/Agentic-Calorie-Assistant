@@ -136,6 +136,11 @@ ONE_DAY_TURN_FIXTURES = [
 class _ChineseOneDayManagerProvider:
     def __init__(self):
         self.turn_index = 0
+        self.fixture_by_raw_user_input = {
+            str(fixture["raw_user_input"]): fixture
+            for fixture in ONE_DAY_TURN_FIXTURES
+        }
+        self.calls: list[dict[str, Any]] = []
 
     def readiness(self) -> dict[str, Any]:
         return {
@@ -147,15 +152,40 @@ class _ChineseOneDayManagerProvider:
     async def complete_with_trace(
         self, **kwargs: Any
     ) -> tuple[dict[str, Any], dict[str, Any]]:
+        user_payload = dict(kwargs.get("user_payload") or {})
+        fixture, fixture_binding = self._fixture_for_user_payload(user_payload)
+        self.calls.append(
+            {
+                "raw_user_input": user_payload.get("raw_user_input"),
+                "fixture_turn_id": fixture["turn_id"],
+                "fixture_binding": fixture_binding,
+            }
+        )
+        return self._format_decision(
+            fixture["manager_decision"],
+            fixture_turn_id=str(fixture["turn_id"]),
+            fixture_binding=fixture_binding,
+        )
+
+    def _fixture_for_user_payload(
+        self, user_payload: dict[str, Any]
+    ) -> tuple[dict[str, Any], str]:
+        raw_user_input = str(user_payload.get("raw_user_input") or "")
+        fixture = self.fixture_by_raw_user_input.get(raw_user_input)
+        if fixture is not None:
+            return fixture, "raw_user_input_fixture_identity"
         if self.turn_index >= len(ONE_DAY_TURN_FIXTURES):
             raise RuntimeError("Exceeded fixture turns.")
-
         fixture = ONE_DAY_TURN_FIXTURES[self.turn_index]
         self.turn_index += 1
-        return self._format_decision(fixture["manager_decision"])
+        return fixture, "sequential_fallback_for_unknown_fixture_input"
 
     def _format_decision(
-        self, dec: dict[str, Any]
+        self,
+        dec: dict[str, Any],
+        *,
+        fixture_turn_id: str,
+        fixture_binding: str,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         target_attachment = dict(dec["target_attachment"])
         answer_contract: dict[str, Any] = {
@@ -197,7 +227,11 @@ class _ChineseOneDayManagerProvider:
                 "semantic_decision": semantic_decision,
                 "tool_calls": [],
             },
-            {"live_llm_invoked": False},
+            {
+                "live_llm_invoked": False,
+                "fixture_turn_id": fixture_turn_id,
+                "fixture_binding": fixture_binding,
+            },
         )
 
 
