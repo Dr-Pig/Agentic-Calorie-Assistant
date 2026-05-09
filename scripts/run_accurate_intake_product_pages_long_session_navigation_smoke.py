@@ -9,6 +9,7 @@ import secrets
 import sys
 import time
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -102,6 +103,12 @@ def _base_report(
         "click_body_to_chat_preserved_session": False,
         "chat_return_preserved_latest_message": False,
         "navigation_fetch_sequence_checked": False,
+        "latency_observability_present": False,
+        "estimate_post_context_scoped": False,
+        "chat_history_fetch_context_scoped": False,
+        "current_day_session_scope_checked": False,
+        "browser_timing_ms": {},
+        "fetch_counts_by_endpoint": {},
         "forbidden_storage_used": False,
         "visible_debug_trace_leaked": False,
         "frontend_semantic_owner": False,
@@ -164,6 +171,85 @@ def _fetches_include_required_endpoints(fetch_sequence: list[Any]) -> bool:
     )
 
 
+def _elapsed_ms(start: float) -> int:
+    return max(0, int(round((time.perf_counter() - start) * 1000)))
+
+
+def _fetch_counts_by_endpoint(fetch_sequence: list[Any]) -> dict[str, int]:
+    fetches = [item for item in fetch_sequence if isinstance(item, dict)]
+    return {
+        endpoint: sum(1 for item in fetches if endpoint in str(item.get("url") or ""))
+        for endpoint in REQUIRED_FETCH_ENDPOINTS
+    }
+
+
+def _query_values(raw_url: str) -> dict[str, str]:
+    parsed = urlparse(raw_url)
+    query = parse_qs(parsed.query)
+    return {key: values[-1] for key, values in query.items() if values}
+
+
+def _json_body(value: Any) -> dict[str, Any]:
+    try:
+        parsed = json.loads(str(value or "{}"))
+    except json.JSONDecodeError:
+        return {}
+    return dict(parsed) if isinstance(parsed, dict) else {}
+
+
+def _estimate_posts_context_scoped(
+    fetch_sequence: list[Any],
+    *,
+    user_external_id: str,
+    local_date: str,
+    expected_count: int,
+) -> bool:
+    posts = [
+        _json_body(item.get("body"))
+        for item in fetch_sequence
+        if isinstance(item, dict)
+        and "/estimate" in str(item.get("url") or "")
+        and str(item.get("method") or "").upper() == "POST"
+    ]
+    return len(posts) >= expected_count and all(
+        post.get("user_id") == user_external_id and post.get("local_date") == local_date
+        for post in posts
+    )
+
+
+def _chat_history_fetches_context_scoped(
+    fetch_sequence: list[Any],
+    *,
+    user_external_id: str,
+    local_date: str,
+) -> bool:
+    urls = [
+        str(item.get("url") or "")
+        for item in fetch_sequence
+        if isinstance(item, dict)
+        and "/accurate-intake/chat-history" in str(item.get("url") or "")
+        and str(item.get("method") or "GET").upper() == "GET"
+    ]
+    return bool(urls) and all(
+        _query_values(url).get("user_id") == user_external_id
+        and _query_values(url).get("local_date") == local_date
+        for url in urls
+    )
+
+
+def _timing_observability_present(timing: dict[str, Any]) -> bool:
+    required = (
+        "send_turns_total",
+        "send_turns_avg",
+        "reload_chat",
+        "chat_to_today",
+        "today_to_body",
+        "body_to_chat",
+        "total_sequence",
+    )
+    return all(isinstance(timing.get(key), int | float) and timing.get(key) >= 0 for key in required)
+
+
 def _run_browser_sequence(
     *,
     base_url: str,
@@ -178,6 +264,9 @@ def _run_browser_sequence(
     viewport = {"width": 1440, "height": 1100}
     messages = [f"{DEFAULT_CJK_STEM}-{index:02d}" for index in range(1, message_count + 1)]
     result: dict[str, Any] = {"fetch_sequence": [], "current_step": "not_started"}
+    sequence_start = time.perf_counter()
+    send_turn_timings: list[int] = []
+    timing_ms: dict[str, int] = {}
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=headless)
         try:
@@ -191,6 +280,7 @@ def _run_browser_sequence(
             page.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
             for message in messages:
                 result["current_step"] = f"send_{message}"
+                turn_start = time.perf_counter()
                 page.fill("#message-input", message)
                 page.click("#send-button")
                 page.wait_for_function(
@@ -201,6 +291,7 @@ def _run_browser_sequence(
                     arg=message,
                     timeout=timeout_ms,
                 )
+                send_turn_timings.append(_elapsed_ms(turn_start))
             metrics = _message_metrics(page)
             user_texts = [str(text) for text in metrics.get("userTexts", [])]
             result["long_session_message_count"] = len(user_texts)
@@ -217,12 +308,14 @@ def _run_browser_sequence(
             result["forbidden_storage_used"] = bool(storage.get("localStorageKeys") or storage.get("sessionStorageKeys"))
 
             result["current_step"] = "reload_chat"
+            reload_start = time.perf_counter()
             page.reload(wait_until="networkidle", timeout=timeout_ms)
             page.wait_for_function(
                 """(message) => (document.querySelector("#chat-scroll")?.textContent || "").includes(message)""",
                 arg=messages[-1],
                 timeout=timeout_ms,
             )
+            timing_ms["reload_chat"] = _elapsed_ms(reload_start)
             reload_metrics = _message_metrics(page)
             reload_user_texts = [str(text) for text in reload_metrics.get("userTexts", [])]
             result["reload_preserved_long_history"] = (
@@ -233,6 +326,7 @@ def _run_browser_sequence(
             result["fetch_sequence"].extend(_capture_fetches(page))
 
             result["current_step"] = "click_today"
+            nav_start = time.perf_counter()
             page.click('[data-nav-target="today"]')
             page.wait_for_selector('[data-surface-role="today-diary"]', timeout=timeout_ms)
             page.wait_for_function(
@@ -246,9 +340,11 @@ def _run_browser_sequence(
                 user_selector="#today-session-user",
                 date_selector="#today-session-date",
             )
+            timing_ms["chat_to_today"] = _elapsed_ms(nav_start)
             result["fetch_sequence"].extend(_capture_fetches(page))
 
             result["current_step"] = "click_body"
+            nav_start = time.perf_counter()
             page.click('[data-nav-target="body"]')
             page.wait_for_selector('[data-surface-role="body-plan"]', timeout=timeout_ms)
             page.wait_for_function(
@@ -262,9 +358,11 @@ def _run_browser_sequence(
                 user_selector="#body-session-user",
                 date_selector="#body-session-date",
             )
+            timing_ms["today_to_body"] = _elapsed_ms(nav_start)
             result["fetch_sequence"].extend(_capture_fetches(page))
 
             result["current_step"] = "click_chat_return"
+            nav_start = time.perf_counter()
             page.click('[data-nav-target="chat"]')
             page.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
             page.wait_for_function(
@@ -276,6 +374,7 @@ def _run_browser_sequence(
                 page.locator("#chat-session-user").inner_text(timeout=timeout_ms).strip() == user_external_id
                 and page.locator("#chat-session-date").inner_text(timeout=timeout_ms).strip() == local_date
             )
+            timing_ms["body_to_chat"] = _elapsed_ms(nav_start)
             return_metrics = _message_metrics(page)
             return_texts = [str(text) for text in return_metrics.get("userTexts", [])]
             result["chat_return_preserved_latest_message"] = messages[-1] in return_texts
@@ -284,6 +383,30 @@ def _run_browser_sequence(
             result["fetch_sequence"].extend(_capture_fetches(page))
             result["navigation_fetch_sequence_checked"] = _fetches_include_required_endpoints(
                 result["fetch_sequence"]
+            )
+            timing_ms["send_turns_total"] = sum(send_turn_timings)
+            timing_ms["send_turns_avg"] = int(round(sum(send_turn_timings) / max(len(send_turn_timings), 1)))
+            timing_ms["total_sequence"] = _elapsed_ms(sequence_start)
+            result["browser_timing_ms"] = timing_ms
+            result["fetch_counts_by_endpoint"] = _fetch_counts_by_endpoint(result["fetch_sequence"])
+            result["latency_observability_present"] = _timing_observability_present(timing_ms)
+            result["estimate_post_context_scoped"] = _estimate_posts_context_scoped(
+                result["fetch_sequence"],
+                user_external_id=user_external_id,
+                local_date=local_date,
+                expected_count=message_count,
+            )
+            result["chat_history_fetch_context_scoped"] = _chat_history_fetches_context_scoped(
+                result["fetch_sequence"],
+                user_external_id=user_external_id,
+                local_date=local_date,
+            )
+            result["current_day_session_scope_checked"] = (
+                result["estimate_post_context_scoped"] is True
+                and result["chat_history_fetch_context_scoped"] is True
+                and result["click_chat_to_today_preserved_session"] is True
+                and result["click_today_to_body_preserved_session"] is True
+                and result["click_body_to_chat_preserved_session"] is True
             )
             result["current_step"] = "complete"
             return result
@@ -316,10 +439,29 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         ("click_body_to_chat_preserved_session", "body_to_chat_session_not_preserved"),
         ("chat_return_preserved_latest_message", "chat_return_latest_message_missing"),
         ("navigation_fetch_sequence_checked", "navigation_fetch_sequence_not_checked"),
+        ("latency_observability_present", "latency_observability_missing"),
+        ("estimate_post_context_scoped", "estimate_post_context_not_scoped"),
+        ("chat_history_fetch_context_scoped", "chat_history_fetch_context_not_scoped"),
+        ("current_day_session_scope_checked", "current_day_session_scope_not_checked"),
     ):
         require_true(key, blocker)
+    timing = dict(report.get("browser_timing_ms") or {})
+    for field in (
+        "send_turns_total",
+        "send_turns_avg",
+        "reload_chat",
+        "chat_to_today",
+        "today_to_body",
+        "body_to_chat",
+        "total_sequence",
+    ):
+        if not isinstance(timing.get(field), int | float):
+            blockers.append(f"browser_timing_ms_missing:{field}")
+    fetch_counts = dict(report.get("fetch_counts_by_endpoint") or {})
     fetches = [item for item in report.get("fetch_sequence", []) if isinstance(item, dict)]
     for endpoint in REQUIRED_FETCH_ENDPOINTS:
+        if int(fetch_counts.get(endpoint) or 0) <= 0:
+            blockers.append(f"fetch_count_missing:{endpoint}")
         if not any(endpoint in str(item.get("url") or "") for item in fetches):
             blockers.append(f"fetch_missing:{endpoint}")
     estimate_posts = [

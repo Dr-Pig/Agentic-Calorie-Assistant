@@ -22,6 +22,25 @@ def _passing_report() -> dict[str, object]:
         "click_body_to_chat_preserved_session": True,
         "chat_return_preserved_latest_message": True,
         "navigation_fetch_sequence_checked": True,
+        "latency_observability_present": True,
+        "estimate_post_context_scoped": True,
+        "chat_history_fetch_context_scoped": True,
+        "current_day_session_scope_checked": True,
+        "browser_timing_ms": {
+            "send_turns_total": 3200,
+            "send_turns_avg": 100,
+            "reload_chat": 120,
+            "chat_to_today": 140,
+            "today_to_body": 130,
+            "body_to_chat": 150,
+            "total_sequence": 3800,
+        },
+        "fetch_counts_by_endpoint": {
+            "/estimate": message_count,
+            "/accurate-intake/chat-history": 2,
+            "/today/current-budget": 1,
+            "/body-plan/active": 1,
+        },
         "forbidden_storage_used": False,
         "visible_debug_trace_leaked": False,
         "frontend_semantic_owner": False,
@@ -34,7 +53,11 @@ def _passing_report() -> dict[str, object]:
         "fetch_sequence": [
             {"url": "/accurate-intake/chat-history?user_id=u", "method": "GET"},
             *[
-                {"url": "/estimate", "method": "POST", "body": '{"allow_search": false}'}
+                {
+                    "url": "/estimate",
+                    "method": "POST",
+                    "body": '{"allow_search": false, "user_id": "u", "local_date": "2026-05-05"}',
+                }
                 for _ in range(message_count)
             ],
             {"url": "/today/current-budget?user_id=u", "method": "GET"},
@@ -113,6 +136,26 @@ def test_long_session_navigation_validator_rejects_shallow_or_broken_navigation(
     assert "body_to_chat_session_not_preserved" in blockers
     assert "chat_return_latest_message_missing" in blockers
     assert "navigation_fetch_sequence_not_checked" in blockers
+
+
+def test_long_session_navigation_validator_rejects_missing_scope_or_latency_observability() -> None:
+    report = _passing_report()
+    report["latency_observability_present"] = False
+    report["estimate_post_context_scoped"] = False
+    report["chat_history_fetch_context_scoped"] = False
+    report["current_day_session_scope_checked"] = False
+    report["browser_timing_ms"] = {}
+    report["fetch_counts_by_endpoint"] = {}
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "latency_observability_missing" in blockers
+    assert "estimate_post_context_not_scoped" in blockers
+    assert "chat_history_fetch_context_not_scoped" in blockers
+    assert "current_day_session_scope_not_checked" in blockers
+    assert "browser_timing_ms_missing:send_turns_avg" in blockers
+    assert "fetch_count_missing:/estimate" in blockers
 
 
 def test_long_session_navigation_validator_rejects_semantic_or_readiness_overclaims() -> None:
