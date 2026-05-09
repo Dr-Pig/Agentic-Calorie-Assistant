@@ -87,6 +87,7 @@ class ProactiveNoSendShadowInput(BaseModel):
     annoyance_risk: RiskLevel = "medium"
     harm_if_wrong: RiskLevel = "low"
     recommendation_prompt_review: dict[str, Any] | None = None
+    rescue_nudge_review: dict[str, Any] | None = None
 
 
 def build_proactive_no_send_simulation(
@@ -173,6 +174,8 @@ def _evaluate_trigger(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
         row["level_2_gate"] = level_2_gate
     if item.trigger_type == "recommendation_prompt":
         row["recommendation_prompt_review"] = _recommendation_prompt_review(item)
+    if item.trigger_type == "rescue_nudge":
+        row["rescue_nudge_review"] = _rescue_nudge_review(item)
     _add_trigger_boundaries(row, item.trigger_type)
     return row
 
@@ -265,6 +268,14 @@ def _recommendation_prompt_review(item: ProactiveNoSendShadowInput) -> dict[str,
     if not isinstance(review, Mapping):
         return {}
     allowed = ("source_report_used", "status", "recommendation_pool_decision", "prompt_posture", "suppression_reasons", "blockers", "actual_candidates_included", "candidate_ids_exposed", "runtime_effect_allowed", "recommendation_served", "proactive_sent", "scheduler_enabled", "live_delivery_allowed", "scheduler_activation_allowed", "manager_context_injected", "review_decision")
+    return {key: review[key] for key in allowed if key in review}
+
+
+def _rescue_nudge_review(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
+    review = item.rescue_nudge_review
+    if not isinstance(review, Mapping):
+        return {}
+    allowed = ("source_projection_used", "status", "prompt_posture", "suppression_reasons", "blockers", "rescue_history_context_available", "adherence_context_available", "suppression_context_count", "history_review_notes", "runtime_effect_allowed", "rescue_committed", "proposal_committed", "day_budget_mutated", "body_plan_mutated", "meal_thread_mutated", "durable_memory_written", "proactive_sent", "scheduler_enabled", "live_delivery_allowed", "scheduler_activation_allowed", "manager_context_injected", "recommendation_served", "review_decision")
     return {key: review[key] for key in allowed if key in review}
 
 
@@ -438,30 +449,17 @@ def _add_trigger_boundaries(row: dict[str, Any], trigger_type: str) -> None:
     if trigger_type == "recommendation_prompt":
         row["recommendation_prompt_boundary"] = {
             "allowed": ["candidate_invitation_only"],
-            "forbidden": [
-                "output_actual_ranked_food_candidates",
-                "query_live_menu_or_search",
-                "create_intake_hint_packet",
-                "serve_recommendation_result",
-            ],
+            "forbidden": ["output_actual_ranked_food_candidates", "query_live_menu_or_search", "create_intake_hint_packet", "serve_recommendation_result"],
         }
         row["recommendation_served"] = False
         row["intake_hint_packet_created"] = False
     if trigger_type == "calibration_insight":
         row["allowed_output"] = ["offer_calibration_preview"]
-        row["forbidden_output"] = [
-            "tell_user_should_change_target",
-            "output_specific_new_kcal_target",
-            "mutate_body_plan",
-        ]
+        row["forbidden_output"] = ["tell_user_should_change_target", "output_specific_new_kcal_target", "mutate_body_plan"]
         row["body_plan_mutated"] = False
     if trigger_type == "rescue_nudge":
         row["allowed_output"] = ["invite_future_rescue_review"]
-        row["forbidden_output"] = [
-            "output_specific_future_deficit",
-            "create_rescue_proposal",
-            "mutate_day_budget_ledger",
-        ]
+        row["forbidden_output"] = ["output_specific_future_deficit", "create_rescue_proposal", "mutate_day_budget_ledger"]
         row["rescue_committed"] = False
 
 

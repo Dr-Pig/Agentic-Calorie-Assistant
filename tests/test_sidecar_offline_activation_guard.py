@@ -36,6 +36,7 @@ SIDECAR_MODULES = [
     "app.runtime.application.proactive_deterministic_gate",
     "app.runtime.application.proactive_no_send_shadow_evaluator",
     "app.runtime.application.proactive_recommendation_prompt_bridge",
+    "app.runtime.application.proactive_rescue_nudge_bridge",
     "app.runtime.application.proactive_summary_consumer",
 ]
 
