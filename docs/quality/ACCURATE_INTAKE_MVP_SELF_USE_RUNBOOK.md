@@ -217,6 +217,14 @@ python scripts/build_accurate_intake_dogfood_review_queue.py --desktop-feedback-
 
 Feedback records are review material only. They must not enter Manager context, FoodDB truth, canonical eval truth, prompt hardening, or product readiness claims without explicit human review and owner approval.
 
+Start the desktop dogfood shell with a persistent local SQLite DB using:
+
+```powershell
+python scripts/run_accurate_intake_desktop_dogfood_launcher.py --db-path workspace_data/local_dogfood/accurate_intake.sqlite3
+```
+
+The launcher prints a descriptor with the `/static/accurate-intake-local-shell.html` URL, `X-Local-Debug-Token` value, and persistent SQLite path. This command is a local operator entrypoint only; it does not approve private self-use, product readiness, production DB use, live LLM readiness, or FoodDB expansion.
+
 Build the operator review surface from the one-day realistic dogfood diagnostic with:
 
 ```powershell
