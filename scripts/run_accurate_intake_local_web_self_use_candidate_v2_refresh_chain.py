@@ -49,6 +49,9 @@ from app.composition.accurate_intake_product_pages_renderer_source_map import ( 
     build_product_pages_renderer_source_closure_artifact,
     build_product_pages_renderer_source_map_artifact,
 )
+from app.composition.accurate_intake_product_pages_context_target_browser_closure import (  # noqa: E402
+    build_context_target_browser_closure_artifact,
+)
 from app.composition.accurate_intake_today_macro_mirror_gate import (  # noqa: E402
     build_today_macro_runtime_mirror_gate_artifact,
 )
@@ -157,6 +160,9 @@ REFRESHED_ARTIFACT_FILENAMES = {
     ),
     "product_pages_target_candidate_ui_smoke": (
         "accurate_intake_product_pages_target_candidate_ui_smoke.json"
+    ),
+    "product_pages_context_target_browser_closure": (
+        "accurate_intake_product_pages_context_target_browser_closure.json"
     ),
     "context_live_diagnostic_gate": "accurate_intake_context_live_diagnostic_gate.json",
     "current_shell_compatibility_local_review_evidence_manifest": (
@@ -670,6 +676,20 @@ def _generate_product_pages_target_candidate_ui_smoke(*, artifacts_dir: Path) ->
     )
 
 
+def _generate_context_target_browser_closure(
+    *,
+    short_term_context_report: dict[str, Any],
+    target_candidate_report: dict[str, Any],
+) -> dict[str, Any]:
+    return build_context_target_browser_closure_artifact(
+        manager_gate_ledger_artifact=_read_yaml_payload(
+            ROOT / "docs" / "quality" / "MANAGER_RUNTIME_GATE_LEDGER.yaml"
+        ),
+        short_term_context_report=short_term_context_report,
+        target_candidate_report=target_candidate_report,
+    )
+
+
 def _product_loop_handoff_evidence(
     artifacts_dir: Path,
     *,
@@ -764,6 +784,12 @@ def build_local_web_self_use_candidate_refresh_chain(
     )
     refreshed_artifacts["product_pages_target_candidate_ui_smoke"] = (
         _generate_product_pages_target_candidate_ui_smoke(artifacts_dir=artifacts_dir)
+    )
+    refreshed_artifacts["product_pages_context_target_browser_closure"] = (
+        _generate_context_target_browser_closure(
+            short_term_context_report=refreshed_artifacts["product_pages_short_term_context_smoke"],
+            target_candidate_report=refreshed_artifacts["product_pages_target_candidate_ui_smoke"],
+        )
     )
     for group_id, artifact in refreshed_artifacts.items():
         write_json_artifact(
