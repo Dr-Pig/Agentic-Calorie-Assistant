@@ -481,6 +481,10 @@ def test_live_cost_summary_attributes_turn_runtime_without_changing_semantics() 
                 "diagnostic_turn": 1,
                 "diagnostic_turn_kind": "new_meal",
                 "manager_loop_scope": "intake_execution",
+                "provider_trace": {
+                    "usage": {"prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110},
+                    "transport_attempts": [{"status": "success", "duration_ms": 2_500}],
+                },
             }
         ],
     )
@@ -534,6 +538,20 @@ def test_live_cost_summary_attributes_turn_runtime_without_changing_semantics() 
     assert breakdown["slowest_turn_runtime_segments"][0]["non_provider_latency_ms"] == 9_000
     assert summary["latency_root_cause_hints"]["turn_non_provider_runtime_high"] is True
     assert "attribute_turn_non_provider_runtime_to_db_guard_renderer_spans" in summary["latency_optimization_priorities"]
+    assert breakdown["latency_time_ledger"] == {
+        "diagnostic_only_not_readiness": True,
+        "measurement": "wall_clock_ms_from_diagnostic_artifacts",
+        "total_stage_latency_ms": 18_000,
+        "accounted_latency_ms": 12_000,
+        "accounted_share_pct": 66.67,
+        "provider_invocation_ms": 3_000,
+        "provider_transport_attempt_ms": 2_500,
+        "provider_wrapper_overhead_ms": 500,
+        "turn_non_provider_runtime_ms": 9_000,
+        "unattributed_stage_overhead_ms": 6_000,
+        "dominant_latency_driver": "turn_non_provider_runtime",
+        "dominant_latency_driver_ms": 9_000,
+    }
     assert "readiness_claimed" not in summary
 
 
