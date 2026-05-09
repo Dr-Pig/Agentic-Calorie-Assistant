@@ -21,7 +21,8 @@ from app.composition.current_shell_fooddb_triad_same_truth_contract import (  # 
     EXPECTED_FOODDB_TRIAD_SAME_TRUTH_CASES,
     FOODDB_TRIAD_SAME_TRUTH_REQUIRED_NON_CLAIMS,
 )
-from app.composition import intake_routes  # noqa: E402
+from app.composition import accurate_intake_debug_routes, intake_routes  # noqa: E402
+from app.composition.dogfood_review_queue import build_dogfood_review_queue_artifact  # noqa: E402
 from app.database import get_or_create_user  # noqa: E402
 from app.runtime.interface.local_debug_auth import LOCAL_DEBUG_API_TOKEN_ENV  # noqa: E402
 from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
@@ -110,8 +111,33 @@ ROUTE_BACKED_MACRO_NON_CLAIMS = {
 FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS = {
     flag: False for flag in FOODDB_TRIAD_SAME_TRUTH_REQUIRED_NON_CLAIMS
 }
+DEFAULT_FEEDBACK_TEXT = "Synthetic browser feedback"
+DEFAULT_FEEDBACK_TRACE_ID = "trace-browser-feedback"
+EXPECTED_FEEDBACK_RECORD_VALUES = {
+    "category": "latency",
+    "feedback_text": DEFAULT_FEEDBACK_TEXT,
+    "trace_id": DEFAULT_FEEDBACK_TRACE_ID,
+    "do_not_commit": True,
+    "manager_context_injection_allowed": False,
+    "food_kb_truth_update_allowed": False,
+    "canonical_eval_promotion_allowed": False,
+}
+EXPECTED_FEEDBACK_REVIEW_QUEUE_VALUES = {
+    "feedback_triage_record_count": 1,
+    "feedback_can_create_product_truth": False,
+    "feedback_can_create_fooddb_truth": False,
+    "feedback_can_create_eval_truth": False,
+}
+FEEDBACK_NON_CLAIMS = {
+    "product_readiness_claimed": False,
+    "private_self_use_approved": False,
+    "fooddb_truth_updated": False,
+    "canonical_eval_promoted": False,
+    "manager_context_injected": False,
+}
 REQUIRED_FETCH_METHODS = {
     "/accurate-intake/chat-history": "GET",
+    "/accurate-intake/feedback": "POST",
     "/estimate": "POST",
     "/today/current-budget": "GET",
     "/body-plan/active": "GET",
@@ -204,6 +230,14 @@ def _base_report(
         "today_manual_target_readback_checked": False,
         "body_session_status_rendered": False,
         "body_no_debug_trace": False,
+        "feedback_page_loaded": False,
+        "feedback_submitted": False,
+        "feedback_jsonl_written": False,
+        "feedback_review_queue_ingested": False,
+        "feedback_record_values": {},
+        "feedback_review_queue_values": {},
+        "feedback_non_claims": dict(FEEDBACK_NON_CLAIMS),
+        "feedback_store_path": "",
         "desktop_no_overflow": False,
         "mobile_no_overflow": False,
         "mobile_populated_state_checked": False,
@@ -236,6 +270,59 @@ def _is_visible_product_text_clean(text: str) -> bool:
 def _capture_fetches(page: Any) -> list[dict[str, Any]]:
     fetches = page.evaluate("window.__accurateIntakeFetches || []")
     return [item for item in fetches if isinstance(item, dict)]
+
+
+def _feedback_jsonl_path(feedback_dir: Path) -> Path:
+    return feedback_dir / "accurate_intake_dogfood_feedback.jsonl"
+
+
+def _read_jsonl_records(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    records: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        parsed = json.loads(line)
+        if isinstance(parsed, dict):
+            records.append(parsed)
+    return records
+
+
+def _wait_for_feedback_record(feedback_dir: Path, *, timeout_ms: int) -> dict[str, Any] | None:
+    path = _feedback_jsonl_path(feedback_dir)
+    deadline = time.monotonic() + (timeout_ms / 1000)
+    while time.monotonic() < deadline:
+        records = _read_jsonl_records(path)
+        if records:
+            return records[-1]
+        time.sleep(0.05)
+    return None
+
+
+def _feedback_record_values(record: dict[str, Any] | None) -> dict[str, Any]:
+    if not record:
+        return {}
+    linked_context = dict(record.get("linked_context") or {})
+    return {
+        "category": record.get("category"),
+        "feedback_text": record.get("feedback_text"),
+        "trace_id": linked_context.get("trace_id"),
+        "do_not_commit": record.get("do_not_commit"),
+        "manager_context_injection_allowed": record.get("manager_context_injection_allowed"),
+        "food_kb_truth_update_allowed": record.get("food_kb_truth_update_allowed"),
+        "canonical_eval_promotion_allowed": record.get("canonical_eval_promotion_allowed"),
+    }
+
+
+def _feedback_review_queue_values(artifact: dict[str, Any]) -> dict[str, Any]:
+    promotion_policy = dict(artifact.get("promotion_policy") or {})
+    return {
+        "feedback_triage_record_count": artifact.get("feedback_triage_record_count"),
+        "feedback_can_create_product_truth": promotion_policy.get("feedback_can_create_product_truth"),
+        "feedback_can_create_fooddb_truth": promotion_policy.get("feedback_can_create_fooddb_truth"),
+        "feedback_can_create_eval_truth": promotion_policy.get("feedback_can_create_eval_truth"),
+    }
 
 
 def _storage_state(page: Any) -> dict[str, list[str]]:
@@ -751,6 +838,65 @@ def _run_fooddb_triad_same_truth_sequence(
     return result
 
 
+def _run_feedback_capture_sequence(
+    browser: Any,
+    *,
+    base_url: str,
+    user_external_id: str,
+    local_date: str,
+    timeout_ms: int,
+    local_debug_token: str,
+    viewport: dict[str, int],
+    feedback_dir: Path,
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "fetch_sequence": [],
+        "feedback_page_loaded": False,
+        "feedback_submitted": False,
+        "feedback_jsonl_written": False,
+        "feedback_review_queue_ingested": False,
+        "feedback_record_values": {},
+        "feedback_review_queue_values": {},
+        "feedback_non_claims": dict(FEEDBACK_NON_CLAIMS),
+        "feedback_store_path": str(_feedback_jsonl_path(feedback_dir)),
+        "page_text": "",
+    }
+    feedback = _open_page(
+        browser,
+        viewport=viewport,
+        url=_page_url(base_url, "feedback", user_external_id=user_external_id, local_date=local_date),
+        timeout_ms=timeout_ms,
+        local_debug_token=local_debug_token,
+    )
+    feedback.wait_for_selector('[data-surface-role="dogfood-feedback"]', timeout=timeout_ms)
+    result["feedback_page_loaded"] = True
+    feedback.fill("#trace-id", DEFAULT_FEEDBACK_TRACE_ID)
+    feedback.select_option("#category", "latency")
+    feedback.select_option("#severity", "medium")
+    feedback.fill("#feedback-text", DEFAULT_FEEDBACK_TEXT)
+    feedback.click("#submit-feedback")
+    feedback.wait_for_function(
+        """() => (document.querySelector("#feedback-status")?.textContent || "").includes("Captured feedback-")""",
+        timeout=timeout_ms,
+    )
+    result["feedback_submitted"] = True
+    feedback_record = _wait_for_feedback_record(feedback_dir, timeout_ms=timeout_ms)
+    result["feedback_jsonl_written"] = feedback_record is not None
+    result["feedback_record_values"] = _feedback_record_values(feedback_record)
+    review_queue = build_dogfood_review_queue_artifact(
+        review_candidates=[],
+        desktop_feedback_records=[feedback_record] if feedback_record else [],
+    )
+    result["feedback_review_queue_values"] = _feedback_review_queue_values(review_queue)
+    result["feedback_review_queue_ingested"] = (
+        result["feedback_review_queue_values"] == EXPECTED_FEEDBACK_REVIEW_QUEUE_VALUES
+    )
+    result["page_text"] = feedback.locator("body").inner_text(timeout=timeout_ms)
+    result["fetch_sequence"].extend(_capture_fetches(feedback))
+    feedback.close()
+    return result
+
+
 def _run_browser_sequence(
     *,
     base_url: str,
@@ -760,6 +906,7 @@ def _run_browser_sequence(
     timeout_ms: int,
     headless: bool,
     local_debug_token: str,
+    feedback_dir: Path,
 ) -> dict[str, Any]:
     sync_playwright = _load_sync_playwright()
     previous_local_date = _previous_local_date(local_date)
@@ -782,6 +929,14 @@ def _run_browser_sequence(
         "fooddb_triad_same_truth_browser_checked": False,
         "fooddb_triad_same_truth_cases": {},
         "fooddb_triad_same_truth_non_claims": dict(FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS),
+        "feedback_page_loaded": False,
+        "feedback_submitted": False,
+        "feedback_jsonl_written": False,
+        "feedback_review_queue_ingested": False,
+        "feedback_record_values": {},
+        "feedback_review_queue_values": {},
+        "feedback_non_claims": dict(FEEDBACK_NON_CLAIMS),
+        "feedback_store_path": "",
     }
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=headless)
@@ -1409,6 +1564,27 @@ def _run_browser_sequence(
             page_texts.append(body_text_after)
             body.close()
 
+            result["current_step"] = "feedback_capture_check"
+            feedback_result = _run_feedback_capture_sequence(
+                browser,
+                base_url=base_url,
+                user_external_id=user_external_id,
+                local_date=local_date,
+                timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
+                viewport=desktop_viewport,
+                feedback_dir=feedback_dir,
+            )
+            result["feedback_page_loaded"] = feedback_result["feedback_page_loaded"]
+            result["feedback_submitted"] = feedback_result["feedback_submitted"]
+            result["feedback_jsonl_written"] = feedback_result["feedback_jsonl_written"]
+            result["feedback_review_queue_ingested"] = feedback_result["feedback_review_queue_ingested"]
+            result["feedback_record_values"] = feedback_result["feedback_record_values"]
+            result["feedback_review_queue_values"] = feedback_result["feedback_review_queue_values"]
+            result["feedback_non_claims"] = feedback_result["feedback_non_claims"]
+            result["feedback_store_path"] = feedback_result["feedback_store_path"]
+            result["fetch_sequence"].extend(feedback_result["fetch_sequence"])
+
             result["current_step"] = "mobile_overflow_check"
             for page_name in ("chat", "today", "body"):
                 mobile = _open_page(
@@ -1571,6 +1747,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("fooddb_triad_same_truth_browser_checked", "fooddb_triad_same_truth_browser_not_checked")
     require_true("body_session_status_rendered", "body_session_status_not_rendered")
     require_true("body_no_debug_trace", "body_debug_trace_leaked")
+    require_true("feedback_page_loaded", "feedback_page_not_loaded")
+    require_true("feedback_submitted", "feedback_not_submitted")
+    require_true("feedback_jsonl_written", "feedback_jsonl_not_written")
+    require_true("feedback_review_queue_ingested", "feedback_review_queue_not_ingested")
     require_true("desktop_no_overflow", "desktop_overflow_detected")
     require_true("mobile_no_overflow", "mobile_overflow_detected")
     require_true("mobile_populated_state_checked", "mobile_populated_state_not_checked")
@@ -1657,6 +1837,18 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     for field, expected_value in FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS.items():
         if triad_non_claims.get(field) != expected_value:
             blockers.append(f"fooddb_triad_same_truth_non_claim_overclaim:{field}")
+    feedback_record_values = dict(report.get("feedback_record_values") or {})
+    for field, expected_value in EXPECTED_FEEDBACK_RECORD_VALUES.items():
+        if feedback_record_values.get(field) != expected_value:
+            blockers.append(f"feedback_record_truth_promotion:{field}")
+    feedback_review_queue_values = dict(report.get("feedback_review_queue_values") or {})
+    for field, expected_value in EXPECTED_FEEDBACK_REVIEW_QUEUE_VALUES.items():
+        if feedback_review_queue_values.get(field) != expected_value:
+            blockers.append(f"feedback_review_queue_truth_promotion:{field}")
+    feedback_non_claims = dict(report.get("feedback_non_claims") or {})
+    for field, expected_value in FEEDBACK_NON_CLAIMS.items():
+        if feedback_non_claims.get(field) != expected_value:
+            blockers.append(f"feedback_non_claim_overclaim:{field}")
     fetches = list(report.get("fetch_sequence") or browser.get("fetch_sequence") or [])
     for expected, method in REQUIRED_FETCH_METHODS.items():
         if not any(
@@ -1761,6 +1953,10 @@ def build_product_pages_browser_smoke_report(
     previous_debug_token = os.environ.get(LOCAL_DEBUG_API_TOKEN_ENV)
     local_debug_token = secrets.token_urlsafe(24)
     os.environ[LOCAL_DEBUG_API_TOKEN_ENV] = local_debug_token
+    feedback_dir = db_path.parent / f"{db_path.stem}_feedback_{secrets.token_hex(6)}"
+    report["feedback_store_path"] = str(_feedback_jsonl_path(feedback_dir))
+    previous_feedback_dir = accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR
+    accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR = feedback_dir
     server, thread = _run_uvicorn_in_thread(app, port=port)
     try:
         base_url = f"http://127.0.0.1:{port}"
@@ -1776,6 +1972,7 @@ def build_product_pages_browser_smoke_report(
                 timeout_ms=timeout_ms,
                 headless=headless,
                 local_debug_token=local_debug_token,
+                feedback_dir=feedback_dir,
             )
         except Exception as exc:
             report["browser_sequence_error"] = f"{type(exc).__name__}: {exc}"
@@ -1799,6 +1996,7 @@ def build_product_pages_browser_smoke_report(
         server.should_exit = True
         thread.join(timeout=5)
         _restore_runtime(app)
+        accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR = previous_feedback_dir
         if previous_debug_token is None:
             os.environ.pop(LOCAL_DEBUG_API_TOKEN_ENV, None)
         else:
