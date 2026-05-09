@@ -39,6 +39,13 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "today_reload_preserved_user_id": True,
         "today_summary_rendered": True,
         "today_meal_list_rendered": True,
+        "macro_present_exact_item_browser_checked": True,
+        "macro_present_exact_item_values": {
+            "macro_state": "visible",
+            "protein_text": "12",
+            "carbs_text": "48",
+            "fat_text": "6",
+        },
         "today_session_status_rendered": True,
         "today_no_debug_trace": True,
         "body_page_loaded": True,
@@ -329,6 +336,37 @@ def test_product_pages_browser_smoke_validator_requires_body_budget_read_model_f
     assert "body_budget_read_model_fetch_missing:/today/deficit-summary" in blockers
     assert "body_budget_read_model_fetch_missing:/today/effective-budget" in blockers
     assert "body_budget_read_model_fetch_missing:/today/weekly-progress" in blockers
+
+
+def test_product_pages_browser_smoke_validator_requires_macro_present_exact_item_e2e() -> None:
+    report = _passing_report()
+    report["macro_present_exact_item_browser_checked"] = False
+    report["macro_present_exact_item_values"] = {
+        "macro_state": "visible",
+        "protein_text": "12",
+        "carbs_text": "48",
+        "fat_text": "6",
+    }
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "macro_present_exact_item_browser_not_checked" in blockers
+
+
+def test_product_pages_browser_smoke_validator_rejects_macro_present_value_drift() -> None:
+    report = _passing_report()
+    report["macro_present_exact_item_values"] = {
+        "macro_state": "visible",
+        "protein_text": "11",
+        "carbs_text": "48",
+        "fat_text": "6",
+    }
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "macro_present_exact_item_value_mismatch:protein_text" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_stale_body_budget_read_model_values() -> None:

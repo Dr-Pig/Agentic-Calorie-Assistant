@@ -39,6 +39,13 @@ DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_product_pages_browse
 DEFAULT_USER_ID = "product-pages-browser-smoke-user"
 DEFAULT_LOCAL_DATE = resolve_today_local_date(None)
 DEFAULT_CJK_MESSAGE = "早餐吃茶葉蛋和拿鐵"
+DEFAULT_MACRO_EXACT_ITEM_MESSAGE = "統一巧克力牛乳(400ml)"
+EXPECTED_MACRO_EXACT_ITEM_VALUES = {
+    "macro_state": "visible",
+    "protein_text": "12",
+    "carbs_text": "48",
+    "fat_text": "6",
+}
 REQUIRED_FETCH_METHODS = {
     "/accurate-intake/chat-history": "GET",
     "/estimate": "POST",
@@ -96,6 +103,8 @@ def _base_report(
         "today_reload_preserved_user_id": False,
         "today_summary_rendered": False,
         "today_meal_list_rendered": False,
+        "macro_present_exact_item_browser_checked": False,
+        "macro_present_exact_item_values": {},
         "today_session_status_rendered": False,
         "today_no_debug_trace": False,
         "body_page_loaded": False,
@@ -239,6 +248,80 @@ def _open_page(
     page.add_init_script(f"window.LOCAL_DEBUG_API_TOKEN = {json.dumps(local_debug_token)};")
     page.goto(url, wait_until="networkidle", timeout=timeout_ms)
     return page
+
+
+def _macro_panel_values(page: Any, *, timeout_ms: int) -> dict[str, str]:
+    page.wait_for_function(
+        """() => document.querySelector("#macro-panel")?.dataset?.macroState === "visible" """,
+        timeout=timeout_ms,
+    )
+    return {
+        "macro_state": page.locator("#macro-panel").evaluate("(node) => node.dataset.macroState"),
+        "protein_text": page.locator("#protein-g").inner_text(timeout=timeout_ms).strip(),
+        "carbs_text": page.locator("#carbs-g").inner_text(timeout=timeout_ms).strip(),
+        "fat_text": page.locator("#fat-g").inner_text(timeout=timeout_ms).strip(),
+    }
+
+
+def _run_macro_present_exact_item_sequence(
+    browser: Any,
+    *,
+    base_url: str,
+    user_external_id: str,
+    local_date: str,
+    timeout_ms: int,
+    local_debug_token: str,
+    viewport: dict[str, int],
+) -> dict[str, Any]:
+    macro_user_id = f"{user_external_id}-macro-exact"
+    result: dict[str, Any] = {
+        "macro_present_exact_item_browser_checked": False,
+        "macro_present_exact_item_values": {},
+        "fetch_sequence": [],
+        "page_text": "",
+    }
+    chat = _open_page(
+        browser,
+        viewport=viewport,
+        url=_page_url(base_url, "chat", user_external_id=macro_user_id, local_date=local_date),
+        timeout_ms=timeout_ms,
+        local_debug_token=local_debug_token,
+    )
+    chat.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
+    chat.fill("#message-input", DEFAULT_MACRO_EXACT_ITEM_MESSAGE)
+    chat.press("#message-input", "Enter")
+    chat.wait_for_function(
+        """(message) => {
+          const text = document.querySelector("#chat-scroll")?.textContent || "";
+          return text.includes(`Logged. ${message}`);
+        }""",
+        arg=DEFAULT_MACRO_EXACT_ITEM_MESSAGE,
+        timeout=timeout_ms,
+    )
+    result["fetch_sequence"].extend(_capture_fetches(chat))
+    chat.close()
+
+    today = _open_page(
+        browser,
+        viewport=viewport,
+        url=_page_url(base_url, "today", user_external_id=macro_user_id, local_date=local_date),
+        timeout_ms=timeout_ms,
+        local_debug_token=local_debug_token,
+    )
+    today.wait_for_selector('[data-surface-role="today-diary"]', timeout=timeout_ms)
+    today.wait_for_function(
+        """(message) => (document.querySelector("#meal-list")?.textContent || "").includes(message) """,
+        arg=DEFAULT_MACRO_EXACT_ITEM_MESSAGE,
+        timeout=timeout_ms,
+    )
+    result["macro_present_exact_item_values"] = _macro_panel_values(today, timeout_ms=timeout_ms)
+    result["macro_present_exact_item_browser_checked"] = (
+        result["macro_present_exact_item_values"] == EXPECTED_MACRO_EXACT_ITEM_VALUES
+    )
+    result["page_text"] = today.locator("body").inner_text(timeout=timeout_ms)
+    result["fetch_sequence"].extend(_capture_fetches(today))
+    today.close()
+    return result
 
 
 def _run_browser_sequence(
@@ -465,6 +548,23 @@ def _run_browser_sequence(
             )
             result["fetch_sequence"].extend(_capture_fetches(chat))
             chat.close()
+
+            result["current_step"] = "macro_present_exact_item_browser_check"
+            macro_result = _run_macro_present_exact_item_sequence(
+                browser,
+                base_url=base_url,
+                user_external_id=user_external_id,
+                local_date=local_date,
+                timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
+                viewport=desktop_viewport,
+            )
+            result["macro_present_exact_item_browser_checked"] = macro_result[
+                "macro_present_exact_item_browser_checked"
+            ]
+            result["macro_present_exact_item_values"] = macro_result["macro_present_exact_item_values"]
+            result["fetch_sequence"].extend(macro_result["fetch_sequence"])
+            page_texts.append(str(macro_result.get("page_text") or ""))
 
             result["current_step"] = "open_today"
             today = _open_page(
@@ -895,6 +995,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("today_reload_preserved_user_id", "today_reload_did_not_preserve_user_id")
     require_true("today_summary_rendered", "today_summary_not_rendered")
     require_true("today_meal_list_rendered", "today_meal_list_not_rendered")
+    require_true(
+        "macro_present_exact_item_browser_checked",
+        "macro_present_exact_item_browser_not_checked",
+    )
     require_true("today_session_status_rendered", "today_session_status_not_rendered")
     require_true("today_no_debug_trace", "today_debug_trace_leaked")
     require_true("body_page_loaded", "body_page_not_loaded")
@@ -972,6 +1076,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
             blockers.append(f"body_budget_read_model_value_mismatch:{field}")
     if body_budget_values and "400 kcal consumed" not in str(body_budget_values.get("weekly_progress") or ""):
         blockers.append("body_budget_read_model_value_mismatch:weekly_progress")
+    macro_values = dict(report.get("macro_present_exact_item_values") or {})
+    for field, expected_value in EXPECTED_MACRO_EXACT_ITEM_VALUES.items():
+        if macro_values.get(field) != expected_value:
+            blockers.append(f"macro_present_exact_item_value_mismatch:{field}")
     fetches = list(report.get("fetch_sequence") or browser.get("fetch_sequence") or [])
     for expected, method in REQUIRED_FETCH_METHODS.items():
         if not any(
