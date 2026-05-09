@@ -272,8 +272,8 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
     assert candidate["local_web_self_use_candidate_v2"]["blockers"] == []
     chain = candidate["local_web_self_use_candidate_v2"]["appshell_browser_evidence_chain"]
     assert printed["appshell_browser_evidence_chain"] == chain
-    assert chain["browser_artifact_count"] == 6
-    assert chain["browser_executed_count"] == 6
+    assert chain["browser_artifact_count"] == 7
+    assert chain["browser_executed_count"] == 7
     assert chain["all_required_browser_artifacts_executed"] is True
     assert chain["product_pages_self_use_flow_checked"] is True
     assert chain["self_use_flow_gate_strongest_pass_type"] == "browser_executed"

@@ -57,9 +57,7 @@ _EXPECTED_STATUS_BY_GROUP = {
     "dogfood_review_queue": "generated",
     "local_dogfood_data_hygiene": "pass",
     "local_operator_data_hygiene_bundle": "local_operator_data_hygiene_ready",
-    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: (
-        CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
-    ),
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
     "product_pages_self_use_flow_gate": "product_pages_self_use_flow_ready_for_human_review",
     "ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
     "browser_activation_evidence_gate": "browser_activation_evidence_ready_for_human_review",
@@ -183,6 +181,7 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
             ("seven_day_diary_checked", "product_pages_self_use_flow_gate_seven_day_diary_not_checked"),
             ("short_term_context_checked", "product_pages_self_use_flow_gate_short_term_context_not_checked"),
             ("target_candidate_ui_checked", "product_pages_self_use_flow_gate_target_candidate_ui_not_checked"),
+            ("body_observation_same_truth_checked", "product_pages_self_use_flow_gate_body_observation_same_truth_not_checked"),
         ):
             if summary.get(flag) is not True:
                 blockers.append(blocker)
@@ -200,6 +199,8 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
             blockers.append("browser_activation_evidence_gate_browser_artifacts_not_all_executed")
         if payload.get("browser_executed_required") is not True:
             blockers.append("browser_activation_evidence_gate_browser_execution_not_required")
+        if _summary(payload).get("body_observation_same_truth_checked") is not True:
+            blockers.append("browser_activation_evidence_gate_body_observation_same_truth_not_checked")
     if group_id == "manager_tool_surface_inventory":
         summary = _summary(payload)
         direct_lane_ids = payload.get("required_direct_lane_ids")
@@ -469,9 +470,7 @@ def _write_output(path: Path, payload: dict[str, Any]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Build a pre-live Accurate Intake local web self-use decision pack."
-    )
+    parser = argparse.ArgumentParser(description="Build a pre-live Accurate Intake local web self-use decision pack.")
     parser.add_argument("--evidence-json", required=True)
     parser.add_argument(
         "--output",

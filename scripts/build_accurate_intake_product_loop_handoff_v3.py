@@ -102,7 +102,7 @@ def _local_web_candidate_blockers(payload: dict[str, Any]) -> list[str]:
         blockers.append("local_web_candidate_not_prepared")
     if candidate.get("blockers") not in (None, []):
         blockers.append("local_web_candidate_upstream_blockers_present")
-    if chain.get("browser_artifact_count") != 6 or chain.get("browser_executed_count") != 6:
+    if chain.get("browser_artifact_count") != 7 or chain.get("browser_executed_count") != 7:
         blockers.append("local_web_candidate_browser_artifact_count_mismatch")
     for field, blocker in (
         (
@@ -117,6 +117,7 @@ def _local_web_candidate_blockers(payload: dict[str, Any]) -> list[str]:
             "local_web_candidate_context_target_browser_closure_missing",
         ),
         ("body_noplan_degraded_checked", "local_web_candidate_body_noplan_missing"),
+        ("body_observation_same_truth_checked", "local_web_candidate_body_observation_missing"),
     ):
         if chain.get(field) is not True:
             blockers.append(blocker)
@@ -482,9 +483,7 @@ def _load_evidence_from_args(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Build an Accurate Intake Product Loop handoff metadata gate."
-    )
+    parser = argparse.ArgumentParser(description="Build an Accurate Intake Product Loop handoff metadata gate.")
     parser.add_argument("--evidence-json")
     parser.add_argument("--browser-shell-smoke")
     parser.add_argument("--local-web-candidate")

@@ -75,6 +75,7 @@ def build_body_observation_same_truth_gate_artifact(
             "artifact_type": "accurate_intake_body_observation_same_truth_gate",
             "status": status,
             "pass_type": "browser_executed",
+            "browser_executed": browser_smoke_artifact.get("browser_executed") is True,
             "claim_scope": "appshell_body_observation_same_truth_for_human_review_only",
             "generated_at_utc": datetime.now(UTC).isoformat(),
             "journeys": ["G", "H"],

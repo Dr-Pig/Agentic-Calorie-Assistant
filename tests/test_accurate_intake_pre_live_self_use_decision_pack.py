@@ -66,6 +66,7 @@ def _evidence(**overrides: dict) -> dict:
                 "seven_day_diary_checked": True,
                 "short_term_context_checked": True,
                 "target_candidate_ui_checked": True,
+                "body_observation_same_truth_checked": True,
             },
         },
         "ui_context_alignment_pack": {
@@ -98,6 +99,7 @@ def _evidence(**overrides: dict) -> dict:
             "real_fooddb_pass_claimed": False,
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
+            "summary": {"body_observation_same_truth_checked": True},
         },
         "manager_tool_surface_inventory": {
             "status": "manager_tool_surface_inventory_ready_for_human_review",
@@ -531,6 +533,26 @@ def test_pre_live_decision_pack_blocks_non_fooddb_manager_tool_and_browser_overc
     assert "manager_tool_choice_regression_wall_case_count_too_low" in pack["blockers"]
     assert "non_fooddb_read_only_tool_loop_fake_smoke_case_count_too_low" in pack["blockers"]
     assert "non_fooddb_read_only_tool_loop_fake_smoke_live_llm_invoked" in pack["blockers"]
+
+
+def test_pre_live_decision_pack_blocks_stale_body_same_truth_summaries() -> None:
+    for group_id, blocker in (
+        (
+            "product_pages_self_use_flow_gate",
+            "product_pages_self_use_flow_gate_body_observation_same_truth_not_checked",
+        ),
+        (
+            "browser_activation_evidence_gate",
+            "browser_activation_evidence_gate_body_observation_same_truth_not_checked",
+        ),
+    ):
+        evidence = _evidence()
+        evidence[group_id]["summary"]["body_observation_same_truth_checked"] = False
+
+        pack = build_pre_live_self_use_decision_pack(evidence)
+
+        assert pack["selected_option"] == "stay_local_self_use"
+        assert blocker in pack["blockers"]
 
 
 def test_pre_live_decision_pack_blocks_manager_tool_inventory_without_surface_proof() -> None:

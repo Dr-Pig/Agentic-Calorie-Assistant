@@ -36,14 +36,15 @@ def _product_loop_evidence(**overrides: dict) -> dict:
 
 def _local_web_candidate(**chain_overrides: object) -> dict:
     chain = {
-        "browser_artifact_count": 6,
-        "browser_executed_count": 6,
+        "browser_artifact_count": 7,
+        "browser_executed_count": 7,
         "all_required_browser_artifacts_executed": True,
         "product_pages_self_use_flow_checked": True,
         "today_macro_runtime_mirror_checked": True,
         "renderer_source_closure_checked": True,
         "context_target_browser_closure_checked": True,
         "body_noplan_degraded_checked": True,
+        "body_observation_same_truth_checked": True,
         "live_llm_invoked": False,
         "fooddb_evidence_used": False,
         "websearch_evidence_used": False,
@@ -96,7 +97,7 @@ def test_handoff_missing_fooddb_artifact_waits_without_claiming_real_pass() -> N
     assert pack["product_loop_evidence_status"]["local_web_candidate"]["status"] == (
         "candidate_prepared"
     )
-    assert pack["appshell_browser_evidence_chain"]["browser_artifact_count"] == 6
+    assert pack["appshell_browser_evidence_chain"]["browser_artifact_count"] == 7
     assert pack["appshell_browser_evidence_chain"]["all_required_browser_artifacts_executed"] is True
     assert pack["appshell_browser_evidence_chain"]["live_llm_invoked"] is False
     assert pack["appshell_browser_evidence_chain"]["fooddb_evidence_used"] is False

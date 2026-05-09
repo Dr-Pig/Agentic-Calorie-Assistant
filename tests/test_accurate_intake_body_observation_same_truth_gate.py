@@ -58,6 +58,7 @@ def test_body_observation_same_truth_gate_accepts_rt6_green_browser_truth() -> N
     assert artifact["artifact_type"] == "accurate_intake_body_observation_same_truth_gate"
     assert artifact["status"] == BODY_OBSERVATION_SAME_TRUTH_READY_STATUS
     assert artifact["pass_type"] == "browser_executed"
+    assert artifact["browser_executed"] is True
     assert artifact["upstream_runtime_gate"] == "rt6_bootstrap_no_plan_body_closure"
     assert artifact["journeys"] == ["G", "H"]
     assert artifact["blockers"] == []
