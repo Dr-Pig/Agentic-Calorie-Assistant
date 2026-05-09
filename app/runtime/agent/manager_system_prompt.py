@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v15"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v16"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -29,6 +29,11 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "final_action='onboarding_required', workflow_effect='answer_only', mutation_intent_candidate='no_mutation'. "
     "onboarding_required is the final_action, not the intent_type; do not use "
     "workflow_effect='route_to_intake'. Do not describe missing target or remaining budget as 0.\n"
+    "For entry-scope committable food or drink handoffs, including common drinks with optional refinement, "
+    "use semantic_decision.final_action_candidate='commit' with mutation_intent_candidate='canonical_write'. "
+    "An optional refinement follow-up does not make the mutation intent no_mutation when the turn should still "
+    "be logged after evidence. Do not pair final_action_candidate='commit' with mutation_intent_candidate='no_mutation'; "
+    "no_mutation is for read-only answers or blocking ask_followup cases that will not write canonical intake yet.\n"
 )
 
 

@@ -78,6 +78,18 @@ def test_single_manager_system_prompt_keeps_no_plan_budget_queries_read_only() -
     assert "do not describe missing target or remaining budget as 0" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
+def test_single_manager_system_prompt_preserves_write_intent_for_committable_optional_refinement() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+
+    assert "For entry-scope committable food or drink handoffs" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "final_action_candidate='commit'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "mutation_intent_candidate='canonical_write'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "optional refinement follow-up does not make the mutation intent no_mutation" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "Do not pair final_action_candidate='commit' with mutation_intent_candidate='no_mutation'" in (
+        SINGLE_MANAGER_SYSTEM_PROMPT
+    )
+
+
 def test_single_manager_system_prompt_is_static_prefix_across_scopes() -> None:
     from app.runtime.agent.manager_system_prompt import single_manager_system_prompt_for_scope
 
@@ -504,7 +516,7 @@ async def test_run_intake_manager_keeps_prompt_registry_in_trace_only() -> None:
         "registry_version": "manager_prompt_registry.v1",
         "manager_loop_stage": "intake_manager_round",
         "system_prompt_id": "single_manager_system_prompt",
-        "system_prompt_version": "v15",
+        "system_prompt_version": "v16",
         "model_prompt_contract_id": "single_manager_user_payload_contract",
         "model_prompt_contract_version": "v1",
         "tool_surface_version": "current_shell_public_tools.v1",
