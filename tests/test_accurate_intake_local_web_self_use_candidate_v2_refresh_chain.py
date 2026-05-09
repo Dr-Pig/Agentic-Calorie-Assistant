@@ -621,6 +621,44 @@ def test_refresh_chain_product_pages_flow_consumes_generated_body_same_truth_gat
     assert "body_observation_same_truth_gate" not in printed["closeout_navigation"]["missing_evidence"]
 
 
+def test_refresh_chain_generates_required_short_term_context_smoke_before_next_blocker(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+
+    short_term_path = (
+        artifact_dir
+        / module.PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["product_pages_short_term_context_smoke"].name
+    )
+    short_term = json.loads(short_term_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["status"] == "blocked"
+    assert short_term["status"] == "pass"
+    assert short_term["browser_executed"] is True
+    assert short_term["browser_execution_required"] is True
+    assert short_term["browser_reload_checked"] is True
+    assert short_term["pending_followup_created"] is True
+    assert short_term["pending_followup_reloaded"] is True
+    assert short_term["loaded_context_summary_present"] is True
+    assert short_term["pending_pins_present_after_followup"] is True
+    assert short_term["chat_history_context_fields_reloaded"] is True
+    assert short_term["product_pages_no_debug_trace"] is True
+    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
+        "product_pages_short_term_context_smoke.unexpected_status:missing"
+    )
+    assert (
+        "product_pages_short_term_context_smoke"
+        not in printed["closeout_navigation"]["missing_evidence"]
+    )
+
+
 def test_closeout_navigation_reports_stale_evidence_without_readiness_claims() -> None:
     from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
 
