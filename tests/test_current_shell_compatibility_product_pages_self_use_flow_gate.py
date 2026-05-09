@@ -106,6 +106,8 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "today_summary_rendered": True,
             "today_meal_list_rendered": True,
             "today_no_debug_trace": True,
+            "macro_present_exact_item_browser_checked": True,
+            "macro_missing_exact_item_browser_checked": True,
             "body_page_loaded": True,
             "body_active_plan_rendered": True,
             "body_plan_form_saved": True,
@@ -450,6 +452,18 @@ def test_product_pages_self_use_flow_gate_blocks_missing_target_candidate_or_con
     assert "product_pages_short_term_context_smoke.pending_followup_reloaded_not_true" in artifact["blockers"]
     assert "fixture_full_product_loop_e2e.completed_step_missing:food_log" in artifact["blockers"]
     assert "fixture_full_product_loop_e2e.completed_step_missing:fake_provider_context_smoke" in artifact["blockers"]
+
+
+def test_product_pages_self_use_flow_gate_requires_product_pages_macro_browser_evidence() -> None:
+    inputs = _valid_inputs()
+    inputs["product_pages_browser_smoke"].pop("macro_present_exact_item_browser_checked", None)
+    inputs["product_pages_browser_smoke"].pop("macro_missing_exact_item_browser_checked", None)
+
+    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "product_pages_browser_smoke.macro_present_exact_item_browser_checked_not_true" in artifact["blockers"]
+    assert "product_pages_browser_smoke.macro_missing_exact_item_browser_checked_not_true" in artifact["blockers"]
 
 
 def test_product_pages_self_use_flow_gate_requires_runtime_and_browser_closure_inputs() -> None:
