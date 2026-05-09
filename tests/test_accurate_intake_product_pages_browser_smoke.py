@@ -46,6 +46,16 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
             "carbs_text": "48",
             "fat_text": "6",
         },
+        "macro_missing_exact_item_browser_checked": True,
+        "macro_missing_exact_item_values": {
+            "macro_state": "guarded",
+            "macro_grid_hidden": True,
+            "macro_guard_reason_hidden": False,
+            "macro_guard_reason_text": "no_macro_data",
+            "protein_text": "--",
+            "carbs_text": "--",
+            "fat_text": "--",
+        },
         "today_session_status_rendered": True,
         "today_no_debug_trace": True,
         "body_page_loaded": True,
@@ -367,6 +377,44 @@ def test_product_pages_browser_smoke_validator_rejects_macro_present_value_drift
 
     assert status == "fail"
     assert "macro_present_exact_item_value_mismatch:protein_text" in blockers
+
+
+def test_product_pages_browser_smoke_validator_requires_macro_missing_exact_item_e2e() -> None:
+    report = _passing_report()
+    report["macro_missing_exact_item_browser_checked"] = False
+    report["macro_missing_exact_item_values"] = {
+        "macro_state": "guarded",
+        "macro_grid_hidden": True,
+        "macro_guard_reason_hidden": False,
+        "macro_guard_reason_text": "no_macro_data",
+        "protein_text": "--",
+        "carbs_text": "--",
+        "fat_text": "--",
+    }
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "macro_missing_exact_item_browser_not_checked" in blockers
+
+
+def test_product_pages_browser_smoke_validator_rejects_macro_missing_value_leak() -> None:
+    report = _passing_report()
+    report["macro_missing_exact_item_values"] = {
+        "macro_state": "visible",
+        "macro_grid_hidden": False,
+        "macro_guard_reason_hidden": True,
+        "macro_guard_reason_text": "",
+        "protein_text": "12",
+        "carbs_text": "--",
+        "fat_text": "--",
+    }
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "macro_missing_exact_item_value_mismatch:macro_state" in blockers
+    assert "macro_missing_exact_item_value_mismatch:protein_text" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_stale_body_budget_read_model_values() -> None:
