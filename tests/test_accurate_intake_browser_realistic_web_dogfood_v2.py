@@ -2,11 +2,58 @@ from __future__ import annotations
 
 import json
 import os
+import asyncio
 from pathlib import Path
 
 import pytest
 
 from scripts import run_accurate_intake_browser_realistic_web_dogfood_v2 as module
+
+
+def _expected_turn_result(turn: dict[str, object]) -> dict[str, object]:
+    return {
+        "turn_id": turn["turn_id"],
+        "raw_user_input": turn["raw_user_input"],
+        "expected_manager_decision": {
+            "intent_type": turn["intent_type"],
+            "workflow_effect": turn["workflow_effect"],
+            "final_action": turn["final_action"],
+            "mutation_intent_candidate": turn["mutation_intent_candidate"],
+            "target_attachment": turn["target_attachment"],
+        },
+        "last_payload_parseable": True,
+        "runtime_error_present": False,
+    }
+
+
+def _turn_surface(turn_id: str) -> dict[str, object]:
+    return {
+        "turn_id": turn_id,
+        "surface": {
+            "today_summary_rendered": True,
+            "debug_surface_rendered": True,
+            "runtime_status_surface_rendered": True,
+            "pending_followup_surface_rendered": turn_id == "dinner_draft_001",
+            "meal_threads_rendered": turn_id != "dinner_draft_001",
+            "backend_local_date_rendered": True,
+            "observed_today_summary": {
+                "budget_kcal": "1600",
+                "consumed_kcal": "980",
+                "remaining_kcal": "620",
+            },
+        },
+    }
+
+
+def _expected_manager_provider_calls() -> list[dict[str, object]]:
+    return [
+        {
+            "turn_id": turn["turn_id"],
+            "available_tools": ["budget.get_today_summary", "body.get_active_plan"],
+            "round_index": 0,
+        }
+        for turn in module.TURN_FIXTURES
+    ]
 
 
 def _passing_browser_result() -> dict[str, object]:
@@ -21,8 +68,30 @@ def _passing_browser_result() -> dict[str, object]:
         "today_summary_rendered": True,
         "debug_surface_rendered": True,
         "runtime_status_surface_rendered": True,
+        "pending_followup_surface_rendered": False,
+        "meal_threads_rendered": True,
+        "backend_local_date_rendered": True,
+        "observed_today_summary": {
+            "budget_kcal": "1600",
+            "consumed_kcal": "980",
+            "remaining_kcal": "620",
+        },
         "manager_context_status": "not_available",
         "evidence_gap_observed": True,
+        "turn_results": [_expected_turn_result(turn) for turn in module.TURN_FIXTURES],
+        "surfaces_after_turn": [_turn_surface(str(turn["turn_id"])) for turn in module.TURN_FIXTURES],
+        "after_reload_surface": {
+            "today_summary_rendered": True,
+            "debug_surface_rendered": True,
+            "runtime_status_surface_rendered": True,
+            "meal_threads_rendered": True,
+            "backend_local_date_rendered": True,
+            "observed_today_summary": {
+                "budget_kcal": "1600",
+                "consumed_kcal": "980",
+                "remaining_kcal": "620",
+            },
+        },
         "fetch_sequence": [
             {"url": "/today/current-budget?user_id=browser-realistic-v2", "method": "GET"},
             {"url": "/body-plan/active?user_id=browser-realistic-v2", "method": "GET"},
@@ -41,6 +110,29 @@ def test_browser_realistic_v2_combines_fetches_from_before_and_after_reload() ->
     after = [{"url": "/accurate-intake/chat-history?user_id=browser-realistic-v2", "method": "GET"}]
 
     assert module._combined_fetch_sequence(before_reload=before, after_reload=after) == before + after
+
+
+def test_browser_realistic_fixture_manager_advances_on_public_read_tool_surface() -> None:
+    provider = module._BrowserRealisticManagerProvider()
+    seen_turn_ids: list[str] = []
+
+    for turn in module.TURN_FIXTURES:
+        _decision, trace = asyncio.run(
+            provider.complete_with_trace(
+                user_payload={
+                    "raw_user_input": turn["raw_user_input"],
+                    "round_index": 0,
+                    "available_tools": [
+                        "budget.get_today_summary",
+                        "body.get_active_plan",
+                        "app.answer_usage_question",
+                    ],
+                }
+            )
+        )
+        seen_turn_ids.append(str(trace["turn_id"]))
+
+    assert seen_turn_ids == [str(turn["turn_id"]) for turn in module.TURN_FIXTURES]
 
 
 def test_browser_realistic_v2_missing_playwright_is_blocked_not_pass(monkeypatch, tmp_path: Path) -> None:
@@ -79,8 +171,14 @@ def test_browser_realistic_v2_can_require_browser_execution(monkeypatch, tmp_pat
 
 
 def test_browser_realistic_v2_uses_diagnostic_fixture_status_not_pass(monkeypatch, tmp_path: Path) -> None:
+    class PrecalledProvider(module._BrowserRealisticManagerProvider):
+        def __init__(self) -> None:
+            super().__init__()
+            self.calls = _expected_manager_provider_calls()
+
     monkeypatch.setattr(module, "_load_sync_playwright", lambda: object())
     monkeypatch.setattr(module, "_run_browser_sequence", lambda **_: _passing_browser_result())
+    monkeypatch.setattr(module, "_BrowserRealisticManagerProvider", PrecalledProvider)
 
     report = module.build_browser_realistic_web_dogfood_v2_report(db_path=tmp_path / "realistic.sqlite3")
 
@@ -129,6 +227,96 @@ def test_browser_realistic_v2_validator_requires_browser_reload_surfaces_and_sto
     assert "chat_history_not_reloaded" in blockers
     assert "runtime_status_surface_not_rendered" in blockers
     assert "forbidden_storage_used" in blockers
+
+
+def test_browser_realistic_v2_validator_requires_cdk_surfaces_and_reload_same_truth() -> None:
+    report = module._base_report(db_path=Path("x.sqlite3"), browser_execution_required=True)
+    report["browser_executed"] = True
+    browser = {
+        **_passing_browser_result(),
+        "meal_threads_rendered": False,
+        "backend_local_date_rendered": False,
+    }
+    browser["surfaces_after_turn"] = [
+        {
+            **dict(item),
+            "surface": {
+                **dict(item["surface"]),
+                "pending_followup_surface_rendered": False,
+            },
+        }
+        if item["turn_id"] == "dinner_draft_001"
+        else item
+        for item in list(browser["surfaces_after_turn"])
+    ]
+    browser["after_reload_surface"] = {
+        **dict(browser["after_reload_surface"]),
+        "meal_threads_rendered": False,
+        "backend_local_date_rendered": False,
+        "observed_today_summary": {
+            "budget_kcal": "1600",
+            "consumed_kcal": "999",
+            "remaining_kcal": "601",
+        },
+    }
+    report["browser"] = browser
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "surface_after_turn.pending_followup_not_rendered:dinner_draft_001" in blockers
+    assert "meal_threads_not_rendered" in blockers
+    assert "backend_local_date_not_rendered" in blockers
+    assert "after_reload_surface.meal_threads_not_rendered" in blockers
+    assert "after_reload_surface.backend_local_date_not_rendered" in blockers
+    assert "after_reload_surface.today_summary_mismatch" in blockers
+
+
+def test_browser_realistic_v2_validator_requires_structured_cdk_turn_results() -> None:
+    report = module._base_report(db_path=Path("x.sqlite3"), browser_execution_required=True)
+    report["browser_executed"] = True
+    turn_results = [_expected_turn_result(turn) for turn in module.TURN_FIXTURES]
+    turn_results = [turn for turn in turn_results if turn["turn_id"] != "dinner_draft_001"]
+    for turn in turn_results:
+        if turn["turn_id"] == "dinner_basket_001":
+            turn["last_payload_parseable"] = False
+        if turn["turn_id"] == "dinner_remove_001":
+            turn["runtime_error_present"] = True
+            turn["expected_manager_decision"] = {
+                **dict(turn["expected_manager_decision"]),
+                "workflow_effect": "answer_only",
+            }
+    report["browser"] = {
+        **_passing_browser_result(),
+        "turn_results": turn_results,
+    }
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "turn_result_missing:dinner_draft_001" in blockers
+    assert "turn_result_unparseable:dinner_basket_001" in blockers
+    assert "turn_result_runtime_error:dinner_remove_001" in blockers
+    assert "turn_result_decision_mismatch:dinner_remove_001.workflow_effect" in blockers
+
+
+def test_browser_realistic_v2_validator_requires_fixture_manager_turn_sequence() -> None:
+    report = module._base_report(db_path=Path("x.sqlite3"), browser_execution_required=True)
+    report["browser_executed"] = True
+    report["browser"] = _passing_browser_result()
+    report["manager_provider_calls"] = [
+        {
+            "turn_id": "breakfast_001",
+            "available_tools": ["budget.get_today_summary", "body.get_active_plan"],
+            "round_index": 0,
+        }
+        for _ in module.TURN_FIXTURES
+    ]
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "fixture_manager_turn_sequence_mismatch" in blockers
 
 
 def test_browser_realistic_v2_cli_writes_blocked_artifact_without_optional_failure(
