@@ -9,7 +9,6 @@ SIDECAR_ACTIVATION_CONTRACT = offline_sidecar_contract(
     "advanced_shadow_lab.manifest"
 )
 
-
 def build_advanced_shadow_lab_manifest() -> dict[str, Any]:
     return {
         "artifact_type": "advanced_shadow_lab_boundary_manifest",
@@ -39,7 +38,26 @@ def build_advanced_shadow_lab_manifest() -> dict[str, Any]:
     }
 
 
+def build_advanced_shadow_lab_stage_snapshot_manifest(
+    *,
+    memory_stage_decision: dict[str, Any],
+    recommendation_stage_decision: dict[str, Any],
+    rescue_stage_decision: dict[str, Any],
+    proactive_stage_decision: dict[str, Any],
+) -> dict[str, Any]:
+    from app.advanced_shadow_lab.stage_snapshot import (
+        build_advanced_shadow_lab_stage_snapshot_manifest as build_stage_snapshot,
+    )
+    return build_stage_snapshot(
+        memory_stage_decision=memory_stage_decision,
+        recommendation_stage_decision=recommendation_stage_decision,
+        rescue_stage_decision=rescue_stage_decision,
+        proactive_stage_decision=proactive_stage_decision,
+    )
+
+
 __all__ = [
     "SIDECAR_ACTIVATION_CONTRACT",
     "build_advanced_shadow_lab_manifest",
+    "build_advanced_shadow_lab_stage_snapshot_manifest",
 ]
