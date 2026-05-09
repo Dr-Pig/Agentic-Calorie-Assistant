@@ -32,11 +32,14 @@ from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
     _install_fetch_recorder,
     _load_sync_playwright,
 )
-from scripts.run_accurate_intake_mvp_self_use_smoke import build_one_day_self_use_scenario_wall_report  # noqa: E402
+from scripts.run_accurate_intake_one_day_realistic_web_dogfood import (  # noqa: E402
+    DOGFOOD_USER_EXTERNAL_ID,
+    build_report as build_realistic_manager_dogfood_report,
+)
 
 DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_browser_one_day_fixture.sqlite3"
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_browser_one_day_fixture_dogfood.json"
-USER_EXTERNAL_ID = "self-use-one-day-v1"
+USER_EXTERNAL_ID = DOGFOOD_USER_EXTERNAL_ID
 LOCAL_DATE = resolve_today_local_date(None)
 NOT_CLAIMING = [
     "product_ready",
@@ -129,7 +132,14 @@ def _base_report(*, db_path: Path, browser_execution_required: bool) -> dict[str
     }
 
 
-def _run_browser_sequence(*, base_url: str, local_debug_token: str, timeout_ms: int, headless: bool) -> dict[str, Any]:
+def _run_browser_sequence(
+    *,
+    base_url: str,
+    local_debug_token: str,
+    expected_today_summary: dict[str, str],
+    timeout_ms: int,
+    headless: bool,
+) -> dict[str, Any]:
     sync_playwright = _load_sync_playwright()
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=headless)
@@ -173,22 +183,32 @@ def _run_browser_sequence(*, base_url: str, local_debug_token: str, timeout_ms: 
             )
             page.evaluate("""async () => { await syncSurfaces(); }""")
             page.wait_for_function(
-                """() => {
+                """(expected) => {
                   const consumed = document.querySelector("#consumed-kcal")?.textContent?.trim();
                   const remaining = document.querySelector("#remaining-kcal")?.textContent?.trim();
-                  return consumed === "1670" && remaining === "130";
+                  return consumed === expected.consumed_kcal && remaining === expected.remaining_kcal;
                 }""",
+                arg=expected_today_summary,
                 timeout=timeout_ms,
             )
-            before_reload = _surface_state(page, local_date=LOCAL_DATE)
+            before_reload = _surface_state(
+                page,
+                local_date=LOCAL_DATE,
+                expected_today_summary=expected_today_summary,
+            )
             page.reload(wait_until="networkidle", timeout=timeout_ms)
             page.fill("#user-id", USER_EXTERNAL_ID)
             page.evaluate("""async () => { await syncSurfaces(); }""")
             page.wait_for_function(
-                """() => document.querySelector("#consumed-kcal")?.textContent?.trim() === "1670" """,
+                """(expected) => document.querySelector("#consumed-kcal")?.textContent?.trim() === expected.consumed_kcal """,
+                arg=expected_today_summary,
                 timeout=timeout_ms,
             )
-            after_reload = _surface_state(page, local_date=LOCAL_DATE)
+            after_reload = _surface_state(
+                page,
+                local_date=LOCAL_DATE,
+                expected_today_summary=expected_today_summary,
+            )
             fetch_sequence = page.evaluate("window.__accurateIntakeFetches || []")
             storage = page.evaluate(
                 """() => ({
@@ -215,9 +235,14 @@ def _run_browser_sequence(*, base_url: str, local_debug_token: str, timeout_ms: 
             browser.close()
 
 
-def _surface_state(page: Any, *, local_date: str) -> dict[str, Any]:
+def _surface_state(
+    page: Any,
+    *,
+    local_date: str,
+    expected_today_summary: dict[str, str],
+) -> dict[str, Any]:
     return page.evaluate(
-        f"""() => {{
+        f"""(expected) => {{
           const text = (selector) => document.querySelector(selector)?.textContent?.trim() || "";
           const value = (selector) => document.querySelector(selector)?.value?.trim() || "";
           const mealThreads = text("#meal-thread-list");
@@ -225,21 +250,26 @@ def _surface_state(page: Any, *, local_date: str) -> dict[str, Any]:
           const sameTruth = text("#same-truth-list");
           return {{
             today_summary_rendered: (
-              text("#budget-kcal") === "1800" &&
-              text("#consumed-kcal") === "1670" &&
-              text("#remaining-kcal") === "130"
+              text("#budget-kcal") === expected.budget_kcal &&
+              text("#consumed-kcal") === expected.consumed_kcal &&
+              text("#remaining-kcal") === expected.remaining_kcal
             ),
             meal_threads_rendered: mealThreads.length > 0 && !mealThreads.includes("No meal threads"),
             correction_history_rendered: corrections.length > 0 && !corrections.includes("No pending drafts"),
+            removed_item_rendered: corrections.includes("removed:"),
+            remaining_items_rendered: mealThreads.includes("items:") || corrections.includes("kept:"),
             same_truth_rendered: sameTruth.includes("status: pass"),
             backend_local_date_rendered: value("#local-date-display") === {json.dumps(local_date)},
+            meal_thread_text: mealThreads,
+            correction_history_text: corrections,
             observed_today_summary: {{
               budget_kcal: text("#budget-kcal"),
               consumed_kcal: text("#consumed-kcal"),
               remaining_kcal: text("#remaining-kcal")
             }}
           }};
-        }}"""
+        }}""",
+        expected_today_summary,
     )
 
 
@@ -252,12 +282,17 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         ("today_summary_rendered", "today_summary_not_rendered"),
         ("meal_threads_rendered", "meal_threads_not_rendered"),
         ("correction_history_rendered", "correction_history_not_rendered"),
+        ("removed_item_rendered", "removed_item_not_rendered"),
+        ("remaining_items_rendered", "remaining_items_not_rendered"),
         ("same_truth_rendered", "same_truth_not_rendered"),
         ("browser_reload_checked", "browser_reload_not_checked"),
         ("reload_state_rehydrated", "reload_state_not_rehydrated"),
     ):
         if browser.get(key) is not True:
             blockers.append(blocker)
+    expected_today_summary = dict(report.get("expected_today_summary") or {})
+    if expected_today_summary and dict(browser.get("observed_today_summary") or {}) != expected_today_summary:
+        blockers.append("observed_today_summary_mismatch")
     for expected, method in REQUIRED_FETCH_METHODS.items():
         if not any(
             expected in str(item.get("url") or "") and str(item.get("method") or "GET").upper() == method
@@ -277,6 +312,35 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     return ("browser_fixture_pass" if not blockers else "fail"), blockers
 
 
+def _manager_final_today_summary(manager_report: dict[str, Any]) -> dict[str, str]:
+    turns = list(manager_report.get("turns") or [])
+    for turn in reversed(turns):
+        state_after = dict(turn.get("state_after") or {})
+        if {
+            "budget_kcal",
+            "consumed_kcal",
+            "remaining_kcal",
+        }.issubset(state_after):
+            return {
+                "budget_kcal": str(state_after["budget_kcal"]),
+                "consumed_kcal": str(state_after["consumed_kcal"]),
+                "remaining_kcal": str(state_after["remaining_kcal"]),
+            }
+    raise RuntimeError("manager_dogfood_final_today_summary_missing")
+
+
+def _manager_summary(manager_report: dict[str, Any]) -> dict[str, Any]:
+    evidence = dict(manager_report.get("evidence") or {})
+    return {
+        "status": manager_report.get("status"),
+        "final_today_summary": _manager_final_today_summary(manager_report),
+        "turn_count": len(list(manager_report.get("turns") or [])),
+        "approved_fooddb_evidence_fixture_used": bool(evidence.get("approved_fooddb_evidence_fixture_used")),
+        "macro_present_evidence_seen": bool(evidence.get("macro_present_evidence_seen")),
+        "macro_missing_evidence_seen": bool(evidence.get("macro_missing_evidence_seen")),
+    }
+
+
 def build_browser_one_day_fixture_dogfood_report(
     *,
     db_path: Path = DEFAULT_DB_PATH,
@@ -293,15 +357,36 @@ def build_browser_one_day_fixture_dogfood_report(
         report["blockers"] = ["playwright_not_installed"]
         return report
 
-    scenario = build_one_day_self_use_scenario_wall_report(db_path=db_path, local_date=LOCAL_DATE, reset_db=reset_db)
-    report["scenario_wall_status"] = scenario.get("status")
-    report["scenario_wall_summary"] = scenario.get("summary")
-    report["scenario_wall_id"] = scenario.get("scenario_wall_id")
-    if scenario.get("status") != "pass":
+    manager_wrapper = build_realistic_manager_dogfood_report(
+        db_path=db_path,
+        local_date=LOCAL_DATE,
+        reset_db=reset_db,
+    )
+    manager_dogfood = dict(manager_wrapper.get("one_day_realistic_web_dogfood") or {})
+    report["manager_runtime_source"] = "one_day_realistic_web_dogfood"
+    report["manager_dogfood_status"] = manager_dogfood.get("status")
+    if not manager_dogfood:
         report["status"] = "fail"
-        report["blockers"] = ["scenario_wall_not_pass"]
+        report["blockers"] = ["manager_dogfood_report_missing"]
         return report
-
+    if manager_dogfood.get("status") != "pass":
+        report["scenario_wall_status"] = manager_dogfood.get("status")
+        report["scenario_wall_id"] = "one_day_realistic_web_dogfood"
+        report["status"] = "fail"
+        report["blockers"] = ["manager_dogfood_not_pass"]
+        return report
+    manager_evidence = dict(manager_dogfood.get("evidence") or {})
+    manager_summary = _manager_summary(manager_dogfood)
+    expected_today_summary = manager_summary["final_today_summary"]
+    report["manager_dogfood_summary"] = manager_summary
+    report["expected_today_summary"] = expected_today_summary
+    report["fooddb_evidence_used"] = bool(
+        manager_evidence.get("fooddb_evidence_used")
+        or manager_evidence.get("approved_fooddb_evidence_fixture_used")
+    )
+    report["scenario_wall_status"] = manager_dogfood.get("status")
+    report["scenario_wall_summary"] = manager_summary
+    report["scenario_wall_id"] = "one_day_realistic_web_dogfood"
     engine, SessionLocal = _session_factory(db_path)
     db = SessionLocal()
     local_debug_token = secrets.token_urlsafe(24)
@@ -319,6 +404,7 @@ def build_browser_one_day_fixture_dogfood_report(
             report["browser"] = _run_browser_sequence(
                 base_url=base_url,
                 local_debug_token=local_debug_token,
+                expected_today_summary=expected_today_summary,
                 timeout_ms=timeout_ms,
                 headless=headless,
             )

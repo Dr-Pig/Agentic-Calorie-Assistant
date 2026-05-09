@@ -35,6 +35,8 @@ DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_one_day_dogfood.
 DEFAULT_OUTPUT_PATH = (
     ROOT / "artifacts" / "accurate_intake_one_day_realistic_web_dogfood.json"
 )
+DOGFOOD_USER_EXTERNAL_ID = "dogfood-user-v2-diagnostic"
+DEFAULT_LOCAL_DATE = "2026-05-04"
 
 ONE_DAY_TURN_FIXTURES = [
     {
@@ -822,14 +824,30 @@ def _close_test_client(client: TestClient) -> None:
         intake_manager_tool_batch.estimate_nutrition_tool = old_estimate_tool
 
 
-def build_report(db_path: Path) -> dict[str, Any]:
+def build_report(
+    db_path: Path,
+    *,
+    local_date: str = DEFAULT_LOCAL_DATE,
+    reset_db: bool = True,
+) -> dict[str, Any]:
     with _local_debug_headers() as debug_headers:
-        return _build_report(db_path, debug_headers=debug_headers)
+        return _build_report(
+            db_path,
+            debug_headers=debug_headers,
+            local_date=local_date,
+            reset_db=reset_db,
+        )
 
 
-def _build_report(db_path: Path, *, debug_headers: dict[str, str]) -> dict[str, Any]:
+def _build_report(
+    db_path: Path,
+    *,
+    debug_headers: dict[str, str],
+    local_date: str = DEFAULT_LOCAL_DATE,
+    reset_db: bool = True,
+) -> dict[str, Any]:
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    if db_path.exists():
+    if reset_db and db_path.exists():
         db_path.unlink()
 
     engine = create_engine(
@@ -843,8 +861,7 @@ def _build_report(db_path: Path, *, debug_headers: dict[str, str]) -> dict[str, 
     client = _build_test_client(db, provider)
     evidence_tool = client.dogfood_evidence_tool
 
-    user_id = "dogfood-user-v2-diagnostic"
-    local_date = "2026-05-04"
+    user_id = DOGFOOD_USER_EXTERNAL_ID
 
     turns_output = []
     has_food_evidence_gap = False
@@ -1057,9 +1074,15 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--db-path", default=str(DEFAULT_DB_PATH))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT_PATH))
+    parser.add_argument("--local-date", default=DEFAULT_LOCAL_DATE)
+    parser.add_argument("--keep-db", action="store_true")
     args = parser.parse_args()
 
-    report = build_report(Path(args.db_path))
+    report = build_report(
+        Path(args.db_path),
+        local_date=args.local_date,
+        reset_db=not args.keep_db,
+    )
 
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     with open(args.output, "w", encoding="utf-8") as f:
