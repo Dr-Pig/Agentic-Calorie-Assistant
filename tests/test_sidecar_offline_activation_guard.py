@@ -30,6 +30,7 @@ SIDECAR_MODULES = [
     "app.runtime.contracts.proactive_gate",
     "app.runtime.application.proactive_deterministic_gate",
     "app.runtime.application.proactive_no_send_shadow_evaluator",
+    "app.runtime.application.proactive_summary_consumer",
 ]
 
 ACTIVE_RUNTIME_SURFACES = [
