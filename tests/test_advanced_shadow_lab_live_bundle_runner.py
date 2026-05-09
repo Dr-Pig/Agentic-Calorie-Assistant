@@ -114,6 +114,46 @@ def test_advanced_shadow_live_bundle_runner_blocks_live_without_env(
     assert terminal["user_facing_behavior_changed"] is False
 
 
+def test_advanced_shadow_live_bundle_blocks_synthetic_chain_summary_fallback(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from scripts import run_advanced_shadow_lab_live_bundle as runner
+
+    monkeypatch.setattr(runner, "_build_fixture_chain", lambda _: _chain_without_stages())
+    inputs = _write_bundle_inputs(tmp_path)
+    output = tmp_path / "advanced_shadow_comparison.json"
+    artifact_dir = tmp_path / "intermediate"
+
+    exit_code = runner.main(
+        [
+            "--memory-dogfood-replay-review",
+            str(inputs["memory_review"]),
+            "--chain-payload",
+            str(inputs["chain_payload"]),
+            "--output",
+            str(output),
+            "--artifact-dir",
+            str(artifact_dir),
+        ]
+    )
+    recommendation = json.loads(
+        (artifact_dir / "advanced_shadow_recommendation_copy_live_diagnostic.json")
+        .read_text(encoding="utf-8")
+    )
+
+    assert exit_code == 0
+    assert recommendation["status"] == "blocked"
+    assert recommendation["provider_invoked"] is False
+    assert recommendation["recommendation_served"] is False
+    assert "recommendation_summary.status_not_pass" in recommendation["blockers"]
+    assert (
+        "recommendation_summary.stage_artifact_missing:"
+        "recommendation_shadow_summary_consumer_quality_report"
+    ) in recommendation["blockers"]
+    assert recommendation["source_candidate_count"] == 0
+
+
 def test_advanced_shadow_live_bundle_runner_source_stays_manual_diagnostic() -> None:
     source = Path("scripts/run_advanced_shadow_lab_live_bundle.py").read_text(
         encoding="utf-8"
@@ -137,6 +177,7 @@ def test_advanced_shadow_live_bundle_runner_source_stays_manual_diagnostic() -> 
         assert token not in source
     assert "ADVANCED_SHADOW_LAB_ALLOW_LIVE_LLM_DIAGNOSTIC" in source
     assert "advanced_shadow_live_bundle_artifact" not in source
+    assert "advanced_shadow_bundle_fixture" not in source
 
 
 def _write_bundle_inputs(tmp_path: Path) -> dict[str, Path]:
@@ -227,6 +268,25 @@ def _chain_payload() -> dict[str, object]:
             {"action": "dismiss", "dismiss_reason": "too_frequent"},
             {"action": "snooze", "snooze_minutes": 120},
         ],
+    }
+
+
+def _chain_without_stages() -> dict[str, object]:
+    return {
+        "artifact_type": "advanced_shadow_e2e_fixture_chain_artifact",
+        "status": "pass",
+        "stage_trace": [
+            {
+                "artifact_type": "recommendation_shadow_summary_consumer_quality_report",
+                "status": "pass",
+            }
+        ],
+        "terminal_review_sink": {"status": "pass", "record_count": 0},
+        "blockers": [],
+        "recommendation_served": False,
+        "proactive_sent": False,
+        "mutation_changed": False,
+        "user_facing_behavior_changed": False,
     }
 
 
