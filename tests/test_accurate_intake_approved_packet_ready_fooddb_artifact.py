@@ -89,18 +89,39 @@ def test_build_approved_packet_ready_artifact_uses_macro_complete_exact_card() -
     assert metadata["fixture_or_real"] == "real"
     assert metadata["source_quality"] == "packet_ready_approved"
     assert metadata["ready_for_product_loop"] is True
-    assert metadata["macro_contract"] == {
-        "packet_fields": [
-            "protein_g",
-            "carbs_g",
-            "fat_g",
-            "macro_visibility_status",
-            "macro_source_basis",
-            "macro_confidence",
-        ],
-        "macro_truth_owner": "fooddb_approved_packet",
-        "missing_macro_policy": "preserve_null_do_not_invent",
+    macro_contract = metadata["macro_contract"]
+    assert macro_contract["packet_fields"] == [
+        "protein_g",
+        "carbs_g",
+        "fat_g",
+        "macro_visibility_status",
+        "macro_source_basis",
+        "macro_confidence",
+    ]
+    assert macro_contract["macro_truth_owner"] == "fooddb_approved_packet"
+    assert macro_contract["missing_macro_policy"] == "preserve_null_do_not_invent"
+    assert macro_contract["macro_runtime_policy"] == {
+        "calorie_first": True,
+        "macro_aware": True,
+        "missing_macro_blocks_kcal_logging": False,
+        "manager_may_infer_macro_from_food_name": False,
     }
+    source_policy = macro_contract["source_class_policy"]
+    assert source_policy["exact_brand_item"]["macro_truth_allowed"] is True
+    assert source_policy["generic_common_serving"]["allowed_macro_values"] == [
+        "point",
+        "range",
+        "null_unknown",
+    ]
+    assert source_policy["listed_component"]["preferred_macro_granularity"] == "per_unit"
+    assert source_policy["basket_family_alias_modifier"]["macro_truth_allowed"] is False
+    assert source_policy["source_evidence_candidate"]["macro_truth_allowed"] is False
+    assert source_policy["source_evidence_candidate"]["source_classes"] == [
+        "TFDA_per_100g",
+        "USDA",
+        "OpenFoodFacts",
+        "WebSearch",
+    ]
 
     item = artifact["packet_ready_items"][0]
     assert item["source_lane"] == "exact_item_card"
