@@ -82,6 +82,31 @@ def _seed_required_gate_inputs(artifact_dir: Path, *, omit_browser_target_ui: bo
         )
         _merge_write(target_path, browser_gate_inputs["product_pages_target_candidate_ui_smoke"])
 
+    product_loop_support = {
+        "browser_fixture_dogfood": {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_browser_one_day_fixture_dogfood",
+            "status": "browser_fixture_pass",
+            "fixture_evidence_used": True,
+            "real_fooddb_pass_claimed": False,
+        },
+        "browser_realistic_dogfood": {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_browser_realistic_web_dogfood_v2",
+            "status": "browser_diagnostic_pass_with_fixture_evidence_gap",
+            "fixture_evidence_used": True,
+            "real_fooddb_pass_claimed": False,
+        },
+        "operator_review": {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_dogfood_operator_review_v2",
+            "status": "browser_diagnostic_review_with_fixture_evidence_gap",
+            "real_fooddb_pass_claimed": False,
+        },
+    }
+    for group_id, payload in product_loop_support.items():
+        _write(artifact_dir / module.PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES[group_id], payload)
+
 
 def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evidence_are_green(
     tmp_path: Path,
@@ -141,6 +166,17 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
             artifact_dir / module.REFRESHED_ARTIFACT_FILENAMES["local_web_candidate"]
         ).read_text(encoding="utf-8")
     )
+    approved_fooddb_artifact = json.loads(
+        (
+            artifact_dir
+            / module.REFRESHED_ARTIFACT_FILENAMES["approved_packet_ready_fooddb_artifact"]
+        ).read_text(encoding="utf-8")
+    )
+    product_loop_handoff = json.loads(
+        (
+            artifact_dir / module.REFRESHED_ARTIFACT_FILENAMES["product_loop_handoff"]
+        ).read_text(encoding="utf-8")
+    )
 
     assert exit_code == 0
     assert printed["status"] == "pass"
@@ -188,6 +224,36 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
     assert chain["live_llm_invoked"] is False
     assert chain["fooddb_evidence_used"] is False
     assert chain["websearch_evidence_used"] is False
+    assert approved_fooddb_artifact["status"] == "approved_packet_ready_fooddb_artifact_ready"
+    assert approved_fooddb_artifact["ready_for_other_tracks"] is True
+    assert approved_fooddb_artifact["fixture_or_real"] == "real"
+    assert (
+        approved_fooddb_artifact["approved_packet_ready_evidence_artifact"]["macro_contract"][
+            "macro_truth_owner"
+        ]
+        == "fooddb_approved_packet"
+    )
+    assert product_loop_handoff["status"] == (
+        "product_loop_handoff_ready_for_fdb_integration_validation"
+    )
+    assert product_loop_handoff["fooddb_artifact_status"] == (
+        "approved_packet_ready_evidence_metadata_valid"
+    )
+    assert product_loop_handoff["ready_for_fdb_integration"] is True
+    assert product_loop_handoff["fooddb_evidence_used"] is False
+    assert product_loop_handoff["real_fooddb_pass_claimed"] is False
+    assert product_loop_handoff["dogfood_pass"] is False
+    assert product_loop_handoff["product_readiness_claimed"] is False
+    assert product_loop_handoff["private_self_use_approved"] is False
+    assert printed["approved_fooddb_artifact_status"] == (
+        "approved_packet_ready_fooddb_artifact_ready"
+    )
+    assert printed["product_loop_handoff_status"] == (
+        "product_loop_handoff_ready_for_fdb_integration_validation"
+    )
+    assert printed["ready_for_fdb_integration_validation"] is True
+    assert printed["fooddb_evidence_used"] is False
+    assert printed["real_fooddb_pass_claimed"] is False
     assert json.loads(
         (
             artifact_dir
@@ -225,10 +291,16 @@ def test_refresh_chain_honestly_blocks_when_browser_activation_dependencies_are_
             / module.REFRESHED_ARTIFACT_FILENAMES["pre_live_decision_pack"]
         ).read_text(encoding="utf-8")
     )
+    product_loop_handoff = json.loads(
+        (
+            artifact_dir / module.REFRESHED_ARTIFACT_FILENAMES["product_loop_handoff"]
+        ).read_text(encoding="utf-8")
+    )
 
     assert exit_code == 1
     assert printed["status"] == "blocked"
     assert printed["candidate_prepared"] is False
+    assert printed["ready_for_fdb_integration_validation"] is False
     assert browser_activation["status"] == "blocked"
     assert (
         "product_pages_target_candidate_ui_smoke.unexpected_status:missing"
@@ -236,6 +308,12 @@ def test_refresh_chain_honestly_blocks_when_browser_activation_dependencies_are_
     )
     assert pre_live_pack["selected_option"] == "stay_local_self_use"
     assert "ready_for_live_diagnostic_decision" not in pre_live_pack
+    assert product_loop_handoff["status"] == "blocked"
+    assert product_loop_handoff["ready_for_fdb_integration"] is False
+    assert product_loop_handoff["fooddb_artifact_status"] == (
+        "approved_packet_ready_evidence_metadata_valid"
+    )
+    assert product_loop_handoff["real_fooddb_pass_claimed"] is False
 
 
 def test_refresh_chain_source_stays_out_of_fooddb_live_and_shared_contract_boundaries() -> None:
@@ -255,3 +333,6 @@ def test_refresh_chain_source_stays_out_of_fooddb_live_and_shared_contract_bound
         "product_readiness_claimed = True",
     ):
         assert fragment not in source
+
+    assert "build_approved_packet_ready_fooddb_artifact" in source
+    assert "build_product_loop_handoff_v3" in source

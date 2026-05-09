@@ -44,6 +44,9 @@ from app.composition.accurate_intake_pl_ce_product_pages_self_use_flow_gate impo
 from app.composition.accurate_intake_today_macro_mirror_gate import (  # noqa: E402
     build_today_macro_mirror_gate_artifact,
 )
+from app.nutrition.application.approved_packet_ready_fooddb_artifact import (  # noqa: E402
+    build_approved_packet_ready_fooddb_artifact,
+)
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
 from scripts.build_current_shell_compatibility_product_pages_self_use_flow_gate import (  # noqa: E402
     DEFAULT_ARTIFACT_PATHS as PRODUCT_PAGES_FLOW_ARTIFACT_PATHS,
@@ -51,6 +54,9 @@ from scripts.build_current_shell_compatibility_product_pages_self_use_flow_gate 
 )
 from scripts.build_accurate_intake_local_web_self_use_candidate_v2 import (  # noqa: E402
     build_local_web_self_use_candidate_v2,
+)
+from scripts.build_accurate_intake_product_loop_handoff_v3 import (  # noqa: E402
+    build_product_loop_handoff_v3,
 )
 from scripts.build_current_shell_compatibility_browser_activation_evidence_gate import (  # noqa: E402
     DEFAULT_ARTIFACT_PATHS as BROWSER_GATE_ARTIFACT_PATHS,
@@ -88,6 +94,16 @@ REFRESHED_ARTIFACT_FILENAMES = {
     "pre_live_evidence": "accurate_intake_pre_live_evidence.json",
     "pre_live_decision_pack": "accurate_intake_pre_live_self_use_decision_pack.json",
     "local_web_candidate": "accurate_intake_local_web_self_use_candidate_v2.json",
+    "approved_packet_ready_fooddb_artifact": (
+        "accurate_intake_approved_packet_ready_fooddb_artifact.json"
+    ),
+    "product_loop_handoff": "accurate_intake_product_loop_handoff_v3.json",
+}
+
+PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES = {
+    "browser_fixture_dogfood": "accurate_intake_browser_one_day_fixture_dogfood.json",
+    "browser_realistic_dogfood": "accurate_intake_browser_realistic_web_dogfood_v2.json",
+    "operator_review": "accurate_intake_dogfood_operator_review_v2.json",
 }
 
 
@@ -138,6 +154,46 @@ def _local_gate_path_overrides(artifacts_dir: Path) -> dict[str, Path]:
     return {
         group_id: _group_path(artifacts_dir, path)
         for group_id, path in DEFAULT_EVIDENCE_PATHS.items()
+    }
+
+
+def _product_loop_handoff_evidence(
+    artifacts_dir: Path,
+    *,
+    local_web_candidate: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "browser_shell_smoke": _read_payload(
+            _group_path(artifacts_dir, DEFAULT_EVIDENCE_PATHS["browser_shell_smoke"])
+        ),
+        "local_web_candidate": local_web_candidate,
+        "browser_fixture_dogfood": _read_payload(
+            _artifact_path(
+                artifacts_dir,
+                PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["browser_fixture_dogfood"],
+            )
+        ),
+        "local_dogfood_hygiene": _read_payload(
+            _group_path(
+                artifacts_dir,
+                DEFAULT_EVIDENCE_PATHS["local_dogfood_data_hygiene"],
+            )
+        ),
+        "browser_realistic_dogfood": _read_payload(
+            _artifact_path(
+                artifacts_dir,
+                PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["browser_realistic_dogfood"],
+            )
+        ),
+        "operator_review": _read_payload(
+            _artifact_path(
+                artifacts_dir,
+                PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["operator_review"],
+            )
+        ),
+        "mvp_gate": _read_payload(
+            _group_path(artifacts_dir, DEFAULT_EVIDENCE_PATHS["accurate_intake_mvp_gate"])
+        ),
     }
 
 
@@ -285,6 +341,30 @@ def build_local_web_self_use_candidate_refresh_chain(
         local_web_candidate,
     )
 
+    approved_fooddb_artifact_path = _artifact_path(
+        artifacts_dir,
+        REFRESHED_ARTIFACT_FILENAMES["approved_packet_ready_fooddb_artifact"],
+    )
+    approved_fooddb_artifact = build_approved_packet_ready_fooddb_artifact(
+        artifact_path=str(approved_fooddb_artifact_path)
+    )
+    write_json_artifact(approved_fooddb_artifact_path, approved_fooddb_artifact)
+
+    product_loop_handoff = build_product_loop_handoff_v3(
+        _product_loop_handoff_evidence(
+            artifacts_dir,
+            local_web_candidate=local_web_candidate,
+        ),
+        fooddb_artifact=approved_fooddb_artifact,
+    )
+    write_json_artifact(
+        _artifact_path(
+            artifacts_dir,
+            REFRESHED_ARTIFACT_FILENAMES["product_loop_handoff"],
+        ),
+        product_loop_handoff,
+    )
+
     candidate_payload = dict(local_web_candidate.get("local_web_self_use_candidate_v2") or {})
     appshell_browser_evidence_chain = dict(
         candidate_payload.get("appshell_browser_evidence_chain") or {}
@@ -303,6 +383,11 @@ def build_local_web_self_use_candidate_refresh_chain(
         "context_live_diagnostic_gate_status": context_live_diagnostic_gate.get("status"),
         "pre_live_evidence_status": pre_live_evidence.get("_evidence_metadata", {}).get("status"),
         "pre_live_selected_option": pre_live_decision_pack.get("selected_option"),
+        "approved_fooddb_artifact_status": approved_fooddb_artifact.get("status"),
+        "product_loop_handoff_status": product_loop_handoff.get("status"),
+        "ready_for_fdb_integration_validation": product_loop_handoff.get("ready_for_fdb_integration")
+        is True,
+        "product_loop_handoff_blockers": list(product_loop_handoff.get("blockers") or []),
         "candidate_prepared": candidate_payload.get("candidate_prepared") is True,
         "candidate_blockers": list(candidate_payload.get("blockers") or []),
         "live_llm_invoked": False,
