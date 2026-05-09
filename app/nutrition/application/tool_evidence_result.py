@@ -139,6 +139,7 @@ def build_tool_evidence_result(
             "runtime_mutation",
             "creating_fooddb_truth",
             "inventing_source",
+            "inventing_macro",
             "inferring_source_implementation",
         ],
     }

@@ -15,7 +15,7 @@ from app.nutrition.application.fooddb_manager_packet_smoke import (  # noqa: E40
 from app.nutrition.infrastructure.local_food_evidence_index import (  # noqa: E402
     LocalSmallAnchorFoodEvidenceIndex,
 )
-from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
+from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
 
 
 DEFAULT_SMALL_ANCHOR_STORE = ROOT / "app" / "knowledge" / "small_anchor_store_tw.json"
@@ -27,12 +27,21 @@ def main(argv: list[str] | None = None) -> int:
         description="Build deterministic FoodDB manager evidence packet smoke artifact."
     )
     parser.add_argument("--small-anchor-store", default=str(DEFAULT_SMALL_ANCHOR_STORE))
+    parser.add_argument("--approved-packet-ready-artifact")
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
     index = LocalSmallAnchorFoodEvidenceIndex.from_path(Path(args.small_anchor_store))
     retrieval_records = index.load_records()
-    artifact = build_fooddb_manager_packet_smoke(retrieval_records=retrieval_records)
+    approved_artifact = (
+        read_json_artifact(Path(args.approved_packet_ready_artifact))
+        if args.approved_packet_ready_artifact
+        else None
+    )
+    artifact = build_fooddb_manager_packet_smoke(
+        retrieval_records=retrieval_records,
+        approved_packet_ready_artifact=approved_artifact,
+    )
     write_json_artifact(Path(args.output), artifact)
     print(
         json.dumps(
@@ -41,6 +50,9 @@ def main(argv: list[str] | None = None) -> int:
                 "claim_scope": artifact["claim_scope"],
                 "case_count": artifact["summary"]["case_count"],
                 "compact_packet_pass_count": artifact["summary"]["compact_packet_pass_count"],
+                "approved_packet_ready_case_count": artifact["summary"][
+                    "approved_packet_ready_case_count"
+                ],
                 "live_provider_used": artifact["live_provider_used"],
             },
             ensure_ascii=False,

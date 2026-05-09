@@ -6,6 +6,9 @@ from pathlib import Path
 from app.nutrition.application.fooddb_manager_packet_smoke import (
     build_fooddb_manager_packet_smoke,
 )
+from app.nutrition.application.approved_packet_ready_fooddb_artifact import (
+    build_approved_packet_ready_fooddb_artifact,
+)
 from app.nutrition.application.fooddb_retrieval_policy import (
     build_runtime_retrieval_records_from_small_anchor_payload,
 )
@@ -112,12 +115,72 @@ def test_fooddb_manager_packet_smoke_classifies_boba_basket_and_bento_cases() ->
 
 def test_fooddb_manager_packet_smoke_cli_writes_roundtrippable_artifact(tmp_path: Path) -> None:
     from app.shared.infra.json_artifacts import read_json_artifact
+    from scripts.build_accurate_intake_approved_packet_ready_fooddb_artifact import (
+        main as build_approved_artifact,
+    )
     from scripts.build_accurate_intake_fooddb_manager_packet_smoke import main
 
+    approved = tmp_path / "approved_packet_ready_fooddb.json"
     output = tmp_path / "fooddb_packet_smoke.json"
 
-    assert main(["--output", str(output)]) == 0
+    assert build_approved_artifact(["--output", str(approved)]) == 0
+    assert main(["--approved-packet-ready-artifact", str(approved), "--output", str(output)]) == 0
 
     artifact = read_json_artifact(output)
     assert artifact["artifact_type"] == "accurate_intake_fooddb_manager_packet_smoke"
     assert artifact["summary"]["compact_packet_pass_count"] == 5
+    assert artifact["summary"]["approved_packet_ready_case_count"] == 3
+
+
+def test_fooddb_manager_packet_smoke_consumes_approved_packet_ready_triad() -> None:
+    records = build_runtime_retrieval_records_from_small_anchor_payload(_small_anchor_payload())
+    approved_artifact = build_approved_packet_ready_fooddb_artifact(
+        artifact_path="artifacts/approved_packet_ready_fooddb_min1.json"
+    )
+
+    artifact = build_fooddb_manager_packet_smoke(
+        retrieval_records=records,
+        approved_packet_ready_artifact=approved_artifact,
+    )
+
+    assert artifact["summary"]["approved_packet_ready_case_count"] == 3
+    assert artifact["summary"]["approved_packet_ready_lane_counts"] == {
+        "exact_item_card": 1,
+        "generic_common_serving": 1,
+        "listed_component": 1,
+    }
+    by_lane = {
+        case["source_lane"]: case
+        for case in artifact["approved_packet_ready_cases"]
+    }
+    exact = by_lane["exact_item_card"]
+    assert exact["manager_evidence_packet"]["runtime_mutation_allowed"] is False
+    assert exact["tool_result_envelope"]["runtime_mutation_allowed"] is False
+    assert "runtime_mutation" in exact["tool_result_envelope"]["manager_must_not_use_for"]
+    assert "inventing_macro" in exact["tool_result_envelope"]["manager_must_not_use_for"]
+    assert exact["final_response_basis"]["macro_basis"] == {
+        "macro_visibility_status": "visible",
+        "allowed_macro_claims": {
+            "protein_g": 12,
+            "carbs_g": 48,
+            "fat_g": 6,
+        },
+    }
+
+    generic = by_lane["generic_common_serving"]
+    assert generic["manager_evidence_packet"]["evidence_items"][0]["kcal_range"] == [650, 900]
+    assert generic["manager_evidence_packet"]["evidence_items"][0]["protein_g"] is None
+    assert generic["final_response_basis"]["macro_basis"] == {
+        "macro_visibility_status": "hidden_missing_source",
+        "allowed_macro_claims": {},
+    }
+    assert "invented_macro" in generic["final_response_basis"]["forbidden_claims"]
+
+    component = by_lane["listed_component"]
+    assert component["manager_evidence_packet"]["evidence_items"][0]["kcal_range"] == [70, 120]
+    assert component["manager_evidence_packet"]["evidence_items"][0]["fat_g"] is None
+    assert component["final_response_basis"]["macro_basis"] == {
+        "macro_visibility_status": "hidden_missing_source",
+        "allowed_macro_claims": {},
+    }
+    assert component["final_response_basis"]["packet_is_not_mutation_authority"] is True

@@ -61,6 +61,7 @@ def test_tool_evidence_result_wraps_compact_packets_without_mutation_authority()
     assert "supabase" not in str(result).lower()
     assert "local_json" not in str(result)
     assert "runtime_mutation" in result["manager_must_not_use_for"]
+    assert "inventing_macro" in result["manager_must_not_use_for"]
 
 
 def test_tool_evidence_result_rejects_non_compact_packet_structures() -> None:
