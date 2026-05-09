@@ -140,6 +140,11 @@ def _evaluate_candidate(
 
     return {
         "candidate_id": quality.candidate_id,
+        "title": str(candidate.get("title") or ""),
+        "store_name": str(candidate.get("store_name") or ""),
+        "store_metadata": _safe_store_metadata(candidate),
+        "estimated_kcal": _int_or_none(candidate.get("estimated_kcal")),
+        "source_refs": _safe_source_refs(source_refs),
         "quality_gate_passed": quality.passed,
         "quality_tier": quality_tier,
         "proactive_intensity": proactive_intensity,
@@ -211,6 +216,25 @@ def _mapping(value: Any) -> Mapping[str, Any]:
 
 def _dedupe(values: list[str]) -> list[str]:
     return list(dict.fromkeys(values))
+
+
+def _safe_store_metadata(candidate: Mapping[str, Any]) -> dict[str, str]:
+    metadata = candidate.get("store_metadata")
+    if not isinstance(metadata, Mapping):
+        return {}
+    return {
+        key: str(metadata[key])
+        for key in ("chain", "location_label")
+        if metadata.get(key)
+    }
+
+
+def _safe_source_refs(source_refs: list[str]) -> list[str]:
+    return [ref for ref in source_refs if ref.startswith("memory_candidate:")]
+
+
+def _int_or_none(value: Any) -> int | None:
+    return value if isinstance(value, int) else None
 
 
 __all__ = [
