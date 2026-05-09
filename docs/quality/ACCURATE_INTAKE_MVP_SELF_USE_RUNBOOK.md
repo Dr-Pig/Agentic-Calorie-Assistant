@@ -162,6 +162,8 @@ Inspect local dogfood DB hygiene before reset or export with:
 python scripts/manage_accurate_intake_local_dogfood_data.py --operation inspect --db-path workspace_data/local_dogfood/accurate_intake.sqlite3 --output artifacts/accurate_intake_local_dogfood_data_hygiene.json
 ```
 
+The inspect, backup, and export manifests must include source DB file metadata: `db_exists`, `db_size_bytes`, and `db_modified_at_utc`. Use those fields to confirm which local SQLite file was protected before reset or review export.
+
 Back up real dogfood SQLite data before any reset with:
 
 ```powershell

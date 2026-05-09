@@ -34,6 +34,22 @@ def test_real_dogfood_database_requires_backup_before_reset() -> None:
     assert manifest["contains_personal_diet_logs"] is True
     assert manifest["local_only"] is True
     assert manifest["do_not_commit"] is True
+    assert manifest["db_exists"] is False
+    assert manifest["db_size_bytes"] is None
+    assert manifest["db_modified_at_utc"] is None
+
+
+def test_inspect_reports_existing_source_db_file_metadata(tmp_path: Path) -> None:
+    db_path = tmp_path / "real_dogfood" / "accurate_intake.sqlite3"
+    db_path.parent.mkdir()
+    db_path.write_bytes(b"sqlite bytes")
+
+    manifest = build_local_dogfood_data_manifest(db_path=db_path, operation="inspect")
+
+    assert manifest["status"] == "pass"
+    assert manifest["db_exists"] is True
+    assert manifest["db_size_bytes"] == len(b"sqlite bytes")
+    assert isinstance(manifest["db_modified_at_utc"], str)
 
 
 def test_real_dogfood_path_classification_wins_case_insensitively_over_smoke_name() -> None:
@@ -65,6 +81,8 @@ def test_real_dogfood_backup_copies_sqlite_file_and_writes_local_only_manifest(t
     assert manifest["local_only"] is True
     assert manifest["contains_personal_diet_logs"] is True
     assert manifest["do_not_commit"] is True
+    assert manifest["db_exists"] is True
+    assert manifest["db_size_bytes"] == len(b"sqlite bytes")
     assert manifest["backup_path"] == str(backup_path)
 
 
@@ -339,3 +357,6 @@ def test_self_use_runbook_documents_export_and_import_preview_commands() -> None
     assert "--operation import-preview" in runbook
     assert "workspace_data/local_dogfood_exports" in runbook
     assert "local-only SQLite copy plus manifest" in runbook
+    assert "db_exists" in runbook
+    assert "db_size_bytes" in runbook
+    assert "db_modified_at_utc" in runbook

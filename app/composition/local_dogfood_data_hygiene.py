@@ -95,6 +95,22 @@ def classify_local_dogfood_db(db_path: Path) -> dict:
     }
 
 
+def _db_file_metadata(db_path: Path) -> dict:
+    resolved = _resolved_path(db_path)
+    if not resolved.exists():
+        return {
+            "db_exists": False,
+            "db_size_bytes": None,
+            "db_modified_at_utc": None,
+        }
+    stat = resolved.stat()
+    return {
+        "db_exists": True,
+        "db_size_bytes": stat.st_size,
+        "db_modified_at_utc": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
+    }
+
+
 def build_local_dogfood_data_manifest(
     *,
     db_path: Path,
@@ -125,6 +141,7 @@ def build_local_dogfood_data_manifest(
         "production_db_used": False,
         "fooddb_truth_updated": False,
         **classification,
+        **_db_file_metadata(db_path),
     }
 
 
