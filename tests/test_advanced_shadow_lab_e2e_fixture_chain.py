@@ -54,6 +54,13 @@ def test_fixture_chain_terminates_in_no_send_review_sink() -> None:
         "pass",
         "pass",
     ]
+    assert [stage["artifact_type"] for stage in artifact["stage_artifacts"]] == artifact[
+        "stage_order"
+    ]
+    assert artifact["stage_artifacts"][1]["artifact_type"] == (
+        "recommendation_shadow_summary_consumer_quality_report"
+    )
+    assert artifact["stage_artifacts"][1]["five_node_lab_bridge_used"] is True
     assert artifact["terminal_review_sink"]["status"] == "pass"
     assert artifact["terminal_review_sink"]["record_count"] == 2
     assert [

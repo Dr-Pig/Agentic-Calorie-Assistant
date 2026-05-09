@@ -74,7 +74,7 @@ def run_recommendation_copy_live_diagnostic(
         "target_surface": "recommendation_prompt_reason_copy",
         "source_recommendation_artifact_type": recommendation_summary_report.get("artifact_type"),
         "source_candidate_count": _int(recommendation_summary_report.get("candidate_count")),
-        "primary_candidate_id": str(recommendation_summary_report.get("primary_candidate_id") or ""),
+        "primary_candidate_id": str(candidate.get("candidate_id") or ""),
         "provider_mode": str(provider_mode),
         "live_invoked": bool(live_invoked),
         "live_provider_used": bool(live_invoked and provider_invoked),
@@ -109,6 +109,8 @@ def _summary_blockers(report: Mapping[str, Any]) -> list[str]:
         blockers.append("recommendation_summary.unsupported_artifact_type")
     if report.get("status") != "pass":
         blockers.append("recommendation_summary.status_not_pass")
+    if isinstance(report.get("blockers"), list):
+        blockers += [f"recommendation_summary.{b}" for b in report["blockers"]]
     for flag in dict.fromkeys(CLAIM_FLAGS):
         if report.get(flag) is True:
             blockers.append(f"recommendation_summary.{flag}")
@@ -117,6 +119,9 @@ def _summary_blockers(report: Mapping[str, Any]) -> list[str]:
 
 def _primary_candidate(report: Mapping[str, Any]) -> Mapping[str, Any]:
     primary_id = str(report.get("primary_candidate_id") or "")
+    if not primary_id:
+        ids = report.get("offer_candidate_ids")
+        primary_id = str(ids[0]) if isinstance(ids, list) and ids else ""
     for item in report.get("candidate_evaluations") or []:
         candidate = _mapping(item)
         if candidate.get("candidate_id") == primary_id and candidate.get("quality_gate_passed") is True:

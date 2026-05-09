@@ -230,41 +230,13 @@ def _stage_artifact(chain: Mapping[str, Any], artifact_type: str) -> dict[str, A
     for stage in chain.get("stage_outputs") or []:
         if isinstance(stage, Mapping) and stage.get("artifact_type") == artifact_type:
             return dict(stage)
-    # The chain intentionally stores only a compact trace. Rebuild from the same payload
-    # would add coupling, so the summary is exposed through a compact stage trace fallback.
-    return _summary_from_chain_trace(chain)
-
-
-def _summary_from_chain_trace(chain: Mapping[str, Any]) -> dict[str, Any]:
-    if chain.get("status") != "pass":
-        return {
-            "artifact_type": "recommendation_shadow_summary_consumer_quality_report",
-            "status": "blocked",
-            "primary_candidate_id": "",
-            "candidate_evaluations": [],
-            "candidate_count": 0,
-            "blockers": list(chain.get("blockers") or []),
-        }
     return {
         "artifact_type": "recommendation_shadow_summary_consumer_quality_report",
-        "status": "pass",
-        "candidate_count": 1,
-        "primary_candidate_id": "golden-1",
-        "candidate_evaluations": [
-            {
-                "candidate_id": "golden-1",
-                "title": "Shadow candidate",
-                "store_name": "shadow-store",
-                "estimated_kcal": 520,
-                "quality_gate_passed": True,
-                "quality_tier": "high",
-                "quality_signals": ["advanced_shadow_bundle_fixture"],
-                "source_refs": ["memory_candidate:golden-1"],
-                "recommendation_served": False,
-                "intake_handoff_created": False,
-            }
-        ],
-        "pool_decision": "offer",
+        "status": "blocked",
+        "candidate_count": 0,
+        "primary_candidate_id": "",
+        "candidate_evaluations": [],
+        "blockers": [f"stage_artifact_missing:{artifact_type}"],
         "recommendation_served": False,
         "proactive_sent": False,
         "manager_context_packet_changed": False,

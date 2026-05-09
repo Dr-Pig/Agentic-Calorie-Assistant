@@ -112,6 +112,7 @@ def run_advanced_shadow_e2e_fixture_chain(
         "retirement_trigger": "approved_advanced_runtime_activation_plan",
         "stage_order": list(STAGE_ORDER),
         "stage_trace": _stage_trace(all_stages),
+        "stage_artifacts": all_stages,
         "terminal_review_sink": sink,
         "blockers": all_blockers,
         "non_claims": list(NON_CLAIMS),
