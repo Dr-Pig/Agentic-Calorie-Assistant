@@ -202,6 +202,65 @@ def test_shadow_comparison_blocks_unsupported_source_artifact_type() -> None:
     assert artifact["user_facing_behavior_changed"] is False
 
 
+def test_shadow_comparison_pairs_baseline_and_advanced_case_artifacts() -> None:
+    artifact = build_advanced_shadow_comparison_artifact(
+        fixture_chain_artifact=_fixture_chain(),
+        dogfood_replay_artifact=_dogfood_replay(),
+        recommendation_copy_live_diagnostic_artifact=_live_diagnostic(),
+        rescue_copy_live_diagnostic_artifact=_rescue_live_diagnostic(),
+        baseline_case_artifacts=[_case_artifact("case-1", "baseline_intake_trace")],
+        advanced_case_artifacts=[_case_artifact("case-1", "advanced_shadow_trace")],
+    )
+
+    assert artifact["status"] == "pass"
+    assert artifact["pairing_summary"] == {
+        "status": "pairable",
+        "baseline_case_count": 1,
+        "advanced_case_count": 1,
+        "paired_case_count": 1,
+        "schema_gaps": [],
+        "activation_violations": [],
+    }
+    assert artifact["paired_case_rows"] == [
+        {
+            "case_id": "case-1",
+            "baseline_artifact_type": "baseline_intake_trace",
+            "advanced_artifact_type": "advanced_shadow_trace",
+            "baseline_status": "pass",
+            "advanced_status": "pass",
+            "finding": "pairable_no_activation_drift",
+        }
+    ]
+    assert artifact["runtime_connected"] is False
+    assert artifact["mutation_changed"] is False
+    assert artifact["user_facing_behavior_changed"] is False
+
+
+def test_shadow_comparison_reports_pairing_gaps_without_readiness_claims() -> None:
+    advanced = _case_artifact("case-2", "advanced_shadow_trace")
+    advanced["delivery_attempted"] = True
+
+    artifact = build_advanced_shadow_comparison_artifact(
+        fixture_chain_artifact=_fixture_chain(),
+        dogfood_replay_artifact=_dogfood_replay(),
+        recommendation_copy_live_diagnostic_artifact=_live_diagnostic(),
+        baseline_case_artifacts=[_case_artifact("case-1", "baseline_intake_trace")],
+        advanced_case_artifacts=[advanced],
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["pairing_summary"]["status"] == "not_pairable"
+    assert artifact["pairing_summary"]["schema_gaps"] == [
+        "case-1.missing_advanced_artifact",
+        "case-2.missing_baseline_artifact",
+    ]
+    assert artifact["pairing_summary"]["activation_violations"] == [
+        "case-2.advanced.delivery_attempted"
+    ]
+    assert artifact["product_readiness_claimed"] is False
+    assert artifact["user_facing_behavior_changed"] is False
+
+
 def _fixture_chain() -> dict[str, object]:
     return {
         "artifact_type": "advanced_shadow_e2e_fixture_chain_artifact",
@@ -288,4 +347,21 @@ def _rescue_live_diagnostic(
         "proactive_sent": False,
         "mutation_changed": False,
         "user_facing_behavior_changed": False,
+    }
+
+
+def _case_artifact(case_id: str, artifact_type: str) -> dict[str, object]:
+    return {
+        "case_id": case_id,
+        "artifact_type": artifact_type,
+        "status": "pass",
+        "observable_output_summary": {"status": "pass"},
+        "runtime_connected": False,
+        "delivery_attempted": False,
+        "recommendation_served": False,
+        "rescue_committed": False,
+        "proposal_committed": False,
+        "mutation_changed": False,
+        "user_facing_behavior_changed": False,
+        "product_readiness_claimed": False,
     }
