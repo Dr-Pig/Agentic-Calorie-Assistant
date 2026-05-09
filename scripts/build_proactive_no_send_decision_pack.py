@@ -156,6 +156,24 @@ def _summary(no_send_artifacts: list[dict[str, Any]]) -> dict[str, Any]:
             no_send_artifacts,
             "blockers",
         ),
+        "rescue_nudge_review_status_counts": _aggregate_trigger_review_values(
+            no_send_artifacts,
+            trigger_type="rescue_nudge",
+            review_key="rescue_nudge_review",
+            value_key="status",
+        ),
+        "rescue_nudge_suppression_reason_counts": _aggregate_trigger_review_list_values(
+            no_send_artifacts,
+            trigger_type="rescue_nudge",
+            review_key="rescue_nudge_review",
+            value_key="suppression_reasons",
+        ),
+        "rescue_nudge_blocker_counts": _aggregate_trigger_review_list_values(
+            no_send_artifacts,
+            trigger_type="rescue_nudge",
+            review_key="rescue_nudge_review",
+            value_key="blockers",
+        ),
         "copy_suppressed_count": sum(
             _artifact_summary_int(artifact, "copy_suppressed_count")
             for artifact in no_send_artifacts
@@ -249,9 +267,24 @@ def _aggregate_summary_counts(no_send_artifacts: list[dict[str, Any]], key: str)
 
 
 def _aggregate_prompt_review_values(no_send_artifacts: list[dict[str, Any]], key: str) -> dict[str, int]:
+    return _aggregate_trigger_review_values(
+        no_send_artifacts,
+        trigger_type="recommendation_prompt",
+        review_key="recommendation_prompt_review",
+        value_key=key,
+    )
+
+
+def _aggregate_trigger_review_values(
+    no_send_artifacts: list[dict[str, Any]],
+    *,
+    trigger_type: str,
+    review_key: str,
+    value_key: str,
+) -> dict[str, int]:
     counts: dict[str, int] = {}
-    for review in _prompt_reviews(no_send_artifacts):
-        value = str(review.get(key) or "not_evaluated")
+    for review in _trigger_reviews(no_send_artifacts, trigger_type=trigger_type, review_key=review_key):
+        value = str(review.get(value_key) or "not_evaluated")
         counts[value] = counts.get(value, 0) + 1
     return dict(sorted(counts.items()))
 
@@ -260,9 +293,24 @@ def _aggregate_prompt_review_list_values(
     no_send_artifacts: list[dict[str, Any]],
     key: str,
 ) -> dict[str, int]:
+    return _aggregate_trigger_review_list_values(
+        no_send_artifacts,
+        trigger_type="recommendation_prompt",
+        review_key="recommendation_prompt_review",
+        value_key=key,
+    )
+
+
+def _aggregate_trigger_review_list_values(
+    no_send_artifacts: list[dict[str, Any]],
+    *,
+    trigger_type: str,
+    review_key: str,
+    value_key: str,
+) -> dict[str, int]:
     counts: dict[str, int] = {}
-    for review in _prompt_reviews(no_send_artifacts):
-        values = review.get(key)
+    for review in _trigger_reviews(no_send_artifacts, trigger_type=trigger_type, review_key=review_key):
+        values = review.get(value_key)
         if not isinstance(values, list):
             continue
         for value in values:
@@ -271,16 +319,21 @@ def _aggregate_prompt_review_list_values(
     return dict(sorted(counts.items()))
 
 
-def _prompt_reviews(no_send_artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _trigger_reviews(
+    no_send_artifacts: list[dict[str, Any]],
+    *,
+    trigger_type: str,
+    review_key: str,
+) -> list[dict[str, Any]]:
     reviews: list[dict[str, Any]] = []
     for artifact in no_send_artifacts:
         rows = artifact.get("trigger_evaluations")
         if not isinstance(rows, list):
             continue
         for row in rows:
-            if not isinstance(row, dict) or row.get("trigger_type") != "recommendation_prompt":
+            if not isinstance(row, dict) or row.get("trigger_type") != trigger_type:
                 continue
-            review = row.get("recommendation_prompt_review")
+            review = row.get(review_key)
             reviews.append(review if isinstance(review, dict) else {"status": "not_evaluated"})
     return reviews
 
