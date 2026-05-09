@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v12"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v13"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -51,6 +51,8 @@ _CONTRACT_POLICY_PROMPT = (
     "with manager_action='final' and tool_calls=[].\n"
     "Explicit remove_item correction is different: use target evidence from resolve_correction_target or a runtime-validated "
     "target_attachment, then final_action='correction_applied' without estimate_nutrition.\n"
+    "For explicit item removal, set semantic_decision.target_attachment.operation='remove_item' or action_type='remove_item', "
+    "mutation_intent_candidate='correction_write', and estimation_posture='target_evidence_needed'; this is not nutrition pending_tool_call.\n"
     "If manager_contract_evidence_state.target_evidence_present=true with target_evidence_operation='remove_item', "
     "do not call resolve_correction_target again; return manager_action='final', final_action='correction_applied', "
     "and tool_calls=[] so guard/mutation can apply the validated removal.\n"
