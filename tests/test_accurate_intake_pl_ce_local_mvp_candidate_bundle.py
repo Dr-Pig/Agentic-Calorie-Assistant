@@ -23,6 +23,7 @@ REQUIRED_INPUTS = [
     "fake_provider_tool_loop_smoke",
     "review_eval_candidate_pipeline",
     "local_operator_data_hygiene_bundle",
+    "fixture_full_product_loop_e2e",
     "mvp_gate_summary",
 ]
 
@@ -158,6 +159,34 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "import_allowed": False,
             "production_db_used": False,
         },
+        "fixture_full_product_loop_e2e": {
+            "artifact_type": "accurate_intake_fixture_full_product_loop_e2e",
+            "status": "fixture_product_loop_e2e_diagnostic_pass",
+            "completed_product_loop_steps": [
+                "target_update",
+                "food_log",
+                "listed_basket_commit",
+                "correction",
+                "removal",
+                "remaining_query",
+                "reload_continuity",
+                "browser_render_same_truth",
+                "context_replay",
+                "fake_provider_context_smoke",
+            ],
+            "browser_executed": True,
+            "ready_for_fdb_integration": False,
+            "fixture_evidence_used": True,
+            "fooddb_evidence_used": False,
+            "websearch_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "production_db_used": False,
+            "live_llm_invoked": False,
+            "fooddb_truth_updated": False,
+        },
         "mvp_gate_summary": {
             "gate_id": "accurate_intake_mvp_deterministic_v1",
             "status": "pass",
@@ -218,6 +247,9 @@ def test_pl_ce_local_mvp_candidate_bundle_includes_new_context_and_responder_sli
     assert artifact["summary"]["correction_removal_scenarios"] == 5
     assert artifact["summary"]["responder_fake_smoke_scenarios"] == 5
     assert artifact["summary"]["review_candidate_count"] >= 5
+    assert artifact["summary"]["fixture_full_product_loop_steps"] == 10
+    assert artifact["summary"]["fixture_full_product_loop_browser_executed"] is True
+    assert included["fixture_full_product_loop_e2e"]["status"] == "fixture_product_loop_e2e_diagnostic_pass"  # type: ignore[index]
 
 
 def test_pl_ce_local_mvp_candidate_bundle_blocks_overclaim_inputs() -> None:
@@ -291,6 +323,34 @@ def test_pl_ce_local_mvp_candidate_bundle_blocks_missing_required_input() -> Non
 
     assert artifact["status"] == "blocked"
     assert "context_coverage_matrix.unexpected_status:missing" in artifact["blockers"]
+
+
+def test_pl_ce_local_mvp_candidate_bundle_blocks_fixture_full_loop_gaps() -> None:
+    inputs = _valid_inputs()
+    inputs["fixture_full_product_loop_e2e"] = {
+        "artifact_type": "accurate_intake_fixture_full_product_loop_e2e",
+        "status": "fixture_product_loop_e2e_diagnostic_pass",
+        "completed_product_loop_steps": ["target_update", "food_log"],
+        "browser_executed": False,
+    }
+
+    artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "fixture_full_product_loop_e2e.completed_steps_missing" in artifact["blockers"]
+    assert "fixture_full_product_loop_e2e.browser_not_executed" in artifact["blockers"]
+
+
+def test_pl_ce_local_mvp_candidate_bundle_blocks_fixture_full_loop_overclaims() -> None:
+    inputs = _valid_inputs()
+    inputs["fixture_full_product_loop_e2e"]["dogfood_pass"] = True
+    inputs["fixture_full_product_loop_e2e"]["ready_for_fdb_integration"] = True
+
+    artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "fixture_full_product_loop_e2e.dogfood_pass" in artifact["blockers"]
+    assert "fixture_full_product_loop_e2e.ready_for_fdb_integration" in artifact["blockers"]
 
 
 def test_pl_ce_local_mvp_candidate_bundle_blocks_missing_context_live_case_matrix() -> None:
