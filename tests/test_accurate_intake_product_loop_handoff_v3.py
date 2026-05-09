@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.nutrition.application.fooddb_macro_contract import MACRO_CONTRACT
 from scripts.build_accurate_intake_product_loop_handoff_v3 import (
     build_product_loop_handoff_v3,
 )
@@ -68,18 +69,7 @@ def _fooddb_artifact(
     macro_contract: dict | None = None,
 ) -> dict:
     if macro_contract is None:
-        macro_contract = {
-            "packet_fields": [
-                "protein_g",
-                "carbs_g",
-                "fat_g",
-                "macro_visibility_status",
-                "macro_source_basis",
-                "macro_confidence",
-            ],
-            "macro_truth_owner": "fooddb_approved_packet",
-            "missing_macro_policy": "preserve_null_do_not_invent",
-        }
+        macro_contract = MACRO_CONTRACT
     return {
         "approved_packet_ready_evidence_artifact": {
             "path": "artifacts/fdb/approved_packet_ready.json",
@@ -216,6 +206,31 @@ def test_handoff_blocks_fooddb_macro_contract_missing_required_packet_fields() -
     assert pack["fooddb_artifact_status"] == "blocked_invalid_fooddb_macro_contract"
     assert "fooddb_macro_packet_field_missing:macro_source_basis" in pack["blockers"]
     assert "fooddb_macro_packet_field_missing:macro_confidence" in pack["blockers"]
+
+
+def test_handoff_blocks_stale_fooddb_macro_contract_without_source_class_policy() -> None:
+    stale_macro_contract = {
+        "packet_fields": [
+            "protein_g",
+            "carbs_g",
+            "fat_g",
+            "macro_visibility_status",
+            "macro_source_basis",
+            "macro_confidence",
+        ],
+        "macro_truth_owner": "fooddb_approved_packet",
+        "missing_macro_policy": "preserve_null_do_not_invent",
+    }
+
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(),
+        fooddb_artifact=_fooddb_artifact(macro_contract=stale_macro_contract),
+    )
+
+    assert pack["status"] == "blocked"
+    assert pack["fooddb_artifact_status"] == "blocked_invalid_fooddb_macro_contract"
+    assert "fooddb_macro_runtime_policy_missing" in pack["blockers"]
+    assert "fooddb_macro_source_class_policy_missing" in pack["blockers"]
 
 
 def test_handoff_valid_real_fooddb_metadata_allows_validation_only_integration() -> None:
