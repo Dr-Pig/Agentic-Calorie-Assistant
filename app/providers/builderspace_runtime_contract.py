@@ -108,7 +108,7 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
             "Estimation state for this turn. pending_tool_call or tool_pending means the same payload must use "
             "manager_action=call_tools with estimate_nutrition; do not return manager_action=final until tool "
             "results provide current-loop nutrition evidence. composition_unknown_basket is not pending_tool_call; "
-            "it must pair with final ask_followup/no_mutation and tool_calls=[]."
+            "the LLM semantic decision must pair it with final ask_followup/no_mutation and tool_calls=[]."
         )
     followup_posture = semantic_properties.get("followup_posture")
     if isinstance(followup_posture, dict):

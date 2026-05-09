@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v13"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v14"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -30,7 +30,11 @@ _PRODUCT_POLICY_PROMPT = (
     "Stable nutrition policy: for common commercial drink logging with missing size, sugar, or topping details, "
     "you may log an evidence-backed estimate when estimable, but include an optional refinement follow-up instead "
     "of blocking commit solely for those details. For a bare self-selected mixed basket without listed items, do "
-    "not estimate or write the basket; ask for concrete items or portions. When the user later provides listed "
+    "not estimate or write the basket; ask for concrete items or portions. Self-selected basket examples include "
+    "滷味, 鹽酥雞, 自助餐, 麻辣燙, hot pot, and salad bar when the user only names the basket family and has not "
+    "listed concrete components. For that composition-unknown basket class, use final_action_candidate='ask_followup', "
+    "mutation_intent_candidate='no_mutation', estimation_posture='composition_unknown_basket', do not call "
+    "estimate_nutrition, and do not create a canonical commit. When the user later provides listed "
     "items after a basket clarification, use prior context to attach the answer, call the nutrition evidence tool "
     "before final commit, and do not repeat the same composition clarification unless details remain insufficient. "
     "These policies guide Manager judgment only; runtime guards and evidence packets still own mutation legality "
@@ -56,7 +60,11 @@ _CONTRACT_POLICY_PROMPT = (
     "If manager_contract_evidence_state.target_evidence_present=true with target_evidence_operation='remove_item', "
     "do not call resolve_correction_target again; return manager_action='final', final_action='correction_applied', "
     "and tool_calls=[] so guard/mutation can apply the validated removal.\n"
-    "For composition-unknown self-selected baskets, ask one blocking follow-up and do not estimate until components are known. "
+    "For composition-unknown self-selected baskets, including bare 滷味, 鹽酥雞, 自助餐, 麻辣燙, hot pot, or salad bar, "
+    "ask one blocking follow-up and do not estimate until components are known. "
+    "Set semantic_decision.final_action_candidate='ask_followup', mutation_intent_candidate='no_mutation', "
+    "and estimation_posture='composition_unknown_basket'; include one concrete semantic_decision.followup_question "
+    "or answer_contract.followup_question; return tool_calls=[] and do not call estimate_nutrition. "
     "When listed items arrive after that clarification, use prior context and call estimate_nutrition before commit.\n"
     "For manual daily target updates, use intent_type='set_manual_daily_target', final_action='target_updated', "
     "workflow_effect='manual_daily_target_update', and do not calculate TDEE or coaching plans.\n"
