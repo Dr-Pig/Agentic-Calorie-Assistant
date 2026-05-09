@@ -40,6 +40,7 @@ OPERATOR_REVIEW_STATUSES = {
 OPERATOR_REVIEW_ARTIFACT_TYPES = {
     "accurate_intake_dogfood_operator_review_surface",
 }
+OPERATOR_REVIEW_CLAIM_SCOPE = "local_dogfood_operator_review_surface"
 ALLOWED_SOURCE_QUALITY = {
     "approved",
     "human_approved",
@@ -177,18 +178,37 @@ def _pl_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
             blockers.append("operator_review_not_diagnostic_review")
         if payload.get("local_only") is not True:
             blockers.append("operator_review_not_local_only")
+        if payload.get("claim_scope") != OPERATOR_REVIEW_CLAIM_SCOPE:
+            blockers.append("operator_review_claim_scope_invalid")
+        if payload.get("do_not_commit") is not True:
+            blockers.append("operator_review_missing_do_not_commit")
         if payload.get("food_kb_truth_updated") is not False:
             blockers.append("operator_review_food_kb_truth_updated")
+        if payload.get("fooddb_truth_updated") is True:
+            blockers.append("operator_review_fooddb_truth_updated")
         if payload.get("real_fooddb_pass_claimed") is not False:
             blockers.append("operator_review_real_fooddb_overclaim")
-        if payload.get("dogfood_pass") is not False:
+        if payload.get("dogfood_pass") is True:
             blockers.append("operator_review_dogfood_pass_overclaim")
-        if payload.get("product_readiness_claimed") is not False:
+        if payload.get("product_readiness_claimed") is True:
             blockers.append("operator_review_product_readiness_overclaim")
-        if payload.get("private_self_use_approved") is not False:
+        if payload.get("private_self_use_approved") is True:
             blockers.append("operator_review_private_self_use_overclaim")
-        if payload.get("production_readiness_claimed") is not False:
+        if payload.get("production_readiness_claimed") is True:
             blockers.append("operator_review_production_readiness_overclaim")
+        if payload.get("production_selected") is True:
+            blockers.append("operator_review_production_selected")
+        if payload.get("production_db_used") is True:
+            blockers.append("operator_review_production_db_used")
+        if payload.get("live_llm_invoked") is True:
+            blockers.append("operator_review_live_llm_invoked")
+        if payload.get("web_tavily_used") is True:
+            blockers.append("operator_review_web_tavily_used")
+        classification_policy = _object_dict(payload.get("classification_policy"))
+        if classification_policy.get("food_kb_truth_update_allowed") is not False:
+            blockers.append("operator_review_food_kb_truth_update_allowed")
+        if classification_policy.get("frontend_semantic_owner") is not False:
+            blockers.append("operator_review_frontend_semantic_owner")
     elif group_id == "mvp_gate":
         if status != "pass":
             blockers.append("mvp_gate_not_pass")
