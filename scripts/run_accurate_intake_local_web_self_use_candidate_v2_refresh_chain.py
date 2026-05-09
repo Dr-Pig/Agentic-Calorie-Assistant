@@ -733,6 +733,19 @@ def build_local_web_self_use_candidate_refresh_chain(
             artifact,
         )
 
+    body_observation_same_truth_gate = build_body_observation_same_truth_gate_artifact(
+        browser_smoke_artifact=_read_payload(
+            _group_path(artifacts_dir, PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["product_pages_browser_smoke"])
+        )
+    )
+    write_json_artifact(
+        _artifact_path(
+            artifacts_dir,
+            REFRESHED_ARTIFACT_FILENAMES["body_observation_same_truth_gate"],
+        ),
+        body_observation_same_truth_gate,
+    )
+
     product_pages_self_use_flow_gate = build_pl_ce_product_pages_self_use_flow_gate_artifact(
         build_product_pages_flow_inputs(
             path_overrides=_product_pages_flow_path_overrides(artifacts_dir)
@@ -766,19 +779,6 @@ def build_local_web_self_use_candidate_refresh_chain(
             REFRESHED_ARTIFACT_FILENAMES["bootstrap_same_truth_gate"],
         ),
         bootstrap_same_truth_gate,
-    )
-
-    body_observation_same_truth_gate = build_body_observation_same_truth_gate_artifact(
-        browser_smoke_artifact=_read_payload(
-            _group_path(artifacts_dir, PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["product_pages_browser_smoke"])
-        )
-    )
-    write_json_artifact(
-        _artifact_path(
-            artifacts_dir,
-            REFRESHED_ARTIFACT_FILENAMES["body_observation_same_truth_gate"],
-        ),
-        body_observation_same_truth_gate,
     )
 
     clarify_commit_correction_same_truth_gate = (

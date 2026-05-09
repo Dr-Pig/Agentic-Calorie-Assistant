@@ -594,6 +594,33 @@ def test_refresh_chain_generates_required_body_noplan_smoke_before_next_blocker(
     )
 
 
+def test_refresh_chain_product_pages_flow_consumes_generated_body_same_truth_gate(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+
+    body_same_truth_path = (
+        artifact_dir
+        / module.REFRESHED_ARTIFACT_FILENAMES["body_observation_same_truth_gate"]
+    )
+    body_same_truth = json.loads(body_same_truth_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["status"] == "blocked"
+    assert body_same_truth["status"] == "body_observation_same_truth_gate_ready_for_human_review"
+    assert body_same_truth["pass_type"] == "browser_executed"
+    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
+        "body_observation_same_truth_gate.unexpected_status:missing"
+    )
+    assert "body_observation_same_truth_gate" not in printed["closeout_navigation"]["missing_evidence"]
+
+
 def test_closeout_navigation_reports_stale_evidence_without_readiness_claims() -> None:
     from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
 
