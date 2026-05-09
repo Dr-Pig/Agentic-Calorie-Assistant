@@ -7,6 +7,7 @@ import sys
 from typing import Any
 
 from fastapi import FastAPI
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -44,13 +45,24 @@ from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate impo
 from app.composition.accurate_intake_pl_ce_product_pages_self_use_flow_gate import (  # noqa: E402
     build_pl_ce_product_pages_self_use_flow_gate_artifact,
 )
+from app.composition.accurate_intake_product_pages_renderer_source_map import (  # noqa: E402
+    build_product_pages_renderer_source_closure_artifact,
+    build_product_pages_renderer_source_map_artifact,
+)
+from app.composition.accurate_intake_today_macro_mirror_gate import (  # noqa: E402
+    build_today_macro_runtime_mirror_gate_artifact,
+)
 from app.composition.accurate_intake_today_macro_mirror_gate import (  # noqa: E402
     build_today_macro_mirror_gate_artifact,
+)
+from app.composition.accurate_intake_ui_same_truth_render_contract import (  # noqa: E402
+    build_ui_same_truth_render_contract,
 )
 from app.composition.dogfood_review_queue import (  # noqa: E402
     build_dogfood_review_queue_artifact,
     build_review_candidate_from_product_loop_diagnostic,
 )
+from app.shared.domain.canonical_models import CurrentBudgetView  # noqa: E402
 from app.nutrition.application.approved_packet_ready_fooddb_artifact import (  # noqa: E402
     build_approved_packet_ready_fooddb_artifact,
 )
@@ -112,6 +124,12 @@ REFRESHED_ARTIFACT_FILENAMES = {
         "accurate_intake_current_shell_compatibility_browser_activation_evidence_gate.json"
     ),
     "non_fooddb_manager_tool_contract": "accurate_intake_non_fooddb_manager_tool_contract.json",
+    "ui_same_truth_contract": "accurate_intake_ui_same_truth_render_contract.json",
+    "product_pages_renderer_source_map": "accurate_intake_product_pages_renderer_source_map.json",
+    "today_macro_runtime_mirror_gate": "accurate_intake_today_macro_runtime_mirror_gate.json",
+    "product_pages_renderer_source_closure_gate": (
+        "accurate_intake_product_pages_renderer_source_closure_gate.json"
+    ),
     "context_live_diagnostic_gate": "accurate_intake_context_live_diagnostic_gate.json",
     "current_shell_compatibility_local_review_evidence_manifest": (
         "accurate_intake_current_shell_compatibility_local_review_evidence_manifest.json"
@@ -145,6 +163,7 @@ CLOSEOUT_NON_CLAIMS = {
 ROUTE_BACKED_MACRO_LOCAL_DATE = "2026-05-09"
 ROUTE_BACKED_MACRO_PRESENT_TEXT = "\u7d71\u4e00\u5de7\u514b\u529b\u725b\u4e73(400ml)"
 ROUTE_BACKED_MACRO_MISSING_TEXT = "\u722d\u9bae \u7126\u7cd6\u9bae\u9b5a(\u5169\u8cab)"
+STATIC_MACRO_LOCAL_DATE = "2026-05-09"
 
 
 def _artifact_path(artifacts_dir: Path, filename: str) -> Path:
@@ -174,6 +193,11 @@ def _read_payload(path: Path) -> dict[str, Any]:
         }
     payload.setdefault("_source_artifact_path", str(path))
     return payload
+
+
+def _read_yaml_payload(path: Path) -> dict[str, Any]:
+    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return payload if isinstance(payload, dict) else {}
 
 
 def _object_dict(value: Any) -> dict[str, Any]:
@@ -517,6 +541,57 @@ def _local_review_path_overrides(artifacts_dir: Path) -> dict[str, Path]:
     }
 
 
+def _static_macro_current_budget_payload() -> dict[str, Any]:
+    view = CurrentBudgetView(
+        user_id=1,
+        local_date=STATIC_MACRO_LOCAL_DATE,
+        budget_kcal=1800,
+        consumed_kcal=640,
+        consumed_protein=31,
+        consumed_carbs=44,
+        consumed_fat=12,
+        show_macro=True,
+        macro_guard_reason=None,
+        remaining_kcal=1160,
+        active_meal_count=2,
+    )
+    return view.model_dump(mode="json")
+
+
+def _generate_static_product_page_inputs(
+    *,
+    artifacts_dir: Path,
+) -> dict[str, dict[str, Any]]:
+    ui_contract = build_ui_same_truth_render_contract(
+        (ROOT / "static" / "accurate-intake-local-shell.html").read_text(encoding="utf-8")
+    )
+    renderer_source_map = build_product_pages_renderer_source_map_artifact()
+    manager_gate_ledger = _read_yaml_payload(
+        ROOT / "docs" / "quality" / "MANAGER_RUNTIME_GATE_LEDGER.yaml"
+    )
+    today_macro_runtime = build_today_macro_runtime_mirror_gate_artifact(
+        manager_gate_ledger_artifact=manager_gate_ledger,
+        current_budget_payload=_static_macro_current_budget_payload(),
+        renderer_source_map_artifact=renderer_source_map,
+    )
+    renderer_source_closure = build_product_pages_renderer_source_closure_artifact(
+        manager_gate_ledger_artifact=manager_gate_ledger,
+        renderer_source_map_artifact=renderer_source_map,
+    )
+    artifacts = {
+        "ui_same_truth_contract": ui_contract,
+        "product_pages_renderer_source_map": renderer_source_map,
+        "today_macro_runtime_mirror_gate": today_macro_runtime,
+        "product_pages_renderer_source_closure_gate": renderer_source_closure,
+    }
+    for group_id, artifact in artifacts.items():
+        write_json_artifact(
+            _group_path(artifacts_dir, PRODUCT_PAGES_FLOW_ARTIFACT_PATHS[group_id]),
+            artifact,
+        )
+    return artifacts
+
+
 def _product_loop_handoff_evidence(
     artifacts_dir: Path,
     *,
@@ -594,6 +669,9 @@ def build_local_web_self_use_candidate_refresh_chain(
         "non_fooddb_read_only_tool_loop_fake_smoke": build_non_fooddb_read_only_tool_loop_fake_smoke_artifact(),
         "non_fooddb_mutation_tool_guard_smoke": build_non_fooddb_mutation_tool_guard_smoke_artifact(),
     }
+    refreshed_artifacts.update(
+        _generate_static_product_page_inputs(artifacts_dir=artifacts_dir)
+    )
     for group_id, artifact in refreshed_artifacts.items():
         write_json_artifact(
             _artifact_path(artifacts_dir, REFRESHED_ARTIFACT_FILENAMES[group_id]),

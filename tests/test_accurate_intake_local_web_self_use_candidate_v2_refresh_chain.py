@@ -433,6 +433,67 @@ def test_refresh_chain_honestly_blocks_when_browser_activation_dependencies_are_
     assert product_loop_handoff["real_fooddb_pass_claimed"] is False
 
 
+def test_refresh_chain_generates_static_product_page_inputs_before_reporting_browser_blocker(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert printed["status"] == "blocked"
+    navigation = printed["closeout_navigation"]
+    assert navigation["first_blocking_gate"]["first_blocker"] != (
+        "ui_same_truth_contract.unexpected_status:missing"
+    )
+    assert "ui_same_truth_contract" not in navigation["missing_evidence"]
+
+    static_artifacts = {
+        "ui_same_truth_contract": "accurate_intake_ui_same_truth_render_contract.json",
+        "product_pages_renderer_source_map": (
+            "accurate_intake_product_pages_renderer_source_map.json"
+        ),
+        "today_macro_runtime_mirror_gate": (
+            "accurate_intake_today_macro_runtime_mirror_gate.json"
+        ),
+        "product_pages_renderer_source_closure_gate": (
+            "accurate_intake_product_pages_renderer_source_closure_gate.json"
+        ),
+    }
+    for filename in static_artifacts.values():
+        assert (artifact_dir / filename).exists()
+
+    ui_contract = json.loads(
+        (artifact_dir / static_artifacts["ui_same_truth_contract"]).read_text(encoding="utf-8")
+    )
+    renderer_source_map = json.loads(
+        (artifact_dir / static_artifacts["product_pages_renderer_source_map"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    today_macro_runtime = json.loads(
+        (artifact_dir / static_artifacts["today_macro_runtime_mirror_gate"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    renderer_closure = json.loads(
+        (
+            artifact_dir
+            / static_artifacts["product_pages_renderer_source_closure_gate"]
+        ).read_text(encoding="utf-8")
+    )
+    assert ui_contract["status"] == "pass"
+    assert renderer_source_map["status"] == "product_pages_renderer_source_map_ready_for_human_review"
+    assert today_macro_runtime["status"] == "today_macro_runtime_mirror_gate_ready_for_browser"
+    assert renderer_closure["status"] == "product_pages_renderer_source_closure_ready_for_browser"
+    assert today_macro_runtime["frontend_semantic_owner"] is False
+    assert renderer_closure["mutation_authority"] is False
+
+
 def test_closeout_navigation_reports_stale_evidence_without_readiness_claims() -> None:
     from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
 
