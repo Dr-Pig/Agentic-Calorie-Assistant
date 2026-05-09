@@ -65,7 +65,21 @@ def _fooddb_artifact(
     fixture_or_real: str = "real",
     source_quality: str = "approved",
     ready_for_product_loop: bool = True,
+    macro_contract: dict | None = None,
 ) -> dict:
+    if macro_contract is None:
+        macro_contract = {
+            "packet_fields": [
+                "protein_g",
+                "carbs_g",
+                "fat_g",
+                "macro_visibility_status",
+                "macro_source_basis",
+                "macro_confidence",
+            ],
+            "macro_truth_owner": "fooddb_approved_packet",
+            "missing_macro_policy": "preserve_null_do_not_invent",
+        }
     return {
         "approved_packet_ready_evidence_artifact": {
             "path": "artifacts/fdb/approved_packet_ready.json",
@@ -73,6 +87,7 @@ def _fooddb_artifact(
             "fixture_or_real": fixture_or_real,
             "source_quality": source_quality,
             "ready_for_product_loop": ready_for_product_loop,
+            "macro_contract": macro_contract,
         }
     }
 
@@ -163,6 +178,46 @@ def test_handoff_invalid_fooddb_metadata_blocks_without_autofix() -> None:
     assert any(item.startswith("fooddb_metadata_missing:") for item in pack["blockers"])
 
 
+def test_handoff_blocks_real_fooddb_artifact_without_macro_contract() -> None:
+    artifact = _fooddb_artifact()
+    del artifact["approved_packet_ready_evidence_artifact"]["macro_contract"]
+
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(),
+        fooddb_artifact=artifact,
+    )
+
+    assert pack["status"] == "blocked"
+    assert pack["fooddb_artifact_status"] == "blocked_invalid_fooddb_macro_contract"
+    assert pack["ready_for_fdb_integration"] is False
+    assert "fooddb_macro_contract_missing" in pack["blockers"]
+    assert pack["autofix_attempted"] is False
+    assert pack["fooddb_truth_updated"] is False
+
+
+def test_handoff_blocks_fooddb_macro_contract_missing_required_packet_fields() -> None:
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(),
+        fooddb_artifact=_fooddb_artifact(
+            macro_contract={
+                "packet_fields": [
+                    "protein_g",
+                    "carbs_g",
+                    "fat_g",
+                    "macro_visibility_status",
+                ],
+                "macro_truth_owner": "fooddb_approved_packet",
+                "missing_macro_policy": "preserve_null_do_not_invent",
+            }
+        ),
+    )
+
+    assert pack["status"] == "blocked"
+    assert pack["fooddb_artifact_status"] == "blocked_invalid_fooddb_macro_contract"
+    assert "fooddb_macro_packet_field_missing:macro_source_basis" in pack["blockers"]
+    assert "fooddb_macro_packet_field_missing:macro_confidence" in pack["blockers"]
+
+
 def test_handoff_valid_real_fooddb_metadata_allows_validation_only_integration() -> None:
     pack = build_product_loop_handoff_v3(
         _product_loop_evidence(),
@@ -173,6 +228,9 @@ def test_handoff_valid_real_fooddb_metadata_allows_validation_only_integration()
     assert pack["fooddb_artifact_status"] == "approved_packet_ready_evidence_metadata_valid"
     assert pack["ready_for_fdb_integration"] is True
     assert pack["fooddb_input_mode"] == "approved_packet_ready_metadata_validation_only"
+    assert pack["fooddb_validation"]["metadata"]["macro_contract"]["macro_truth_owner"] == (
+        "fooddb_approved_packet"
+    )
     assert pack["real_fooddb_pass_claimed"] is False
     assert pack["dogfood_pass"] is False
 
@@ -240,3 +298,18 @@ def test_handoff_runbook_documents_validation_only_gate() -> None:
     assert "ready_for_fdb_integration=false" in runbook
     assert "blocked_waiting_for_fdb_artifact" in runbook
     assert "Invalid FoodDB metadata blocks the gate" in runbook
+
+
+def test_fooddb_handoff_docs_require_macro_packet_contract() -> None:
+    activation_plan = Path(
+        "docs/quality/ACCURATE_INTAKE_FOODDB_WEBSEARCH_LLM_ACTIVATION_PLAN.md"
+    ).read_text(encoding="utf-8-sig")
+    track_status = Path(
+        "docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md"
+    ).read_text(encoding="utf-8-sig")
+
+    for text in (activation_plan, track_status):
+        assert "macro_contract" in text
+        assert "macro_visibility_status" in text
+        assert "macro_source_basis" in text
+        assert "missing_macro_policy" in text

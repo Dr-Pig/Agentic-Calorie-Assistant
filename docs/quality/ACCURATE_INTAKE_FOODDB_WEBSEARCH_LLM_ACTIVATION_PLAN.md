@@ -127,6 +127,17 @@ manager_packet_allowed:
   - kcal_range
   - serving_basis
   - portion_basis
+  - source-approved macro fields when available:
+      - protein_g
+      - carbs_g
+      - fat_g
+      - macro_visibility_status
+      - macro_source_basis
+      - macro_confidence
+  - macro_contract metadata:
+      - packet_fields
+      - macro_truth_owner
+      - missing_macro_policy
   - runtime_usage_boundary
   - followup_hints
   - compact source_provenance
@@ -139,6 +150,7 @@ manager_packet_forbidden:
   - dogfood review artifacts
   - WebSearch snippets as truth
   - FoodDB gap candidates as truth
+  - macro values inferred from food name, kcal, or LLM hint
 ```
 
 ## Integration Readiness Matrix

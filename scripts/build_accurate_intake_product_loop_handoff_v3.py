@@ -44,6 +44,16 @@ FOODDB_METADATA_FIELDS = (
     "source_quality",
     "ready_for_product_loop",
 )
+REQUIRED_FOODDB_MACRO_PACKET_FIELDS = {
+    "protein_g",
+    "carbs_g",
+    "fat_g",
+    "macro_visibility_status",
+    "macro_source_basis",
+    "macro_confidence",
+}
+FOODDB_MACRO_TRUTH_OWNER = "fooddb_approved_packet"
+FOODDB_MISSING_MACRO_POLICY = "preserve_null_do_not_invent"
 
 
 def _json_safe(value: Any) -> Any:
@@ -230,6 +240,16 @@ def _fooddb_validation(fooddb_artifact: dict[str, Any] | None) -> dict[str, Any]
             "metadata": _json_safe(metadata),
         }
 
+    macro_blockers = _fooddb_macro_contract_blockers(metadata)
+    if macro_blockers:
+        return {
+            "present": True,
+            "status": "blocked_invalid_fooddb_macro_contract",
+            "ready_for_fdb_integration": False,
+            "blockers": macro_blockers,
+            "metadata": _json_safe(metadata),
+        }
+
     return {
         "present": True,
         "status": "approved_packet_ready_evidence_metadata_valid",
@@ -237,6 +257,29 @@ def _fooddb_validation(fooddb_artifact: dict[str, Any] | None) -> dict[str, Any]
         "blockers": [],
         "metadata": _json_safe(metadata),
     }
+
+
+def _fooddb_macro_contract_blockers(metadata: dict[str, Any]) -> list[str]:
+    macro_contract = _object_dict(metadata.get("macro_contract"))
+    if not macro_contract:
+        return ["fooddb_macro_contract_missing"]
+
+    blockers: list[str] = []
+    packet_fields = macro_contract.get("packet_fields")
+    if not isinstance(packet_fields, list):
+        blockers.append("fooddb_macro_packet_fields_invalid")
+        packet_field_set: set[str] = set()
+    else:
+        packet_field_set = {str(field) for field in packet_fields}
+
+    for field in sorted(REQUIRED_FOODDB_MACRO_PACKET_FIELDS - packet_field_set):
+        blockers.append(f"fooddb_macro_packet_field_missing:{field}")
+
+    if macro_contract.get("macro_truth_owner") != FOODDB_MACRO_TRUTH_OWNER:
+        blockers.append("fooddb_macro_truth_owner_invalid")
+    if macro_contract.get("missing_macro_policy") != FOODDB_MISSING_MACRO_POLICY:
+        blockers.append("fooddb_macro_missing_policy_invalid")
+    return blockers
 
 
 def build_product_loop_handoff_v3(
@@ -248,13 +291,19 @@ def build_product_loop_handoff_v3(
     fooddb = _fooddb_validation(fooddb_artifact)
     local_web_candidate = _object_dict(evidence.get("local_web_candidate"))
     blockers = [*product_loop_blockers]
-    if fooddb["status"] == "blocked_invalid_fooddb_metadata":
+    if fooddb["status"] in {
+        "blocked_invalid_fooddb_metadata",
+        "blocked_invalid_fooddb_macro_contract",
+    }:
         blockers.extend(fooddb["blockers"])
 
     if product_loop_blockers:
         status = "blocked"
         selected_next_step = "fix_product_loop_evidence"
-    elif fooddb["status"] == "blocked_invalid_fooddb_metadata":
+    elif fooddb["status"] in {
+        "blocked_invalid_fooddb_metadata",
+        "blocked_invalid_fooddb_macro_contract",
+    }:
         status = "blocked"
         selected_next_step = "wait_for_valid_fdb_metadata"
     elif fooddb["ready_for_fdb_integration"]:
