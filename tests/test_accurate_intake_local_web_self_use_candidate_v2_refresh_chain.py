@@ -704,6 +704,44 @@ def test_refresh_chain_generates_required_target_candidate_ui_smoke_before_next_
     )
 
 
+def test_refresh_chain_generates_required_context_target_browser_closure_before_next_blocker(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+
+    closure_path = (
+        artifact_dir
+        / module.PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["product_pages_context_target_browser_closure"].name
+    )
+    closure = json.loads(closure_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["status"] == "blocked"
+    assert closure["status"] == "context_target_browser_closure_ready_for_self_use_flow_gate"
+    assert closure["pass_type"] == "browser_executed"
+    assert closure["browser_executed"] is True
+    assert closure["context_engineering_present"] is True
+    assert closure["session_state_injected"] is True
+    assert closure["pending_meal_or_correction_context_present"] is True
+    assert closure["target_candidate_list_read_only"] is True
+    assert closure["frontend_selects_target"] is False
+    assert closure["product_readiness_claimed"] is False
+    assert closure["private_self_use_approved"] is False
+    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
+        "product_pages_context_target_browser_closure.unexpected_status:missing"
+    )
+    assert (
+        "product_pages_context_target_browser_closure"
+        not in printed["closeout_navigation"]["missing_evidence"]
+    )
+
+
 def test_closeout_navigation_reports_stale_evidence_without_readiness_claims() -> None:
     from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
 
