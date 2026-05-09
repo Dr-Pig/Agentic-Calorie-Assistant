@@ -97,6 +97,20 @@ def _fixture_artifacts(tmp_path: Path) -> dict:
     }
 
 
+def _consumer_summary_projection() -> dict:
+    return {
+        "artifact_type": "runtime_lab_memory_consumer_summary_projection",
+        "status": "pass",
+        "runtime_effect_allowed": False,
+        "durable_product_memory_written": False,
+        "manager_context_packet_changed": False,
+        "recommendation_served": False,
+        "proactive_sent": False,
+        "rescue_proposal_committed": False,
+        "retrieval_ranking_changed": False,
+    }
+
+
 def test_quality_report_schema_claim_boundaries_and_shadow_readiness(
     tmp_path: Path,
 ) -> None:
@@ -184,6 +198,71 @@ def test_quality_report_can_include_reviewed_dogfood_replay_review(
     assert report["coverage"]["dogfood_reviewed_proposed_split_counts"] == {
         "holdout": 1
     }
+
+
+def test_quality_report_marks_downstream_shadow_input_ready_with_summary_projection(
+    tmp_path: Path,
+) -> None:
+    from app.memory.application.runtime_lab_quality_report import (
+        build_runtime_lab_memory_quality_report,
+    )
+
+    report = build_runtime_lab_memory_quality_report(
+        **_fixture_artifacts(tmp_path),
+        consumer_summary_projection=_consumer_summary_projection(),
+    )
+
+    assert report["coverage"]["consumer_summary_projection_present"] is True
+    assert report["downstream_shadow_readiness"] == {
+        "recommendation_read_only": {
+            "status": "ready_for_shadow_build",
+            "allowed_input": "runtime_lab_memory_consumer_summary_projection",
+        },
+        "rescue_read_only": {
+            "status": "ready_for_shadow_build",
+            "allowed_input": "runtime_lab_memory_consumer_summary_projection",
+        },
+        "proactive_read_only": {
+            "status": "ready_for_shadow_build",
+            "allowed_input": "runtime_lab_memory_consumer_summary_projection",
+        },
+    }
+    assert report["activation_boundaries"] == {
+        "durable_memory_activation_ready": False,
+        "manager_context_packet_memory_ready": False,
+        "user_facing_memory_ready": False,
+        "scheduler_or_proactive_send_ready": False,
+        "recommendation_serving_ready": False,
+        "rescue_proposal_commit_ready": False,
+    }
+    assert report["next_allowed_downstream_slices"] == [
+        "recommendation_shadow_summary_consumer",
+        "rescue_shadow_summary_consumer",
+        "proactive_no_send_summary_consumer",
+    ]
+
+
+def test_quality_report_blocks_downstream_shadow_readiness_on_projection_claim_drift(
+    tmp_path: Path,
+) -> None:
+    from app.memory.application.runtime_lab_quality_report import (
+        build_runtime_lab_memory_quality_report,
+    )
+
+    projection = _consumer_summary_projection()
+    projection["recommendation_served"] = True
+
+    report = build_runtime_lab_memory_quality_report(
+        **_fixture_artifacts(tmp_path),
+        consumer_summary_projection=projection,
+    )
+
+    assert report["status"] == "blocked"
+    assert "consumer_summary_projection.recommendation_served" in report["blockers"]
+    assert all(
+        item["status"] == "blocked_by_claim_boundary"
+        for item in report["downstream_shadow_readiness"].values()
+    )
 
 
 def test_quality_report_activation_ladder_status_is_explicit(tmp_path: Path) -> None:

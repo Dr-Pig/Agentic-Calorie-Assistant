@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.memory.application.runtime_lab_downstream_boundary import (
+    ACTIVATION_BOUNDARIES,
+    consumer_summary_projection_blockers,
+    downstream_shadow_readiness,
+    next_allowed_downstream_slices,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -26,11 +32,13 @@ def build_runtime_lab_memory_quality_report(
     lifecycle: Mapping[str, Any],
     context_pack: Mapping[str, Any],
     injection: Mapping[str, Any],
+    consumer_summary_projection: Mapping[str, Any] | None = None,
     optional_live_run_invoked: bool = False,
 ) -> dict[str, Any]:
     blockers = _claim_boundary_blockers(
         [fixture_extraction, dogfood_extraction, lifecycle, context_pack, injection]
     )
+    blockers.extend(consumer_summary_projection_blockers(consumer_summary_projection or {}))
     status = "blocked" if blockers else "pass"
     return {
         "artifact_type": "runtime_lab_memory_shadow_quality_report",
@@ -41,6 +49,7 @@ def build_runtime_lab_memory_quality_report(
             dogfood_extraction,
             injection,
             dogfood_replay_review or {},
+            consumer_summary_projection or {},
         ),
         "activation_ladder": _activation_ladder(
             suite,
@@ -58,13 +67,21 @@ def build_runtime_lab_memory_quality_report(
             "user_facing_behavior_changed": False,
             "canonical_mutation_changed": False,
         },
+        "activation_boundaries": dict(ACTIVATION_BOUNDARIES),
         "non_claims": [
             "not_product_activation_evidence",
             "not_private_self_use_approval",
             "not_mainline_manager_memory_context_injection",
             "not_durable_product_memory",
         ],
-        "downstream_shadow_readiness": _downstream_readiness(status),
+        "downstream_shadow_readiness": downstream_shadow_readiness(
+            status,
+            consumer_summary_projection or {},
+        ),
+        "next_allowed_downstream_slices": next_allowed_downstream_slices(
+            status,
+            consumer_summary_projection or {},
+        ),
         "optional_live_run_invoked": optional_live_run_invoked,
         "live_evidence_required_for_merge": False,
         "runtime_connected": True,
@@ -81,6 +98,7 @@ def _coverage(
     dogfood_extraction: Mapping[str, Any],
     injection: Mapping[str, Any],
     dogfood_replay_review: Mapping[str, Any],
+    consumer_summary_projection: Mapping[str, Any],
 ) -> dict[str, Any]:
     return {
         "split_counts": dict(suite.get("split_counts", {})),
@@ -96,6 +114,12 @@ def _coverage(
         ),
         "dogfood_reviewed_proposed_split_counts": dict(
             dogfood_replay_review.get("proposed_split_counts") or {}
+        ),
+        "consumer_summary_projection_present": bool(consumer_summary_projection),
+        "consumer_summary_projection_artifact_type": (
+            consumer_summary_projection.get("artifact_type")
+            if consumer_summary_projection
+            else None
         ),
     }
 
@@ -133,19 +157,6 @@ def _claim_boundary_blockers(artifacts: list[Mapping[str, Any]]) -> list[str]:
             if artifact.get(flag) is True and flag not in blockers:
                 blockers.append(flag)
     return blockers
-
-
-def _downstream_readiness(status: str) -> dict[str, dict[str, str]]:
-    value = (
-        "ready_for_shadow_planning"
-        if status == "pass"
-        else "blocked_by_claim_boundary"
-    )
-    return {
-        "recommendation_read_only": {"status": value},
-        "rescue_read_only": {"status": value},
-        "proactive_read_only": {"status": value},
-    }
 
 
 __all__ = [
