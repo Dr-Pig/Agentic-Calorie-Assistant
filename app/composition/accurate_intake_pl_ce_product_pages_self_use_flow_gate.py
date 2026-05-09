@@ -59,7 +59,6 @@ EXPECTED_PASS_TYPES = {
     "product_pages_renderer_source_closure_gate": "contract",
     "product_pages_context_target_browser_closure": "browser_executed",
 }
-
 EXPECTED_SMOKE_IDS = {
     "product_pages_browser_smoke": "accurate_intake_product_pages_browser_smoke_v1",
     "product_pages_seven_day_diary_smoke": "accurate_intake_product_pages_seven_day_diary_smoke_v1",
@@ -442,6 +441,7 @@ def build_pl_ce_product_pages_self_use_flow_gate_artifact(
                     and inputs["today_macro_runtime_mirror_gate"].get("macro_guarded_case_checked") is True
                 ),
                 "route_backed_macro_budget_truth_checked": inputs["product_pages_browser_smoke"].get("route_backed_macro_browser_checked") is True,
+                "fooddb_triad_same_truth_checked": inputs["product_pages_browser_smoke"].get("fooddb_triad_same_truth_browser_checked") is True,
                 "fixture_product_loop_steps_checked": len(completed_steps),
                 "strongest_consumed_pass_type": _strongest_consumed_pass_type(inputs),
             },

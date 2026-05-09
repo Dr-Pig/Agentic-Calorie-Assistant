@@ -6,7 +6,6 @@ from app.composition.current_shell_compatibility_ids import (
     CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS,
     CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE,
 )
-
 REQUIRED_INPUTS = (
     CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
     "product_pages_browser_smoke",
@@ -66,6 +65,7 @@ REQUIRED_SELF_USE_FLOW_SUMMARY_FLAGS = (
     "target_candidate_ui_checked",
     "today_macro_runtime_mirror_checked",
     "route_backed_macro_budget_truth_checked",
+    "fooddb_triad_same_truth_checked",
     "renderer_source_closure_checked",
     "context_target_browser_closure_checked",
     "body_noplan_degraded_checked",
@@ -154,6 +154,7 @@ REQUIRED_TRUE_FLAGS = {
         "macro_present_exact_item_browser_checked",
         "macro_missing_exact_item_browser_checked",
         "route_backed_macro_browser_checked",
+        "fooddb_triad_same_truth_browser_checked",
         "body_page_loaded",
         "body_active_plan_rendered",
         "body_plan_readback_checked",

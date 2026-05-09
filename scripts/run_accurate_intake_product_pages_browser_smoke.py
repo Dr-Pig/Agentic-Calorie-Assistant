@@ -15,6 +15,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.budget.interface.today_surface import resolve_today_local_date  # noqa: E402
+from app.composition.current_shell_fooddb_triad_same_truth_contract import (  # noqa: E402
+    EXPECTED_FOODDB_TRIAD_SAME_TRUTH_CASES,
+    FOODDB_TRIAD_SAME_TRUTH_REQUIRED_NON_CLAIMS,
+)
 from app.database import get_or_create_user  # noqa: E402
 from app.runtime.interface.local_debug_auth import LOCAL_DEBUG_API_TOKEN_ENV  # noqa: E402
 from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
@@ -31,6 +35,12 @@ from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
 )
 from scripts.run_accurate_intake_mvp_manager_style_smoke import (  # noqa: E402
     DeterministicSelfUseManagerProvider,
+)
+from app.nutrition.application.approved_packet_ready_fooddb_artifact import (  # noqa: E402
+    build_approved_packet_ready_fooddb_artifact,
+)
+from app.nutrition.application.fooddb_manager_packet_smoke import (  # noqa: E402
+    build_fooddb_manager_packet_smoke,
 )
 
 
@@ -78,6 +88,9 @@ ROUTE_BACKED_MACRO_NON_CLAIMS = {
     "fooddb_truth_updated": False,
     "product_readiness_claimed": False,
     "private_self_use_approved": False,
+}
+FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS = {
+    flag: False for flag in FOODDB_TRIAD_SAME_TRUTH_REQUIRED_NON_CLAIMS
 }
 REQUIRED_FETCH_METHODS = {
     "/accurate-intake/chat-history": "GET",
@@ -144,6 +157,9 @@ def _base_report(
         "route_backed_macro_present_current_budget": {},
         "route_backed_macro_missing_current_budget": {},
         "route_backed_macro_non_claims": dict(ROUTE_BACKED_MACRO_NON_CLAIMS),
+        "fooddb_triad_same_truth_browser_checked": False,
+        "fooddb_triad_same_truth_cases": {},
+        "fooddb_triad_same_truth_non_claims": dict(FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS),
         "today_session_status_rendered": False,
         "today_no_debug_trace": False,
         "body_page_loaded": False,
@@ -484,6 +500,120 @@ def _run_macro_missing_exact_item_sequence(
     return result
 
 
+def _approved_packet_ready_manager_cases() -> list[dict[str, Any]]:
+    approved_artifact = build_approved_packet_ready_fooddb_artifact(
+        artifact_path="artifacts/accurate_intake_approved_packet_ready_fooddb_artifact.json"
+    )
+    manager_packet_smoke = build_fooddb_manager_packet_smoke(
+        retrieval_records=tuple(),
+        approved_packet_ready_artifact=approved_artifact,
+    )
+    return [
+        case
+        for case in manager_packet_smoke.get("approved_packet_ready_cases") or []
+        if isinstance(case, dict)
+    ]
+
+
+def _renderer_payload_from_manager_case(case: dict[str, Any]) -> dict[str, Any]:
+    basis = dict(case.get("final_response_basis") or {})
+    kcal_basis = dict(basis.get("kcal_basis") or {})
+    macro_basis = dict(basis.get("macro_basis") or {})
+    allowed_macro_claims = dict(macro_basis.get("allowed_macro_claims") or {})
+    macro_visibility = str(macro_basis.get("macro_visibility_status") or "")
+    show_macro = macro_visibility == "visible"
+    return {
+        "consumed_kcal": kcal_basis.get("kcal_point"),
+        "kcal_range": kcal_basis.get("kcal_range") or [],
+        "consumed_protein": allowed_macro_claims.get("protein_g"),
+        "consumed_carbs": allowed_macro_claims.get("carbs_g"),
+        "consumed_fat": allowed_macro_claims.get("fat_g"),
+        "show_macro": show_macro,
+        "macro_guard_reason": "" if show_macro else macro_visibility,
+    }
+
+
+def _fooddb_triad_dom_values(page: Any, payload: dict[str, Any]) -> dict[str, Any]:
+    return page.evaluate(
+        """(payload) => {
+          renderMacroPanel(payload);
+          const byId = (id) => document.getElementById(id);
+          return {
+            macro_state: byId("macro-panel")?.dataset?.macroState || "",
+            macro_grid_hidden: byId("macro-grid")?.hidden === true,
+            macro_guard_reason_hidden: byId("macro-guard-reason")?.hidden === true,
+            macro_guard_reason_text: (byId("macro-guard-reason")?.textContent || "").trim(),
+            protein_text: (byId("protein-g")?.textContent || "").trim(),
+            carbs_text: (byId("carbs-g")?.textContent || "").trim(),
+            fat_text: (byId("fat-g")?.textContent || "").trim(),
+          };
+        }""",
+        payload,
+    )
+
+
+def _fooddb_triad_case_result(page: Any, case: dict[str, Any]) -> dict[str, Any]:
+    source_lane = str(case.get("source_lane") or "")
+    basis = dict(case.get("final_response_basis") or {})
+    kcal_basis = dict(basis.get("kcal_basis") or {})
+    macro_basis = dict(basis.get("macro_basis") or {})
+    payload = _renderer_payload_from_manager_case(case)
+    dom_values = _fooddb_triad_dom_values(page, payload)
+    return {
+        "source_lane": source_lane,
+        "item_id": str(case.get("item_id") or ""),
+        "kcal_point": kcal_basis.get("kcal_point"),
+        "kcal_range": kcal_basis.get("kcal_range") or [],
+        "macro_visibility_status": macro_basis.get("macro_visibility_status"),
+        "macro_state": dom_values.get("macro_state"),
+        "protein_text": dom_values.get("protein_text"),
+        "carbs_text": dom_values.get("carbs_text"),
+        "fat_text": dom_values.get("fat_text"),
+        "macro_guard_reason_text": dom_values.get("macro_guard_reason_text"),
+        "packet_is_not_mutation_authority": basis.get("packet_is_not_mutation_authority") is True,
+    }
+
+
+def _run_fooddb_triad_same_truth_sequence(
+    browser: Any,
+    *,
+    base_url: str,
+    user_external_id: str,
+    local_date: str,
+    timeout_ms: int,
+    local_debug_token: str,
+    viewport: dict[str, int],
+) -> dict[str, Any]:
+    triad_user_id = f"{user_external_id}-fooddb-triad"
+    result: dict[str, Any] = {
+        "fooddb_triad_same_truth_browser_checked": False,
+        "fooddb_triad_same_truth_cases": {},
+        "fooddb_triad_same_truth_non_claims": dict(FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS),
+        "fetch_sequence": [],
+        "page_text": "",
+    }
+    today = _open_page(
+        browser,
+        viewport=viewport,
+        url=_page_url(base_url, "today", user_external_id=triad_user_id, local_date=local_date),
+        timeout_ms=timeout_ms,
+        local_debug_token=local_debug_token,
+    )
+    today.wait_for_selector('[data-surface-role="today-diary"]', timeout=timeout_ms)
+    cases = {
+        str(case.get("source_lane") or ""): _fooddb_triad_case_result(today, case)
+        for case in _approved_packet_ready_manager_cases()
+    }
+    result["fooddb_triad_same_truth_cases"] = cases
+    result["fooddb_triad_same_truth_browser_checked"] = (
+        cases == EXPECTED_FOODDB_TRIAD_SAME_TRUTH_CASES
+    )
+    result["page_text"] = today.locator("body").inner_text(timeout=timeout_ms)
+    result["fetch_sequence"].extend(_capture_fetches(today))
+    today.close()
+    return result
+
+
 def _run_browser_sequence(
     *,
     base_url: str,
@@ -507,6 +637,9 @@ def _run_browser_sequence(
         "macro_present_exact_item_values": {},
         "macro_missing_exact_item_browser_checked": False,
         "macro_missing_exact_item_values": {},
+        "fooddb_triad_same_truth_browser_checked": False,
+        "fooddb_triad_same_truth_cases": {},
+        "fooddb_triad_same_truth_non_claims": dict(FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS),
     }
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=headless)
@@ -761,6 +894,28 @@ def _run_browser_sequence(
             )
             result["fetch_sequence"].extend(macro_missing_result["fetch_sequence"])
             page_texts.append(str(macro_missing_result.get("page_text") or ""))
+
+            result["current_step"] = "fooddb_triad_same_truth_browser_check"
+            triad_result = _run_fooddb_triad_same_truth_sequence(
+                browser,
+                base_url=base_url,
+                user_external_id=user_external_id,
+                local_date=local_date,
+                timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
+                viewport=desktop_viewport,
+            )
+            result["fooddb_triad_same_truth_browser_checked"] = triad_result[
+                "fooddb_triad_same_truth_browser_checked"
+            ]
+            result["fooddb_triad_same_truth_cases"] = triad_result[
+                "fooddb_triad_same_truth_cases"
+            ]
+            result["fooddb_triad_same_truth_non_claims"] = triad_result[
+                "fooddb_triad_same_truth_non_claims"
+            ]
+            result["fetch_sequence"].extend(triad_result["fetch_sequence"])
+            page_texts.append(str(triad_result.get("page_text") or ""))
 
             result["current_step"] = "open_today"
             today = _open_page(
@@ -1234,6 +1389,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("body_plan_readback_checked", "body_plan_readback_not_checked")
     require_true("body_manual_target_read_model_rendered", "body_manual_target_read_model_not_rendered")
     require_true("today_manual_target_readback_checked", "today_manual_target_readback_not_checked")
+    require_true("fooddb_triad_same_truth_browser_checked", "fooddb_triad_same_truth_browser_not_checked")
     require_true("body_session_status_rendered", "body_session_status_not_rendered")
     require_true("body_no_debug_trace", "body_debug_trace_leaked")
     require_true("desktop_no_overflow", "desktop_overflow_detected")
@@ -1300,6 +1456,19 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     for field, expected_value in ROUTE_BACKED_MACRO_NON_CLAIMS.items():
         if route_macro_non_claims.get(field) != expected_value:
             blockers.append(f"route_backed_macro_non_claim_overclaim:{field}")
+    triad_cases = dict(report.get("fooddb_triad_same_truth_cases") or {})
+    for lane, expected_case in EXPECTED_FOODDB_TRIAD_SAME_TRUTH_CASES.items():
+        actual_case = dict(triad_cases.get(lane) or {})
+        if not actual_case:
+            blockers.append(f"fooddb_triad_same_truth_case_missing:{lane}")
+            continue
+        for field, expected_value in expected_case.items():
+            if actual_case.get(field) != expected_value:
+                blockers.append(f"fooddb_triad_same_truth_case_mismatch:{lane}:{field}")
+    triad_non_claims = dict(report.get("fooddb_triad_same_truth_non_claims") or {})
+    for field, expected_value in FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS.items():
+        if triad_non_claims.get(field) != expected_value:
+            blockers.append(f"fooddb_triad_same_truth_non_claim_overclaim:{field}")
     fetches = list(report.get("fetch_sequence") or browser.get("fetch_sequence") or [])
     for expected, method in REQUIRED_FETCH_METHODS.items():
         if not any(
