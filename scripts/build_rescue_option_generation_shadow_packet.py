@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.rescue.application.option_generation_shadow import (  # noqa: E402
+    ADJUSTMENT_REQUESTS,
     build_rescue_option_generation_shadow_packet,
 )
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
@@ -21,11 +22,17 @@ def main(argv: list[str] | None = None) -> int:
         description="Build the rescue option-generation shadow packet artifact."
     )
     parser.add_argument("--viability-shadow-packet", required=True, type=Path)
+    parser.add_argument(
+        "--adjustment-request",
+        choices=sorted(ADJUSTMENT_REQUESTS),
+        default="standard",
+    )
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args(argv)
 
     packet = build_rescue_option_generation_shadow_packet(
         viability_shadow_packet=read_json_artifact(args.viability_shadow_packet),
+        adjustment_request=args.adjustment_request,
     )
     write_json_artifact(args.output, packet)
     print(json.dumps(packet, ensure_ascii=False))

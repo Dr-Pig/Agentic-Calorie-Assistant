@@ -55,20 +55,26 @@ def _viability_packet(*, consumed: int = 2100) -> dict[str, object]:
 def _run_option_runner(
     tmp_path: Path,
     viability_packet: dict[str, object],
+    *,
+    adjustment_request: str | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
     input_path = tmp_path / "viability.json"
     output_path = tmp_path / "option.json"
     input_path.write_text(json.dumps(viability_packet), encoding="utf-8")
 
-    result = subprocess.run(
-        [
+    command = [
             sys.executable,
             str(ROOT / "scripts" / "build_rescue_option_generation_shadow_packet.py"),
             "--viability-shadow-packet",
             str(input_path),
             "--output",
             str(output_path),
-        ],
+    ]
+    if adjustment_request:
+        command.extend(["--adjustment-request", adjustment_request])
+
+    result = subprocess.run(
+        command,
         cwd=ROOT,
         text=True,
         capture_output=True,
@@ -103,6 +109,26 @@ def test_runner_writes_rescue_option_generation_packet(tmp_path: Path) -> None:
     assert packet["meal_thread_mutated"] is False
     assert packet["manager_context_injected"] is False
     assert packet["durable_memory_written"] is False
+
+
+def test_runner_writes_aggressive_strength_adjustment_packet(
+    tmp_path: Path,
+) -> None:
+    result, packet = _run_option_runner(
+        tmp_path,
+        _viability_packet(consumed=2520),
+        adjustment_request="shorter_more_aggressive",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert packet["status"] == "pass"
+    assert packet["cap_mode"] == "aggressive_20_percent"
+    assert packet["recommended_days"] == 2
+    assert packet["daily_kcal_adjustment"] == -360
+    assert packet["proposal_card"] is None
+    assert packet["candidate_copy"] is None
+    assert packet["runtime_effect_allowed"] is False
+    assert packet["proposal_committed"] is False
 
 
 def test_runner_writes_blocked_packet_for_upstream_claim_drift(
