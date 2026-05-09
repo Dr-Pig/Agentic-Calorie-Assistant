@@ -138,6 +138,9 @@ manager_packet_allowed:
       - packet_fields
       - macro_truth_owner
       - missing_macro_policy
+      - macro_runtime_policy
+      - source_class_policy
+      - shadow_schema
   - runtime_usage_boundary
   - followup_hints
   - compact source_provenance

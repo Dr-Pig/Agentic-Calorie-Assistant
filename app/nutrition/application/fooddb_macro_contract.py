@@ -41,12 +41,79 @@ MACRO_SOURCE_CLASS_POLICY = {
         "source_classes": ["TFDA_per_100g", "USDA", "OpenFoodFacts", "WebSearch"],
     },
 }
+MACRO_SHADOW_SCHEMA = {
+    "exact_brand_item": {
+        "macro_fields": [
+            "protein_g",
+            "carbs_g",
+            "fat_g",
+            "macro_basis",
+            "macro_confidence",
+            "macro_source_strength",
+            "nutrition_label_basis",
+            "source_url",
+            "source_accessed_at",
+        ],
+        "truth_condition": "official_label_or_menu",
+        "values_may_be_null": True,
+    },
+    "generic_common_serving": {
+        "macro_fields": [
+            "protein_g_point",
+            "protein_g_range",
+            "carbs_g_point",
+            "carbs_g_range",
+            "fat_g_point",
+            "fat_g_range",
+            "macro_basis",
+            "macro_confidence",
+            "macro_source_strength",
+        ],
+        "truth_condition": "validated_common_serving_anchor",
+        "values_may_be_null": True,
+    },
+    "listed_component": {
+        "macro_fields": [
+            "protein_g_per_unit",
+            "protein_g_range",
+            "carbs_g_per_unit",
+            "carbs_g_range",
+            "fat_g_per_unit",
+            "fat_g_range",
+            "unit_phrase",
+            "macro_basis",
+            "macro_confidence",
+            "macro_source_strength",
+        ],
+        "truth_condition": "validated_component_anchor",
+        "preferred_macro_granularity": "per_unit",
+        "values_may_be_null": True,
+    },
+    "basket_family_alias_modifier": {
+        "macro_fields": [],
+        "runtime_role": "query_portion_or_visibility_modifier_only",
+        "runtime_truth_allowed": False,
+    },
+    "source_evidence_candidate": {
+        "candidate_fields": [
+            "protein_g_per_100g",
+            "carbs_g_per_100g",
+            "fat_g_per_100g",
+            "source_denominator",
+            "source_class",
+            "source_record_id",
+        ],
+        "runtime_role": "evidence_candidate_not_serving_truth",
+        "runtime_truth_allowed": False,
+    },
+}
 MACRO_CONTRACT = {
     "packet_fields": MACRO_PACKET_FIELDS,
     "macro_truth_owner": "fooddb_approved_packet",
     "missing_macro_policy": "preserve_null_do_not_invent",
     "macro_runtime_policy": MACRO_RUNTIME_POLICY,
     "source_class_policy": MACRO_SOURCE_CLASS_POLICY,
+    "shadow_schema": MACRO_SHADOW_SCHEMA,
 }
 APPROVED_PACKET_READY_SCHEMA_VERSION = "fooddb_approved_packet_ready_artifact_v1"
 APPROVED_PACKET_READY_SOURCE_QUALITY = "packet_ready_approved"
@@ -58,5 +125,6 @@ __all__ = [
     "MACRO_CONTRACT",
     "MACRO_PACKET_FIELDS",
     "MACRO_RUNTIME_POLICY",
+    "MACRO_SHADOW_SCHEMA",
     "MACRO_SOURCE_CLASS_POLICY",
 ]
