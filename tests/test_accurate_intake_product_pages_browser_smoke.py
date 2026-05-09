@@ -56,6 +56,30 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
             "carbs_text": "--",
             "fat_text": "--",
         },
+        "route_backed_macro_browser_checked": True,
+        "route_backed_macro_present_current_budget": {
+            "consumed_kcal": 300,
+            "consumed_protein": 12,
+            "consumed_carbs": 48,
+            "consumed_fat": 6,
+            "show_macro": True,
+            "macro_guard_reason": "committed_and_aligned",
+        },
+        "route_backed_macro_missing_current_budget": {
+            "consumed_kcal": 130,
+            "consumed_protein": 0,
+            "consumed_carbs": 0,
+            "consumed_fat": 0,
+            "show_macro": False,
+            "macro_guard_reason": "no_macro_data",
+        },
+        "route_backed_macro_non_claims": {
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_truth_updated": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
         "today_session_status_rendered": True,
         "today_no_debug_trace": True,
         "body_page_loaded": True,
@@ -415,6 +439,40 @@ def test_product_pages_browser_smoke_validator_rejects_macro_missing_value_leak(
     assert status == "fail"
     assert "macro_missing_exact_item_value_mismatch:macro_state" in blockers
     assert "macro_missing_exact_item_value_mismatch:protein_text" in blockers
+
+
+def test_product_pages_browser_smoke_validator_requires_route_backed_macro_budget_truth() -> None:
+    report = _passing_report()
+    report["route_backed_macro_browser_checked"] = False
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "route_backed_macro_browser_not_checked" in blockers
+
+
+def test_product_pages_browser_smoke_validator_rejects_route_backed_macro_budget_drift() -> None:
+    report = _passing_report()
+    values = dict(report["route_backed_macro_present_current_budget"])
+    values["consumed_protein"] = 11
+    report["route_backed_macro_present_current_budget"] = values
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "route_backed_macro_present_current_budget_mismatch:consumed_protein" in blockers
+
+
+def test_product_pages_browser_smoke_validator_rejects_route_backed_macro_overclaims() -> None:
+    report = _passing_report()
+    non_claims = dict(report["route_backed_macro_non_claims"])
+    non_claims["product_readiness_claimed"] = True
+    report["route_backed_macro_non_claims"] = non_claims
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "route_backed_macro_non_claim_overclaim:product_readiness_claimed" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_stale_body_budget_read_model_values() -> None:
