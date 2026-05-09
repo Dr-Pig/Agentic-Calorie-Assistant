@@ -22,6 +22,7 @@ def build_runtime_lab_memory_quality_report(
     suite: Mapping[str, Any],
     fixture_extraction: Mapping[str, Any],
     dogfood_extraction: Mapping[str, Any],
+    dogfood_replay_review: Mapping[str, Any] | None = None,
     lifecycle: Mapping[str, Any],
     context_pack: Mapping[str, Any],
     injection: Mapping[str, Any],
@@ -35,7 +36,12 @@ def build_runtime_lab_memory_quality_report(
         "artifact_type": "runtime_lab_memory_shadow_quality_report",
         "status": status,
         "blockers": blockers,
-        "coverage": _coverage(suite, dogfood_extraction, injection),
+        "coverage": _coverage(
+            suite,
+            dogfood_extraction,
+            injection,
+            dogfood_replay_review or {},
+        ),
         "activation_ladder": _activation_ladder(
             suite,
             fixture_extraction,
@@ -74,6 +80,7 @@ def _coverage(
     suite: Mapping[str, Any],
     dogfood_extraction: Mapping[str, Any],
     injection: Mapping[str, Any],
+    dogfood_replay_review: Mapping[str, Any],
 ) -> dict[str, Any]:
     return {
         "split_counts": dict(suite.get("split_counts", {})),
@@ -84,6 +91,12 @@ def _coverage(
         ),
         "lab_injection_compared": injection.get("artifact_type")
         == "runtime_lab_manager_memory_injection_comparison",
+        "dogfood_reviewed_case_count": int(
+            dogfood_replay_review.get("reviewed_case_count") or 0
+        ),
+        "dogfood_reviewed_proposed_split_counts": dict(
+            dogfood_replay_review.get("proposed_split_counts") or {}
+        ),
     }
 
 
