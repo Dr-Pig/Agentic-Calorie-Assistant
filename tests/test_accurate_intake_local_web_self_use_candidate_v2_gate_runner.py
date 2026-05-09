@@ -177,6 +177,7 @@ def _required_payloads() -> dict[str, dict[str, object]]:
                 "seven_day_diary_checked": True,
                 "short_term_context_checked": True,
                 "target_candidate_ui_checked": True,
+                "body_observation_same_truth_checked": True,
             },
         },
         "ui_context_alignment_pack": {
@@ -203,6 +204,7 @@ def _required_payloads() -> dict[str, dict[str, object]]:
             "appshell_claim_boundary": _ready_claim_boundary(),
             "all_required_browser_artifacts_executed": True,
             "browser_executed_required": True,
+            "summary": {"body_observation_same_truth_checked": True},
         },
         "manager_tool_surface_inventory": {
             "artifact_schema_version": "1.0",

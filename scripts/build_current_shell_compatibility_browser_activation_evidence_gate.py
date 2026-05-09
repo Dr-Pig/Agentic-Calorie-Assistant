@@ -42,6 +42,9 @@ DEFAULT_ARTIFACT_PATHS = {
     "product_pages_body_noplan_degraded_smoke": ROOT
     / "artifacts"
     / "accurate_intake_product_pages_body_noplan_degraded_smoke.json",
+    "body_observation_same_truth_gate": ROOT
+    / "artifacts"
+    / "accurate_intake_body_observation_same_truth_gate.json",
     "fixture_full_product_loop_e2e": ROOT
     / "artifacts"
     / "accurate_intake_fixture_full_product_loop_e2e.json",
