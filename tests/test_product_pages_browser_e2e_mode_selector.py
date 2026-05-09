@@ -31,6 +31,20 @@ def test_rescue_shadow_context_change_fast_passes_browser_e2e() -> None:
     assert decision["mode"] == "fast_pass"
 
 
+def test_proactive_no_send_summary_consumer_fast_passes_browser_e2e() -> None:
+    decision = selector.select_mode(
+        changed_files=[
+            "app/runtime/application/proactive_summary_consumer.py",
+            "tests/test_proactive_no_send_summary_consumer.py",
+            "tests/test_sidecar_offline_activation_guard.py",
+        ],
+        diff_text="",
+        event_name="merge_group",
+    )
+
+    assert decision["mode"] == "fast_pass"
+
+
 def test_product_page_static_change_requires_full_browser_e2e() -> None:
     decision = selector.select_mode(
         changed_files=["static/accurate-intake-today.html"],
