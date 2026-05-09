@@ -181,6 +181,34 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
     assert exit_code == 0
     assert printed["status"] == "pass"
     assert printed["candidate_prepared"] is True
+    assert printed["route_backed_macro_checked"] is True
+    assert printed["route_backed_macro_closeout_status"] == "pass"
+    route_backed_macro = printed["route_backed_macro_closeout"]
+    assert route_backed_macro["macro_present_exact_item"]["current_budget"]["consumed_kcal"] == 300
+    assert route_backed_macro["macro_present_exact_item"]["current_budget"]["consumed_protein"] == 12
+    assert route_backed_macro["macro_present_exact_item"]["current_budget"]["consumed_carbs"] == 48
+    assert route_backed_macro["macro_present_exact_item"]["current_budget"]["consumed_fat"] == 6
+    assert route_backed_macro["macro_present_exact_item"]["current_budget"]["show_macro"] is True
+    assert (
+        route_backed_macro["macro_present_exact_item"]["approved_exact_macro_trace"][
+            "macro_truth_owner"
+        ]
+        == "fooddb_approved_packet"
+    )
+    assert (
+        route_backed_macro["macro_missing_exact_item"]["current_budget"]["consumed_kcal"]
+        == 130
+    )
+    assert route_backed_macro["macro_missing_exact_item"]["current_budget"]["show_macro"] is False
+    assert (
+        route_backed_macro["macro_missing_exact_item"]["approved_exact_macro_trace"][
+            "macro_visibility_status"
+        ]
+        == "hidden_missing_source"
+    )
+    assert route_backed_macro["non_claims"]["real_fooddb_pass_claimed"] is False
+    assert route_backed_macro["non_claims"]["product_readiness_claimed"] is False
+    assert route_backed_macro["non_claims"]["private_self_use_approved"] is False
     assert browser_activation["status"] == "browser_activation_evidence_ready_for_human_review"
     assert browser_activation["pass_type"] == "contract"
     assert (
@@ -209,6 +237,11 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
     assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
     assert "ready_for_live_diagnostic_decision" not in pre_live_pack
     assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is True
+    assert candidate["local_web_self_use_candidate_v2"]["route_backed_macro_checked"] is True
+    assert (
+        candidate["local_web_self_use_candidate_v2"]["route_backed_macro_closeout_status"]
+        == "pass"
+    )
     assert candidate["local_web_self_use_candidate_v2"]["blockers"] == []
     chain = candidate["local_web_self_use_candidate_v2"]["appshell_browser_evidence_chain"]
     assert printed["appshell_browser_evidence_chain"] == chain
