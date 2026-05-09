@@ -21,6 +21,7 @@ from app.composition.current_shell_fooddb_triad_same_truth_contract import (  # 
     EXPECTED_FOODDB_TRIAD_SAME_TRUTH_CASES,
     FOODDB_TRIAD_SAME_TRUTH_REQUIRED_NON_CLAIMS,
 )
+from app.composition.non_fooddb_read_only_turn import NON_FOODDB_READ_ONLY_MANAGER_TOOLS  # noqa: E402
 from app.composition import accurate_intake_debug_routes, intake_routes, local_data_hygiene_routes  # noqa: E402
 from app.composition.dogfood_review_queue import build_dogfood_review_queue_artifact  # noqa: E402
 from app.database import get_or_create_user  # noqa: E402
@@ -125,6 +126,31 @@ ROUTE_BACKED_MACRO_NON_CLAIMS = {
 }
 FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS = {
     flag: False for flag in FOODDB_TRIAD_SAME_TRUTH_REQUIRED_NON_CLAIMS
+}
+CDK_DRAFT_MESSAGE = "luwei basket"
+CDK_FOLLOWUP_MESSAGE = "tofu, seaweed, and meatball"
+CDK_CORRECTION_MESSAGE = "make that 90 kcal instead"
+CDK_FOLLOWUP_QUESTION = "Please list the items in the luwei basket so I can estimate it."
+EXPECTED_CDK_BROWSER_SAME_TRUTH_VALUES = {
+    "draft_pending_pin_after_reload": "present",
+    "draft_consumed_unchanged": True,
+    "followup_pin_visible_on_commit_context": True,
+    "pending_pins_absent_before_correction": True,
+    "target_candidates_available_before_correction": True,
+    "followup_commit_visible_after_reload": True,
+    "correction_visible_after_reload": True,
+    "commit_increased_consumed": True,
+    "correction_read_model_refreshed": True,
+    "manager_trace_basis_present": True,
+}
+CDK_BROWSER_SAME_TRUTH_NON_CLAIMS = {
+    "frontend_semantic_owner": False,
+    "frontend_selected_target": False,
+    "frontend_calculated_consumed": False,
+    "live_llm_invoked": False,
+    "fooddb_truth_updated": False,
+    "product_readiness_claimed": False,
+    "private_self_use_approved": False,
 }
 DEFAULT_FEEDBACK_TEXT = "Synthetic browser feedback"
 DEFAULT_FEEDBACK_TRACE_ID = "trace-browser-feedback"
@@ -274,6 +300,9 @@ def _base_report(
         "fooddb_triad_same_truth_browser_checked": False,
         "fooddb_triad_same_truth_cases": {},
         "fooddb_triad_same_truth_non_claims": dict(FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS),
+        "cdk_browser_same_truth_checked": False,
+        "cdk_browser_same_truth_values": {},
+        "cdk_browser_same_truth_non_claims": dict(CDK_BROWSER_SAME_TRUTH_NON_CLAIMS),
         "today_session_status_rendered": False,
         "today_no_debug_trace": False,
         "body_page_loaded": False,
@@ -608,6 +637,75 @@ def _current_budget_macro_fields(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _int_field(value: Any) -> int:
+    if isinstance(value, int):
+        return value
+    text = str(value or "")
+    digits = "".join(ch for ch in text if ch.isdigit() or ch == "-")
+    try:
+        return int(digits)
+    except ValueError:
+        return 0
+
+
+def _bootstrap_cdk_user_from_page(page: Any, *, user_external_id: str, local_date: str) -> None:
+    page.evaluate(
+        """async ({ userExternalId, localDate }) => {
+          const response = await fetch("/onboarding/bootstrap", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: userExternalId,
+              sex: "female",
+              age_years: 34,
+              height_cm: 170,
+              current_weight_kg: 70,
+              goal_type: "lose_weight",
+              weekly_target_rate_kg: 0.5,
+              daily_lifestyle: "sedentary_with_some_walking",
+              weekly_exercise_days_band: "1_2",
+              local_date: localDate,
+              timezone: "Asia/Taipei"
+            })
+          });
+          if (!response.ok) {
+            throw new Error(`onboarding bootstrap failed: ${response.status}`);
+          }
+        }""",
+        {"userExternalId": user_external_id, "localDate": local_date},
+    )
+
+
+def _visible_today_consumed_kcal(
+    browser: Any,
+    *,
+    base_url: str,
+    user_external_id: str,
+    local_date: str,
+    timeout_ms: int,
+    local_debug_token: str,
+    viewport: dict[str, int],
+) -> tuple[int, bool, list[dict[str, Any]], str]:
+    today = _open_page(
+        browser,
+        viewport=viewport,
+        url=_page_url(base_url, "today", user_external_id=user_external_id, local_date=local_date),
+        timeout_ms=timeout_ms,
+        local_debug_token=local_debug_token,
+    )
+    try:
+        today.wait_for_selector('[data-surface-role="today-diary"]', timeout=timeout_ms)
+        today.wait_for_function(
+            """() => document.querySelector("#consumed-kcal")?.textContent?.trim() !== "--" """,
+            timeout=timeout_ms,
+        )
+        consumed = _int_field(today.locator("#consumed-kcal").inner_text(timeout=timeout_ms).strip())
+        text = today.locator("body").inner_text(timeout=timeout_ms)
+        return consumed, "kcal" in text, _capture_fetches(today), text
+    finally:
+        today.close()
+
+
 @contextmanager
 def _body_observation_fixture_route() -> Any:
     provider = BodyObservationManagerFixtureProvider()
@@ -738,6 +836,206 @@ def _latest_weight_read_only_fixture_route() -> Any:
         yield provider
     finally:
         intake_routes.manager_provider = previous_manager_provider
+
+
+def _packet_prompt_payload(user_payload: dict[str, Any]) -> dict[str, Any]:
+    packet = user_payload.get("manager_context_packet_v1")
+    return dict(packet) if isinstance(packet, dict) else {}
+
+
+def _cdk_context_call_summary(
+    user_payload: dict[str, Any],
+    *,
+    stage: str,
+    round_index: int,
+) -> dict[str, Any]:
+    packet = _packet_prompt_payload(user_payload)
+    hard_pins = packet.get("hard_pins") if isinstance(packet.get("hard_pins"), dict) else {}
+    target_candidates = (
+        packet.get("target_candidates") if isinstance(packet.get("target_candidates"), dict) else {}
+    )
+    correction_candidates = target_candidates.get("for_correction_or_removal")
+    if not isinstance(correction_candidates, list):
+        correction_candidates = []
+    return {
+        "stage": stage,
+        "round_index": round_index,
+        "available_tools": sorted(str(item) for item in (user_payload.get("available_tools") or [])),
+        "pending_followup_pin_present": bool(hard_pins.get("pending_followup")),
+        "pending_draft_pin_present": bool(hard_pins.get("pending_draft")),
+        "target_candidate_count": len(correction_candidates),
+        "raw_user_input_used_for_fixture_selection": False,
+    }
+
+
+class ClarifyCommitCorrectionFixtureProvider:
+    """Call-order fixture for the existing Manager loop; semantic ownership stays Manager-side."""
+
+    def __init__(self) -> None:
+        self.turn_index = -1
+        self.active_turn = "draft_followup"
+        self.calls: list[dict[str, Any]] = []
+
+    def readiness(self) -> dict[str, Any]:
+        return {
+            "configured": True,
+            "provider": "clarify_commit_correction_browser_fixture",
+            "live_llm_invoked": False,
+        }
+
+    async def complete_with_trace(self, **kwargs: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+        user_payload = dict(kwargs.get("user_payload") or {})
+        available_tools = {str(item) for item in (user_payload.get("available_tools") or [])}
+        round_index = int(user_payload.get("round_index") or 0)
+        is_entry = bool(set(NON_FOODDB_READ_ONLY_MANAGER_TOOLS).intersection(available_tools))
+        if is_entry:
+            self.turn_index += 1
+            self.active_turn = ("draft_followup", "followup_commit", "correction")[min(self.turn_index, 2)]
+        stage = "entry" if is_entry else self.active_turn
+        self.calls.append(_cdk_context_call_summary(user_payload, stage=stage, round_index=round_index))
+
+        if is_entry:
+            return self._entry_decision(), self._trace(stage)
+        if self.active_turn == "draft_followup":
+            return self._ask_followup(), self._trace(stage)
+        if round_index == 0 and "estimate_nutrition" in available_tools:
+            calls = [{"name": "estimate_nutrition"}]
+            if "compare_against_budget" in available_tools:
+                calls.append({"name": "compare_against_budget"})
+            return {"manager_action": "call_tools", "response_mode": "tool_call", "tool_calls": calls}, self._trace(stage)
+        if self.active_turn == "correction":
+            return self._correction_final(), self._trace(stage)
+        return self._commit_final(), self._trace(stage)
+
+    def _trace(self, stage: str) -> dict[str, Any]:
+        return {
+            "source": "clarify_commit_correction_browser_fixture",
+            "stage": stage,
+            "fixture_manager_used": True,
+            "live_llm_invoked": False,
+            "raw_user_input_used_for_fixture_selection": False,
+        }
+
+    def _entry_decision(self) -> dict[str, Any]:
+        return self._final(
+            current_turn_intent="log_meal",
+            final_action="route_to_intake",
+            workflow_effect="route_to_intake",
+            mutation_intent_candidate="canonical_write",
+            target_attachment={"mode": "manager_routes_to_intake"},
+            estimation_posture="needs_manager_execution",
+            evidence_posture="needs_tool_evidence",
+            reply_text="route_to_intake",
+        )
+
+    def _ask_followup(self) -> dict[str, Any]:
+        return self._final(
+            current_turn_intent="log_meal",
+            final_action="ask_followup",
+            workflow_effect="ask_followup",
+            mutation_intent_candidate="no_mutation",
+            target_attachment={"mode": "new_meal"},
+            estimation_posture="composition_unknown",
+            evidence_posture="composition_unknown",
+            reply_text=CDK_FOLLOWUP_QUESTION,
+            followup_question=CDK_FOLLOWUP_QUESTION,
+        )
+
+    def _commit_final(self) -> dict[str, Any]:
+        return self._final(
+            current_turn_intent="log_meal",
+            final_action="commit",
+            workflow_effect="commit",
+            mutation_intent_candidate="canonical_write",
+            target_attachment={"mode": "pending_draft"},
+            estimation_posture="estimable",
+            evidence_posture="tool_evidence_present",
+            reply_text="commit_followup_answer",
+        )
+
+    def _correction_final(self) -> dict[str, Any]:
+        return self._final(
+            current_turn_intent="correct_meal",
+            final_action="correction_applied",
+            workflow_effect="correction",
+            mutation_intent_candidate="correction_write",
+            target_attachment={"mode": "target_committed_thread"},
+            estimation_posture="estimable",
+            evidence_posture="tool_evidence_present",
+            reply_text="correction_applied",
+        )
+
+    def _final(
+        self,
+        *,
+        current_turn_intent: str,
+        final_action: str,
+        workflow_effect: str,
+        mutation_intent_candidate: str,
+        target_attachment: dict[str, Any],
+        estimation_posture: str,
+        evidence_posture: str,
+        reply_text: str,
+        followup_question: str | None = None,
+    ) -> dict[str, Any]:
+        semantic_decision = {
+            "semantic_authority": "deterministic_fake_provider",
+            "current_turn_intent": current_turn_intent,
+            "target_attachment": dict(target_attachment),
+            "workflow_effect": workflow_effect,
+            "final_action_candidate": final_action,
+            "estimation_posture": estimation_posture,
+            "followup_posture": "ask_required" if followup_question else "none",
+            "mutation_intent_candidate": mutation_intent_candidate,
+            "uncertainty_posture": "high" if followup_question else "bounded",
+            "source": "clarify_commit_correction_browser_fixture",
+            "semantic_owner": "manager_fixture",
+            "deterministic_role": "fixture_sequence_only",
+        }
+        answer_contract = {"reply_text": reply_text}
+        if followup_question:
+            semantic_decision["followup_question"] = followup_question
+            answer_contract["followup_question"] = followup_question
+        return {
+            "manager_action": "final",
+            "intent": "log_meal",
+            "intent_type": "log_meal",
+            "final_action": final_action,
+            "workflow_effect": workflow_effect,
+            "target_attachment": dict(target_attachment),
+            "exactness": "fixture_manager_output",
+            "confidence": "medium",
+            "evidence_posture": evidence_posture,
+            "repair_ack": False,
+            "answer_contract": answer_contract,
+            "response_summary": reply_text,
+            "uncertainty_posture": semantic_decision["uncertainty_posture"],
+            "evidence_honesty_posture": evidence_posture,
+            "semantic_decision": semantic_decision,
+        }
+
+
+@contextmanager
+def _clarify_commit_correction_fixture_route() -> Any:
+    provider = ClarifyCommitCorrectionFixtureProvider()
+    previous_manager_provider = intake_routes.manager_provider
+    previous_routing_decision = intake_routes.build_workflow_routing_decision
+
+    def _route_to_intake(**_: Any) -> SimpleNamespace:
+        return SimpleNamespace(
+            target_workflow_family="intake",
+            disposition="open_new_workflow",
+            phase_a_trace={},
+            required_read_surfaces=[],
+        )
+
+    intake_routes.manager_provider = provider
+    intake_routes.build_workflow_routing_decision = _route_to_intake
+    try:
+        yield provider
+    finally:
+        intake_routes.manager_provider = previous_manager_provider
+        intake_routes.build_workflow_routing_decision = previous_routing_decision
 
 
 def _expected_chat_body_observation_values(local_date: str) -> dict[str, Any]:
@@ -924,6 +1222,175 @@ def _run_body_ui_weight_chat_readback_sequence(
         result["body_ui_weight_chat_readback_values"] == expected_values
         and result["body_ui_weight_chat_readback_non_claims"] == BODY_UI_WEIGHT_CHAT_READBACK_NON_CLAIMS
         and bool(query_posts)
+    )
+    return result
+
+
+def _run_cdk_browser_same_truth_sequence(
+    browser: Any,
+    *,
+    base_url: str,
+    user_external_id: str,
+    local_date: str,
+    timeout_ms: int,
+    local_debug_token: str,
+    viewport: dict[str, int],
+) -> dict[str, Any]:
+    cdk_user_id = f"{user_external_id}-cdk"
+    result: dict[str, Any] = {
+        "cdk_browser_same_truth_checked": False,
+        "cdk_browser_same_truth_values": {},
+        "cdk_browser_same_truth_non_claims": dict(CDK_BROWSER_SAME_TRUTH_NON_CLAIMS),
+        "fetch_sequence": [],
+        "page_text": "",
+    }
+    chat = _open_page(
+        browser,
+        viewport=viewport,
+        url=_page_url(base_url, "chat", user_external_id=cdk_user_id, local_date=local_date),
+        timeout_ms=timeout_ms,
+        local_debug_token=local_debug_token,
+    )
+    try:
+        chat.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
+        _bootstrap_cdk_user_from_page(chat, user_external_id=cdk_user_id, local_date=local_date)
+        baseline_budget = _current_budget_payload(chat, user_external_id=cdk_user_id, local_date=local_date)
+        baseline_consumed = _int_field(baseline_budget.get("consumed_kcal"))
+
+        with _clarify_commit_correction_fixture_route() as provider:
+            chat.fill("#message-input", CDK_DRAFT_MESSAGE)
+            chat.press("#message-input", "Enter")
+            chat.wait_for_function(
+                """(expected) => {
+                  const text = document.querySelector("#chat-scroll")?.textContent || "";
+                  return text.includes(expected);
+                }""",
+                arg=CDK_FOLLOWUP_QUESTION,
+                timeout=timeout_ms,
+            )
+            chat.reload(wait_until="networkidle", timeout=timeout_ms)
+            chat.wait_for_function(
+                """(expected) => {
+                  const text = document.querySelector("#chat-scroll")?.textContent || "";
+                  return text.includes(expected)
+                    && (document.querySelector("#chat-context-pins")?.textContent || "").trim() === "present";
+                }""",
+                arg=CDK_FOLLOWUP_QUESTION,
+                timeout=timeout_ms,
+            )
+            draft_pending_pin_after_reload = chat.locator("#chat-context-pins").inner_text(timeout=timeout_ms).strip()
+            consumed_after_draft, _, draft_today_fetches, draft_today_text = _visible_today_consumed_kcal(
+                browser,
+                base_url=base_url,
+                user_external_id=cdk_user_id,
+                local_date=local_date,
+                timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
+                viewport=viewport,
+            )
+            result["fetch_sequence"].extend(draft_today_fetches)
+            result["page_text"] += "\n" + draft_today_text
+
+            chat.fill("#message-input", CDK_FOLLOWUP_MESSAGE)
+            chat.press("#message-input", "Enter")
+            chat.wait_for_function(
+                """() => {
+                  const text = document.querySelector("#chat-scroll")?.textContent || "";
+                  return text.includes("Logged.");
+                }""",
+                timeout=timeout_ms,
+            )
+            chat.reload(wait_until="networkidle", timeout=timeout_ms)
+            chat.wait_for_function(
+                """() => {
+                  const text = document.querySelector("#chat-scroll")?.textContent || "";
+                  return text.includes("Logged.");
+                }""",
+                timeout=timeout_ms,
+            )
+            pending_pins_after_commit = chat.locator("#chat-context-pins").inner_text(timeout=timeout_ms).strip()
+            consumed_after_commit, commit_visible, commit_today_fetches, commit_today_text = _visible_today_consumed_kcal(
+                browser,
+                base_url=base_url,
+                user_external_id=cdk_user_id,
+                local_date=local_date,
+                timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
+                viewport=viewport,
+            )
+            result["fetch_sequence"].extend(commit_today_fetches)
+            result["page_text"] += "\n" + commit_today_text
+
+            chat.fill("#message-input", CDK_CORRECTION_MESSAGE)
+            chat.press("#message-input", "Enter")
+            chat.wait_for_function(
+                """() => {
+                  const text = document.querySelector("#chat-scroll")?.textContent || "";
+                  return text.includes("Updated.");
+                }""",
+                timeout=timeout_ms,
+            )
+            chat.reload(wait_until="networkidle", timeout=timeout_ms)
+            chat.wait_for_function(
+                """() => {
+                  const text = document.querySelector("#chat-scroll")?.textContent || "";
+                  return text.includes("Updated.");
+                }""",
+                timeout=timeout_ms,
+            )
+            consumed_after_correction, correction_visible, correction_today_fetches, correction_today_text = (
+                _visible_today_consumed_kcal(
+                    browser,
+                    base_url=base_url,
+                    user_external_id=cdk_user_id,
+                    local_date=local_date,
+                    timeout_ms=timeout_ms,
+                    local_debug_token=local_debug_token,
+                    viewport=viewport,
+                )
+            )
+            result["fetch_sequence"].extend(correction_today_fetches)
+            result["page_text"] += "\n" + correction_today_text
+
+            correction_context_seen = any(
+                call.get("stage") == "correction" and int(call.get("target_candidate_count") or 0) > 0
+                for call in provider.calls
+            )
+            correction_context_without_pending = any(
+                call.get("stage") == "correction"
+                and call.get("pending_followup_pin_present") is False
+                and call.get("pending_draft_pin_present") is False
+                for call in provider.calls
+            )
+            followup_context_seen = any(
+                call.get("stage") == "followup_commit"
+                and (
+                    call.get("pending_followup_pin_present") is True
+                    or call.get("pending_draft_pin_present") is True
+                )
+                for call in provider.calls
+            )
+            result["cdk_browser_same_truth_values"] = {
+                "draft_pending_pin_after_reload": draft_pending_pin_after_reload,
+                "draft_consumed_unchanged": consumed_after_draft == baseline_consumed,
+                "followup_pin_visible_on_commit_context": pending_pins_after_commit == "present",
+                "pending_pins_absent_before_correction": correction_context_without_pending,
+                "target_candidates_available_before_correction": correction_context_seen,
+                "followup_commit_visible_after_reload": commit_visible,
+                "correction_visible_after_reload": correction_visible,
+                "commit_increased_consumed": consumed_after_commit > consumed_after_draft,
+                "correction_read_model_refreshed": consumed_after_correction == consumed_after_commit,
+                "manager_trace_basis_present": followup_context_seen and correction_context_seen,
+            }
+            result["cdk_browser_same_truth_provider_calls"] = provider.calls
+        result["fetch_sequence"].extend(_capture_fetches(chat))
+        result["page_text"] += "\n" + chat.locator("body").inner_text(timeout=timeout_ms)
+    finally:
+        chat.close()
+
+    result["cdk_browser_same_truth_checked"] = (
+        result["cdk_browser_same_truth_values"] == EXPECTED_CDK_BROWSER_SAME_TRUTH_VALUES
+        and result["cdk_browser_same_truth_non_claims"] == CDK_BROWSER_SAME_TRUTH_NON_CLAIMS
     )
     return result
 
@@ -1396,6 +1863,9 @@ def _run_browser_sequence(
         "fooddb_triad_same_truth_browser_checked": False,
         "fooddb_triad_same_truth_cases": {},
         "fooddb_triad_same_truth_non_claims": dict(FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS),
+        "cdk_browser_same_truth_checked": False,
+        "cdk_browser_same_truth_values": {},
+        "cdk_browser_same_truth_non_claims": dict(CDK_BROWSER_SAME_TRUTH_NON_CLAIMS),
         "feedback_page_loaded": False,
         "feedback_submitted": False,
         "feedback_jsonl_written": False,
@@ -1732,6 +2202,32 @@ def _run_browser_sequence(
             ]
             result["fetch_sequence"].extend(triad_result["fetch_sequence"])
             page_texts.append(str(triad_result.get("page_text") or ""))
+
+            result["current_step"] = "cdk_browser_same_truth_check"
+            cdk_result = _run_cdk_browser_same_truth_sequence(
+                browser,
+                base_url=base_url,
+                user_external_id=user_external_id,
+                local_date=local_date,
+                timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
+                viewport=desktop_viewport,
+            )
+            result["cdk_browser_same_truth_checked"] = cdk_result[
+                "cdk_browser_same_truth_checked"
+            ]
+            result["cdk_browser_same_truth_values"] = cdk_result[
+                "cdk_browser_same_truth_values"
+            ]
+            result["cdk_browser_same_truth_non_claims"] = cdk_result[
+                "cdk_browser_same_truth_non_claims"
+            ]
+            result["cdk_browser_same_truth_provider_calls"] = cdk_result.get(
+                "cdk_browser_same_truth_provider_calls",
+                [],
+            )
+            result["fetch_sequence"].extend(cdk_result["fetch_sequence"])
+            page_texts.append(str(cdk_result.get("page_text") or ""))
 
             result["current_step"] = "open_today"
             today = _open_page(
@@ -2252,6 +2748,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         "route_backed_macro_browser_checked",
         "route_backed_macro_browser_not_checked",
     )
+    require_true("cdk_browser_same_truth_checked", "cdk_browser_same_truth_not_checked")
     require_true("today_session_status_rendered", "today_session_status_not_rendered")
     require_true("today_no_debug_trace", "today_debug_trace_leaked")
     require_true("body_page_loaded", "body_page_not_loaded")
@@ -2397,6 +2894,14 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     for field, expected_value in FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS.items():
         if triad_non_claims.get(field) != expected_value:
             blockers.append(f"fooddb_triad_same_truth_non_claim_overclaim:{field}")
+    cdk_values = dict(report.get("cdk_browser_same_truth_values") or {})
+    for field, expected_value in EXPECTED_CDK_BROWSER_SAME_TRUTH_VALUES.items():
+        if cdk_values.get(field) != expected_value:
+            blockers.append(f"cdk_browser_same_truth_value_mismatch:{field}")
+    cdk_non_claims = dict(report.get("cdk_browser_same_truth_non_claims") or {})
+    for field, expected_value in CDK_BROWSER_SAME_TRUTH_NON_CLAIMS.items():
+        if cdk_non_claims.get(field) != expected_value:
+            blockers.append(f"cdk_browser_same_truth_non_claim_overclaim:{field}")
     feedback_record_values = dict(report.get("feedback_record_values") or {})
     for field, expected_value in EXPECTED_FEEDBACK_RECORD_VALUES.items():
         if feedback_record_values.get(field) != expected_value:

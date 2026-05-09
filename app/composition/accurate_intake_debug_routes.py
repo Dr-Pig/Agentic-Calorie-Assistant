@@ -158,6 +158,9 @@ def _chat_history_message(message: MessageBuffer) -> dict[str, Any]:
     assistant_response = trace.get("assistant_response") if isinstance(trace.get("assistant_response"), dict) else {}
     context_snapshot = trace.get("context_snapshot") if isinstance(trace.get("context_snapshot"), dict) else {}
     manager_context = _manager_context_summary(trace)
+    pending_followup_linkage_present = isinstance(trace.get("pending_followup_linkage"), dict)
+    if pending_followup_linkage_present:
+        manager_context["pending_pins_present"] = True
     return {
         "message_id": message.id,
         "role": message.role,
@@ -172,7 +175,7 @@ def _chat_history_message(message: MessageBuffer) -> dict[str, Any]:
         "runtime_turn_trace_present": bool(trace),
         "context_snapshot_present": bool(context_snapshot),
         "trace_chain_complete": _trace_chain_complete(trace),
-        "pending_followup_linkage_present": isinstance(trace.get("pending_followup_linkage"), dict),
+        "pending_followup_linkage_present": pending_followup_linkage_present,
         "structured_followup_question": assistant_response.get("structured_followup_question"),
         **manager_context,
     }
