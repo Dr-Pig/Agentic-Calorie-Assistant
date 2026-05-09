@@ -36,6 +36,7 @@ For the current default mainline:
 | high-impact operating rules | [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](specs/APP_ENGINEERING_OPERATING_ENTRY.md) |
 | current split-delivery ownership and coordination | [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md) |
 | current shell contract and gate order | [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](quality/CURRENT_SHELL_SYNC_CONTRACT.yaml), [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](quality/MANAGER_RUNTIME_GATE_LEDGER.yaml) |
+| post-self-use no-runtime capability scaffolds | [docs/quality/POST_SELF_USE_NO_RUNTIME_CAPABILITY_DEVELOPMENT_FLOW.md](quality/POST_SELF_USE_NO_RUNTIME_CAPABILITY_DEVELOPMENT_FLOW.md) |
 | historical pre-self-use runtime interpretation | [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) |
 
 ## Not Active Bootstrap
