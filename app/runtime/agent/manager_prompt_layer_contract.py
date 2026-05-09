@@ -232,6 +232,7 @@ def _progressive_disclosure(user_payload: dict[str, Any]) -> dict[str, Any]:
     compact_contract_constraints = dynamic_payload_mode == "runtime_state_and_refs_only"
     current_turn = user_payload.get("phase_a_current_turn_context")
     context_pack = user_payload.get("phase_a_manager_context_pack")
+    legacy_lineage_omitted = context_packet_primary and current_turn is None and context_pack is None
     legacy_lineage_only = (
         context_packet_primary
         and isinstance(current_turn, dict)
@@ -245,12 +246,13 @@ def _progressive_disclosure(user_payload: dict[str, Any]) -> dict[str, Any]:
         and context_pack.get("legacy_payload_mode") == "packet_primary_reference"
     )
     return {
-        "full_context_in_user_payload": not legacy_lineage_only,
+        "full_context_in_user_payload": not (legacy_lineage_only or legacy_lineage_omitted),
         "context_packet_primary": context_packet_primary,
         "primary_context_source": "manager_context_packet_v1" if context_packet_primary else "phase_a_manager_context_pack",
         "legacy_context_payload_mode": _legacy_context_payload_mode(
             legacy_reference_only=legacy_reference_only,
             legacy_lineage_only=legacy_lineage_only,
+            legacy_lineage_omitted=legacy_lineage_omitted,
         ),
         "prompt_registry_trace_only": True,
         "provider_metadata_trace_only": True,
@@ -277,7 +279,10 @@ def _legacy_context_payload_mode(
     *,
     legacy_reference_only: bool,
     legacy_lineage_only: bool,
+    legacy_lineage_omitted: bool,
 ) -> str:
+    if legacy_lineage_omitted:
+        return "packet_primary_omitted_legacy_refs"
     if legacy_reference_only:
         return "packet_primary_reference"
     if legacy_lineage_only:
