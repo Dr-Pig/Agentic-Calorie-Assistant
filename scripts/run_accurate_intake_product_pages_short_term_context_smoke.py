@@ -277,6 +277,8 @@ def _base_report(
         "chat_cjk_roundtrip_rendered": False,
         "assistant_followup_bubble_rendered": False,
         "assistant_commit_bubble_rendered": False,
+        "today_no_meal_before_followup_answer": False,
+        "today_consumed_zero_before_followup_answer": False,
         "today_same_day_meal_rendered": False,
         "today_summary_rendered": False,
         "product_pages_no_debug_trace": False,
@@ -362,6 +364,33 @@ def _run_browser_sequence(
             pending_drafts = _list(_dict(debug_after_followup.get("model")).get("pending_drafts"))
             result["pending_followup_created"] = bool(pending_drafts)
             result["fetch_sequence"].extend(_capture_fetches(chat))
+
+            result["current_step"] = "open_today_before_followup_answer"
+            today_before_answer = _open_page(
+                browser,
+                viewport=viewport,
+                url=_page_url(base_url, "today", user_external_id=user_external_id, local_date=local_date),
+                timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
+            )
+            today_before_answer.wait_for_selector('[data-surface-role="today-diary"]', timeout=timeout_ms)
+            today_before_answer.wait_for_function(
+                """() => document.querySelector("#consumed-kcal")?.textContent?.trim() !== "--" """,
+                timeout=timeout_ms,
+            )
+            before_answer_meal_text = today_before_answer.locator("#meal-list").inner_text(timeout=timeout_ms)
+            before_answer_consumed = today_before_answer.locator("#consumed-kcal").inner_text(timeout=timeout_ms).strip()
+            result["today_no_meal_before_followup_answer"] = (
+                "No meals logged for this day." in before_answer_meal_text
+                and BARE_BASKET_MESSAGE not in before_answer_meal_text
+                and FOLLOWUP_ANSWER_MESSAGE not in before_answer_meal_text
+            )
+            result["today_consumed_zero_before_followup_answer"] = before_answer_consumed == "0"
+            result["product_pages_no_debug_trace"] = _is_visible_product_text_clean(
+                today_before_answer.locator("body").inner_text(timeout=timeout_ms)
+            )
+            result["fetch_sequence"].extend(_capture_fetches(today_before_answer))
+            today_before_answer.close()
 
             result["current_step"] = "reload_pending_followup_chat"
             chat.reload(wait_until="networkidle", timeout=timeout_ms)
@@ -532,6 +561,8 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("chat_cjk_roundtrip_rendered", "chat_cjk_roundtrip_not_rendered")
     require_true("assistant_followup_bubble_rendered", "assistant_followup_bubble_not_rendered")
     require_true("assistant_commit_bubble_rendered", "assistant_commit_bubble_not_rendered")
+    require_true("today_no_meal_before_followup_answer", "today_meal_logged_before_followup_answer")
+    require_true("today_consumed_zero_before_followup_answer", "today_consumed_before_followup_answer")
     require_true("today_same_day_meal_rendered", "today_same_day_meal_not_rendered")
     require_true("today_summary_rendered", "today_summary_not_rendered")
     require_true("product_pages_no_debug_trace", "product_pages_debug_trace_leaked")
