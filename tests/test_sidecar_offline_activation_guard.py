@@ -15,6 +15,7 @@ SIDECAR_MODULES = [
     "app.memory.application.derived_summaries",
     "app.memory.application.long_term_context_shadow_lab",
     "app.memory.application.local_memory_framework_review",
+    "app.memory.application.runtime_lab_signal_projection",
     "app.recommendation",
     "app.recommendation.domain",
     "app.recommendation.domain.candidate_quality",

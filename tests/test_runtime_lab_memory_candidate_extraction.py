@@ -46,6 +46,14 @@ def _candidate_trace() -> dict:
     }
 
 
+def _structured_signal_trace() -> dict:
+    trace = _candidate_trace()
+    signal = trace.pop("memory_lab_candidate_signal")
+    trace["request"]["text"] = "ordinary manager trace text must not be the oracle"
+    trace["manager_final_decision"]["memory_candidate_signal"] = signal
+    return trace
+
+
 def test_candidate_extraction_golden_suite_matches_expected_case_outcomes() -> None:
     from app.memory.application.runtime_lab_candidate_extraction import (
         build_candidate_extraction_artifact_from_edd_suite,
@@ -138,6 +146,102 @@ def test_candidate_extraction_requires_trace_field_not_user_text() -> None:
 
     assert result["outcome"] == "rejected"
     assert result["rejection_reason"] == "missing_manager_decision_field"
+
+
+def test_candidate_extraction_projects_structured_manager_memory_signal() -> None:
+    from app.memory.application.runtime_lab_candidate_extraction import (
+        build_candidate_extraction_artifact_from_ingress_events,
+    )
+    from app.memory.application.runtime_lab_trace_ingress import (
+        build_memory_ingress_event_from_manager_trace,
+    )
+
+    event = build_memory_ingress_event_from_manager_trace(_structured_signal_trace())
+    artifact = build_candidate_extraction_artifact_from_ingress_events([event])
+
+    assert artifact["status"] == "pass"
+    assert artifact["candidate_count"] == 1
+    assert artifact["rejection_count"] == 0
+    candidate = artifact["candidates"][0]
+    assert candidate["candidate_type"] == "preference"
+    assert candidate["source_object_refs"] == ["message:dogfood-preference-001"]
+    assert candidate["payload"]["projection_source"] == (
+        "manager_final_decision.memory_candidate_signal"
+    )
+    assert candidate["runtime_effect_allowed"] is False
+    assert candidate["durable_product_memory_written"] is False
+
+
+def test_candidate_extraction_does_not_infer_memory_from_raw_text() -> None:
+    from app.memory.application.runtime_lab_candidate_extraction import (
+        build_candidate_extraction_artifact_from_ingress_events,
+    )
+    from app.memory.application.runtime_lab_trace_ingress import (
+        build_memory_ingress_event_from_manager_trace,
+    )
+
+    trace = _candidate_trace()
+    trace.pop("memory_lab_candidate_signal")
+    trace["request"]["text"] = "記住我早餐通常想吃高蛋白、不要太油。"
+    event = build_memory_ingress_event_from_manager_trace(trace)
+    artifact = build_candidate_extraction_artifact_from_ingress_events([event])
+
+    assert artifact["candidate_count"] == 0
+    assert artifact["rejection_count"] == 1
+    assert artifact["rejections"][0]["rejection_reason"] == "no_explicit_memory_signal"
+    serialized = json.dumps(artifact, ensure_ascii=False)
+    assert "高蛋白" not in serialized
+
+
+def test_candidate_extraction_projects_structured_rejection_reasons() -> None:
+    from app.memory.application.runtime_lab_candidate_extraction import (
+        build_candidate_extraction_artifact_from_ingress_events,
+    )
+    from app.memory.application.runtime_lab_trace_ingress import (
+        build_memory_ingress_event_from_manager_trace,
+    )
+
+    trace = _candidate_trace()
+    trace.pop("memory_lab_candidate_signal")
+    trace["manager_final_decision"]["memory_candidate_rejection_reason"] = (
+        "canonical_correction_not_memory"
+    )
+    event = build_memory_ingress_event_from_manager_trace(trace)
+    artifact = build_candidate_extraction_artifact_from_ingress_events([event])
+
+    assert artifact["candidate_count"] == 0
+    assert artifact["rejection_count"] == 1
+    assert artifact["rejections"][0]["rejection_reason"] == (
+        "canonical_correction_not_memory"
+    )
+
+
+def test_candidate_extraction_rejects_missing_scope_before_candidate_projection() -> None:
+    from app.memory.application.runtime_lab_candidate_extraction import (
+        extract_candidate_from_ingress_event,
+    )
+
+    event = {
+        "request_id": "missing-scope",
+        "scope_keys": {"user_id": "user-a"},
+        "sanitized_source_trace": {
+            "manager_final_decision": {
+                "memory_candidate_signal": {
+                    "candidate_type": "preference",
+                    "manager_decision_field": "memory_candidate_requested",
+                    "source_refs": ["message:missing-scope"],
+                    "reason_codes": ["explicit_user_preference"],
+                }
+            }
+        },
+    }
+
+    result = extract_candidate_from_ingress_event(event)
+
+    assert result["outcome"] == "rejected"
+    assert result["rejection_reason"] == (
+        "missing_scope_keys:workspace_id,project_id,surface,run_id"
+    )
 
 
 def test_candidate_extraction_from_ingress_event_builds_review_candidate_only() -> None:
