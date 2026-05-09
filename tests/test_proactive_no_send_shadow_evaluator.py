@@ -10,6 +10,9 @@ from app.runtime.application.proactive_no_send_shadow_evaluator import (
 from app.runtime.application.proactive_recommendation_prompt_bridge import (
     NO_RECOMMENDATION_PROMPT_REVIEW,
 )
+from app.runtime.application.proactive_rescue_nudge_bridge import (
+    NO_RESCUE_NUDGE_REVIEW,
+)
 from scripts.build_proactive_no_send_simulation import write_proactive_no_send_simulation
 
 
@@ -26,6 +29,21 @@ def _reviewable_recommendation_prompt_review() -> dict[str, object]:
         "status": "candidate_for_human_review",
         "recommendation_pool_decision": "primary_plus_backup",
         "prompt_posture": "invitation_only",
+    }
+
+
+def _reviewable_rescue_nudge_review() -> dict[str, object]:
+    return {
+        **NO_RESCUE_NUDGE_REVIEW,
+        "source_projection_used": True,
+        "status": "context_available",
+        "prompt_posture": "later_only_review_context",
+        "rescue_history_context_available": True,
+        "adherence_context_available": True,
+        "suppression_context_count": 1,
+        "history_review_notes": [
+            "rescue_history_present_for_future_viability_review",
+        ],
     }
 
 
@@ -477,6 +495,7 @@ def test_calibration_and_rescue_related_triggers_are_invitations_not_decisions()
                 local_time="19:30",
                 data_sufficiency_status="higher",
                 user_benefit_strength="strong",
+                rescue_nudge_review=_reviewable_rescue_nudge_review(),
             ),
         ]
     )
@@ -493,6 +512,8 @@ def test_calibration_and_rescue_related_triggers_are_invitations_not_decisions()
     ]
     assert calibration["body_plan_mutated"] is False
     assert rescue["suppression_status"] == "deferred_later_only"
+    assert rescue["rescue_nudge_review"]["status"] == "context_available"
+    assert rescue["rescue_nudge_review"]["prompt_posture"] == "later_only_review_context"
     assert rescue["allowed_output"] == ["invite_future_rescue_review"]
     assert rescue["forbidden_output"] == [
         "output_specific_future_deficit",

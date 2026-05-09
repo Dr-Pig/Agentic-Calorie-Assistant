@@ -14,15 +14,20 @@ from app.runtime.application.proactive_no_send_shadow_evaluator import (  # noqa
     ProactiveNoSendShadowInput,
     build_proactive_no_send_simulation,
 )
+from app.runtime.application.proactive_rescue_nudge_bridge import (  # noqa: E402
+    build_rescue_nudge_no_send_review,
+)
 
 
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
 SUMMARY_CONSUMER_ARTIFACT = "proactive_no_send_summary_consumer_projection"
+RESCUE_CONTEXT_ARTIFACT = "rescue_shadow_summary_context_projection"
 
 
 def default_proactive_no_send_inputs(
     *,
     recommendation_prompt_review: dict[str, object] | None = None,
+    rescue_nudge_review: dict[str, object] | None = None,
 ) -> list[ProactiveNoSendShadowInput]:
     return [
         ProactiveNoSendShadowInput(
@@ -145,6 +150,7 @@ def default_proactive_no_send_inputs(
             user_benefit_strength="strong",
             wake_source="state_threshold",
             user_relevant_reason="rescue_review_requires_later_consent",
+            rescue_nudge_review=rescue_nudge_review,
         ),
         ProactiveNoSendShadowInput(
             trigger_type="location_based_food_push",
@@ -174,12 +180,16 @@ def write_proactive_no_send_simulation(
     output_path: Path | None = None,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
     summary_consumer_projection_path: Path | None = None,
+    rescue_summary_context_projection_path: Path | None = None,
 ) -> Path:
     artifact = build_proactive_no_send_simulation(
         default_proactive_no_send_inputs(
             recommendation_prompt_review=_recommendation_prompt_review_from_projection(
                 summary_consumer_projection_path
-            )
+            ),
+            rescue_nudge_review=_rescue_nudge_review_from_projection(
+                rescue_summary_context_projection_path
+            ),
         )
     )
     path = output_path or output_dir / "proactive_no_send_simulation.json"
@@ -202,17 +212,34 @@ def _recommendation_prompt_review_from_projection(path: Path | None) -> dict[str
     return review if isinstance(review, dict) else None
 
 
+def _rescue_nudge_review_from_projection(path: Path | None) -> dict[str, object] | None:
+    if path is None:
+        return None
+    projection = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(projection, dict):
+        raise ValueError("rescue_summary_context_projection.invalid_json_shape")
+    if projection.get("artifact_type") != RESCUE_CONTEXT_ARTIFACT:
+        raise ValueError("rescue_summary_context_projection.unsupported_artifact_type")
+    if projection.get("status") != "pass":
+        raise ValueError("rescue_summary_context_projection.status_not_pass")
+    return build_rescue_nudge_no_send_review(projection)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build proactive no-send shadow simulation artifact.")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--output")
     parser.add_argument("--summary-consumer-projection")
+    parser.add_argument("--rescue-summary-context-projection")
     args = parser.parse_args()
     path = write_proactive_no_send_simulation(
         output_dir=Path(args.output_dir),
         output_path=Path(args.output) if args.output else None,
         summary_consumer_projection_path=Path(args.summary_consumer_projection)
         if args.summary_consumer_projection
+        else None,
+        rescue_summary_context_projection_path=Path(args.rescue_summary_context_projection)
+        if args.rescue_summary_context_projection
         else None,
     )
     print(path)
