@@ -109,6 +109,19 @@ def _rt11c_artifact() -> dict[str, object]:
     }
 
 
+def _rt11b_artifact() -> dict[str, object]:
+    return {
+        "target_manager_runtime_gate": "rt11b_final_response_quality_live_wall",
+        "status": "pass",
+        "runtime_backed": True,
+        "summary": {
+            "llm_judge_used": False,
+            "case_count": 6,
+            "passed_case_count": 6,
+        },
+    }
+
+
 def _build(**overrides: dict[str, object]) -> dict[str, object]:
     payloads = {
         "exact_item_artifact": _exact_artifact(),
@@ -116,6 +129,7 @@ def _build(**overrides: dict[str, object]) -> dict[str, object]:
         "luwei_artifact": _luwei_artifact(),
         "no_plan_artifact": _no_plan_artifact(),
         "correction_artifact": _correction_artifact(),
+        "rt11b_artifact": _rt11b_artifact(),
         "rt11c_artifact": _rt11c_artifact(),
     }
     payloads.update(overrides)
@@ -132,6 +146,7 @@ def test_rt12b_live_trace_grading_extension_passes() -> None:
         "live_trace_shape",
         "live_tool_choice",
         "live_final_action",
+        "live_response_quality_rubric_dependency",
         "renderer_input_basis_dependency",
     ]
     assert artifact["summary"]["argument_accuracy_not_locked_in_v1"] is True
@@ -169,6 +184,16 @@ def test_rt12b_blocks_missing_renderer_basis_dependency() -> None:
     assert "rt11c_renderer_basis.contract_not_green" in artifact["blockers"]
 
 
+def test_rt12b_blocks_failed_response_quality_dependency() -> None:
+    bad = _rt11b_artifact()
+    bad["status"] = "fail"
+
+    artifact = _build(rt11b_artifact=bad)
+
+    assert artifact["status"] == "fail"
+    assert "rt11b_response_quality.status_not_pass" in artifact["blockers"]
+
+
 def test_rt12b_cli_writes_artifact(tmp_path: Path) -> None:
     files = {
         "exact": tmp_path / "exact.json",
@@ -176,6 +201,7 @@ def test_rt12b_cli_writes_artifact(tmp_path: Path) -> None:
         "luwei": tmp_path / "luwei.json",
         "no_plan": tmp_path / "no_plan.json",
         "correction": tmp_path / "correction.json",
+        "rt11b": tmp_path / "rt11b.json",
         "rt11c": tmp_path / "rt11c.json",
     }
     payloads = {
@@ -184,6 +210,7 @@ def test_rt12b_cli_writes_artifact(tmp_path: Path) -> None:
         "luwei": _luwei_artifact(),
         "no_plan": _no_plan_artifact(),
         "correction": _correction_artifact(),
+        "rt11b": _rt11b_artifact(),
         "rt11c": _rt11c_artifact(),
     }
     for key, path in files.items():
@@ -202,6 +229,8 @@ def test_rt12b_cli_writes_artifact(tmp_path: Path) -> None:
             str(files["no_plan"]),
             "--correction-artifact",
             str(files["correction"]),
+            "--rt11b-artifact",
+            str(files["rt11b"]),
             "--rt11c-artifact",
             str(files["rt11c"]),
             "--output",

@@ -224,6 +224,20 @@ def _rt11c_blockers(rt11c_artifact: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def _rt11b_blockers(rt11b_artifact: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    if rt11b_artifact.get("target_manager_runtime_gate") != "rt11b_final_response_quality_live_wall":
+        blockers.append("rt11b_response_quality.unexpected_gate")
+    if rt11b_artifact.get("status") != "pass":
+        blockers.append("rt11b_response_quality.status_not_pass")
+    if rt11b_artifact.get("runtime_backed") is not True:
+        blockers.append("rt11b_response_quality.not_runtime_backed")
+    summary = _dict(rt11b_artifact.get("summary"))
+    if summary.get("llm_judge_used") is True:
+        blockers.append("rt11b_response_quality.llm_judge_used")
+    return blockers
+
+
 def build_rt12b_live_trace_grading_extension(
     *,
     exact_item_artifact: dict[str, Any],
@@ -231,6 +245,7 @@ def build_rt12b_live_trace_grading_extension(
     luwei_artifact: dict[str, Any],
     no_plan_artifact: dict[str, Any],
     correction_artifact: dict[str, Any],
+    rt11b_artifact: dict[str, Any],
     rt11c_artifact: dict[str, Any],
     output_path: Path | None = None,
 ) -> dict[str, Any]:
@@ -243,6 +258,7 @@ def build_rt12b_live_trace_grading_extension(
         ("correction", correction_artifact),
     ):
         blockers.extend(_artifact_blockers(label, artifact, expected_case_id=EXPECTED_LIVE_CASE_IDS[label]))
+    blockers.extend(_rt11b_blockers(rt11b_artifact))
     blockers.extend(_rt11c_blockers(rt11c_artifact))
 
     cases = _live_trace_cases(
@@ -274,6 +290,7 @@ def build_rt12b_live_trace_grading_extension(
             "live_trace_shape",
             "live_tool_choice",
             "live_final_action",
+            "live_response_quality_rubric_dependency",
             "renderer_input_basis_dependency",
         ],
         "summary": {
@@ -288,6 +305,11 @@ def build_rt12b_live_trace_grading_extension(
             "renderer_input_basis_contract_green": _dict(
                 rt11c_artifact.get("appshell_contract_boundary")
             ).get("renderer_input_basis_contract_green"),
+        },
+        "rt11b_dependency": {
+            "status": rt11b_artifact.get("status"),
+            "runtime_backed": rt11b_artifact.get("runtime_backed"),
+            "llm_judge_used": _dict(rt11b_artifact.get("summary")).get("llm_judge_used"),
         },
         "non_claims": {
             "product_readiness_claimed": False,
@@ -306,6 +328,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--luwei-artifact", type=Path, required=True)
     parser.add_argument("--no-plan-artifact", type=Path, required=True)
     parser.add_argument("--correction-artifact", type=Path, required=True)
+    parser.add_argument("--rt11b-artifact", type=Path, required=True)
     parser.add_argument("--rt11c-artifact", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_PATH)
     args = parser.parse_args(argv)
@@ -315,6 +338,7 @@ def main(argv: list[str] | None = None) -> int:
         luwei_artifact=read_json_artifact(args.luwei_artifact),
         no_plan_artifact=read_json_artifact(args.no_plan_artifact),
         correction_artifact=read_json_artifact(args.correction_artifact),
+        rt11b_artifact=read_json_artifact(args.rt11b_artifact),
         rt11c_artifact=read_json_artifact(args.rt11c_artifact),
         output_path=args.output,
     )
