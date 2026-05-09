@@ -48,7 +48,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--as-of", required=True)
     parser.add_argument("--review-contract-json", type=Path)
+    parser.add_argument("--consumer-summary-output", type=Path)
     args = parser.parse_args(argv)
+    if args.consumer_summary_output and not args.review_contract_json:
+        parser.error("--consumer-summary-output requires --review-contract-json")
 
     suite = load_runtime_lab_memory_edd_suite()
     fixture_extraction = build_candidate_extraction_artifact_from_edd_suite(suite)
@@ -79,6 +82,8 @@ def main(argv: list[str] | None = None) -> int:
         consumer_summary_projection = build_runtime_lab_memory_consumer_summary_pack(
             read_json_artifact(args.review_contract_json)
         )
+        if args.consumer_summary_output:
+            write_json_artifact(args.consumer_summary_output, consumer_summary_projection)
     report = build_runtime_lab_memory_quality_report(
         suite=suite,
         fixture_extraction=fixture_extraction,
