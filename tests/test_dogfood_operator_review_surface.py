@@ -271,7 +271,7 @@ def test_operator_review_accepts_browser_realistic_v2_without_pass_or_real_foodd
     assert artifact["canonical_eval_promoted"] is False
     assert artifact["real_fooddb_pass_claimed"] is False
     assert artifact["dogfood_pass"] is False
-    assert artifact["production_readiness_claimed"] is False
+    assert "production_readiness_claimed" not in artifact
     assert artifact["summary"]["manager_context_status"] == "not_available"
     assert artifact["summary"]["food_evidence_gap_turns"] == 1
 

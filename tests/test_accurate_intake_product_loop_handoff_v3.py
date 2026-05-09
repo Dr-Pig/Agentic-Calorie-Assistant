@@ -35,7 +35,6 @@ def _product_loop_evidence(**overrides: dict) -> dict:
             "dogfood_pass": False,
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
-            "production_readiness_claimed": False,
             "classification_policy": {
                 "food_kb_truth_update_allowed": False,
                 "frontend_semantic_owner": False,
@@ -325,7 +324,6 @@ def test_handoff_blocks_non_operator_review_artifact_shape() -> None:
                 "dogfood_pass": False,
                 "product_readiness_claimed": False,
                 "private_self_use_approved": False,
-                "production_readiness_claimed": False,
                 "classification_policy": {
                     "food_kb_truth_update_allowed": False,
                     "frontend_semantic_owner": False,
@@ -352,7 +350,6 @@ def test_handoff_blocks_operator_review_missing_local_review_boundary_fields() -
                 "dogfood_pass": False,
                 "product_readiness_claimed": False,
                 "private_self_use_approved": False,
-                "production_readiness_claimed": False,
             }
         ),
         fooddb_artifact=_fooddb_artifact(),
