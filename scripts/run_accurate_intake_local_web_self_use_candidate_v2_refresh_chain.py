@@ -59,6 +59,13 @@ from scripts.build_current_shell_compatibility_product_pages_self_use_flow_gate 
     DEFAULT_ARTIFACT_PATHS as PRODUCT_PAGES_FLOW_ARTIFACT_PATHS,
     build_input_artifacts as build_product_pages_flow_inputs,
 )
+from scripts.build_current_shell_compatibility_local_review_decision_pack import (  # noqa: E402
+    build_current_shell_compatibility_local_review_decision_pack,
+)
+from scripts.build_current_shell_compatibility_local_review_evidence_manifest import (  # noqa: E402
+    DEFAULT_EVIDENCE_PATHS as LOCAL_REVIEW_EVIDENCE_PATHS,
+    build_current_shell_compatibility_local_review_evidence_manifest,
+)
 from scripts.build_accurate_intake_local_web_self_use_candidate_v2 import (  # noqa: E402
     build_local_web_self_use_candidate_v2,
 )
@@ -102,6 +109,12 @@ REFRESHED_ARTIFACT_FILENAMES = {
     ),
     "non_fooddb_manager_tool_contract": "accurate_intake_non_fooddb_manager_tool_contract.json",
     "context_live_diagnostic_gate": "accurate_intake_context_live_diagnostic_gate.json",
+    "current_shell_compatibility_local_review_evidence_manifest": (
+        "accurate_intake_current_shell_compatibility_local_review_evidence_manifest.json"
+    ),
+    "current_shell_compatibility_local_review_decision_pack": (
+        "accurate_intake_current_shell_compatibility_local_review_decision_pack.json"
+    ),
     "pre_live_evidence": "accurate_intake_pre_live_evidence.json",
     "pre_live_decision_pack": "accurate_intake_pre_live_self_use_decision_pack.json",
     "local_web_candidate": "accurate_intake_local_web_self_use_candidate_v2.json",
@@ -397,6 +410,13 @@ def _local_gate_path_overrides(artifacts_dir: Path) -> dict[str, Path]:
     }
 
 
+def _local_review_path_overrides(artifacts_dir: Path) -> dict[str, Path]:
+    return {
+        group_id: _group_path(artifacts_dir, path)
+        for group_id, path in LOCAL_REVIEW_EVIDENCE_PATHS.items()
+    }
+
+
 def _product_loop_handoff_evidence(
     artifacts_dir: Path,
     *,
@@ -561,6 +581,38 @@ def build_local_web_self_use_candidate_refresh_chain(
         ),
         context_live_diagnostic_gate,
     )
+
+    local_review_manifest = (
+        build_current_shell_compatibility_local_review_evidence_manifest(
+            path_overrides=_local_review_path_overrides(artifacts_dir)
+        )
+    )
+    write_json_artifact(
+        _artifact_path(
+            artifacts_dir,
+            REFRESHED_ARTIFACT_FILENAMES[
+                "current_shell_compatibility_local_review_evidence_manifest"
+            ],
+        ),
+        local_review_manifest,
+    )
+
+    local_review_decision_path = _artifact_path(
+        artifacts_dir,
+        REFRESHED_ARTIFACT_FILENAMES[
+            "current_shell_compatibility_local_review_decision_pack"
+        ],
+    )
+    local_review_manifest_status = _object_dict(
+        local_review_manifest.get("_manifest_metadata")
+    ).get("status")
+    if local_review_manifest_status == "complete" or not local_review_decision_path.exists():
+        local_review_decision_pack = (
+            build_current_shell_compatibility_local_review_decision_pack(
+                local_review_manifest
+            )
+        )
+        write_json_artifact(local_review_decision_path, local_review_decision_pack)
 
     pre_live_evidence = build_local_web_candidate_gate_evidence(
         path_overrides=_local_gate_path_overrides(artifacts_dir)
