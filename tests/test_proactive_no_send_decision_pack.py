@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import json
 from pathlib import Path
 
 from app.runtime.application.proactive_no_send_shadow_evaluator import (
@@ -51,6 +52,42 @@ def _artifact_with_copy_suppression() -> dict[str, object]:
     )
 
 
+def _artifact_with_prompt_review(review: dict[str, object] | None) -> dict[str, object]:
+    return build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="recommendation_prompt",
+                data_sufficiency_status="higher",
+                user_benefit_strength="strong",
+                lower_frequency_ready=True,
+                delivery_surface="app_open",
+                recommendation_prompt_review=review,
+            )
+        ]
+    )
+
+
+def _prompt_review(
+    status: str,
+    *,
+    suppression_reason: str | None = None,
+    blocker: str | None = None,
+) -> dict[str, object]:
+    return {
+        **NO_RECOMMENDATION_PROMPT_REVIEW,
+        "source_report_used": True,
+        "status": status,
+        "recommendation_pool_decision": (
+            "silent_no_qualified_candidate"
+            if status == "suppressed"
+            else "primary_plus_backup"
+        ),
+        "prompt_posture": "invitation_only" if status == "candidate_for_human_review" else "silent",
+        "suppression_reasons": [suppression_reason] if suppression_reason else [],
+        "blockers": [blocker] if blocker else [],
+    }
+
+
 def test_decision_pack_keeps_single_no_send_run_out_of_live_promotion() -> None:
     pack = build_proactive_no_send_decision_pack([_artifact_with_review_candidate()])
 
@@ -86,6 +123,61 @@ def test_decision_pack_rejects_overclaiming_or_side_effectful_inputs() -> None:
     assert "run_1_product_readiness_claimed" in pack["input_integrity"]["blockers"]
     assert "run_2_proactive_sent" in pack["input_integrity"]["blockers"]
     assert pack["promotion_allowed"] is False
+
+
+def test_decision_pack_summarizes_recommendation_prompt_review_posture() -> None:
+    suppressed = _prompt_review(
+        "suppressed",
+        suppression_reason="recommendation_pool_silent_no_qualified_candidate",
+    )
+    blocked = _prompt_review(
+        "blocked",
+        blocker="recommendation_quality_report.recommendation_served",
+    )
+    pack = build_proactive_no_send_decision_pack(
+        [
+            _artifact_with_prompt_review(_prompt_review("candidate_for_human_review")),
+            _artifact_with_prompt_review(suppressed),
+            _artifact_with_prompt_review(blocked),
+            _artifact_with_prompt_review({**NO_RECOMMENDATION_PROMPT_REVIEW}),
+            _artifact_with_prompt_review(None),
+        ]
+    )
+
+    assert pack["artifact_type"] == "proactive_no_send_decision_pack"
+    assert pack["summary"]["recommendation_prompt_review_status_counts"] == {
+        "blocked": 1,
+        "candidate_for_human_review": 1,
+        "not_evaluated": 2,
+        "suppressed": 1,
+    }
+    assert pack["summary"]["recommendation_prompt_suppression_reason_counts"] == {
+        "recommendation_pool_silent_no_qualified_candidate": 1
+    }
+    assert pack["summary"]["recommendation_prompt_blocker_counts"] == {
+        "recommendation_quality_report.recommendation_served": 1
+    }
+    assert pack["live_delivery_allowed"] is False
+    assert pack["scheduler_activation_allowed"] is False
+    assert pack["promotion_allowed"] is False
+
+
+def test_decision_pack_does_not_leak_prompt_review_candidate_details() -> None:
+    review = _prompt_review(
+        "blocked",
+        blocker="recommendation_quality_report.recommendation_served",
+    )
+    review["candidate_ids"] = ["hidden-candidate-123"]
+    review["candidate_copy"] = "Hidden candidate copy should not be surfaced."
+
+    pack = build_proactive_no_send_decision_pack([_artifact_with_prompt_review(review)])
+    pack_text = json.dumps(pack, sort_keys=True)
+
+    assert "hidden-candidate-123" not in pack_text
+    assert "Hidden candidate copy" not in pack_text
+    assert pack["summary"]["recommendation_prompt_blocker_counts"] == {
+        "recommendation_quality_report.recommendation_served": 1
+    }
 
 
 def test_decision_pack_surfaces_copy_review_suppression_risk() -> None:

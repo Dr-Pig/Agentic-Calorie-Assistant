@@ -144,6 +144,18 @@ def _summary(no_send_artifacts: list[dict[str, Any]]) -> dict[str, Any]:
             "review_decision_counts",
         ),
         "suppression_reason_counts": _aggregate_suppression_reasons(no_send_artifacts),
+        "recommendation_prompt_review_status_counts": _aggregate_prompt_review_values(
+            no_send_artifacts,
+            "status",
+        ),
+        "recommendation_prompt_suppression_reason_counts": _aggregate_prompt_review_list_values(
+            no_send_artifacts,
+            "suppression_reasons",
+        ),
+        "recommendation_prompt_blocker_counts": _aggregate_prompt_review_list_values(
+            no_send_artifacts,
+            "blockers",
+        ),
         "copy_suppressed_count": sum(
             _artifact_summary_int(artifact, "copy_suppressed_count")
             for artifact in no_send_artifacts
@@ -234,6 +246,43 @@ def _aggregate_summary_counts(no_send_artifacts: list[dict[str, Any]], key: str)
             normalized_key = str(count_key)
             counts[normalized_key] = counts.get(normalized_key, 0) + count_value
     return counts
+
+
+def _aggregate_prompt_review_values(no_send_artifacts: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for review in _prompt_reviews(no_send_artifacts):
+        value = str(review.get(key) or "not_evaluated")
+        counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _aggregate_prompt_review_list_values(
+    no_send_artifacts: list[dict[str, Any]],
+    key: str,
+) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for review in _prompt_reviews(no_send_artifacts):
+        values = review.get(key)
+        if not isinstance(values, list):
+            continue
+        for value in values:
+            value_key = str(value)
+            counts[value_key] = counts.get(value_key, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _prompt_reviews(no_send_artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    reviews: list[dict[str, Any]] = []
+    for artifact in no_send_artifacts:
+        rows = artifact.get("trigger_evaluations")
+        if not isinstance(rows, list):
+            continue
+        for row in rows:
+            if not isinstance(row, dict) or row.get("trigger_type") != "recommendation_prompt":
+                continue
+            review = row.get("recommendation_prompt_review")
+            reviews.append(review if isinstance(review, dict) else {"status": "not_evaluated"})
+    return reviews
 
 
 def main() -> int:
