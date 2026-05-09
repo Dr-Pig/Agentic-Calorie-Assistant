@@ -10,16 +10,20 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.runtime.application.proactive_no_send_shadow_evaluator import (
+from app.runtime.application.proactive_no_send_shadow_evaluator import (  # noqa: E402
     ProactiveNoSendShadowInput,
     build_proactive_no_send_simulation,
 )
 
 
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
+SUMMARY_CONSUMER_ARTIFACT = "proactive_no_send_summary_consumer_projection"
 
 
-def default_proactive_no_send_inputs() -> list[ProactiveNoSendShadowInput]:
+def default_proactive_no_send_inputs(
+    *,
+    recommendation_prompt_review: dict[str, object] | None = None,
+) -> list[ProactiveNoSendShadowInput]:
     return [
         ProactiveNoSendShadowInput(
             trigger_type="meal_reminder",
@@ -90,6 +94,7 @@ def default_proactive_no_send_inputs() -> list[ProactiveNoSendShadowInput]:
             delivery_surface="app_open",
             wake_source="app_open",
             user_relevant_reason="app_open_dinner_context_can_reduce_decision_cost",
+            recommendation_prompt_review=recommendation_prompt_review,
         ),
         ProactiveNoSendShadowInput(
             trigger_type="recommendation_nudge_meal_time",
@@ -168,22 +173,47 @@ def write_proactive_no_send_simulation(
     *,
     output_path: Path | None = None,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
+    summary_consumer_projection_path: Path | None = None,
 ) -> Path:
-    artifact = build_proactive_no_send_simulation(default_proactive_no_send_inputs())
+    artifact = build_proactive_no_send_simulation(
+        default_proactive_no_send_inputs(
+            recommendation_prompt_review=_recommendation_prompt_review_from_projection(
+                summary_consumer_projection_path
+            )
+        )
+    )
     path = output_path or output_dir / "proactive_no_send_simulation.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(artifact, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
 
 
+def _recommendation_prompt_review_from_projection(path: Path | None) -> dict[str, object] | None:
+    if path is None:
+        return None
+    projection = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(projection, dict):
+        raise ValueError("summary_consumer_projection.invalid_json_shape")
+    if projection.get("artifact_type") != SUMMARY_CONSUMER_ARTIFACT:
+        raise ValueError("summary_consumer_projection.unsupported_artifact_type")
+    if projection.get("status") != "pass":
+        raise ValueError("summary_consumer_projection.status_not_pass")
+    review = projection.get("recommendation_prompt_review")
+    return review if isinstance(review, dict) else None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build proactive no-send shadow simulation artifact.")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--output")
+    parser.add_argument("--summary-consumer-projection")
     args = parser.parse_args()
     path = write_proactive_no_send_simulation(
         output_dir=Path(args.output_dir),
         output_path=Path(args.output) if args.output else None,
+        summary_consumer_projection_path=Path(args.summary_consumer_projection)
+        if args.summary_consumer_projection
+        else None,
     )
     print(path)
     return 0

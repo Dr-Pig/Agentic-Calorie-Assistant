@@ -1,4 +1,7 @@
+import json
 from pathlib import Path
+import subprocess
+import sys
 
 from app.runtime.application.proactive_no_send_shadow_evaluator import (
     ProactiveNoSendShadowInput,
@@ -532,6 +535,137 @@ def test_writer_creates_default_no_send_artifact(tmp_path: Path) -> None:
     payload = written.read_text(encoding="utf-8")
     assert '"artifact_type": "proactive_no_send_simulation"' in payload
     assert '"proactive_sent": false' in payload
+
+
+def test_writer_can_thread_summary_consumer_prompt_review_into_default_artifact(tmp_path: Path) -> None:
+    projection_path = tmp_path / "proactive_summary_consumer.json"
+    output_path = tmp_path / "proactive_no_send_simulation.json"
+    projection_path.write_text(
+        json.dumps(
+            {
+                "artifact_type": "proactive_no_send_summary_consumer_projection",
+                "status": "pass",
+                "recommendation_prompt_review": {
+                    "source_report_used": True,
+                    "status": "suppressed",
+                    "recommendation_pool_decision": "silent_no_qualified_candidate",
+                    "prompt_posture": "silent",
+                    "suppression_reasons": [
+                        "recommendation_pool_silent_no_qualified_candidate"
+                    ],
+                    "blockers": [],
+                    "candidate_ids": ["hidden-candidate-123"],
+                    "candidate_copy": "Hidden candidate copy should not leak.",
+                    "runtime_effect_allowed": False,
+                    "recommendation_served": False,
+                    "proactive_sent": False,
+                    "scheduler_enabled": False,
+                    "live_delivery_allowed": False,
+                    "scheduler_activation_allowed": False,
+                    "manager_context_injected": False,
+                },
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    written = write_proactive_no_send_simulation(
+        output_path=output_path,
+        summary_consumer_projection_path=projection_path,
+    )
+    artifact_text = written.read_text(encoding="utf-8")
+
+    assert '"recommendation_prompt_review"' in artifact_text
+    assert '"recommendation_pool_silent_no_qualified_candidate"' in artifact_text
+    assert '"hidden-candidate-123"' not in artifact_text
+    assert "Hidden candidate copy" not in artifact_text
+    assert '"proactive_sent": false' in artifact_text
+    assert '"recommendation_served": false' in artifact_text
+
+
+def test_writer_rejects_wrong_summary_consumer_projection_artifact(tmp_path: Path) -> None:
+    projection_path = tmp_path / "wrong.json"
+    projection_path.write_text(
+        json.dumps({"artifact_type": "wrong", "recommendation_prompt_review": {}}),
+        encoding="utf-8",
+    )
+
+    try:
+        write_proactive_no_send_simulation(
+            output_path=tmp_path / "out.json",
+            summary_consumer_projection_path=projection_path,
+        )
+    except ValueError as exc:
+        assert "summary_consumer_projection.unsupported_artifact_type" in str(exc)
+    else:
+        raise AssertionError("expected invalid projection to raise ValueError")
+
+
+def test_writer_rejects_blocked_summary_consumer_projection(tmp_path: Path) -> None:
+    projection_path = tmp_path / "blocked.json"
+    projection_path.write_text(
+        json.dumps(
+            {
+                "artifact_type": "proactive_no_send_summary_consumer_projection",
+                "status": "blocked",
+                "recommendation_prompt_review": {"status": "blocked"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    try:
+        write_proactive_no_send_simulation(
+            output_path=tmp_path / "out.json",
+            summary_consumer_projection_path=projection_path,
+        )
+    except ValueError as exc:
+        assert "summary_consumer_projection.status_not_pass" in str(exc)
+    else:
+        raise AssertionError("expected blocked projection to raise ValueError")
+
+
+def test_cli_threads_summary_consumer_prompt_review_into_default_artifact(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    projection_path = tmp_path / "projection.json"
+    output_path = tmp_path / "simulation.json"
+    projection_path.write_text(
+        json.dumps(
+            {
+                "artifact_type": "proactive_no_send_summary_consumer_projection",
+                "status": "pass",
+                "recommendation_prompt_review": {
+                    "status": "candidate_for_human_review",
+                    "recommendation_pool_decision": "offer",
+                    "prompt_posture": "invitation_only",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/build_proactive_no_send_simulation.py",
+            "--summary-consumer-projection",
+            str(projection_path),
+            "--output",
+            str(output_path),
+        ],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    rows = _by_type(payload)
+    assert rows["recommendation_prompt"]["recommendation_prompt_review"]["status"] == (
+        "candidate_for_human_review"
+    )
 
 
 def test_default_artifact_covers_canonical_and_shadow_trigger_sets(tmp_path: Path) -> None:
