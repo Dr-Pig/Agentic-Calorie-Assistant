@@ -126,6 +126,28 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "fooddb_triad_same_truth_browser_checked": True,
         "fooddb_triad_same_truth_cases": module.EXPECTED_FOODDB_TRIAD_SAME_TRUTH_CASES,
         "fooddb_triad_same_truth_non_claims": module.FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS,
+        "cdk_browser_same_truth_checked": True,
+        "cdk_browser_same_truth_values": {
+            "draft_pending_pin_after_reload": "present",
+            "draft_consumed_unchanged": True,
+            "followup_pin_visible_on_commit_context": True,
+            "pending_pins_absent_before_correction": True,
+            "target_candidates_available_before_correction": True,
+            "followup_commit_visible_after_reload": True,
+            "correction_visible_after_reload": True,
+            "commit_increased_consumed": True,
+            "correction_read_model_refreshed": True,
+            "manager_trace_basis_present": True,
+        },
+        "cdk_browser_same_truth_non_claims": {
+            "frontend_semantic_owner": False,
+            "frontend_selected_target": False,
+            "frontend_calculated_consumed": False,
+            "live_llm_invoked": False,
+            "fooddb_truth_updated": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
         "today_session_status_rendered": True,
         "today_no_debug_trace": True,
         "body_page_loaded": True,
@@ -778,6 +800,45 @@ def test_product_pages_browser_smoke_validator_rejects_fooddb_triad_overclaim() 
 
     assert status == "fail"
     assert "fooddb_triad_same_truth_non_claim_overclaim:assistant_text_macro_parsed" in blockers
+
+
+def test_product_pages_browser_smoke_validator_requires_cdk_same_truth() -> None:
+    report = _passing_report()
+    report["cdk_browser_same_truth_checked"] = False
+    report["cdk_browser_same_truth_values"] = {
+        "draft_pending_pin_after_reload": "not_available",
+        "draft_consumed_unchanged": False,
+        "followup_pin_visible_on_commit_context": False,
+        "pending_pins_absent_before_correction": False,
+        "target_candidates_available_before_correction": False,
+        "followup_commit_visible_after_reload": False,
+        "correction_visible_after_reload": False,
+        "commit_increased_consumed": False,
+        "correction_read_model_refreshed": False,
+        "manager_trace_basis_present": False,
+    }
+    report["cdk_browser_same_truth_non_claims"] = {
+        "frontend_semantic_owner": True,
+        "frontend_selected_target": True,
+        "frontend_calculated_consumed": True,
+        "live_llm_invoked": True,
+        "fooddb_truth_updated": True,
+        "product_readiness_claimed": True,
+        "private_self_use_approved": True,
+    }
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "cdk_browser_same_truth_not_checked" in blockers
+    assert "cdk_browser_same_truth_value_mismatch:draft_pending_pin_after_reload" in blockers
+    assert "cdk_browser_same_truth_value_mismatch:draft_consumed_unchanged" in blockers
+    assert "cdk_browser_same_truth_value_mismatch:target_candidates_available_before_correction" in blockers
+    assert "cdk_browser_same_truth_value_mismatch:manager_trace_basis_present" in blockers
+    assert "cdk_browser_same_truth_non_claim_overclaim:frontend_semantic_owner" in blockers
+    assert "cdk_browser_same_truth_non_claim_overclaim:frontend_selected_target" in blockers
+    assert "cdk_browser_same_truth_non_claim_overclaim:frontend_calculated_consumed" in blockers
+    assert "cdk_browser_same_truth_non_claim_overclaim:live_llm_invoked" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_route_backed_macro_budget_drift() -> None:
