@@ -216,12 +216,65 @@ async def test_run_intake_manager_executes_tools_and_feeds_results_into_next_rou
     assert provider.calls[1]["user_payload"]["tool_results"][0]["tool_name"] == "budget.get_today_summary"
     pass1_prompt_layer = result.trace["manager_rounds"][0]["prompt_layer_contract"]
     final_prompt_layer = result.trace["manager_rounds"][1]["prompt_layer_contract"]
-    assert result.trace["react_trace"] == {
+    react_trace = result.trace["react_trace"]
+    assert react_trace["manager_round_count"] == 2
+    assert react_trace["manager_round_latency_ms"] == [
+        pytest.approx(react_trace["manager_pass_1"]["latency_ms"]),
+        pytest.approx(react_trace["manager_pass_final"]["latency_ms"]),
+    ]
+    assert react_trace["manager_pass_1"]["latency_ms"] >= 0
+    assert react_trace["manager_pass_final"]["latency_ms"] >= 0
+    assert react_trace["tool_batch_latency_ms"] >= 0
+    assert react_trace["guard_latency_ms"] == 0
+    assert react_trace["orchestration_latency_ms"] >= 0
+    assert react_trace["tool_call_count"] == 1
+    assert react_trace["repair_round_used"] is False
+    assert react_trace["total_latency_ms"] >= (
+        sum(react_trace["manager_round_latency_ms"])
+        + react_trace["tool_batch_latency_ms"]
+        + react_trace["guard_latency_ms"]
+    )
+    assert react_trace["call_topology"] == [
+        {
+            "operation": "manager_provider_round",
+            "stage": "intake_manager_round",
+            "round_index": 0,
+            "duration_ms": pytest.approx(react_trace["manager_pass_1"]["latency_ms"]),
+        },
+        {
+            "operation": "tool_batch",
+            "stage": "manager_tool_execution",
+            "round_index": 0,
+            "duration_ms": pytest.approx(react_trace["tool_batch_latency_ms"]),
+            "tool_names": ["budget.get_today_summary"],
+            "tool_count": 1,
+        },
+        {
+            "operation": "manager_provider_round",
+            "stage": "intake_manager_round",
+            "round_index": 1,
+            "duration_ms": pytest.approx(react_trace["manager_pass_final"]["latency_ms"]),
+        },
+    ]
+    dynamic_observability_fields = {
+        "manager_round_count",
+        "manager_round_latency_ms",
+        "tool_batch_latency_ms",
+        "guard_latency_ms",
+        "total_latency_ms",
+        "orchestration_latency_ms",
+        "tool_call_count",
+        "repair_round_used",
+        "call_topology",
+    }
+    static_trace = {key: value for key, value in react_trace.items() if key not in dynamic_observability_fields}
+    assert static_trace == {
         "trace_schema_version": "manager_react_trace.v1",
         "manager_pass_count": 2,
         "manager_pass_1": {
             "round_index": 0,
             "stage": "intake_manager_round",
+            "latency_ms": react_trace["manager_pass_1"]["latency_ms"],
             "manager_action": "call_tools",
             "final_action": None,
             "workflow_effect": None,
@@ -235,6 +288,7 @@ async def test_run_intake_manager_executes_tools_and_feeds_results_into_next_rou
             {
                 "round_index": 0,
                 "stage": "intake_manager_round",
+                "latency_ms": react_trace["manager_pass_1"]["latency_ms"],
                 "manager_action": "call_tools",
                 "final_action": None,
                 "workflow_effect": None,
@@ -243,6 +297,7 @@ async def test_run_intake_manager_executes_tools_and_feeds_results_into_next_rou
             {
                 "round_index": 1,
                 "stage": "intake_manager_round",
+                "latency_ms": react_trace["manager_pass_final"]["latency_ms"],
                 "manager_action": "final",
                 "final_action": "commit",
                 "workflow_effect": "commit",
@@ -254,6 +309,7 @@ async def test_run_intake_manager_executes_tools_and_feeds_results_into_next_rou
         "manager_pass_final": {
             "round_index": 1,
             "stage": "intake_manager_round",
+            "latency_ms": react_trace["manager_pass_final"]["latency_ms"],
             "manager_action": "final",
             "final_action": "commit",
             "workflow_effect": "commit",
@@ -843,6 +899,21 @@ async def test_run_intake_manager_clears_guard_repair_constraints_after_tool_cal
     assert result.repair_round_used is True
     assert provider.calls[1]["user_payload"]["constraints"]["guard_feedback_failure_family"] == "commit_without_evidence"
     assert "guard_feedback_failure_family" not in provider.calls[2]["user_payload"]["constraints"]
+    react_trace = result.trace["react_trace"]
+    assert react_trace["repair_round_used"] is True
+    assert react_trace["guard_latency_ms"] >= 0
+    assert [event["operation"] for event in react_trace["call_topology"]] == [
+        "manager_provider_round",
+        "guard_check",
+        "manager_provider_round",
+        "tool_batch",
+        "manager_provider_round",
+        "guard_check",
+    ]
+    guard_events = [event for event in react_trace["call_topology"] if event["operation"] == "guard_check"]
+    assert guard_events[0]["guard_ok"] is False
+    assert guard_events[0]["failure_family"] == "commit_without_evidence"
+    assert guard_events[1]["guard_ok"] is True
 
 
 @pytest.mark.asyncio

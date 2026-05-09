@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Awaitable, Callable
 
 from app.runtime.agent.manager_provider_readiness import provider_ready
+from app.runtime.agent.manager_loop_observability import ManagerLoopObservability, with_phase_a_repair_trace
 from app.runtime.agent.manager_context_payload import (
     current_turn_context_prompt_payload,
     manager_context_pack_payload as serialize_manager_context_pack,
@@ -30,27 +31,18 @@ from app.runtime.agent.manager_payload_utils import (
     tool_call_dicts,
 )
 from app.runtime.agent.manager_prompted_provider import complete_manager_round_with_prompt_trace
-from app.runtime.agent.manager_tool_scope import manager_scope_policy_payload, safe_failure_payload, tool_call_scope_boundary
+from app.runtime.agent.manager_tool_scope import (
+    default_manager_loop_scope,
+    manager_scope_policy_payload,
+    safe_failure_payload,
+    tool_call_scope_boundary,
+)
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 
 ToolExecutor = Callable[..., Awaitable[list[dict[str, Any]]] | list[dict[str, Any]]]
 GuardChecker = Callable[..., Awaitable[dict[str, Any]] | dict[str, Any]]
 ManagerContextRefresher = Callable[..., Awaitable[dict[str, Any]] | dict[str, Any]]
-def _with_phase_a_repair_trace(
-    guard_outcome: dict[str, Any],
-    *,
-    repair_attempted: bool,
-    repair_result: str,
-) -> dict[str, Any]:
-    updated = dict(guard_outcome)
-    preflight = updated.get("phase_a_transition_guard_preflight")
-    if isinstance(preflight, dict):
-        updated["phase_a_transition_guard_preflight"] = {
-            **preflight,
-            "repair_attempted": repair_attempted,
-            "repair_result": repair_result,
-        }
-    return updated
+
 
 async def run_intake_manager(
     *,
@@ -88,7 +80,8 @@ async def run_intake_manager(
     repair_round_used = False
     guard_feedback: dict[str, Any] | None = None
     effective_history_expansion_policy = history_expansion_policy or HistoryExpansionPolicy()
-    effective_manager_loop_scope = str(manager_loop_scope or _default_manager_loop_scope(normalized_available_tools))
+    effective_manager_loop_scope = str(manager_loop_scope or default_manager_loop_scope(normalized_available_tools))
+    observability = ManagerLoopObservability()
 
     for round_index in range(len(manager_rounds), max_rounds):
         effective_constraints = dict(constraints or {})
@@ -138,6 +131,7 @@ async def run_intake_manager(
             "manager_product_policy_hints": json_safe(compact_policy_hints(manager_product_policy_hints)),
             "guard_feedback": guard_feedback,
         }
+        provider_started_at = observability.start()
         payload, trace, prompt_layer_contract = await complete_manager_round_with_prompt_trace(
             provider=provider,
             manager_loop_scope=effective_manager_loop_scope,
@@ -145,12 +139,14 @@ async def run_intake_manager(
             stage=MANAGER_LOOP_STAGE,
             max_tokens=900,
         )
+        provider_latency_ms = observability.record_provider_round(MANAGER_LOOP_STAGE, round_index, provider_started_at)
         parsed = payload if isinstance(payload, dict) else {}
         manager_rounds.append(
             {
                 "round_index": round_index,
                 "stage": MANAGER_LOOP_STAGE,
                 "manager_loop_scope": effective_manager_loop_scope,
+                "latency_ms": provider_latency_ms,
                 "decision": json_safe(parsed),
                 "trace": json_safe(trace),
                 "phase_a_input": json_safe(manager_context_trace),
@@ -168,6 +164,7 @@ async def run_intake_manager(
                     tool_results=tool_results,
                     prompt_registry=prompt_registry,
                     failure_family="tool_routing_gap",
+                    **observability.result_kwargs(),
                 )
             boundary = tool_call_scope_boundary(
                 payload=parsed,
@@ -183,6 +180,7 @@ async def run_intake_manager(
                     tool_results=tool_results,
                     prompt_registry=prompt_registry,
                     failure_family=boundary.get("failure_family"),
+                    **observability.result_kwargs(),
                 )
             if tool_executor is None:
                 tool_results.append(
@@ -195,6 +193,7 @@ async def run_intake_manager(
                     }
                 )
                 continue
+            tool_batch_started_at = observability.start()
             executed = await maybe_await(
                 tool_executor(
                     tool_calls=[dict(item) for item in calls],
@@ -203,6 +202,7 @@ async def run_intake_manager(
                     tool_results=json_safe(tool_results),
                 )
             )
+            observability.record_tool_batch(round_index=round_index, tool_calls=calls, started_at=tool_batch_started_at)
             if isinstance(executed, list):
                 tool_results.extend(dict(item) for item in executed if isinstance(item, dict))
             else:
@@ -237,6 +237,7 @@ async def run_intake_manager(
         if manager_action == "final":
             guard_outcome = {}
             if guard_checker is not None:
+                guard_started_at = observability.start()
                 guard_outcome = await maybe_await(
                     guard_checker(
                         manager_payload=dict(parsed),
@@ -246,16 +247,17 @@ async def run_intake_manager(
                 )
                 if not isinstance(guard_outcome, dict):
                     guard_outcome = {"ok": False, "failure_family": "guard_contract_gap"}
+                observability.record_guard(round_index=round_index, guard_outcome=guard_outcome, started_at=guard_started_at)
                 if guard_outcome.get("ok") is False:
                     if guard_outcome.get("repair_request") and not repair_round_used and round_index + 1 < max_rounds:
                         repair_round_used = True
-                        guard_feedback = _with_phase_a_repair_trace(
+                        guard_feedback = with_phase_a_repair_trace(
                             dict(guard_outcome),
                             repair_attempted=False,
                             repair_result="requested",
                         )
                         continue
-                    guard_outcome = _with_phase_a_repair_trace(
+                    guard_outcome = with_phase_a_repair_trace(
                         dict(guard_outcome),
                         repair_attempted=repair_round_used,
                         repair_result="failed" if repair_round_used else "not_attempted",
@@ -268,8 +270,9 @@ async def run_intake_manager(
                         guard_outcome=guard_outcome,
                         repair_round_used=repair_round_used,
                         failure_family=str(guard_outcome.get("failure_family") or "guard_blocked"),
+                        **observability.result_kwargs(),
                     )
-                guard_outcome = _with_phase_a_repair_trace(
+                guard_outcome = with_phase_a_repair_trace(
                     dict(guard_outcome),
                     repair_attempted=repair_round_used,
                     repair_result="passed_after_repair" if repair_round_used else "not_needed",
@@ -282,6 +285,7 @@ async def run_intake_manager(
                     prompt_registry=prompt_registry,
                     guard_outcome=guard_outcome,
                     repair_round_used=repair_round_used,
+                    **observability.result_kwargs(),
                 )
             except ManagerFinalPayloadShapeError as exc:
                 return payload_shape_failure_result(
@@ -292,6 +296,7 @@ async def run_intake_manager(
                     guard_outcome=guard_outcome,
                     repair_round_used=repair_round_used,
                     field_error=exc,
+                    **observability.result_kwargs(),
                 )
 
         return result_from_payload(
@@ -300,6 +305,7 @@ async def run_intake_manager(
             tool_results=tool_results,
             prompt_registry=prompt_registry,
             failure_family="malformed_manager_action",
+            **observability.result_kwargs(),
         )
 
     return result_from_payload(
@@ -308,13 +314,5 @@ async def run_intake_manager(
         tool_results=tool_results,
         prompt_registry=prompt_registry,
         failure_family="max_rounds_exceeded",
+        **observability.result_kwargs(),
     )
-
-
-def _default_manager_loop_scope(available_tools: tuple[str, ...]) -> str:
-    tool_names = set(available_tools)
-    if "body.record_observation" in tool_names:
-        return "body_observation"
-    if tool_names.intersection({"estimate_nutrition", "resolve_correction_target", "compare_against_budget"}):
-        return "intake_execution"
-    return "turn_entry_or_read_only"

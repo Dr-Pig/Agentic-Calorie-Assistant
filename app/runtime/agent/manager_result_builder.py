@@ -161,6 +161,8 @@ def result_from_payload(
     repair_round_used: bool = False,
     llm_used: bool = True,
     failure_family: str | None = None,
+    call_topology: list[dict[str, Any]] | None = None,
+    total_latency_ms: int | None = None,
 ) -> IntakeManagerResult:
     answer_contract = payload.get("answer_contract") if isinstance(payload.get("answer_contract"), dict) else {}
     raw_target_attachment = payload.get("target_attachment")
@@ -178,6 +180,9 @@ def result_from_payload(
         tool_results=tool_results,
         guard_outcome=guard_outcome,
         failure_family=failure_family,
+        call_topology=call_topology,
+        repair_round_used=repair_round_used,
+        total_latency_ms=total_latency_ms,
     )
     return IntakeManagerResult(
         intent=str(payload.get("intent") or payload.get("intent_type") or "log_meal"),
@@ -227,12 +232,17 @@ def payload_shape_failure_result(
     guard_outcome: dict[str, Any] | None = None,
     repair_round_used: bool = False,
     field_error: ManagerFinalPayloadShapeError,
+    call_topology: list[dict[str, Any]] | None = None,
+    total_latency_ms: int | None = None,
 ) -> IntakeManagerResult:
     react_trace = build_manager_react_trace(
         manager_rounds=manager_rounds,
         tool_results=tool_results,
         guard_outcome=guard_outcome,
         failure_family="final_payload_shape_error",
+        call_topology=call_topology,
+        repair_round_used=repair_round_used,
+        total_latency_ms=total_latency_ms,
     )
     return IntakeManagerResult(
         intent="manager_unavailable",
