@@ -617,7 +617,29 @@
       const title = thread.meal_title || thread.title || "untitled meal";
       const kcal = thread.active_version?.total_kcal ?? "unknown";
       const status = thread.active_version?.status || thread.resolution_status || thread.status || "unknown";
-      return `${title} | ${kcal} kcal | ${status}`;
+      const itemNames = Array.isArray(thread.active_version?.items)
+        ? thread.active_version.items
+            .map((item) => item.name || item.canonical_name || item.display_name || "")
+            .filter(Boolean)
+            .join("、")
+        : "";
+      const itemSummary = itemNames ? ` | items: ${itemNames}` : "";
+      return `${title} | ${kcal} kcal | ${status}${itemSummary}`;
+    }
+
+    function formatCorrection(correction) {
+      const reason = correction.reason || correction.version_reason || "recorded";
+      const removed = Array.isArray(correction.removed_item_names)
+        ? correction.removed_item_names.filter(Boolean).join("、")
+        : "";
+      const kept = Array.isArray(correction.non_target_item_names_preserved)
+        ? correction.non_target_item_names_preserved.filter(Boolean).join("、")
+        : "";
+      const details = [
+        removed ? `removed: ${removed}` : "",
+        kept ? `kept: ${kept}` : ""
+      ].filter(Boolean).join(" | ");
+      return details ? `correction: ${reason} | ${details}` : `correction: ${reason}`;
     }
 
     function renderBudget(view) {
@@ -651,7 +673,7 @@
       );
       const draftRows = [];
       (model.pending_drafts || []).forEach((draft) => draftRows.push(`draft: ${draft.meal_title || draft.title || "untitled"}`));
-      (model.correction_history || []).forEach((correction) => draftRows.push(`correction: ${correction.reason || correction.version_reason || "recorded"}`));
+      (model.correction_history || []).forEach((correction) => draftRows.push(formatCorrection(correction)));
       listItems("draft-correction-list", draftRows, "No pending drafts or correction history.");
     }
 

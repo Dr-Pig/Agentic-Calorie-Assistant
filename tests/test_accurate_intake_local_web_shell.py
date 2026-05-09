@@ -196,6 +196,9 @@ def test_local_web_shell_debug_panel_uses_current_backend_read_model_fields_only
 
     assert "thread.active_version?.total_kcal" in html
     assert "thread.active_version?.status" in html
+    assert "thread.active_version?.items" in html
+    assert "correction.removed_item_names" in html
+    assert "correction.non_target_item_names_preserved" in html
     assert "view.budget_kcal" in html
     assert "view.recommended_target_kcal" in html
 
