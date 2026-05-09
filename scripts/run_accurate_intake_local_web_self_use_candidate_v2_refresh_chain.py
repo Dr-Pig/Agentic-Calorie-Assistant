@@ -115,6 +115,9 @@ from scripts.run_accurate_intake_product_pages_short_term_context_smoke import (
 from scripts.run_accurate_intake_product_pages_target_candidate_ui_smoke import (  # noqa: E402
     build_product_pages_target_candidate_ui_smoke_report,
 )
+from scripts.run_accurate_intake_product_pages_visual_qa import (  # noqa: E402
+    build_product_pages_visual_qa_report,
+)
 from scripts.run_accurate_intake_local_web_self_use_candidate_v2_gate import (  # noqa: E402
     DEFAULT_EVIDENCE_PATHS,
     build_candidate_evidence_payload,
@@ -164,6 +167,7 @@ REFRESHED_ARTIFACT_FILENAMES = {
     "product_pages_context_target_browser_closure": (
         "accurate_intake_product_pages_context_target_browser_closure.json"
     ),
+    "product_pages_visual_qa": "accurate_intake_product_pages_visual_qa.json",
     "context_live_diagnostic_gate": "accurate_intake_context_live_diagnostic_gate.json",
     "current_shell_compatibility_local_review_evidence_manifest": (
         "accurate_intake_current_shell_compatibility_local_review_evidence_manifest.json"
@@ -690,6 +694,17 @@ def _generate_context_target_browser_closure(
     )
 
 
+def _generate_product_pages_visual_qa(*, artifacts_dir: Path) -> dict[str, Any]:
+    return build_product_pages_visual_qa_report(
+        db_path=artifacts_dir / "accurate_intake_product_pages_visual_qa.sqlite3",
+        screenshot_dir=artifacts_dir / "product_pages_visual_qa",
+        reset_db=True,
+        require_browser_execution=True,
+        timeout_ms=30000,
+        headless=True,
+    )
+
+
 def _product_loop_handoff_evidence(
     artifacts_dir: Path,
     *,
@@ -790,6 +805,9 @@ def build_local_web_self_use_candidate_refresh_chain(
             short_term_context_report=refreshed_artifacts["product_pages_short_term_context_smoke"],
             target_candidate_report=refreshed_artifacts["product_pages_target_candidate_ui_smoke"],
         )
+    )
+    refreshed_artifacts["product_pages_visual_qa"] = _generate_product_pages_visual_qa(
+        artifacts_dir=artifacts_dir
     )
     for group_id, artifact in refreshed_artifacts.items():
         write_json_artifact(
