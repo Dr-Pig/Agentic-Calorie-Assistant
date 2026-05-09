@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from app.runtime.application.proactive_no_send_shadow_evaluator import (
@@ -85,6 +86,69 @@ def test_decision_pack_surfaces_copy_review_suppression_risk() -> None:
     assert "weekly_insight" in pack["summary"]["suppressed_trigger_types"]
     assert "copy_review_issues_present" in pack["promotion_gate"]["promotion_blockers"]
     assert pack["promotion_allowed"] is False
+
+
+def test_decision_pack_records_no_send_governance_and_silence_reasons() -> None:
+    now = datetime(2026, 5, 9, 12, 0, tzinfo=timezone.utc)
+    pack = build_proactive_no_send_decision_pack(
+        [
+            build_proactive_no_send_simulation(
+                [
+                    ProactiveNoSendShadowInput(
+                        trigger_type="weekly_insight",
+                        local_time="23:30",
+                        quiet_hours_start="22:00",
+                        quiet_hours_end="08:00",
+                    ),
+                    ProactiveNoSendShadowInput(
+                        trigger_type="meal_reminder",
+                        now=now,
+                        cooldown_until=now + timedelta(hours=2),
+                    ),
+                    ProactiveNoSendShadowInput(
+                        trigger_type="recommendation_nudge_nearby",
+                        delivery_surface="background",
+                    ),
+                ]
+            ),
+            build_proactive_no_send_simulation(
+                [
+                    ProactiveNoSendShadowInput(
+                        trigger_type="meal_reminder",
+                        suppressed_trigger_types=["meal_reminder"],
+                    ),
+                    ProactiveNoSendShadowInput(
+                        trigger_type="missing_log_reminder_with_cooldown",
+                        ignored_count=2,
+                    ),
+                    ProactiveNoSendShadowInput(trigger_type="memory_driven_intervention"),
+                ]
+            ),
+        ]
+    )
+
+    assert pack["artifact_governance"] == {
+        "owner": "app/runtime",
+        "consumer": "future_proactive_scheduler_activation_review",
+        "retirement_trigger": "approved_proactive_scheduler_runtime_activation_plan",
+    }
+    assert pack["activation_guardrails"] == {
+        "runtime_connected": False,
+        "scheduler_connected": False,
+        "push_or_line_delivery_connected": False,
+        "manager_context_packet_connected": False,
+        "mutation_path_connected": False,
+        "live_llm_invoked": False,
+    }
+    assert pack["summary"]["suppression_reason_counts"] == {
+        "cooldown_active": 1,
+        "interaction_feedback_lower_frequency_required": 1,
+        "later_only_trigger_not_live_eligible": 1,
+        "permission_explicit_consent_required": 1,
+        "permission_no_push_allowed": 1,
+        "quiet_hours": 1,
+        "suppressed_trigger_type": 1,
+    }
 
 
 def test_decision_pack_writer_creates_artifact(tmp_path: Path) -> None:
