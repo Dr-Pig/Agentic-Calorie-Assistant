@@ -35,6 +35,7 @@ DEFAULT_ARTIFACT_DIR = ROOT / "artifacts" / "advanced_shadow_lab_live_bundle"
 RECOMMENDATION_OUTPUT = "advanced_shadow_recommendation_copy_live_diagnostic.json"
 RESCUE_OUTPUT = "advanced_shadow_rescue_copy_live_diagnostic.json"
 DOGFOOD_OUTPUT = "advanced_shadow_dogfood_replay.json"
+FIXTURE_CHAIN_OUTPUT = "advanced_shadow_e2e_fixture_chain.json"
 BLOCKED_RECOMMENDATION_TYPE = "advanced_shadow_recommendation_copy_live_diagnostic_artifact"
 BLOCKED_RESCUE_TYPE = "advanced_shadow_rescue_copy_live_diagnostic_artifact"
 
@@ -104,6 +105,7 @@ def main(argv: list[str] | None = None) -> int:
     memory_review = _read_json(Path(args.memory_dogfood_replay_review))
     chain_payload = _read_json(Path(args.chain_payload))
     fixture_chain = _build_fixture_chain(chain_payload)
+    _write_json(artifact_dir / FIXTURE_CHAIN_OUTPUT, fixture_chain)
     dogfood_replay = build_advanced_shadow_dogfood_replay_artifact(
         memory_dogfood_replay_review=memory_review,
         chain_payload=chain_payload,

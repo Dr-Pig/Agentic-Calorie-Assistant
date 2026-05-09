@@ -57,6 +57,9 @@ def test_advanced_shadow_live_bundle_runner_writes_existing_terminal_comparison(
         for path in artifact_dir.glob("*.json")
     }
     assert intermediate_types == {
+        "advanced_shadow_e2e_fixture_chain.json": (
+            "advanced_shadow_e2e_fixture_chain_artifact"
+        ),
         "advanced_shadow_dogfood_replay.json": "advanced_shadow_dogfood_replay_artifact",
         "advanced_shadow_recommendation_copy_live_diagnostic.json": (
             "advanced_shadow_recommendation_copy_live_diagnostic_artifact"
@@ -65,6 +68,20 @@ def test_advanced_shadow_live_bundle_runner_writes_existing_terminal_comparison(
             "advanced_shadow_rescue_copy_live_diagnostic_artifact"
         ),
     }
+    fixture_chain = json.loads(
+        (artifact_dir / "advanced_shadow_e2e_fixture_chain.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert [stage["artifact_type"] for stage in fixture_chain["stage_artifacts"]] == (
+        fixture_chain["stage_order"]
+    )
+    assert fixture_chain["terminal_review_sink"]["status"] == "pass"
+    assert fixture_chain["mainline_runtime_connected"] is False
+    assert fixture_chain["recommendation_served"] is False
+    assert fixture_chain["proactive_sent"] is False
+    assert fixture_chain["mutation_changed"] is False
+    assert fixture_chain["product_readiness_claimed"] is False
 
 
 def test_advanced_shadow_live_bundle_runner_blocks_live_without_env(
