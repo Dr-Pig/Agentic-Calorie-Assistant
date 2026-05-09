@@ -86,7 +86,7 @@ def _recent_committed_meal_summaries(
     db: Session,
     current_budget_view: Any,
     *,
-    limit: int = 3,
+    limit: int = 4,
 ) -> list[dict[str, Any]]:
     meals = list(current_budget_view.meals or [])
     if not meals:

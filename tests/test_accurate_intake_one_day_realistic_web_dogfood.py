@@ -29,7 +29,7 @@ def test_accurate_intake_one_day_realistic_web_dogfood_uses_minimal_fooddb_evide
 
         scenario = report["one_day_realistic_web_dogfood"]
 
-        assert scenario["status"] == "diagnostic_pass_with_correction_gap"
+        assert scenario["status"] == "pass"
 
         # Non-goals are preserved
         assert scenario["live_provider_called"] is False
@@ -88,7 +88,8 @@ def test_accurate_intake_one_day_realistic_web_dogfood_uses_minimal_fooddb_evide
         assert evi["manager_gap_breakdown"]["fixture_provider_exhausted_turn_ids"] == []
         assert evi["evidence_gap_handled_without_fake_kcal"] is True
         assert "food evidence gap prevented realistic food logging" not in scenario["blockers"]
-        assert "correction target gap prevented remove-item application" in scenario["blockers"]
+        assert evi["correction_target_gap_observed"] is False
+        assert "correction target gap prevented remove-item application" not in scenario["blockers"]
         assert (
             "manager context/runtime gap prevented complete turn evaluation"
             not in scenario["blockers"]
@@ -120,14 +121,25 @@ def test_accurate_intake_one_day_realistic_web_dogfood_uses_minimal_fooddb_evide
         assert dinner_macro["approved_fooddb_evidence_trace"]["source_lane"] == "listed_component"
         assert dinner_macro["approved_fooddb_evidence_trace"]["macro_visibility_status"] == "hidden_missing_source"
 
-        # Rule: Remove-item attempts the correction but correctly flags the negative guard
-        # rather than faking an applied correction when the target ID is omitted!
+        # Rule: remove-item target attachment must be Manager-owned and guard-validated.
+        # The deterministic layer may validate the chosen candidate; it must not infer
+        # the target from raw text or fake a correction when no candidate is resolved.
         remove_guard = evi["remove_item_negative_guard"]
         assert remove_guard["attempted"] is True
         assert remove_guard["target_attachment_present"] is True
-        assert remove_guard["existing_item_id_present"] is False
-        assert remove_guard["correction_or_removal_applied"] is False
-        assert remove_guard["runtime_blocked_missing_target"] is True
+        assert remove_guard["existing_item_id_present"] is True
+        assert remove_guard["correction_or_removal_applied"] is True
+        assert remove_guard["runtime_blocked_missing_target"] is False
+
+        remove_turn = _turn_by_id(turns, "dinner_remove_001")
+        assert remove_turn["mutation_or_query"] == "mutation"
+        assert remove_turn["state_delta"]["canonical_commit"] is True
+        assert remove_turn["state_delta"]["old_version_superseded"] is True
+        assert remove_turn["state_delta"]["ledger_updated"] is True
+        assert "resolve_correction_target" in _react_trace(remove_turn)["executed_tools"]
+        assert remove_turn["state_before"]["consumed_kcal"] == 1845
+        assert remove_turn["state_after"]["consumed_kcal"] == 1775
+        assert remove_turn["state_after"]["remaining_kcal"] == -175
 
         # Same truth properties updated to not_checked
         assert evi["same_truth_verified"] == "not_checked"
@@ -138,8 +150,8 @@ def test_accurate_intake_one_day_realistic_web_dogfood_uses_minimal_fooddb_evide
         assert "expected_manager_decision" in t_query
         assert "manager_decision_source" in t_query
         assert t_query["mutation_or_query"] == "query"
-        assert t_query["state_after"]["consumed_kcal"] > 0
-        assert t_query["state_after"]["remaining_kcal"] < t_query["state_after"]["budget_kcal"]
+        assert t_query["state_after"]["consumed_kcal"] == 1775
+        assert t_query["state_after"]["remaining_kcal"] == -175
         # Since it is a query, ensure state_before and state_after consumed_kcal match
         assert (
             t_query["state_before"]["consumed_kcal"]
