@@ -36,6 +36,12 @@ def build_latency_breakdown(
     total_provider_latency_ms = sum(int(record.get("latency_ms") or 0) for record in provider_invocation_records)
     total_turn_latency_ms = sum(int(record.get("turn_latency_ms") or 0) for record in turn_latency_records)
     total_turn_non_provider_ms = sum(int(record.get("non_provider_latency_ms") or 0) for record in turn_latency_records)
+    total_provider_transport_ms = sum(
+        int(record.get("transport_attempt_latency_ms") or 0) for record in provider_invocation_records
+    )
+    total_provider_wrapper_ms = sum(
+        int(record.get("provider_wrapper_overhead_ms") or 0) for record in provider_invocation_records
+    )
     return {
         "stage_latency_ms": total_stage_latency_ms,
         "provider_invocation_latency_ms": total_provider_latency_ms,
@@ -82,6 +88,13 @@ def build_latency_breakdown(
         "by_case_turn_runtime": _case_turn_runtime_breakdown(
             turn_latency_records,
             total_turn_latency_ms=total_turn_latency_ms,
+        ),
+        "latency_time_ledger": _latency_time_ledger(
+            total_stage_latency_ms=total_stage_latency_ms,
+            total_provider_latency_ms=total_provider_latency_ms,
+            total_provider_transport_ms=total_provider_transport_ms,
+            total_provider_wrapper_ms=total_provider_wrapper_ms,
+            total_turn_non_provider_ms=total_turn_non_provider_ms,
         ),
         "slowest_provider_invocations": _slowest_provider_invocations(provider_invocation_records),
         "slowest_turn_runtime_segments": _slowest_turn_runtime_segments(turn_latency_records),
@@ -531,6 +544,38 @@ def _slowest_turn_runtime_segments(records: list[dict[str, Any]], *, limit: int 
         for record in records
     ]
     return sorted(rows, key=lambda item: -int(item.get("turn_latency_ms") or 0))[:limit]
+
+
+def _latency_time_ledger(
+    *,
+    total_stage_latency_ms: int,
+    total_provider_latency_ms: int,
+    total_provider_transport_ms: int,
+    total_provider_wrapper_ms: int,
+    total_turn_non_provider_ms: int,
+) -> dict[str, Any]:
+    attributed_ms = max(0, total_provider_latency_ms) + max(0, total_turn_non_provider_ms)
+    unattributed_ms = max(0, total_stage_latency_ms - attributed_ms)
+    driver_values = {
+        "provider_invocation": max(0, total_provider_latency_ms),
+        "turn_non_provider_runtime": max(0, total_turn_non_provider_ms),
+        "unattributed_stage_overhead": unattributed_ms,
+    }
+    dominant_driver, dominant_ms = max(driver_values.items(), key=lambda item: (item[1], item[0]))
+    return {
+        "diagnostic_only_not_readiness": True,
+        "measurement": "wall_clock_ms_from_diagnostic_artifacts",
+        "total_stage_latency_ms": max(0, total_stage_latency_ms),
+        "accounted_latency_ms": min(max(0, total_stage_latency_ms), attributed_ms),
+        "accounted_share_pct": _latency_share_pct(attributed_ms, total_stage_latency_ms),
+        "provider_invocation_ms": max(0, total_provider_latency_ms),
+        "provider_transport_attempt_ms": max(0, total_provider_transport_ms),
+        "provider_wrapper_overhead_ms": max(0, total_provider_wrapper_ms),
+        "turn_non_provider_runtime_ms": max(0, total_turn_non_provider_ms),
+        "unattributed_stage_overhead_ms": unattributed_ms,
+        "dominant_latency_driver": dominant_driver,
+        "dominant_latency_driver_ms": dominant_ms,
+    }
 
 
 def _slowest_provider_invocations(records: list[dict[str, Any]], *, limit: int = 10) -> list[dict[str, Any]]:
