@@ -80,6 +80,9 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "fooddb_triad_same_truth_browser_checked": True,
+        "fooddb_triad_same_truth_cases": module.EXPECTED_FOODDB_TRIAD_SAME_TRUTH_CASES,
+        "fooddb_triad_same_truth_non_claims": module.FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS,
         "today_session_status_rendered": True,
         "today_no_debug_trace": True,
         "body_page_loaded": True,
@@ -449,6 +452,45 @@ def test_product_pages_browser_smoke_validator_requires_route_backed_macro_budge
 
     assert status == "fail"
     assert "route_backed_macro_browser_not_checked" in blockers
+
+
+def test_product_pages_browser_smoke_validator_requires_fooddb_triad_same_truth() -> None:
+    report = _passing_report()
+    report["fooddb_triad_same_truth_browser_checked"] = False
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "fooddb_triad_same_truth_browser_not_checked" in blockers
+
+
+def test_product_pages_browser_smoke_validator_rejects_fooddb_triad_macro_leak() -> None:
+    report = _passing_report()
+    cases = {
+        lane: dict(case)
+        for lane, case in module.EXPECTED_FOODDB_TRIAD_SAME_TRUTH_CASES.items()
+    }
+    cases["generic_common_serving"]["macro_state"] = "visible"
+    cases["generic_common_serving"]["protein_text"] = "22"
+    report["fooddb_triad_same_truth_cases"] = cases
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "fooddb_triad_same_truth_case_mismatch:generic_common_serving:macro_state" in blockers
+    assert "fooddb_triad_same_truth_case_mismatch:generic_common_serving:protein_text" in blockers
+
+
+def test_product_pages_browser_smoke_validator_rejects_fooddb_triad_overclaim() -> None:
+    report = _passing_report()
+    non_claims = dict(module.FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS)
+    non_claims["assistant_text_macro_parsed"] = True
+    report["fooddb_triad_same_truth_non_claims"] = non_claims
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "fooddb_triad_same_truth_non_claim_overclaim:assistant_text_macro_parsed" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_route_backed_macro_budget_drift() -> None:

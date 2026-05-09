@@ -6,6 +6,10 @@ from pathlib import Path
 from app.composition.current_shell_compatibility_ids import (
     CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE,
 )
+from app.composition.current_shell_fooddb_triad_same_truth_contract import (
+    EXPECTED_FOODDB_TRIAD_SAME_TRUTH_CASES,
+    FOODDB_TRIAD_SAME_TRUTH_REQUIRED_NON_CLAIMS,
+)
 
 from app.composition.accurate_intake_current_shell_claim_boundary import (
     build_current_shell_appshell_claim_boundary,
@@ -131,6 +135,11 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "fooddb_truth_updated": False,
                 "product_readiness_claimed": False,
                 "private_self_use_approved": False,
+            },
+            "fooddb_triad_same_truth_browser_checked": True,
+            "fooddb_triad_same_truth_cases": EXPECTED_FOODDB_TRIAD_SAME_TRUTH_CASES,
+            "fooddb_triad_same_truth_non_claims": {
+                flag: False for flag in FOODDB_TRIAD_SAME_TRUTH_REQUIRED_NON_CLAIMS
             },
             "body_page_loaded": True,
             "body_active_plan_rendered": True,
@@ -397,6 +406,7 @@ def test_product_pages_self_use_flow_gate_accepts_complete_fixture_browser_chain
     assert artifact["summary"]["target_candidate_ui_checked"] is True
     assert artifact["summary"]["today_macro_runtime_mirror_checked"] is True
     assert artifact["summary"]["route_backed_macro_budget_truth_checked"] is True
+    assert artifact["summary"]["fooddb_triad_same_truth_checked"] is True
     assert artifact["summary"]["renderer_source_closure_checked"] is True
     assert artifact["summary"]["context_target_browser_closure_checked"] is True
     assert artifact["summary"]["body_noplan_degraded_checked"] is True
@@ -500,6 +510,20 @@ def test_product_pages_self_use_flow_gate_requires_route_backed_macro_budget_tru
     assert artifact["status"] == "blocked"
     assert "product_pages_browser_smoke.route_backed_macro_browser_checked_not_true" in artifact["blockers"]
     assert artifact["summary"]["route_backed_macro_budget_truth_checked"] is False
+
+
+def test_product_pages_self_use_flow_gate_requires_fooddb_triad_same_truth() -> None:
+    inputs = _valid_inputs()
+    inputs["product_pages_browser_smoke"].pop("fooddb_triad_same_truth_browser_checked", None)
+
+    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert (
+        "product_pages_browser_smoke.fooddb_triad_same_truth_browser_checked_not_true"
+        in artifact["blockers"]
+    )
+    assert artifact["summary"]["fooddb_triad_same_truth_checked"] is False
 
 
 def test_product_pages_self_use_flow_gate_requires_runtime_and_browser_closure_inputs() -> None:

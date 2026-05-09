@@ -27,6 +27,7 @@ from app.composition.current_shell_compatibility_ids import (
     matches_alias,
     set_legacy_alias_metadata,
 )
+from app.composition.current_shell_fooddb_triad_same_truth_contract import fooddb_triad_same_truth_blockers
 
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
@@ -123,6 +124,7 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
             )
     if group_id == "product_pages_browser_smoke":
         blockers.extend(route_backed_macro_budget_truth_blockers(group_id, payload))
+        blockers.extend(fooddb_triad_same_truth_blockers(group_id, payload))
         body_values = _object_dict(payload.get("body_plan_read_model_values"))
         if not body_values:
             blockers.append("product_pages_browser_smoke.body_read_model_values_missing")
