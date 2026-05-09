@@ -38,7 +38,18 @@ def test_accurate_intake_one_day_realistic_web_dogfood_honest_gap():
         assert t_target["expected_manager_decision"]["intent_type"] == "set_manual_daily_target"
         assert t_target["manager_decision_source"] == "runtime_response"
         assert t_target["manager_decision"]["intent_type"] == "set_manual_daily_target"
+        assert t_target["manager_decision"]["semantic_decision"]["semantic_authority"] == (
+            "deterministic_fake_provider"
+        )
+        manager_round_decision = t_target["manager_decision"]["trace"]["manager_rounds"][0][
+            "decision"
+        ]
+        assert manager_round_decision["answer_contract"]["daily_target_kcal"] == 1600
+        assert t_target["state_delta"]["manual_daily_target_updated"] is True
+        assert t_target["state_delta"]["manual_daily_target_kcal"] == 1600
+        assert t_target["raw_response"]["payload"]["remaining_budget"]["daily_target_kcal"] == 1600
         assert t_target["state_after"]["budget_kcal"] == 1600
+        assert t_target["state_after"]["local_date"] == "2026-05-04"
         assert t_target["mutation_or_query"] == "mutation"
 
         # Honest representation that without LLM macros, no logs were created
