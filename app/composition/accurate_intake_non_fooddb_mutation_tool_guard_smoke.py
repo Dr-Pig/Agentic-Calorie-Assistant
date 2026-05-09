@@ -11,7 +11,7 @@ from app.composition.accurate_intake_non_fooddb_manager_tool_contract import (
     build_tool_contract_index,
 )
 
-REQUIRED_CASE_IDS = ("body_record_weight_observation_only", "body_record_weight_invalid_payload_blocked", "calibration_preview_no_persist_default", "calibration_preview_persist_open_proposal_only", "calibration_apply_missing_stored_proposal_blocked", "calibration_apply_accept_stored_proposal_guarded", "calibration_apply_reject_stored_proposal_no_plan_ledger", "manual_daily_target_manager_structured_only", "manual_daily_target_out_of_bounds_blocked")
+REQUIRED_CASE_IDS = ("body_record_weight_observation_only", "body_record_weight_invalid_payload_blocked", "calibration_preview_no_persist_default", "calibration_preview_persist_open_proposal_only", "calibration_apply_missing_stored_proposal_blocked", "calibration_apply_accept_stored_proposal_guarded", "calibration_apply_reject_stored_proposal_no_plan_ledger", "manual_daily_target_manager_structured_only", "manual_daily_target_missing_structured_target_blocked", "manual_daily_target_out_of_bounds_blocked")
 _TOOL_ROLE = "validate_guard_and_execute_existing_domain_contract"
 
 def _json_safe(value: Any) -> Any:
@@ -77,8 +77,9 @@ def _cases() -> list[dict[str, Any]]:
         _case("calibration_apply_missing_stored_proposal_blocked", "calibration.get_pending_proposal", "read_only", "calibration_domain", "blocked_without_stored_proposal", _effects()),
         _case("calibration_apply_accept_stored_proposal_guarded", "calibration.apply_stored_proposal_action", "mutation_bearing", "calibration_domain", "stored_proposal_action_guarded_mutation", _effects(proposal_status_changed=True, body_plan_mutated=True, ledger_mutated=True, current_budget_refreshed=True), guard_required=True, stored_proposal_required=True, mutation_allowed=True),
         _case("calibration_apply_reject_stored_proposal_no_plan_ledger", "calibration.apply_stored_proposal_action", "mutation_bearing", "calibration_domain", "stored_proposal_action_status_only", _effects(proposal_status_changed=True), guard_required=True, stored_proposal_required=True, mutation_allowed=True),
-        _case("manual_daily_target_manager_structured_only", "budget.set_manual_daily_target", "mutation_bearing", "budget_domain", "manager_structured_budget_target_write", _effects(body_plan_mutated=True, ledger_mutated=True, current_budget_refreshed=True), guard_required=True, mutation_allowed=True, inventory_alignment="adjacent_pending_inventory_expansion", manager_structured_target_required=True),
-        _case("manual_daily_target_out_of_bounds_blocked", "budget.set_manual_daily_target", "mutation_bearing", "budget_domain", "manager_structured_budget_target_blocked", _effects(), guard_required=True, inventory_alignment="adjacent_pending_inventory_expansion", manager_structured_target_required=True),
+        _case("manual_daily_target_manager_structured_only", "budget.set_manual_daily_target", "mutation_bearing", "budget_domain", "manager_structured_budget_target_write", _effects(body_plan_mutated=True, ledger_mutated=True, current_budget_refreshed=True), guard_required=True, mutation_allowed=True, manager_structured_target_required=True),
+        _case("manual_daily_target_missing_structured_target_blocked", "budget.set_manual_daily_target", "mutation_bearing", "budget_domain", "manager_structured_budget_target_missing", _effects(), guard_required=True, manager_structured_target_required=True),
+        _case("manual_daily_target_out_of_bounds_blocked", "budget.set_manual_daily_target", "mutation_bearing", "budget_domain", "manager_structured_budget_target_blocked", _effects(), guard_required=True, manager_structured_target_required=True),
     ]
 
 def _validate(cases: list[dict[str, Any]], contract: dict[str, dict[str, Any]]) -> list[str]:
@@ -124,22 +125,21 @@ def _validate(cases: list[dict[str, Any]], contract: dict[str, dict[str, Any]]) 
                     blockers.append(f"{case_id}.guard_requirement_contract_mismatch")
                 if bool(case.get("stored_proposal_required")) is not bool(expected.get("stored_proposal_required")):
                     blockers.append(f"{case_id}.stored_proposal_contract_mismatch")
-        elif alignment == "adjacent_pending_inventory_expansion":
-            expected = contract.get(selected_tool)
-            if selected_tool != "budget.set_manual_daily_target" or expected is None:
-                blockers.append(f"{case_id}.manual_daily_target_selected_tool_mismatch")
-            if tool_kind != "mutation_bearing" or tool_kind != str(expected.get("tool_kind") or ""):
-                blockers.append(f"{case_id}.manual_daily_target_tool_kind_mismatch")
-            if truth_owner != "budget_domain" or truth_owner != str(expected.get("truth_owner") or ""):
-                blockers.append(f"{case_id}.manual_daily_target_truth_owner_mismatch")
-            if case.get("guard_required") is not True or bool(expected.get("guard_required")) is not True:
-                blockers.append(f"{case_id}.manual_daily_target_guard_required_missing")
-            if case.get("manager_structured_target_required") is not True or bool(expected.get("manager_structured_target_required")) is not True:
-                blockers.append(f"{case_id}.manager_structured_target_required_missing")
-            if case_id == "manual_daily_target_out_of_bounds_blocked" and case.get("mutation_allowed") is not False:
-                blockers.append(f"{case_id}.manual_daily_target_blocked_case_must_not_allow_mutation")
+                if bool(case.get("manager_structured_target_required")) is not bool(
+                    expected.get("manager_structured_target_required")
+                ):
+                    blockers.append(f"{case_id}.manager_structured_target_required_missing")
         else:
             blockers.append(f"{case_id}.unknown_inventory_alignment")
+        if (
+            case_id
+            in {
+                "manual_daily_target_missing_structured_target_blocked",
+                "manual_daily_target_out_of_bounds_blocked",
+            }
+            and case.get("mutation_allowed") is not False
+        ):
+            blockers.append(f"{case_id}.manual_daily_target_blocked_case_must_not_allow_mutation")
     return blockers
 
 def build_non_fooddb_mutation_tool_guard_smoke_artifact(

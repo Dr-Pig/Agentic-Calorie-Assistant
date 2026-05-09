@@ -81,16 +81,13 @@ def _identity_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     elif _status(payload) != EXPECTED_STATUSES[group_id]:
         blockers.append(f"{group_id}.unexpected_status:{_status(payload)}")
     expected_type = EXPECTED_ARTIFACT_TYPES.get(group_id)
-    if (
-        group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID
-        and expected_type
-        and not matches_alias(
+    if group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID:
+        if expected_type and not matches_alias(
             payload.get("artifact_type"),
             expected_type,
             *LEGACY_LOCAL_MVP_ARTIFACT_TYPES,
-        )
-    ):
-        blockers.append(f"{group_id}.unexpected_artifact_type:{payload.get('artifact_type')}")
+        ):
+            blockers.append(f"{group_id}.unexpected_artifact_type:{payload.get('artifact_type')}")
     elif expected_type and payload.get("artifact_type") != expected_type:
         blockers.append(f"{group_id}.unexpected_artifact_type:{payload.get('artifact_type')}")
     expected_smoke_id = EXPECTED_SMOKE_IDS.get(group_id)

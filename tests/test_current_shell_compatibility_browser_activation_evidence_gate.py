@@ -339,6 +339,18 @@ def test_browser_activation_gate_requires_real_browser_evidence_without_readines
     assert artifact["blockers"] == []
 
 
+def test_browser_activation_gate_accepts_legacy_local_mvp_bundle_identity() -> None:
+    inputs = _valid_inputs()
+    local_mvp = inputs["current_shell_compatibility_local_mvp_candidate_bundle"]
+    local_mvp["artifact_type"] = "accurate_intake_pl_ce_local_mvp_candidate_bundle"
+    local_mvp["status"] = "pl_ce_local_mvp_candidate_ready_for_human_review"
+
+    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+
+    assert artifact["status"] == "browser_activation_evidence_ready_for_human_review"
+    assert artifact["blockers"] == []
+
+
 def test_browser_activation_gate_reports_contract_only_boundary_when_upstream_runtime_claims_are_pending() -> None:
     artifact = build_pl_ce_browser_activation_evidence_gate_artifact(_valid_inputs())
     boundary = artifact["appshell_claim_boundary"]

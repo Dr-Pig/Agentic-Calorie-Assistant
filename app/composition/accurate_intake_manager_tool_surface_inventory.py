@@ -13,6 +13,7 @@ REQUIRED_MANAGER_TOOLS = (
     "calibration.preview_proposal",
     "calibration.get_pending_proposal",
     "calibration.apply_stored_proposal_action",
+    "budget.set_manual_daily_target",
     "app.answer_usage_question",
 )
 
@@ -23,10 +24,21 @@ REQUIRED_DIRECT_LANE_IDS = (
     "estimate_explicit_calibration_preview",
     "estimate_explicit_calibration_action",
     "estimate_body_observation_record_weight",
+    "estimate_manual_daily_target_structured_update",
 )
 
 
-def _tool(name: str, kind: str, owner: str, source: str, *, guard: bool = False, mutation_authority: bool | str = False, stored: bool = False) -> dict[str, Any]:
+def _tool(
+    name: str,
+    kind: str,
+    owner: str,
+    source: str,
+    *,
+    guard: bool = False,
+    mutation_authority: bool | str = False,
+    stored: bool = False,
+    manager_target: bool = False,
+) -> dict[str, Any]:
     return {
         "tool_name": name,
         "tool_kind": kind,
@@ -34,6 +46,7 @@ def _tool(name: str, kind: str, owner: str, source: str, *, guard: bool = False,
         "mutation_authority": mutation_authority,
         "guard_required": guard,
         "stored_proposal_required": stored,
+        "manager_structured_target_required": manager_target,
         "allowed_facts_source": source,
     }
 
@@ -75,6 +88,15 @@ _TARGET_TOOLS: tuple[dict[str, Any], ...] = (
         guard=True,
         mutation_authority="stored_proposal_guard",
         stored=True,
+    ),
+    _tool(
+        "budget.set_manual_daily_target",
+        "mutation_bearing",
+        "budget_domain",
+        "ManualDailyTargetResult",
+        guard=True,
+        mutation_authority="guarded_domain_service",
+        manager_target=True,
     ),
     _tool("app.answer_usage_question", "read_only", "app_product_policy", "AppUsagePolicy"),
 )
@@ -130,6 +152,16 @@ _DIRECT_LANES: tuple[dict[str, Any], ...] = (
         "body_domain",
         "mutation_tool_guard_smoke",
         guard_required=True,
+    ),
+    _lane(
+        "estimate_manual_daily_target_structured_update",
+        "set_manual_daily_target + manager structured daily_target_kcal",
+        ["budget.set_manual_daily_target"],
+        "mutation_bearing",
+        "budget_domain",
+        "mutation_tool_guard_smoke",
+        guard_required=True,
+        manager_structured_target_required=True,
     ),
 )
 

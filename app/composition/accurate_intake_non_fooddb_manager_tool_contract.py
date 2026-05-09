@@ -55,7 +55,7 @@ _ROWS = (
     _row("calibration.get_pending_proposal", "read_only", "calibration_domain", "inventory_backed", []),
     _row("calibration.apply_stored_proposal_action", "mutation_bearing", "calibration_domain", "inventory_backed", ["estimate_explicit_calibration_action"], guard=True, stored=True, explicit=["calibration_proposal_container_id", "calibration_action"], allowed=["proposal_status_change", "body_plan_mutation", "ledger_mutation", "current_budget_refresh"]),
     _row("app.answer_usage_question", "read_only", "app_product_policy", "inventory_backed", ["estimate_general_chat_fallback_answer"]),
-    _row("budget.set_manual_daily_target", "mutation_bearing", "budget_domain", "adjacent_pending_inventory_expansion", [], guard=True, explicit=["manager_structured_target"], allowed=["body_plan_mutation", "ledger_mutation", "current_budget_refresh"], manager_target=True),
+    _row("budget.set_manual_daily_target", "mutation_bearing", "budget_domain", "inventory_backed", ["estimate_manual_daily_target_structured_update"], guard=True, explicit=["daily_target_kcal"], allowed=["body_plan_mutation", "ledger_mutation", "current_budget_refresh"], manager_target=True),
 )
 
 _BRIDGES = (
@@ -65,6 +65,7 @@ _BRIDGES = (
     _bridge("estimate_explicit_calibration_preview", ["calibration.preview_proposal"], "inventory_backed"),
     _bridge("estimate_explicit_calibration_action", ["calibration.apply_stored_proposal_action"], "inventory_backed"),
     _bridge("estimate_body_observation_record_weight", ["body.record_observation"], "inventory_backed"),
+    _bridge("estimate_manual_daily_target_structured_update", ["budget.set_manual_daily_target"], "inventory_backed"),
 )
 
 
@@ -120,6 +121,10 @@ def _validate(rows: list[dict[str, Any]], bridges: list[dict[str, Any]], invento
         for key in ("tool_kind", "truth_owner", "guard_required", "stored_proposal_required"):
             if row.get(key) != expected.get(key):
                 blockers.append(f"{tool_name}.{key}_contract_mismatch")
+        if bool(row.get("manager_structured_target_required")) is not bool(
+            expected.get("manager_structured_target_required")
+        ):
+            blockers.append(f"{tool_name}.manager_structured_target_contract_mismatch")
     row_index = build_tool_contract_index({"tool_contract_rows": rows})
     for bridge in bridges:
         lane_id = str(bridge.get("direct_lane_id") or "")
