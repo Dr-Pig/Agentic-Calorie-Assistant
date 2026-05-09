@@ -6,10 +6,13 @@ from pathlib import Path
 import sys
 from typing import Any
 
+from fastapi import FastAPI
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from app.composition import intake_routes  # noqa: E402
 from app.composition.accurate_intake_manager_tool_choice_regression_wall import (  # noqa: E402
     build_manager_tool_choice_regression_wall_artifact,
 )
@@ -47,6 +50,10 @@ from app.composition.accurate_intake_today_macro_mirror_gate import (  # noqa: E
 from app.nutrition.application.approved_packet_ready_fooddb_artifact import (  # noqa: E402
     build_approved_packet_ready_fooddb_artifact,
 )
+from app.database import get_db  # noqa: E402
+from app.models import Base  # noqa: E402
+from app.routes import router  # noqa: E402
+from app.shared.infra.sqlite_route_harness import LocalSQLiteRouteHarness  # noqa: E402
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
 from scripts.build_current_shell_compatibility_product_pages_self_use_flow_gate import (  # noqa: E402
     DEFAULT_ARTIFACT_PATHS as PRODUCT_PAGES_FLOW_ARTIFACT_PATHS,
@@ -71,6 +78,10 @@ from scripts.run_accurate_intake_local_web_self_use_candidate_v2_gate import (  
     DEFAULT_EVIDENCE_PATHS,
     build_candidate_evidence_payload,
     build_local_web_candidate_gate_evidence,
+)
+from scripts.run_accurate_intake_mvp_manager_style_smoke import (  # noqa: E402
+    DeterministicSelfUseManagerProvider,
+    _seed_body_plan,
 )
 
 
@@ -105,6 +116,9 @@ PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES = {
     "browser_realistic_dogfood": "accurate_intake_browser_realistic_web_dogfood_v2.json",
     "operator_review": "accurate_intake_dogfood_operator_review_v2.json",
 }
+ROUTE_BACKED_MACRO_LOCAL_DATE = "2026-05-09"
+ROUTE_BACKED_MACRO_PRESENT_TEXT = "\u7d71\u4e00\u5de7\u514b\u529b\u725b\u4e73(400ml)"
+ROUTE_BACKED_MACRO_MISSING_TEXT = "\u722d\u9bae \u7126\u7cd6\u9bae\u9b5a(\u5169\u8cab)"
 
 
 def _artifact_path(artifacts_dir: Path, filename: str) -> Path:
@@ -134,6 +148,232 @@ def _read_payload(path: Path) -> dict[str, Any]:
         }
     payload.setdefault("_source_artifact_path", str(path))
     return payload
+
+
+def _object_dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _append_mismatch(
+    blockers: list[str],
+    *,
+    name: str,
+    actual: Any,
+    expected: Any,
+) -> None:
+    if actual != expected:
+        blockers.append(f"{name}.expected:{expected}.actual:{actual}")
+
+
+def _macro_route_case(
+    client: Any,
+    *,
+    text: str,
+    user_external_id: str,
+    expected_kcal: int,
+    expected_show_macro: bool,
+    expected_guard_reason: str,
+    expected_protein: int,
+    expected_carbs: int,
+    expected_fat: int,
+    expected_trace_visibility: str,
+) -> dict[str, Any]:
+    blockers: list[str] = []
+    estimate_response = client.post(
+        "/estimate",
+        json={
+            "text": text,
+            "allow_search": False,
+            "user_id": user_external_id,
+            "local_date": ROUTE_BACKED_MACRO_LOCAL_DATE,
+        },
+    )
+    estimate_body = _object_dict(estimate_response.json()) if estimate_response.status_code == 200 else {}
+    route_payload = _object_dict(estimate_body.get("payload"))
+    sidecar = _object_dict(route_payload.get("sidecar"))
+    macro = _object_dict(sidecar.get("macro"))
+    state_delta = _object_dict(route_payload.get("state_delta"))
+    manager_final = _object_dict(
+        _object_dict(route_payload.get("intake_execution_manager")).get("final")
+    )
+    exact_trace = _object_dict(macro.get("approved_exact_macro_trace"))
+
+    budget_response = client.get(
+        "/today/current-budget",
+        params={"user_id": user_external_id, "local_date": ROUTE_BACKED_MACRO_LOCAL_DATE},
+    )
+    current_budget = (
+        _object_dict(budget_response.json()) if budget_response.status_code == 200 else {}
+    )
+
+    actual_values = {
+        "estimate_route.status_code": estimate_response.status_code,
+        "today_current_budget.status_code": budget_response.status_code,
+        "state_delta.canonical_commit": state_delta.get("canonical_commit"),
+        "manager_final.final_action": manager_final.get("final_action"),
+        "current_budget.consumed_kcal": current_budget.get("consumed_kcal"),
+        "current_budget.consumed_protein": current_budget.get("consumed_protein"),
+        "current_budget.consumed_carbs": current_budget.get("consumed_carbs"),
+        "current_budget.consumed_fat": current_budget.get("consumed_fat"),
+        "current_budget.show_macro": current_budget.get("show_macro"),
+        "current_budget.macro_guard_reason": current_budget.get("macro_guard_reason"),
+        "approved_exact_macro_trace.macro_truth_owner": exact_trace.get("macro_truth_owner"),
+        "approved_exact_macro_trace.macro_visibility_status": exact_trace.get(
+            "macro_visibility_status"
+        ),
+        "approved_exact_macro_trace.live_llm_invoked": exact_trace.get("live_llm_invoked"),
+        "approved_exact_macro_trace.websearch_evidence_used": exact_trace.get(
+            "websearch_evidence_used"
+        ),
+    }
+    expected_values = {
+        "estimate_route.status_code": 200,
+        "today_current_budget.status_code": 200,
+        "state_delta.canonical_commit": True,
+        "manager_final.final_action": "commit",
+        "current_budget.consumed_kcal": expected_kcal,
+        "current_budget.consumed_protein": expected_protein,
+        "current_budget.consumed_carbs": expected_carbs,
+        "current_budget.consumed_fat": expected_fat,
+        "current_budget.show_macro": expected_show_macro,
+        "current_budget.macro_guard_reason": expected_guard_reason,
+        "approved_exact_macro_trace.macro_truth_owner": "fooddb_approved_packet",
+        "approved_exact_macro_trace.macro_visibility_status": expected_trace_visibility,
+        "approved_exact_macro_trace.live_llm_invoked": False,
+        "approved_exact_macro_trace.websearch_evidence_used": False,
+    }
+    for name, expected in expected_values.items():
+        _append_mismatch(
+            blockers,
+            name=name,
+            actual=actual_values.get(name),
+            expected=expected,
+        )
+
+    return {
+        "status": "pass" if not blockers else "blocked",
+        "text": text,
+        "estimate_status_code": estimate_response.status_code,
+        "today_current_budget_status_code": budget_response.status_code,
+        "route_final_action": manager_final.get("final_action"),
+        "state_delta": {
+            "canonical_commit": state_delta.get("canonical_commit"),
+        },
+        "macro_sidecar": {
+            "protein_g": macro.get("protein_g"),
+            "carbs_g": macro.get("carbs_g"),
+            "fat_g": macro.get("fat_g"),
+            "display_status": macro.get("display_status"),
+            "guard_reason": macro.get("guard_reason"),
+        },
+        "approved_exact_macro_trace": exact_trace,
+        "current_budget": {
+            "consumed_kcal": current_budget.get("consumed_kcal"),
+            "consumed_protein": current_budget.get("consumed_protein"),
+            "consumed_carbs": current_budget.get("consumed_carbs"),
+            "consumed_fat": current_budget.get("consumed_fat"),
+            "show_macro": current_budget.get("show_macro"),
+            "macro_guard_reason": current_budget.get("macro_guard_reason"),
+        },
+        "blockers": blockers,
+    }
+
+
+def build_route_backed_macro_closeout(*, artifacts_dir: Path) -> dict[str, Any]:
+    db_path = artifacts_dir / "accurate_intake_route_backed_macro_closeout.sqlite3"
+    if db_path.exists():
+        db_path.unlink()
+
+    app = FastAPI()
+    app.include_router(router)
+    provider = DeterministicSelfUseManagerProvider()
+    previous_runtime = (
+        intake_routes.manager_provider,
+        intake_routes.search_provider,
+        intake_routes.extract_provider,
+    )
+    intake_routes.manager_provider = provider
+    intake_routes.search_provider = None
+    intake_routes.extract_provider = None
+    try:
+        with LocalSQLiteRouteHarness(
+            app=app,
+            db_dependency=get_db,
+            db_path=db_path,
+            base_metadata=Base.metadata,
+        ) as harness:
+            if harness.SessionLocal is None or harness.client is None:
+                raise RuntimeError("route harness did not initialize")
+            with harness.SessionLocal() as db:
+                _seed_body_plan(
+                    db,
+                    user_external_id="route-macro-present-closeout",
+                    local_date=ROUTE_BACKED_MACRO_LOCAL_DATE,
+                )
+                _seed_body_plan(
+                    db,
+                    user_external_id="route-macro-missing-closeout",
+                    local_date=ROUTE_BACKED_MACRO_LOCAL_DATE,
+                )
+            present_case = _macro_route_case(
+                harness.client,
+                text=ROUTE_BACKED_MACRO_PRESENT_TEXT,
+                user_external_id="route-macro-present-closeout",
+                expected_kcal=300,
+                expected_show_macro=True,
+                expected_guard_reason="committed_and_aligned",
+                expected_protein=12,
+                expected_carbs=48,
+                expected_fat=6,
+                expected_trace_visibility="visible",
+            )
+            missing_case = _macro_route_case(
+                harness.client,
+                text=ROUTE_BACKED_MACRO_MISSING_TEXT,
+                user_external_id="route-macro-missing-closeout",
+                expected_kcal=130,
+                expected_show_macro=False,
+                expected_guard_reason="no_macro_data",
+                expected_protein=0,
+                expected_carbs=0,
+                expected_fat=0,
+                expected_trace_visibility="hidden_missing_source",
+            )
+    finally:
+        (
+            intake_routes.manager_provider,
+            intake_routes.search_provider,
+            intake_routes.extract_provider,
+        ) = previous_runtime
+
+    blockers = [
+        f"macro_present_exact_item.{blocker}"
+        for blocker in list(present_case.get("blockers") or [])
+    ]
+    blockers.extend(
+        f"macro_missing_exact_item.{blocker}"
+        for blocker in list(missing_case.get("blockers") or [])
+    )
+    if provider.readiness().get("live_llm_invoked") is not False:
+        blockers.append("provider.live_llm_invoked_not_false")
+
+    return {
+        "artifact_type": "accurate_intake_route_backed_macro_closeout",
+        "status": "pass" if not blockers else "blocked",
+        "route_backed_macro_checked": not blockers,
+        "claim_scope": "local_route_backed_macro_closeout_only",
+        "macro_present_exact_item": present_case,
+        "macro_missing_exact_item": missing_case,
+        "non_claims": {
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_truth_updated": False,
+            "real_fooddb_pass_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
+        "blockers": blockers,
+    }
 
 
 def _browser_gate_inputs(artifacts_dir: Path) -> dict[str, dict[str, Any]]:
@@ -202,6 +442,12 @@ def build_local_web_self_use_candidate_refresh_chain(
     artifacts_dir: Path,
 ) -> dict[str, Any]:
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    route_backed_macro_closeout = build_route_backed_macro_closeout(
+        artifacts_dir=artifacts_dir
+    )
+    route_backed_macro_checked = route_backed_macro_closeout.get(
+        "route_backed_macro_checked"
+    ) is True
 
     refreshed_artifacts = {
         "manager_tool_surface_inventory": build_manager_tool_surface_inventory_artifact(),
@@ -336,6 +582,25 @@ def build_local_web_self_use_candidate_refresh_chain(
     local_web_candidate = build_local_web_self_use_candidate_v2(
         build_candidate_evidence_payload(pre_live_evidence, pre_live_decision_pack)
     )
+    local_web_candidate_payload = dict(
+        local_web_candidate.get("local_web_self_use_candidate_v2") or {}
+    )
+    local_web_candidate_payload["route_backed_macro_checked"] = route_backed_macro_checked
+    local_web_candidate_payload["route_backed_macro_closeout_status"] = (
+        route_backed_macro_closeout.get("status")
+    )
+    local_web_candidate_payload["route_backed_macro_non_claims"] = dict(
+        route_backed_macro_closeout.get("non_claims") or {}
+    )
+    if not route_backed_macro_checked:
+        blockers = list(local_web_candidate_payload.get("blockers") or [])
+        blockers.extend(
+            f"route_backed_macro_closeout.{blocker}"
+            for blocker in list(route_backed_macro_closeout.get("blockers") or [])
+        )
+        local_web_candidate_payload["candidate_prepared"] = False
+        local_web_candidate_payload["blockers"] = blockers
+    local_web_candidate["local_web_self_use_candidate_v2"] = local_web_candidate_payload
     write_json_artifact(
         _artifact_path(artifacts_dir, REFRESHED_ARTIFACT_FILENAMES["local_web_candidate"]),
         local_web_candidate,
@@ -369,14 +634,19 @@ def build_local_web_self_use_candidate_refresh_chain(
     appshell_browser_evidence_chain = dict(
         candidate_payload.get("appshell_browser_evidence_chain") or {}
     )
+    candidate_prepared = candidate_payload.get("candidate_prepared") is True
     return {
         "artifact_type": "accurate_intake_local_web_self_use_candidate_v2_refresh_chain",
-        "status": "pass" if candidate_payload.get("candidate_prepared") is True else "blocked",
+        "status": "pass" if candidate_prepared and route_backed_macro_checked else "blocked",
         "artifacts_dir": str(artifacts_dir),
         "refreshed_artifacts": {
             group_id: str(_artifact_path(artifacts_dir, filename))
             for group_id, filename in REFRESHED_ARTIFACT_FILENAMES.items()
         },
+        "route_backed_macro_checked": route_backed_macro_checked,
+        "route_backed_macro_closeout_status": route_backed_macro_closeout.get("status"),
+        "route_backed_macro_closeout": route_backed_macro_closeout,
+        "route_backed_macro_blockers": list(route_backed_macro_closeout.get("blockers") or []),
         "browser_activation_status": browser_activation_evidence_gate.get("status"),
         "product_pages_self_use_flow_status": product_pages_self_use_flow_gate.get("status"),
         "appshell_browser_evidence_chain": appshell_browser_evidence_chain,
@@ -388,7 +658,7 @@ def build_local_web_self_use_candidate_refresh_chain(
         "ready_for_fdb_integration_validation": product_loop_handoff.get("ready_for_fdb_integration")
         is True,
         "product_loop_handoff_blockers": list(product_loop_handoff.get("blockers") or []),
-        "candidate_prepared": candidate_payload.get("candidate_prepared") is True,
+        "candidate_prepared": candidate_prepared,
         "candidate_blockers": list(candidate_payload.get("blockers") or []),
         "live_llm_invoked": False,
         "web_tavily_used": False,
@@ -414,7 +684,7 @@ def main(argv: list[str] | None = None) -> int:
         artifacts_dir=Path(args.artifacts_dir)
     )
     print(json.dumps(summary, ensure_ascii=False))
-    return 0 if summary["candidate_prepared"] is True else 1
+    return 0 if summary["status"] == "pass" else 1
 
 
 if __name__ == "__main__":
