@@ -1,0 +1,236 @@
+artifact_type: advanced_memory_mechanism_contract
+version: 1
+status: active_build_contract
+owner: MemoryRuntimeArchitecture
+consumer: AdvancedRecommendationRescueProactiveMemory
+capability_domain: advanced_memory_mechanism
+current_mainline_unchanged: true
+source_specs:
+  - docs/specs/L4A_MEMORY_MODEL_SPEC.md
+  - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md
+  - docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md
+  - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md
+  - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md
+  - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md
+slice_mode:
+  - diagnostic_only
+  - offline_runtime
+  - shadow_foundation
+  - producer_honesty
+claim_scope:
+  runtime_connected: false
+  user_facing_behavior_changed: false
+  runtime_truth_changed: false
+  mutation_changed: false
+  durable_memory_write_approved: false
+  manager_context_injection_approved: false
+  scheduler_activation_approved: false
+  recommendation_serving_approved: false
+  rescue_proposal_commit_approved: false
+  proactive_send_approved: false
+  product_readiness_claimed: false
+  private_self_use_approved: false
+memory_layers:
+  - id: typed_history
+    canonical_name: L1 Typed History
+    truth_owner: canonical_product_objects
+    allowed_now: read_only_source_refs
+    durable_write_allowed_now: false
+  - id: statistical_pattern
+    canonical_name: L2a Statistical Pattern
+    truth_owner: deterministic_consolidation
+    allowed_now: shadow_candidates
+    durable_write_allowed_now: false
+  - id: semantic_pattern
+    canonical_name: L2b Semantic Pattern
+    truth_owner: reviewed_memory_pipeline_future
+    allowed_now: schema_and_fake_provider_cases
+    llm_live_extraction_allowed_now: false
+    durable_write_allowed_now: false
+  - id: confirmed_memory
+    canonical_name: L3 Confirmed Memory
+    truth_owner: reviewed_durable_memory_future
+    allowed_now: candidate_schema_only
+    durable_write_allowed_now: false
+  - id: negative_preference
+    canonical_name: Negative Preference Memory
+    truth_owner: reviewed_durable_memory_future
+    allowed_now: conflict_and_blocking_cases
+    confirmed_negative_auto_demote: false
+  - id: temporary_preference
+    canonical_name: Temporary Preference
+    truth_owner: reviewed_durable_memory_future
+    allowed_now: validity_window_cases
+    default_max_days: 14
+  - id: golden_order
+    canonical_name: Golden Order
+    truth_owner: canonical_history_materialized_view
+    allowed_now: deterministic_shadow_view
+    promotion_result: false
+  - id: archive
+    canonical_name: Archive
+    truth_owner: future_archive_policy
+    allowed_now: archive_criteria_tests
+    runtime_retrieval_allowed_now: false
+  - id: interaction_preference_suppression
+    canonical_name: Interaction Preference / Suppression
+    truth_owner: interaction_event_history
+    allowed_now: no_send_suppression_summaries
+    scheduler_write_allowed_now: false
+derived_summary_views:
+  - id: preference_profile_summary
+    inputs:
+      - committed_meals
+      - explicit_preference_candidates
+      - negative_preference_candidates
+      - temporary_preference_candidates
+    consumers:
+      - recommendation_shadow
+      - proactive_no_send_shadow
+      - long_term_chat_context_future
+    raw_history_dump_allowed: false
+  - id: golden_order_summary
+    inputs:
+      - canonical_committed_meal_history
+    consumers:
+      - recommendation_shadow
+      - proactive_no_send_shadow
+    source_kind: canonical_history_materialized_view
+  - id: suppression_summary
+    inputs:
+      - ignored_nudges
+      - dismissals
+      - explicit_opt_outs
+      - quiet_hour_events
+    consumers:
+      - proactive_no_send_shadow
+      - recommendation_shadow
+      - rescue_shadow
+    permission_to_send: false
+  - id: intake_completeness_summary
+    inputs:
+      - meal_log_completeness
+      - correction_history
+    consumers:
+      - rescue_shadow
+      - calibration_shadow
+  - id: rescue_history_summary
+    inputs:
+      - rescue_invitations
+      - accepted_rescue_outcomes
+      - rebound_attempts
+    consumers:
+      - rescue_shadow
+      - proactive_no_send_shadow
+  - id: adherence_summary
+    inputs:
+      - deficit_adherence
+      - overshoot_patterns
+    consumers:
+      - rescue_shadow
+      - calibration_shadow
+      - recommendation_shadow
+  - id: calibration_history_summary
+    inputs:
+      - weight_trend_evidence
+      - accepted_calibration_proposals
+      - rejected_calibration_proposals
+    consumers:
+      - calibration_shadow
+promotion_rules:
+  same_store_item_pattern_min_repeats: 3
+  same_item_kind_pattern_min_repeats: 5
+  same_time_preference_min_repeats: 5
+  golden_order_min_repeats_in_30_days: 3
+  golden_order_recent_observation_max_days: 60
+  pattern_to_confirmed:
+    min_reinforcement_count: 5
+    min_confidence: 0.8
+    min_consistency_days: 30
+    requires_user_confirmation: true
+    llm_may_complete_promotion: false
+  temporary_preference_default_max_days: 14
+demotion_rules:
+  pattern_needs_attention_after_days: 30
+  pattern_archive_after_days: 60
+  pattern_delete_after_days: 90
+  golden_order_inactive_after_days: 60
+  golden_order_archive_after_days: 90
+  confirmed_negative_auto_demote: false
+consumer_dependency_order:
+  - advanced_memory_shadow_foundation
+  - recommendation_shadow
+  - rescue_shadow
+  - proactive_no_send_shadow
+  - activation_planning
+consumer_boundaries:
+  recommendation_shadow:
+    runtime_serving_allowed: false
+    live_search_allowed: false
+    durable_memory_write_allowed: false
+    reads:
+      - preference_profile_summary
+      - golden_order_summary
+      - suppression_summary
+  rescue_shadow:
+    proposal_commit_allowed: false
+    budget_mutation_allowed: false
+    reads:
+      - rescue_history_summary
+      - adherence_summary
+      - intake_completeness_summary
+      - suppression_summary
+  proactive_no_send_shadow:
+    scheduler_activation_allowed: false
+    notification_send_allowed: false
+    trigger_persistence_allowed: false
+    reads:
+      - suppression_summary
+      - interaction_preference_summary
+      - golden_order_summary
+      - preference_profile_summary
+first_build_slices:
+  - id: contract_and_tests
+    artifact_classification: merge_safe
+    unlocks: memory_mechanism_shared_vocabulary
+  - id: memory_candidate_schema
+    artifact_classification: merge_safe
+    unlocks: typed_fixture_review
+  - id: derived_summary_shadow_views
+    artifact_classification: merge_safe
+    unlocks: bounded_consumer_inputs
+  - id: promotion_demotion_validator
+    artifact_classification: merge_safe
+    unlocks: no_auto_confirmation_guard
+  - id: dogfood_fixture_review_pipeline
+    artifact_classification: diagnostic_only
+    unlocks: real_case_calibration_without_runtime_effects
+  - id: recommendation_shadow_consumer
+    artifact_classification: diagnostic_only
+    unlocks: prepared_candidate_quality_calibration
+  - id: rescue_shadow_consumer
+    artifact_classification: diagnostic_only
+    unlocks: invitation_boundary_calibration
+  - id: proactive_no_send_consumer
+    artifact_classification: diagnostic_only
+    unlocks: trigger_and_suppression_calibration
+forbidden_before_activation:
+  - durable_memory_service
+  - database_migration
+  - background_consolidation_worker
+  - live_provider_semantic_extraction
+  - vector_memory_index
+  - manager_context_packet_injection
+  - scheduler_activation
+  - notification_delivery
+  - app_open_recommendation_serving
+  - user_visible_memory_settings_surface
+  - cross_session_personalization
+non_claims:
+  - not_runtime_activation_evidence
+  - not_product_readiness_evidence
+  - not_private_self_use_approval
+  - not_durable_memory_readiness
+  - not_recommendation_serving_readiness
+  - not_rescue_proposal_readiness
+  - not_proactive_sending_readiness
