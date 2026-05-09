@@ -65,9 +65,36 @@ REQUIRED_SELF_USE_FLOW_SUMMARY_FLAGS = (
     "short_term_context_checked",
     "target_candidate_ui_checked",
     "today_macro_runtime_mirror_checked",
+    "route_backed_macro_budget_truth_checked",
     "renderer_source_closure_checked",
     "context_target_browser_closure_checked",
     "body_noplan_degraded_checked",
+)
+
+EXPECTED_ROUTE_BACKED_MACRO_PRESENT_CURRENT_BUDGET = {
+    "consumed_kcal": 300,
+    "consumed_protein": 12,
+    "consumed_carbs": 48,
+    "consumed_fat": 6,
+    "show_macro": True,
+    "macro_guard_reason": "committed_and_aligned",
+}
+
+EXPECTED_ROUTE_BACKED_MACRO_MISSING_CURRENT_BUDGET = {
+    "consumed_kcal": 130,
+    "consumed_protein": 0,
+    "consumed_carbs": 0,
+    "consumed_fat": 0,
+    "show_macro": False,
+    "macro_guard_reason": "no_macro_data",
+}
+
+ROUTE_BACKED_MACRO_REQUIRED_NON_CLAIMS = (
+    "live_llm_invoked",
+    "web_tavily_used",
+    "fooddb_truth_updated",
+    "product_readiness_claimed",
+    "private_self_use_approved",
 )
 
 REQUIRED_PRODUCT_LOOP_STEPS = (
@@ -126,6 +153,7 @@ REQUIRED_TRUE_FLAGS = {
         "today_meal_list_rendered",
         "macro_present_exact_item_browser_checked",
         "macro_missing_exact_item_browser_checked",
+        "route_backed_macro_browser_checked",
         "body_page_loaded",
         "body_active_plan_rendered",
         "body_plan_readback_checked",
@@ -207,3 +235,55 @@ REQUIRED_TRUE_FLAGS = {
         "browser_executed_required",
     ),
 }
+
+
+def _object_dict(value: object) -> dict[str, object]:
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def _route_budget_field_blockers(
+    group_id: str,
+    field_name: str,
+    payload: dict[str, object],
+    expected: dict[str, object],
+) -> list[str]:
+    actual = _object_dict(payload.get(field_name))
+    return [
+        f"{group_id}.{field_name}_mismatch:{field}"
+        for field, expected_value in expected.items()
+        if actual.get(field) != expected_value
+    ]
+
+
+def route_backed_macro_budget_truth_blockers(
+    group_id: str,
+    payload: dict[str, object],
+) -> list[str]:
+    blockers: list[str] = []
+    if payload.get("route_backed_macro_browser_checked") is not True:
+        blockers.append(f"{group_id}.route_backed_macro_browser_checked_not_true")
+    blockers.extend(
+        _route_budget_field_blockers(
+            group_id,
+            "route_backed_macro_present_current_budget",
+            payload,
+            EXPECTED_ROUTE_BACKED_MACRO_PRESENT_CURRENT_BUDGET,
+        )
+    )
+    blockers.extend(
+        _route_budget_field_blockers(
+            group_id,
+            "route_backed_macro_missing_current_budget",
+            payload,
+            EXPECTED_ROUTE_BACKED_MACRO_MISSING_CURRENT_BUDGET,
+        )
+    )
+    non_claims = _object_dict(payload.get("route_backed_macro_non_claims"))
+    for flag in ROUTE_BACKED_MACRO_REQUIRED_NON_CLAIMS:
+        if non_claims.get(flag) is not False:
+            blockers.append(f"{group_id}.route_backed_macro_non_claim_overclaim:{flag}")
+    return blockers
+
+
+def route_backed_macro_budget_truth_checked(payload: dict[str, object]) -> bool:
+    return not route_backed_macro_budget_truth_blockers("product_pages_browser_smoke", payload)

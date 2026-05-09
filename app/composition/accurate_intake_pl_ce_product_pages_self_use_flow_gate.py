@@ -420,9 +420,7 @@ def build_pl_ce_product_pages_self_use_flow_gate_artifact(
                     and inputs["product_pages_renderer_source_closure_gate"].get("status")
                     == EXPECTED_STATUSES["product_pages_renderer_source_closure_gate"]
                 ),
-                "renderer_source_closure_endpoint_contract_count": _int_value(
-                    closure_summary.get("endpoint_method_contract_count")
-                ),
+                "renderer_source_closure_endpoint_contract_count": _int_value(closure_summary.get("endpoint_method_contract_count")),
                 "seven_day_diary_checked": inputs["product_pages_seven_day_diary_smoke"].get("seven_day_window_checked") is True,
                 "body_noplan_degraded_checked": (
                     inputs["product_pages_body_noplan_degraded_smoke"].get("status")
@@ -443,6 +441,7 @@ def build_pl_ce_product_pages_self_use_flow_gate_artifact(
                     and inputs["today_macro_runtime_mirror_gate"].get("macro_visible_case_checked") is True
                     and inputs["today_macro_runtime_mirror_gate"].get("macro_guarded_case_checked") is True
                 ),
+                "route_backed_macro_budget_truth_checked": inputs["product_pages_browser_smoke"].get("route_backed_macro_browser_checked") is True,
                 "fixture_product_loop_steps_checked": len(completed_steps),
                 "strongest_consumed_pass_type": _strongest_consumed_pass_type(inputs),
             },
