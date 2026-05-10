@@ -16,7 +16,16 @@ def _product_loop_evidence(**overrides: dict) -> dict:
         "browser_fixture_dogfood": {
             "status": "browser_fixture_pass",
             "fixture_evidence_used": True,
+            "fixture_fooddb_evidence_used": True,
+            "fooddb_evidence_used": False,
+            "fooddb_evidence_used_normalized_for_local_review": True,
             "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "product_readiness_claimed": False,
+            "manager_dogfood_summary": {
+                "macro_present_evidence_seen": True,
+                "macro_missing_evidence_seen": True,
+            },
         },
         "local_dogfood_hygiene": {"status": "pass"},
         "browser_realistic_dogfood": {
@@ -289,8 +298,66 @@ def test_handoff_valid_real_fooddb_metadata_allows_validation_only_integration()
     assert pack["fooddb_validation"]["metadata"]["macro_contract"]["macro_truth_owner"] == (
         "fooddb_approved_packet"
     )
+    assert pack["fooddb_contract_validation"] == {
+        "source": "browser_fixture_dogfood.manager_dogfood_summary",
+        "packet_evidence_consumed": True,
+        "fixture_fooddb_evidence_used": True,
+        "fooddb_evidence_used": False,
+        "fooddb_evidence_used_normalized_for_local_review": True,
+        "macro_present_evidence_seen": True,
+        "macro_missing_evidence_seen": True,
+        "real_fooddb_pass_claimed": False,
+        "dogfood_pass": False,
+        "product_readiness_claimed": False,
+    }
     assert pack["real_fooddb_pass_claimed"] is False
     assert pack["dogfood_pass"] is False
+
+
+def test_handoff_requires_browser_fooddb_macro_contract_validation() -> None:
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(
+            browser_fixture_dogfood={
+                "status": "browser_fixture_pass",
+                "fixture_evidence_used": True,
+                "real_fooddb_pass_claimed": False,
+                "fixture_fooddb_evidence_used": True,
+                "fooddb_evidence_used": False,
+                "manager_dogfood_summary": {
+                    "macro_present_evidence_seen": True,
+                    "macro_missing_evidence_seen": False,
+                },
+            }
+        ),
+        fooddb_artifact=_fooddb_artifact(),
+    )
+
+    assert pack["status"] == "blocked"
+    assert pack["ready_for_fdb_integration"] is False
+    assert "browser_fixture_dogfood_macro_missing_evidence_not_seen" in pack["blockers"]
+
+
+def test_handoff_requires_browser_packet_evidence_consumption_before_fooddb_validation() -> None:
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(
+            browser_fixture_dogfood={
+                "status": "browser_fixture_pass",
+                "fixture_evidence_used": True,
+                "real_fooddb_pass_claimed": False,
+                "fooddb_evidence_used": False,
+                "fixture_fooddb_evidence_used": False,
+                "manager_dogfood_summary": {
+                    "macro_present_evidence_seen": True,
+                    "macro_missing_evidence_seen": True,
+                },
+            }
+        ),
+        fooddb_artifact=_fooddb_artifact(),
+    )
+
+    assert pack["status"] == "blocked"
+    assert pack["ready_for_fdb_integration"] is False
+    assert "browser_fixture_dogfood_packet_evidence_not_consumed" in pack["blockers"]
 
 
 def test_handoff_blocks_product_loop_overclaims_before_fooddb_validation() -> None:
