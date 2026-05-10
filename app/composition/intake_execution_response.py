@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+import time
 from typing import Any
 
 from app.composition.current_budget_answer import (
@@ -11,6 +12,7 @@ from app.composition.phase_a_boundary_projection import (
     build_intake_boundary_projection,
 )
 from app.intake.application.boundary_output_honesty import enforce_intake_output_honesty
+from app.intake.application.latency_attribution import build_latency_attribution
 from app.intake.application.intake_trace_tools import append_trace_event_tool
 from app.intake.application.phase_c_mutation_projection import build_phase_c_trace
 from app.intake.application.phase_c_same_truth_gate import build_phase_c_same_truth_gate
@@ -41,7 +43,12 @@ def finalized_budget_summary(*, budget_summary: dict[str, Any] | None, state_bef
     }
 
 
-def build_latency_tracking(*, manager_decision: Any, stage_timings: list[dict[str, Any]]) -> dict[str, Any]:
+def build_latency_tracking(
+    *,
+    manager_decision: Any,
+    stage_timings: list[dict[str, Any]],
+    react_trace: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     total_duration = sum(int(stage.get("duration_ms", 0) or 0) for stage in stage_timings)
     slowest = max(stage_timings, key=lambda item: int(item.get("duration_ms", 0) or 0)) if stage_timings else {"stage": "none", "duration_ms": 0}
     return {
@@ -51,6 +58,10 @@ def build_latency_tracking(*, manager_decision: Any, stage_timings: list[dict[st
         "slowest_step_ms": int(slowest.get("duration_ms", 0) or 0),
         "slowest_step_name": str(slowest.get("stage") or "none"),
         "stage_timings": stage_timings,
+        "latency_attribution": build_latency_attribution(
+            stage_timings=stage_timings,
+            react_trace=react_trace,
+        ),
     }
 
 
@@ -88,6 +99,7 @@ def build_intake_execution_response(
                 active_body_plan_present=bool(getattr(state_before, "onboarding_ready", False)),
             ),
         )
+    renderer_start_ms = int(time.time() * 1000)
     assistant_message = render_intake_reply(
         intent_type=manager_decision.intent_type,
         onboarding_result=None,
@@ -142,6 +154,12 @@ def build_intake_execution_response(
     )
     assistant_message = shadow_dialogue.assistant_message
     phase_a_trace = shadow_dialogue.phase_a_trace
+    stage_timings.append(
+        {
+            "stage": "renderer_response",
+            "duration_ms": max(0, int(time.time() * 1000) - renderer_start_ms),
+        }
+    )
     phase_c_trace = build_phase_c_trace(
         persistence_result=persistence_result,
         state_delta=state_mutation_summary,
@@ -168,7 +186,11 @@ def build_intake_execution_response(
         status="ok",
         summary={"assistant_message": assistant_message, "state_delta": state_mutation_summary},
     )
-    latency_tracking = build_latency_tracking(manager_decision=manager_decision, stage_timings=stage_timings)
+    latency_tracking = build_latency_tracking(
+        manager_decision=manager_decision,
+        stage_timings=stage_timings,
+        react_trace=react_trace,
+    )
     write_intake_execution_trace_artifact(
         request_id=request_id,
         user_external_id=user_external_id,
