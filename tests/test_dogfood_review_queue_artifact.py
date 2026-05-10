@@ -121,6 +121,14 @@ def test_desktop_feedback_capture_is_trace_linked_local_triage_not_product_truth
     assert feedback["contains_personal_diet_logs"] is True
     assert feedback["do_not_commit"] is True
     assert feedback["category"] == "nutrition_estimate"
+    assert feedback["review_status"] == "needs_review"
+    assert feedback["routing_target"] == "ManagerRuntime"
+    assert feedback["triage"] == {
+        "review_status": "needs_review",
+        "routing_target": "ManagerRuntime",
+        "routing_reason": "nutrition_estimate_feedback",
+        "routing_is_product_truth": False,
+    }
     assert feedback["feedback_text"] == "The bubble tea estimate looked too low."
     assert feedback["linked_context"] == {
         "page": "chat",
@@ -163,6 +171,8 @@ def test_review_queue_artifact_preserves_desktop_feedback_records_without_promot
 
     assert artifact["feedback_triage_record_count"] == 1
     assert artifact["desktop_feedback_records"][0]["category"] == "ui_ux"
+    assert artifact["desktop_feedback_records"][0]["review_status"] == "needs_review"
+    assert artifact["desktop_feedback_records"][0]["routing_target"] == "AppShell"
     assert artifact["promotion_policy"]["feedback_can_create_product_truth"] is False
     assert artifact["promotion_policy"]["feedback_can_create_fooddb_truth"] is False
     assert artifact["promotion_policy"]["feedback_can_create_eval_truth"] is False
@@ -261,6 +271,7 @@ def test_review_queue_builder_script_ingests_desktop_feedback_jsonl(
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
     assert artifact["feedback_triage_record_count"] == 1
     assert artifact["desktop_feedback_records"][0]["category"] == "latency"
+    assert artifact["desktop_feedback_records"][0]["routing_target"] == "ManagerRuntime"
     assert artifact["promotion_policy"]["feedback_can_create_product_truth"] is False
 
 

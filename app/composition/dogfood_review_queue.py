@@ -24,16 +24,16 @@ REVIEW_QUEUE_TAXONOMY = [
 ]
 
 DESKTOP_FEEDBACK_CATEGORIES = [
-    "manager_behavior",
-    "nutrition_estimate",
-    "macro_gap",
-    "fooddb_gap",
-    "ui_ux",
-    "bug",
-    "latency",
-    "product_feedback",
+    "manager_behavior", "nutrition_estimate", "macro_gap", "fooddb_gap",
+    "ui_ux", "bug", "latency", "product_feedback",
 ]
 
+DESKTOP_FEEDBACK_ROUTING_TARGETS = {
+    "manager_behavior": "ManagerRuntime", "nutrition_estimate": "ManagerRuntime",
+    "macro_gap": "FoodDB", "fooddb_gap": "FoodDB", "ui_ux": "AppShell",
+    "bug": "SharedCurrentShell", "latency": "ManagerRuntime",
+    "product_feedback": "SharedCurrentShell",
+}
 
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
@@ -62,6 +62,12 @@ def _normalized_feedback_category(category: Any) -> str:
     return value
 
 
+def _feedback_triage(category: str) -> dict[str, Any]:
+    routing_target = DESKTOP_FEEDBACK_ROUTING_TARGETS[category]
+    return {"review_status": "needs_review", "routing_target": routing_target,
+            "routing_reason": f"{category}_feedback", "routing_is_product_truth": False}
+
+
 def build_feedback_record_from_desktop_capture(
     *,
     category: str,
@@ -76,6 +82,8 @@ def build_feedback_record_from_desktop_capture(
     ui_event: dict[str, Any] | None = None,
     operation_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    normalized_category = _normalized_feedback_category(category)
+    triage = _feedback_triage(normalized_category)
     return _json_safe(
         {
             "artifact_schema_version": "1.0",
@@ -87,7 +95,10 @@ def build_feedback_record_from_desktop_capture(
             "local_only": True,
             "contains_personal_diet_logs": True,
             "do_not_commit": True,
-            "category": _normalized_feedback_category(category),
+            "category": normalized_category,
+            "review_status": triage["review_status"],
+            "routing_target": triage["routing_target"],
+            "triage": triage,
             "severity": _clean_optional_text(severity) or "medium",
             "feedback_text": _required_text(feedback_text, field="feedback_text"),
             "linked_context": {
@@ -299,6 +310,7 @@ def build_dogfood_review_queue_artifact(
 __all__ = [
     "REVIEW_QUEUE_TAXONOMY",
     "DESKTOP_FEEDBACK_CATEGORIES",
+    "DESKTOP_FEEDBACK_ROUTING_TARGETS",
     "append_desktop_feedback_record",
     "build_dogfood_review_queue_artifact",
     "build_feedback_record_from_desktop_capture",

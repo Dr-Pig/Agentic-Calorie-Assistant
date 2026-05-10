@@ -244,6 +244,8 @@
       metaRows[1].textContent = [
         `feedback_id ${text(record.feedback_id)}`,
         `status ${text(record.status)}`,
+        `review ${text(record.review_status)}`,
+        `route_to ${text(record.routing_target)}`,
         `user ${text(linked.user_external_id)}`
       ].join(" | ");
       metaRows[2].textContent = [

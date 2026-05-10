@@ -346,6 +346,7 @@ def _run_desktop_loop_sequence(
         "review_queue_ingested_feedback": False,
         "review_queue_artifact_written": False,
         "review_operation_context_rendered": False,
+        "review_triage_routing_rendered": False,
         "data_export_created": False,
         "data_export_sidecars_included": False,
         "feedback_record_count": 0,
@@ -437,6 +438,13 @@ def _run_desktop_loop_sequence(
             "status 200",
             "duration_ms",
             "page_path /static/accurate-intake-feedback.html",
+        )
+    )
+    result["review_triage_routing_rendered"] = all(
+        expected in review_text
+        for expected in (
+            "review needs_review",
+            "route_to SharedCurrentShell",
         )
     )
     result["fetch_sequence"].extend(_capture_fetches(page))
@@ -579,6 +587,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         ("review_queue_artifact_written", "desktop_loop_review_queue_artifact_not_written"),
         ("review_queue_ingested_feedback", "desktop_loop_review_queue_not_ingested"),
         ("review_operation_context_rendered", "desktop_loop_review_operation_context_not_rendered"),
+        ("review_triage_routing_rendered", "desktop_loop_review_triage_routing_not_rendered"),
         ("data_export_created", "desktop_loop_export_not_created"),
         ("data_export_sidecars_included", "desktop_loop_export_sidecars_not_included"),
     ):
