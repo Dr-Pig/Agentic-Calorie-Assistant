@@ -279,6 +279,12 @@ def test_today_page_is_daily_diary_with_date_navigation_and_no_trace_panel() -> 
     assert 'id="macro-guard-reason"' in html
     assert 'id="meal-list"' in html
     assert 'id="chat-link" class="action-link"' in html
+    assert "function feedbackUrlForMeal(meal = {})" in html
+    assert "meal.meal_thread_id" in html
+    assert 'report.dataset.feedbackAction = "report-meal";' in html
+    assert 'report.textContent = "Report";' in html
+    assert "query.set(\"meal_id\", String(meal.meal_thread_id));" in html
+    assert "query.set(\"meal_title\", meal.meal_title);" in html
     assert "Daily record updated." in html
     assert "overflow-x: auto" in html
     assert 'currentBudget: "/today/current-budget"' in html
@@ -295,6 +301,8 @@ def test_today_page_is_daily_diary_with_date_navigation_and_no_trace_panel() -> 
     assert "/accurate-intake/debug" not in html
     assert "message.content.includes" not in html
     assert "payload.coach_message" not in html
+    assert "meal.meal_title.includes" not in html
+    assert "query.set(\"meal_id\", meal.meal_title" not in html
 
 
 def test_today_page_budget_and_macro_fields_are_backend_read_model_render_sources() -> None:
@@ -399,6 +407,11 @@ def test_feedback_page_is_local_only_trace_linked_capture_without_frontend_seman
     assert '"X-Local-Debug-Token": token' in html
     assert "window.LOCAL_DEBUG_API_TOKEN" in html
     assert "trace_id: el(\"trace-id\").value.trim() || null" in html
+    assert 'id="meal-id"' in html
+    assert 'id="meal-title-context"' in html
+    assert 'el("meal-id").value = params.get("meal_id") || "";' in html
+    assert 'el("meal-title-context").textContent = params.get("meal_title") || "No meal selected";' in html
+    assert 'meal_id: el("meal-id").value.trim() || null' in html
     assert 'function sourcePage()' in html
     assert 'page: sourcePage()' in html
     assert 'source_page: sourcePage()' in html
