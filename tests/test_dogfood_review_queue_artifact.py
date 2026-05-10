@@ -104,6 +104,14 @@ def test_desktop_feedback_capture_is_trace_linked_local_triage_not_product_truth
         message_id="assistant-message-9",
         severity="medium",
         ui_event={"route": "/static/accurate-intake-chat.html", "api_duration_ms": 1234},
+        operation_context={
+            "submitted_endpoint": "/accurate-intake/feedback",
+            "http_status": 200,
+            "duration_ms": 432,
+            "page_url": "http://127.0.0.1:8787/static/accurate-intake-chat.html",
+            "page_path": "/static/accurate-intake-chat.html",
+            "referrer": "/static/accurate-intake-today.html",
+        },
     )
 
     assert feedback["artifact_type"] == "accurate_intake_dogfood_feedback_record"
@@ -123,6 +131,14 @@ def test_desktop_feedback_capture_is_trace_linked_local_triage_not_product_truth
         "meal_id": None,
     }
     assert feedback["ui_event"]["route"] == "/static/accurate-intake-chat.html"
+    assert feedback["operation_context"] == {
+        "submitted_endpoint": "/accurate-intake/feedback",
+        "http_status": 200,
+        "duration_ms": 432,
+        "page_url": "http://127.0.0.1:8787/static/accurate-intake-chat.html",
+        "page_path": "/static/accurate-intake-chat.html",
+        "referrer": "/static/accurate-intake-today.html",
+    }
     assert feedback["frontend_semantic_owner"] is False
     assert feedback["mutation_authority"] is False
     assert feedback["manager_context_injection_allowed"] is False

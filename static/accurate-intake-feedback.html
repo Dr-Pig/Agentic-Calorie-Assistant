@@ -261,6 +261,15 @@
           route: window.location.pathname,
           source_page: sourcePage(),
           selected_date: selectedDate()
+        },
+        operation_context: {
+          submitted_endpoint: endpoints.feedback,
+          http_status: null,
+          duration_ms: null,
+          client_request_started_at_ms: Math.round(performance.now()),
+          page_url: window.location.href,
+          page_path: window.location.pathname,
+          referrer: document.referrer || null
         }
       };
     }

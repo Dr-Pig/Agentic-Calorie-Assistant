@@ -169,11 +169,17 @@ def test_desktop_dogfood_launcher_app_path_captures_feedback_into_review_queue(
         feedback_payload = feedback.json()
         review_payload = review.json()
         assert feedback_payload["linked_context"]["trace_id"] == "trace-launcher-001"
+        assert feedback_payload["operation_context"]["submitted_endpoint"] == "/accurate-intake/feedback"
+        assert feedback_payload["operation_context"]["http_status"] == 200
+        assert isinstance(feedback_payload["operation_context"]["duration_ms"], int)
         assert feedback_payload["manager_context_injection_allowed"] is False
         assert feedback_payload["food_kb_truth_update_allowed"] is False
         assert feedback_payload["canonical_eval_promotion_allowed"] is False
         assert review_payload["feedback_triage_record_count"] == 1
         assert review_payload["desktop_feedback_records"][0]["feedback_id"] == feedback_payload["feedback_id"]
+        assert review_payload["desktop_feedback_records"][0]["operation_context"][
+            "submitted_endpoint"
+        ] == "/accurate-intake/feedback"
         assert review_payload["manager_context_injection_allowed"] is False
         assert review_payload["food_kb_truth_update_allowed"] is False
         assert review_payload["canonical_eval_promotion_allowed"] is False

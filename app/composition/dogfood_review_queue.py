@@ -74,6 +74,7 @@ def build_feedback_record_from_desktop_capture(
     meal_id: str | None = None,
     severity: str = "medium",
     ui_event: dict[str, Any] | None = None,
+    operation_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return _json_safe(
         {
@@ -98,6 +99,7 @@ def build_feedback_record_from_desktop_capture(
                 "meal_id": _clean_optional_text(meal_id),
             },
             "ui_event": _object_dict(ui_event),
+            "operation_context": _object_dict(operation_context),
             "feedback_owner": "human_operator",
             "frontend_semantic_owner": False,
             "mutation_authority": False,
