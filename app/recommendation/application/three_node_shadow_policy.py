@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.recommendation.application.three_node_offer_policy import offer_blockers
 from app.shared.contracts.runtime_lab_downstream_boundary import (
     consumer_summary_projection_blockers,
 )
@@ -113,25 +114,6 @@ def filter_reason_codes(
     return list(dict.fromkeys(reasons))
 
 
-def offer_blockers(offer: Mapping[str, Any], allowed_ids: set[str]) -> list[str]:
-    blockers: list[str] = []
-    candidate_id = str(offer.get("candidate_id", ""))
-    if candidate_id not in allowed_ids:
-        blockers.append(f"shadow_offer_packet_fixture.candidate_not_allowed:{candidate_id}")
-    for backup_id in _string_list(offer.get("backup_candidate_ids")):
-        if backup_id not in allowed_ids:
-            blockers.append(
-                f"shadow_offer_packet_fixture.backup_candidate_not_allowed:{backup_id}"
-            )
-    if offer.get("recommendation_served") is True:
-        blockers.append("shadow_offer_packet_fixture.recommendation_served_not_allowed")
-    if offer.get("is_canonical_truth") is True:
-        blockers.append("shadow_offer_packet_fixture.is_canonical_truth_not_allowed")
-    if offer.get("intake_commit_requested") is True:
-        blockers.append("shadow_offer_packet_fixture.intake_commit_requested_not_allowed")
-    return blockers
-
-
 def source_refs(payload: Mapping[str, Any], candidate_id: str) -> list[str]:
     for candidate in candidates(payload):
         if candidate.get("candidate_id") == candidate_id:
@@ -227,10 +209,6 @@ def _int_field(mapping: Mapping[str, Any], key: str) -> int | None:
 
 def _mapping(value: Any) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
-
-
-def _string_list(value: Any) -> list[str]:
-    return [str(item) for item in value] if isinstance(value, list) else []
 
 
 def _normalize(value: str) -> str:
