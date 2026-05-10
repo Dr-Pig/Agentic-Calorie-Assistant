@@ -118,6 +118,7 @@ def _artifact(stages: list[Mapping[str, Any]]) -> dict[str, Any]:
         "retirement_trigger": "approved_rescue_runtime_activation_plan",
         "stage_order": list(STAGE_ORDER),
         "stage_trace": _stage_trace(stages),
+        "stage_artifacts": [dict(stage) for stage in stages],
         "final_validation_status": _final_validation_status(stages, blockers),
         "blockers": blockers,
         "proposal_card": None,

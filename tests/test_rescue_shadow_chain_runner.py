@@ -39,6 +39,9 @@ def test_rescue_shadow_chain_composes_existing_stages_without_runtime_effects() 
         {"stage": "rescue_proposal_shaping_input_shadow_packet", "status": "pass"},
         {"stage": "rescue_proposal_shaping_fake_runner_artifact", "status": "pass"},
     ]
+    assert [stage["artifact_type"] for stage in artifact["stage_artifacts"]] == artifact[
+        "stage_order"
+    ]
     assert artifact["final_validation_status"] == "pass"
     assert artifact["blockers"] == []
     assert artifact["runtime_effect_allowed"] is False
