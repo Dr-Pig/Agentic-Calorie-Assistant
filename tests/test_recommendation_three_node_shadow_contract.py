@@ -97,6 +97,60 @@ def test_three_node_contract_blocks_filtered_selection_and_offer_claims() -> Non
     assert artifact["activation_flags"] == _false_activation_flags()
 
 
+def test_three_node_guard_blocks_memory_negative_candidate_before_offer() -> None:
+    payload = build_fixture_recommendation_three_node_input()
+    payload["negative_preference_summary"] = {"items": []}
+    payload["memory_summary_projection"] = _memory_projection()
+    payload["candidate_source_fixture"].append(
+        {
+            "candidate_id": "memory-neg-1",
+            "title": "remembered blocked snack",
+            "estimated_kcal_range": {"min": 300, "max": 420},
+            "item_patterns": ["snack"],
+            "hard_avoid_flags": [],
+            "source_refs": ["memory_candidate:neg-1"],
+        }
+    )
+    payload["manager_recommendation_decision_fixture"][
+        "top_candidate_id"
+    ] = "memory-neg-1"
+    payload["shadow_offer_packet_fixture"]["candidate_id"] = "memory-neg-1"
+
+    artifact = run_recommendation_three_node_shadow(payload)
+
+    assert artifact["status"] == "blocked"
+    assert {
+        "candidate_id": "memory-neg-1",
+        "reason_codes": ["memory_negative_preference_blocker"],
+    } in artifact["candidate_guard"]["filtered_candidates"]
+    assert artifact["candidate_guard"]["memory_summary_projection_used"] is True
+    assert artifact["candidate_guard"]["memory_negative_preference_ids"] == ["neg-1"]
+    assert artifact["blockers"] == [
+        "manager_recommendation_decision_fixture.top_candidate_not_allowed:memory-neg-1",
+        "shadow_offer_packet_fixture.candidate_not_allowed:memory-neg-1",
+    ]
+    assert artifact["shadow_offer_packet"] is None
+    assert artifact["activation_flags"] == _false_activation_flags()
+
+
+def test_three_node_guard_blocks_memory_projection_claim_drift() -> None:
+    payload = build_fixture_recommendation_three_node_input()
+    projection = _memory_projection()
+    projection["recommendation_served"] = True
+    payload["memory_summary_projection"] = projection
+
+    artifact = run_recommendation_three_node_shadow(payload)
+
+    assert artifact["status"] == "blocked"
+    assert artifact["blockers"] == [
+        "consumer_summary_projection.recommendation_served"
+    ]
+    assert artifact["candidate_guard"]["allowed_candidate_ids"] == []
+    assert artifact["candidate_guard"]["memory_summary_projection_used"] is False
+    assert artifact["shadow_offer_packet"] is None
+    assert artifact["activation_flags"] == _false_activation_flags()
+
+
 def _false_activation_flags() -> dict[str, bool]:
     return {
         "runtime_effect_allowed": False,
@@ -112,4 +166,26 @@ def _false_activation_flags() -> dict[str, bool]:
         "recommendation_served": False,
         "intake_committed": False,
         "product_readiness_claimed": False,
+    }
+
+
+def _memory_projection() -> dict[str, object]:
+    return {
+        "artifact_type": "runtime_lab_memory_consumer_summary_projection",
+        "status": "pass",
+        "preference_profile_summary": {
+            "freshness_posture": "fresh",
+            "accepted_shadow_candidate_ids": ["pref-1"],
+            "negative_preference_blockers": ["neg-1"],
+        },
+        "golden_order_summary": {
+            "orders": [{"candidate_id": "golden-1", "store_name": "FamilyMart"}]
+        },
+        "runtime_effect_allowed": False,
+        "durable_product_memory_written": False,
+        "manager_context_packet_changed": False,
+        "recommendation_served": False,
+        "proactive_sent": False,
+        "rescue_proposal_committed": False,
+        "retrieval_ranking_changed": False,
     }

@@ -86,6 +86,15 @@ def run_recommendation_three_node_shadow(payload: Mapping[str, Any]) -> dict[str
         )
 
     guard = candidate_guard(payload)
+    guard_blockers = [str(blocker) for blocker in guard.get("blockers", [])]
+    if guard_blockers:
+        return _artifact(
+            status="blocked",
+            blockers=guard_blockers,
+            guard=guard,
+            selected_candidate_id=None,
+            offer_packet=None,
+        )
     allowed_ids = set(guard["allowed_candidate_ids"])
     decision = _mapping(payload.get("manager_recommendation_decision_fixture"))
     offer = _mapping(payload.get("shadow_offer_packet_fixture"))
