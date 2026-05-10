@@ -228,7 +228,7 @@ EXPECTED_DATA_EXPORT_VALUES = {
     "sidecar_evidence_included": True,
     "feedback_jsonl_copied": True,
     "feedback_jsonl_record_count": 2,
-    "review_queue_copied": False,
+    "review_queue_copied": True,
     "sidecar_evidence_can_create_product_truth": False,
     "sidecar_evidence_can_create_fooddb_truth": False,
     "sidecar_evidence_can_create_eval_truth": False,

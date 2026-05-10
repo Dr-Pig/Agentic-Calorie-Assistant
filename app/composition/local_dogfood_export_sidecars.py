@@ -4,6 +4,8 @@ import json
 import shutil
 from pathlib import Path
 
+from app.composition.dogfood_review_queue import build_dogfood_review_queue_artifact
+
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_FEEDBACK_JSONL_PATH = Path("workspace_data/local_dogfood_feedback/accurate_intake_dogfood_feedback.jsonl")
 DEFAULT_REVIEW_QUEUE_ARTIFACT_PATH = Path("artifacts/accurate_intake_dogfood_review_queue.json")
@@ -29,6 +31,22 @@ def _read_json_object(path: Path) -> dict:
     return dict(payload) if isinstance(payload, dict) else {}
 
 
+def _read_jsonl_objects(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    records: list[dict] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(payload, dict):
+            records.append(dict(payload))
+    return records
+
+
 def _copy_sidecar_if_present(*, source_path: Path, export_dir: Path, filename: str) -> str | None:
     if not source_path.exists():
         return None
@@ -36,6 +54,25 @@ def _copy_sidecar_if_present(*, source_path: Path, export_dir: Path, filename: s
     copy_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source_path, copy_path)
     return str(copy_path)
+
+
+def _materialize_review_queue_sidecar_from_feedback(
+    *,
+    feedback_path: Path,
+    export_dir: Path,
+    filename: str,
+) -> tuple[str | None, dict]:
+    feedback_records = _read_jsonl_objects(feedback_path)
+    if not feedback_records:
+        return None, {}
+    payload = build_dogfood_review_queue_artifact(
+        review_candidates=[],
+        desktop_feedback_records=feedback_records,
+    )
+    copy_path = export_dir / filename
+    copy_path.parent.mkdir(parents=True, exist_ok=True)
+    copy_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return str(copy_path), payload
 
 
 def build_export_sidecar_evidence_manifest(
@@ -59,6 +96,16 @@ def build_export_sidecar_evidence_manifest(
         export_dir=export_dir,
         filename="accurate_intake_dogfood_review_queue.json",
     )
+    review_materialized_from_feedback = False
+    if review_copy is None:
+        review_copy, materialized_review_payload = _materialize_review_queue_sidecar_from_feedback(
+            feedback_path=resolved_feedback,
+            export_dir=export_dir,
+            filename="accurate_intake_dogfood_review_queue.json",
+        )
+        if review_copy is not None:
+            review_payload = materialized_review_payload
+            review_materialized_from_feedback = True
     return {
         "feedback_jsonl": {
             "exists": resolved_feedback.exists(),
@@ -72,6 +119,7 @@ def build_export_sidecar_evidence_manifest(
             "source_path": str(review_path),
             "copy_path": review_copy,
             "copied": review_copy is not None,
+            "materialized_from_feedback_jsonl": review_materialized_from_feedback,
             "feedback_triage_record_count": int(review_payload.get("feedback_triage_record_count") or 0),
             "review_candidate_count": int(review_payload.get("review_candidate_count") or 0),
         },

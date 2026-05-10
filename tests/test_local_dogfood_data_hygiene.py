@@ -9,6 +9,7 @@ import pytest
 
 from app.shared.infra.json_artifacts import read_json_artifact
 from app.composition.local_dogfood_artifact_paths import write_json_manifest
+from app.composition.dogfood_review_queue import build_feedback_record_from_desktop_capture
 from app.composition.local_dogfood_data_hygiene import (
     backup_local_dogfood_db,
     build_local_dogfood_data_manifest,
@@ -209,6 +210,49 @@ def test_export_copies_real_dogfood_sqlite_and_marks_local_personal_logs(tmp_pat
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["export_path"] == str(export_path)
     assert manifest["contains_personal_diet_logs"] is True
+
+
+def test_export_materializes_review_queue_sidecar_from_feedback_jsonl(tmp_path: Path) -> None:
+    db_path = tmp_path / "real_dogfood" / "accurate_intake.sqlite3"
+    db_path.parent.mkdir()
+    db_path.write_bytes(b"sqlite bytes")
+    feedback_jsonl_path = tmp_path / "feedback" / "accurate_intake_dogfood_feedback.jsonl"
+    feedback_jsonl_path.parent.mkdir()
+    feedback_record = build_feedback_record_from_desktop_capture(
+        category="nutrition_estimate",
+        feedback_text="Today meal estimate looks high",
+        page="today_diary",
+        selected_date="2026-05-10",
+        user_external_id="dogfood-user",
+        trace_id="trace-review-export",
+        message_id="message-review-export",
+        meal_id="meal-review-export",
+        ui_event={"source_page": "today_diary", "meal_title": "Lunch"},
+    )
+    feedback_jsonl_path.write_text(json.dumps(feedback_record, ensure_ascii=False) + "\n", encoding="utf-8")
+    missing_review_queue_artifact_path = tmp_path / "artifacts" / "missing_review_queue.json"
+
+    report = export_local_dogfood_db(
+        db_path=db_path,
+        export_dir=tmp_path / "exports",
+        label="review",
+        feedback_jsonl_path=feedback_jsonl_path,
+        review_queue_artifact_path=missing_review_queue_artifact_path,
+    )
+
+    review_queue = report["sidecar_evidence"]["review_queue"]
+    assert report["sidecar_evidence_included"] is True
+    assert review_queue["exists"] is False
+    assert review_queue["copied"] is True
+    assert review_queue["materialized_from_feedback_jsonl"] is True
+    assert review_queue["feedback_triage_record_count"] == 1
+    assert review_queue["review_candidate_count"] == 0
+    review_queue_copy = json.loads(Path(review_queue["copy_path"]).read_text(encoding="utf-8"))
+    assert review_queue_copy["artifact_type"] == "accurate_intake_dogfood_review_queue"
+    assert review_queue_copy["desktop_feedback_records"][0]["feedback_text"] == "Today meal estimate looks high"
+    assert review_queue_copy["promotion_policy"]["feedback_can_create_product_truth"] is False
+    assert review_queue_copy["promotion_policy"]["feedback_can_create_fooddb_truth"] is False
+    assert review_queue_copy["promotion_policy"]["feedback_can_create_eval_truth"] is False
 
 
 def test_import_preview_reads_export_manifest_without_writing_target_db(tmp_path: Path) -> None:
