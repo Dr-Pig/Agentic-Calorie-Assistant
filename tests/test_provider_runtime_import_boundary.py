@@ -41,9 +41,9 @@ async def test_ping_reports_extract_readiness(monkeypatch: pytest.MonkeyPatch) -
     module = importlib.import_module("app.runtime.interface.base_routes")
     payload = await module.ping()
 
-    assert payload["extract"] == {"status": "ok"}
-    assert payload["search"] == {"status": "ok"}
-    assert payload["provider"] == {"status": "ok"}
+    assert payload["extract"] == {"status": "not_configured", "configured": False}
+    assert payload["search"] == {"status": "not_configured", "configured": False}
+    assert set(payload["provider"]) == {"status", "configured"}
 
 
 def test_gemini_provider_is_explicitly_unsupported(monkeypatch: pytest.MonkeyPatch) -> None:

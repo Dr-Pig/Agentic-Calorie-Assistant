@@ -220,11 +220,35 @@ def test_ping_redacts_provider_topology() -> None:
 
     payload = client.get("/ping").json()
 
-    assert payload["provider"] == {"status": "ok"}
-    assert payload["manager_provider"] == {"status": "ok"}
-    assert payload["search"] == {"status": "ok"}
-    assert payload["extract"] == {"status": "ok"}
+    assert set(payload["provider"]) == {"status", "configured"}
+    assert set(payload["manager_provider"]) == {"status", "configured"}
+    assert set(payload["search"]) == {"status", "configured"}
+    assert set(payload["extract"]) == {"status", "configured"}
     assert "base_url" not in str(payload)
+    assert "timeout_seconds" not in str(payload)
+
+
+def test_ping_reports_unconfigured_provider_without_claiming_ok(monkeypatch) -> None:
+    from app.runtime.interface import base_routes
+
+    class UnconfiguredProvider:
+        def readiness(self) -> dict[str, object]:
+            return {
+                "provider": "secret-provider",
+                "configured": False,
+                "base_url": "https://secret.example.test",
+                "timeout_seconds": 99,
+            }
+
+    monkeypatch.setattr(base_routes, "manager_provider", UnconfiguredProvider())
+    client = _client()
+
+    payload = client.get("/ping").json()
+
+    assert payload["provider"] == {"status": "not_configured", "configured": False}
+    assert payload["manager_provider"] == {"status": "not_configured", "configured": False}
+    assert "secret-provider" not in str(payload)
+    assert "secret.example" not in str(payload)
     assert "timeout_seconds" not in str(payload)
 
 
