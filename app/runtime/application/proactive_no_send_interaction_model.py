@@ -75,6 +75,8 @@ def apply_no_send_candidate_interaction(
         "consumer": "future_proactive_user_control_activation_review",
         "retirement_trigger": "approved_proactive_scheduler_runtime_activation_plan",
         "action": action,
+        "trigger_type": str(no_send_candidate.get("trigger_type") or ""),
+        "dismiss_reason": dismiss_reason if action == "dismiss" else None,
         "blockers": blockers,
         "interaction_state": _blocked_state()
         if blockers

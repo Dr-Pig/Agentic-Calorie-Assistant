@@ -288,6 +288,58 @@ def test_explicit_trigger_opt_out_suppresses_but_keeps_capability_user_callable(
     assert row["user_callable_when_suppressed"] is True
 
 
+def test_control_feedback_suppresses_until_required_next_signal_is_observed() -> None:
+    prior_interaction = {
+        "artifact_type": "proactive_no_send_interaction_model_artifact",
+        "status": "pass",
+        "action": "dismiss",
+        "trigger_type": "recommendation_prompt",
+        "next_signal_required": "new_app_open_with_qualified_pool",
+        "interaction_state": {"dismissed": True},
+    }
+
+    suppressed = build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="recommendation_prompt",
+                data_sufficiency_status="higher",
+                user_benefit_strength="strong",
+                lower_frequency_ready=True,
+                delivery_surface="app_open",
+                prior_no_send_interactions=[prior_interaction],
+                recommendation_prompt_review=_reviewable_recommendation_prompt_review(),
+            )
+        ]
+    )
+    released = build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="recommendation_prompt",
+                data_sufficiency_status="higher",
+                user_benefit_strength="strong",
+                lower_frequency_ready=True,
+                delivery_surface="app_open",
+                prior_no_send_interactions=[prior_interaction],
+                observed_control_signals=["new_app_open_with_qualified_pool"],
+                recommendation_prompt_review=_reviewable_recommendation_prompt_review(),
+            )
+        ]
+    )
+
+    suppressed_row = _by_type(suppressed)["recommendation_prompt"]
+    released_row = _by_type(released)["recommendation_prompt"]
+
+    assert suppressed_row["suppression_status"] == "suppressed"
+    assert "recent_dismiss_without_next_signal" in suppressed_row["suppression_reasons"]
+    assert suppressed_row["control_feedback"]["status"] == "suppressed"
+    assert suppressed_row["review_decision"]["status"] == "suppressed_feedback"
+    assert released_row["suppression_status"] == "not_suppressed"
+    assert released_row["control_feedback"]["status"] == "not_suppressed"
+    assert released_row["control_feedback"]["next_signal_observed"] == (
+        "new_app_open_with_qualified_pool"
+    )
+
+
 def test_channel_sensitivity_records_background_delivery_as_higher_interrupt_cost() -> None:
     artifact = build_proactive_no_send_simulation(
         [

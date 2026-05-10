@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.proactive_no_send_control_feedback_summary import control_feedback_summary  # noqa: E402
+
 
 DEFAULT_NO_SEND_ARTIFACT = ROOT / "artifacts" / "proactive_no_send_simulation.json"
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
@@ -174,6 +176,7 @@ def _summary(no_send_artifacts: list[dict[str, Any]]) -> dict[str, Any]:
             review_key="rescue_nudge_review",
             value_key="blockers",
         ),
+        **control_feedback_summary(no_send_artifacts),
         "copy_suppressed_count": sum(
             _artifact_summary_int(artifact, "copy_suppressed_count")
             for artifact in no_send_artifacts

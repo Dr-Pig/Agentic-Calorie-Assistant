@@ -325,6 +325,39 @@ def test_decision_pack_records_no_send_governance_and_silence_reasons() -> None:
     }
 
 
+def test_decision_pack_summarizes_control_feedback_suppression() -> None:
+    artifact = build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="recommendation_prompt",
+                data_sufficiency_status="higher",
+                user_benefit_strength="strong",
+                lower_frequency_ready=True,
+                delivery_surface="app_open",
+                prior_no_send_interactions=[
+                    {
+                        "artifact_type": "proactive_no_send_interaction_model_artifact",
+                        "status": "pass",
+                        "action": "dismiss",
+                        "trigger_type": "recommendation_prompt",
+                        "next_signal_required": "new_app_open_with_qualified_pool",
+                    }
+                ],
+                recommendation_prompt_review=_prompt_review("candidate_for_human_review"),
+            )
+        ]
+    )
+
+    pack = build_proactive_no_send_decision_pack([artifact])
+
+    assert pack["summary"]["control_feedback_status_counts"] == {"suppressed": 1}
+    assert pack["summary"]["control_feedback_suppression_reason_counts"] == {
+        "recent_dismiss_without_next_signal": 1
+    }
+    assert pack["summary"]["review_decision_counts"] == {"suppressed_feedback": 1}
+    assert pack["promotion_allowed"] is False
+
+
 def test_decision_pack_writer_creates_artifact(tmp_path: Path) -> None:
     source_path = tmp_path / "proactive_no_send_simulation.json"
     output_path = tmp_path / "proactive_no_send_decision_pack.json"
