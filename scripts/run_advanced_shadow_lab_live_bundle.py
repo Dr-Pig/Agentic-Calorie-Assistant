@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from pathlib import Path
 import sys
 from typing import Any, Mapping
@@ -36,6 +35,13 @@ from app.advanced_shadow_lab.chat_ux_packet import (  # noqa: E402
 from app.advanced_shadow_lab.live_bundle_profile_gate import (  # noqa: E402
     ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
     resolve_live_bundle_profile_gate,
+)
+from app.advanced_shadow_lab.live_bundle_inputs import (  # noqa: E402
+    PREFLIGHT_FILENAME,
+    build_live_bundle_preflight,
+)
+from app.advanced_shadow_lab.live_bundle_seam_proof import (  # noqa: E402
+    build_live_seam_proof_summary,
 )
 from app.advanced_shadow_lab.live_bundle_fake_providers import (  # noqa: E402
     FakeProactiveCopyDiagnosticProvider,
@@ -89,6 +95,12 @@ def main(argv: list[str] | None = None) -> int:
 
     artifact_dir = Path(args.artifact_dir)
     artifact_dir.mkdir(parents=True, exist_ok=True)
+    preflight = build_live_bundle_preflight(
+        provider_mode=str(args.provider_mode),
+        provider_profile_id=str(args.provider_profile_id),
+        allow_live_provider=bool(args.allow_live_provider),
+    )
+    _write_json(artifact_dir / PREFLIGHT_FILENAME, preflight)
     memory_review = _read_json(Path(args.memory_dogfood_replay_review))
     chain_payload = _read_json(Path(args.chain_payload))
     fixture_chain = _build_fixture_chain(chain_payload)
@@ -111,6 +123,7 @@ def main(argv: list[str] | None = None) -> int:
         provider_mode=str(args.provider_mode),
         allow_live_provider=bool(args.allow_live_provider),
         live_profile=live_profile,
+        live_preflight=preflight,
         artifact_dir=artifact_dir,
     )
     fixture_chain["chat_ux_packet"] = build_advanced_shadow_chat_ux_packet(
@@ -146,6 +159,14 @@ def main(argv: list[str] | None = None) -> int:
         baseline_case_artifacts=baseline_cases,
         advanced_case_artifacts=advanced_cases,
     )
+    terminal["live_seam_proof_summary"] = build_live_seam_proof_summary(
+        preflight=preflight,
+        diagnostics={
+            "recommendation_copy_live_diagnostic": recommendation_live,
+            "rescue_copy_live_diagnostic": rescue_live,
+            "proactive_copy_live_diagnostic": proactive_live,
+        },
+    )
     output = Path(args.output)
     _write_json(output, terminal)
     _print_terminal_summary(output, terminal, str(args.provider_mode))
@@ -160,27 +181,30 @@ def _run_copy_diagnostics(
     provider_mode: str,
     allow_live_provider: bool,
     live_profile: Mapping[str, object] | None,
+    live_preflight: Mapping[str, Any],
     artifact_dir: Path,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     recommendation_path = artifact_dir / RECOMMENDATION_OUTPUT
     rescue_path = artifact_dir / RESCUE_OUTPUT
     proactive_path = artifact_dir / PROACTIVE_OUTPUT
     if provider_mode == "live":
-        if not allow_live_provider or os.getenv(ALLOW_ENV) != "1":
+        preflight_blockers = [str(item) for item in live_preflight.get("blockers") or []]
+        if preflight_blockers:
+            reason = ";".join(preflight_blockers)
             recommendation = _blocked_not_invoked(
                 artifact_type=BLOCKED_RECOMMENDATION_TYPE,
                 output=recommendation_path,
-                reason="live_gate_not_enabled",
+                reason=reason,
             )
             rescue = _blocked_not_invoked(
                 artifact_type=BLOCKED_RESCUE_TYPE,
                 output=rescue_path,
-                reason="live_gate_not_enabled",
+                reason=reason,
             )
             proactive = _blocked_not_invoked(
                 artifact_type=BLOCKED_PROACTIVE_TYPE,
                 output=proactive_path,
-                reason="live_gate_not_enabled",
+                reason=reason,
             )
             return recommendation, rescue, proactive
         profile = _mapping(live_profile)
