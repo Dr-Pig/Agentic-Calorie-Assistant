@@ -19,6 +19,18 @@ def build_product_lab_simulated_turns() -> list[dict[str, Any]]:
                     "next_signal_required": "new_app_open_with_qualified_pool",
                 }
             ],
+            "post_turn_chat_actions": [
+                {
+                    "event_id": "log-recommendation",
+                    "target_candidate_id": "recommendation_prompt:0",
+                    "action": "log_this",
+                },
+                {
+                    "event_id": "accept-rescue",
+                    "target_candidate_id": "rescue_nudge:1",
+                    "action": "accept_rescue_plan",
+                },
+            ],
             "post_turn_memory_signal_events": [
                 {
                     "signal_id": "golden-breakfast-oatmeal",
