@@ -10,8 +10,10 @@ from scripts import run_accurate_intake_product_pages_seven_day_diary_smoke as m
 def _passing_report() -> dict[str, object]:
     return {
         "browser_executed": True,
+        "selected_dates_checked": True,
         "seven_day_window_checked": True,
         "day_count_checked": 7,
+        "day_count_expected": 7,
         "per_day_diary_isolated": True,
         "per_day_budget_values_checked": True,
         "today_date_strip_checked": True,
@@ -92,6 +94,59 @@ def test_seven_day_diary_smoke_validator_requires_full_window_evidence() -> None
 
     assert status == "pass"
     assert blockers == []
+
+
+def test_diary_smoke_validator_accepts_arbitrary_non_adjacent_selected_dates() -> None:
+    report = _passing_report()
+    selected_dates = ["2026-05-01", "2026-05-09", "2026-05-31"]
+    report["selected_dates_checked"] = True
+    report["arbitrary_selected_dates_checked"] = True
+    report["seven_day_window_checked"] = False
+    report["day_count_expected"] = len(selected_dates)
+    report["day_count_checked"] = len(selected_dates)
+    report["selected_dates_expected"] = selected_dates
+    report["checked_days"] = [
+        {
+            "local_date": local_date,
+            "expected_meal_title": f"fixture arbitrary day {index + 1}",
+            "expected_consumed_kcal": 300 + index,
+            "expected_remaining_kcal": 1500 - (300 + index),
+            "observed_consumed_kcal": 300 + index,
+            "observed_remaining_kcal": 1500 - (300 + index),
+            "other_day_meal_leaked": False,
+        }
+        for index, local_date in enumerate(selected_dates)
+    ]
+    report["fetch_sequence"] = [
+        {"url": f"/today/current-budget?user_id=diary&local_date={local_date}", "method": "GET"}
+        for local_date in selected_dates
+    ]
+
+    status, blockers = module._validate(report)
+
+    assert status == "pass"
+    assert blockers == []
+
+
+def test_diary_smoke_missing_playwright_preserves_requested_arbitrary_dates(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    def missing_playwright() -> object:
+        raise module.BrowserSmokeDependencyMissing("playwright_not_installed")
+
+    selected_dates = ["2026-05-01", "2026-05-09", "2026-05-31"]
+    monkeypatch.setattr(module, "_load_sync_playwright", missing_playwright)
+
+    report = module.build_seven_day_diary_smoke_report(
+        db_path=tmp_path / "arbitrary-diary.sqlite3",
+        selected_dates=selected_dates,
+    )
+
+    assert report["status"] == "blocked"
+    assert report["day_count_expected"] == 3
+    assert report["selected_dates_expected"] == selected_dates
+    assert report["seven_day_window_checked"] is False
 
 
 def test_seven_day_diary_smoke_validator_rejects_shallow_or_cross_day_evidence() -> None:
