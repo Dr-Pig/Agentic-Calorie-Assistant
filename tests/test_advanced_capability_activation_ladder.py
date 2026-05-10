@@ -63,8 +63,8 @@ def test_all_advanced_capabilities_have_explicit_current_stage_and_dependencies(
         "rescue",
         "proactive",
     }
-    assert capabilities["long_term_memory"]["current_stage"] == "shadow"
-    assert capabilities["long_term_memory"]["next_allowed_stage"] == "read_only_runtime"
+    assert capabilities["long_term_memory"]["current_stage"] == "read_only_runtime"
+    assert capabilities["long_term_memory"]["next_allowed_stage"] == "canary"
     assert capabilities["recommendation"]["depends_on"] == [
         "long_term_memory.read_only_runtime"
     ]
@@ -76,6 +76,38 @@ def test_all_advanced_capabilities_have_explicit_current_stage_and_dependencies(
         "recommendation.read_only_runtime",
         "rescue.read_only_runtime",
     ]
+
+
+def test_ltm_read_only_runtime_stage_is_backed_by_manual_transition_artifact() -> None:
+    contract = _contract()
+    ltm = contract["capabilities"]["long_term_memory"]
+    evidence = ltm["stage_transition_evidence"]
+
+    assert evidence == {
+        "artifact_type": "runtime_lab_memory_stage_promotion_decision",
+        "status": "approved",
+        "stage_change_recorded": True,
+        "manual_promotion_approved": True,
+        "current_stage_in_decision_artifact": "shadow",
+        "target_stage_in_decision_artifact": "read_only_runtime",
+        "activation_stage_after_decision": "read_only_runtime",
+        "required_source_pack": "runtime_lab_memory_read_only_runtime_lab_pack",
+        "required_human_review_artifact": (
+            "runtime_lab_memory_stage_promotion_review_decision"
+        ),
+    }
+    assert "runtime_lab_memory_stage_promotion_decision" in ltm[
+        "current_allowed_outputs"
+    ]
+    assert "shadow_memory_context_pack" in ltm["current_allowed_outputs"]
+    assert "runtime_lab_memory_consumer_summary_projection" in ltm[
+        "current_allowed_outputs"
+    ]
+    assert ltm["stage_specific_no_go"] == {
+        "durable_product_memory_written": False,
+        "manager_context_packet_changed": False,
+        "cross_session_personalization_allowed": False,
+    }
 
 
 def test_pre_promotion_no_go_flags_block_runtime_drift() -> None:
