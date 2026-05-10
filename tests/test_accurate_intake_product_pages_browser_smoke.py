@@ -1000,6 +1000,29 @@ def test_body_page_honors_query_user_id_for_session_context() -> None:
     assert 'params.get("user_id") || el("user-id").value' in html
 
 
+def test_product_pages_browser_smoke_uses_compact_sidecar_paths_for_deep_worktrees() -> None:
+    deep_db_path = Path(
+        "C:/Users/User/.config/superpowers/worktrees/Agentic-Calorie-Assistant/"
+        "full-loop-fresh-worktree-repro/.pytest_tmp_local/pytest_fresh_9ca8d22c/"
+        "test_refresh_chain_generates_r0/artifacts/"
+        "accurate_intake_product_pages_browser_smoke.sqlite3"
+    )
+
+    feedback_dir = module._product_pages_sidecar_dir(
+        db_path=deep_db_path,
+        prefix="fb",
+        suffix="0068d5b778d0",
+    )
+    old_feedback_dir = (
+        deep_db_path.parent / f"{deep_db_path.stem}_feedback_0068d5b778d0"
+    )
+
+    assert feedback_dir.parent == deep_db_path.parent
+    assert feedback_dir.name == "fb_0068d5b7"
+    assert len(str(feedback_dir)) < len(str(old_feedback_dir))
+    assert len(feedback_dir.name) <= 16
+
+
 def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available(tmp_path: Path) -> None:
     try:
         module._load_sync_playwright()

@@ -11,7 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
+from app.shared.infra.json_artifacts import (  # noqa: E402
+    artifact_path_exists,
+    read_json_artifact,
+    write_json_artifact,
+)
 from app.composition.current_shell_compatibility_ids import (  # noqa: E402
     CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
 )
@@ -170,7 +174,7 @@ def _phase_c_payload_from_mvp_gate(mvp_gate: dict[str, Any], path: Path) -> dict
 
 
 def _read_or_missing(group_id: str, path: Path) -> tuple[dict[str, Any], bool]:
-    if not path.exists():
+    if not artifact_path_exists(path):
         return _missing_payload(group_id, path), True
     payload = read_json_artifact(path)
     payload.setdefault("artifact_path", str(path))
@@ -190,9 +194,9 @@ def build_local_web_candidate_gate_evidence(
     invalid_evidence: list[str] = []
     evidence: dict[str, Any] = {}
     for group_id, path in evidence_paths.items():
-        if group_id == "phase_c_gate" and not path.exists():
+        if group_id == "phase_c_gate" and not artifact_path_exists(path):
             mvp_gate_path = evidence_paths["accurate_intake_mvp_gate"]
-            if mvp_gate_path.exists():
+            if artifact_path_exists(mvp_gate_path):
                 payload, missing = _phase_c_payload_from_mvp_gate(
                     read_json_artifact(mvp_gate_path),
                     mvp_gate_path,

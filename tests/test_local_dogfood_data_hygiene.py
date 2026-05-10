@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+import sys
 
+import pytest
+
+from app.shared.infra.json_artifacts import read_json_artifact
+from app.composition.local_dogfood_artifact_paths import write_json_manifest
 from app.composition.local_dogfood_data_hygiene import (
     backup_local_dogfood_db,
     build_local_dogfood_data_manifest,
@@ -137,6 +143,51 @@ def test_backup_and_export_keep_generated_filenames_compact_for_windows_paths(
     assert backup_manifest_path.exists()
     assert export_path.exists()
     assert export_manifest_path.exists()
+
+
+def test_write_json_manifest_roundtrips_windows_long_paths(tmp_path: Path) -> None:
+    if sys.platform != "win32":
+        pytest.skip("Windows MAX_PATH regression guard")
+
+    output_dir = tmp_path
+    while len(str(output_dir / "artifact.manifest.json")) <= 260:
+        output_dir = output_dir / "segment1234567890"
+
+    output = output_dir / "artifact.manifest.json"
+    payload = {"status": "pass", "path_length": len(str(output))}
+
+    write_json_manifest(output, payload)
+
+    assert read_json_artifact(output) == payload
+
+
+def test_export_local_dogfood_db_handles_windows_long_generated_paths(tmp_path: Path) -> None:
+    if sys.platform != "win32":
+        pytest.skip("Windows MAX_PATH regression guard")
+
+    db_path = tmp_path / "real_dogfood" / "accurate_intake.sqlite3"
+    db_path.parent.mkdir()
+    db_path.write_bytes(b"sqlite bytes")
+    export_dir = tmp_path / "exports"
+    while len(str(export_dir / "accurate_intake.browser.12345678.20260101T000000Z.manifest.json")) <= 260:
+        export_dir = export_dir / "segment1234567890"
+
+    report = export_local_dogfood_db(
+        db_path=db_path,
+        export_dir=export_dir,
+        label="browser",
+    )
+
+    export_path = Path(report["export_path"])
+    manifest_path = Path(report["manifest_path"])
+    export_io_path = "\\\\?\\" + str(export_path.resolve(strict=False))
+    manifest_io_path = "\\\\?\\" + str(manifest_path.resolve(strict=False))
+    assert report["status"] == "pass"
+    assert os.path.exists(export_io_path)
+    assert os.path.exists(manifest_io_path)
+    with open(export_io_path, "rb") as copied:
+        assert copied.read() == b"sqlite bytes"
+    assert read_json_artifact(manifest_path)["export_path"] == str(export_path)
 
 
 def test_export_copies_real_dogfood_sqlite_and_marks_local_personal_logs(tmp_path: Path) -> None:

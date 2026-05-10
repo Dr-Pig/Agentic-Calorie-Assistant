@@ -406,6 +406,12 @@ def _feedback_jsonl_path(feedback_dir: Path) -> Path:
     return feedback_dir / "accurate_intake_dogfood_feedback.jsonl"
 
 
+def _product_pages_sidecar_dir(*, db_path: Path, prefix: str, suffix: str) -> Path:
+    safe_prefix = "".join(char for char in prefix if char.isalnum() or char in {"_", "-"})[:8]
+    safe_suffix = "".join(char for char in suffix if char.isalnum())[:8]
+    return db_path.parent / f"{safe_prefix or 'pp'}_{safe_suffix or secrets.token_hex(4)}"
+
+
 def _read_jsonl_records(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
@@ -3317,13 +3323,17 @@ def build_product_pages_browser_smoke_report(
     previous_debug_token = os.environ.get(LOCAL_DEBUG_API_TOKEN_ENV)
     local_debug_token = secrets.token_urlsafe(24)
     os.environ[LOCAL_DEBUG_API_TOKEN_ENV] = local_debug_token
-    feedback_dir = db_path.parent / f"{db_path.stem}_feedback_{secrets.token_hex(6)}"
+    feedback_dir = _product_pages_sidecar_dir(
+        db_path=db_path,
+        prefix="fb",
+        suffix=secrets.token_hex(4),
+    )
     report["feedback_store_path"] = str(_feedback_jsonl_path(feedback_dir))
     previous_feedback_dir = accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR
     previous_data_feedback_dir = local_data_hygiene_routes.DOGFOOD_FEEDBACK_DIR
     previous_backup_dir = local_data_hygiene_routes.DOGFOOD_BACKUP_DIR
     previous_export_dir = local_data_hygiene_routes.DOGFOOD_EXPORT_DIR
-    data_hygiene_dir = ROOT / ".pytest_tmp_local" / "product_pages_data_hygiene" / secrets.token_hex(6)
+    data_hygiene_dir = ROOT / ".pytest_tmp_local" / "ppdh" / secrets.token_hex(4)
     accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR = feedback_dir
     local_data_hygiene_routes.DOGFOOD_FEEDBACK_DIR = feedback_dir
     local_data_hygiene_routes.DOGFOOD_BACKUP_DIR = data_hygiene_dir / "backups"
