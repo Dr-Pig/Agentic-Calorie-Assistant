@@ -8,6 +8,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.run_accurate_intake_one_day_realistic_web_dogfood import (  # noqa: E402
+    _ChineseOneDayManagerProvider,
+    _build_test_client,
+    _close_test_client,
     build_report,
 )
 
@@ -20,6 +23,47 @@ def _react_trace(turn: dict) -> dict:
     payload = (turn.get("raw_response") or {}).get("payload") or {}
     manager = payload.get("intake_execution_manager") or {}
     return manager.get("react_trace") or {}
+
+
+def test_one_day_realistic_client_uses_request_scoped_db_sessions():
+    from app.database import get_db
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    created: list[FakeSession] = []
+
+    def fake_session_factory() -> FakeSession:
+        session = FakeSession()
+        created.append(session)
+        return session
+
+    client = _build_test_client(fake_session_factory, _ChineseOneDayManagerProvider())  # type: ignore[arg-type]
+    try:
+        override_get_db = client.app.dependency_overrides[get_db]
+        first_dependency = override_get_db()
+        second_dependency = override_get_db()
+        first_session = next(first_dependency)
+        second_session = next(second_dependency)
+
+        assert first_session is created[0]
+        assert second_session is created[1]
+        assert first_session is not second_session
+        for dependency in (first_dependency, second_dependency):
+            try:
+                next(dependency)
+            except StopIteration:
+                pass
+            else:
+                raise AssertionError("dependency generator should stop after yielding one session")
+        assert first_session.closed is True
+        assert second_session.closed is True
+    finally:
+        _close_test_client(client)
 
 
 def test_accurate_intake_one_day_realistic_web_dogfood_uses_minimal_fooddb_evidence():
@@ -181,7 +225,7 @@ def test_negative_guard_raw_text_inference_not_used():
         db = SessionLocal()
 
         provider = _ChineseOneDayManagerProvider()
-        client = _build_test_client(db, provider)
+        client = _build_test_client(SessionLocal, provider)
 
         # We mutate the raw user input structurally. Unknown fixture input falls back to the
         # first scripted structured decision; the provider must not infer target intent from text.

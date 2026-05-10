@@ -3312,7 +3312,7 @@ def build_product_pages_browser_smoke_report(
     engine, SessionLocal = _session_factory(db_path)
     provider = DeterministicSelfUseManagerProvider()
     db = SessionLocal()
-    app = _build_app(db, provider)
+    app = _build_app(SessionLocal, provider)
     port = _free_port()
     previous_debug_token = os.environ.get(LOCAL_DEBUG_API_TOKEN_ENV)
     local_debug_token = secrets.token_urlsafe(24)
