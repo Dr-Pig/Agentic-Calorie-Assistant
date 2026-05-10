@@ -46,6 +46,7 @@ def test_local_feedback_route_writes_trace_linked_record_without_promotion(
             "page": "chat",
             "selected_date": "2026-05-10",
             "user_external_id": "local-self-use-001",
+            "request_id": "request-latency-001",
             "trace_id": "trace-latency-001",
             "message_id": "assistant-1",
             "meal_id": "42",
@@ -75,9 +76,16 @@ def test_local_feedback_route_writes_trace_linked_record_without_promotion(
     assert payload["food_kb_truth_update_allowed"] is False
     assert payload["canonical_eval_promotion_allowed"] is False
     assert payload["linked_context"]["page"] == "chat"
+    assert payload["linked_context"]["request_id"] == "request-latency-001"
     assert payload["linked_context"]["trace_id"] == "trace-latency-001"
     assert payload["linked_context"]["message_id"] == "assistant-1"
     assert payload["linked_context"]["meal_id"] == "42"
+    assert payload["source_refs"] == [
+        "request:request-latency-001",
+        "trace:trace-latency-001",
+        "message:assistant-1",
+        "meal:42",
+    ]
     assert payload["ui_event"]["source_page"] == "chat"
     assert payload["operation_context"]["submitted_endpoint"] == "/accurate-intake/feedback"
     assert payload["operation_context"]["http_status"] == 200
@@ -90,7 +98,9 @@ def test_local_feedback_route_writes_trace_linked_record_without_promotion(
     assert rows[0]["feedback_id"] == payload["feedback_id"]
     assert rows[0]["ui_event"]["api_duration_ms"] == 197000
     assert rows[0]["ui_event"]["source_page"] == "chat"
+    assert rows[0]["linked_context"]["request_id"] == "request-latency-001"
     assert rows[0]["linked_context"]["meal_id"] == "42"
+    assert rows[0]["source_refs"][0] == "request:request-latency-001"
     assert rows[0]["operation_context"]["submitted_endpoint"] == "/accurate-intake/feedback"
 
 
@@ -247,12 +257,15 @@ def test_feedback_page_prefills_meal_context_from_today_diary_without_semantic_i
     assert "function feedbackUrlForMeal(meal = {})" in today
     assert "if (!meal.meal_thread_id) return null;" in today
     assert "query.set(\"meal_id\", String(meal.meal_thread_id));" in today
+    assert "query.set(\"request_id\", meal.source_request_id);" in today
     assert "query.set(\"meal_title\", meal.meal_title);" in today
     assert "meal.meal_title.includes" not in today
     assert "query.set(\"meal_id\", meal.meal_title" not in today
 
     assert 'el("meal-id").value = params.get("meal_id") || "";' in feedback
+    assert 'el("request-id").value = params.get("request_id") || params.get("trace_id") || "";' in feedback
     assert 'el("meal-title-context").textContent = params.get("meal_title") || "No meal selected";' in feedback
+    assert 'request_id: el("request-id").value.trim() || el("trace-id").value.trim() || null' in feedback
     assert 'meal_id: el("meal-id").value.trim() || null' in feedback
     assert "loadLatestTraceContext().catch" in feedback
 
@@ -272,6 +285,8 @@ def test_review_page_displays_linked_meal_context_without_new_semantic_owner() -
     page = Path("static/accurate-intake-review.html").read_text(encoding="utf-8")
 
     assert "meal_id" in page
+    assert "request_id" in page
+    assert "source_refs" in page
     assert "meal_title" in page
     assert "display only" in page
     assert "meal title" in page.lower()

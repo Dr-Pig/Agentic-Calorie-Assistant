@@ -589,6 +589,7 @@
       });
       if (message.trace_id) {
         query.set("trace_id", message.trace_id);
+        query.set("request_id", message.trace_id);
       }
       if (message.message_id) {
         query.set("message_id", String(message.message_id));
