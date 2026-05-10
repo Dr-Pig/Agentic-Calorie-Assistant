@@ -46,7 +46,6 @@ from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
 SIDECAR_ACTIVATION_CONTRACT = offline_sidecar_contract("advanced_shadow_lab.product_lab_runtime")
-
 def run_advanced_product_lab_turn(
     *,
     lab_mode: str,
@@ -57,6 +56,7 @@ def run_advanced_product_lab_turn(
     control_events: list[Mapping[str, Any]] | None = None,
     manager_script: list[Mapping[str, Any]] | None = None,
     manager_tool_store: ProductLabMemoryStore | None = None,
+    prior_action_state: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     blockers = turn_blockers(lab_mode=lab_mode, turn=turn)
     if blockers:
@@ -108,6 +108,7 @@ def run_advanced_product_lab_turn(
         memory_context_pack=memory_context_pack,
         recommendation_artifact=product_recommendation,
         rescue_artifact=product_rescue,
+        action_state=prior_action_state,
     )
     control_state = build_product_lab_control_state(
         session_id=str(turn.get("session_id") or ""),

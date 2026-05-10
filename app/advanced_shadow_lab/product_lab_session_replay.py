@@ -92,6 +92,7 @@ def run_advanced_product_lab_dogfood_session(
             prior_control_journal=journal,
             manager_script=turn_manager_script(turn_spec),
             manager_tool_store=memory_store,
+            prior_action_state=action_state,
         )
         released_journal = release_completed_controls(journal, turn_artifact)
         post_control = post_turn_control_state(

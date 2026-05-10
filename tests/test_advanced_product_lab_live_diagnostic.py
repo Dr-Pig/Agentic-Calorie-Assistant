@@ -178,7 +178,7 @@ def test_product_lab_live_diagnostic_payload_includes_product_runtime_summary(
             "golden-breakfast-oatmeal",
             "golden-breakfast-oatmeal",
         ],
-        "proactive_candidate_counts": [2, 2, 2, 2],
+        "proactive_candidate_counts": [2, 3, 3, 3],
         "outputs_applied_to_chat_surface": True,
         "recommendation_intake_handoff_created": True,
         "rescue_commit_handoff_created": True,
