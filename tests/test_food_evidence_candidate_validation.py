@@ -34,6 +34,17 @@ def _candidate(
         "serving_basis": {"unit_type": "g", "amount": 100, "label": "per_100g"},
         "kcal_point": kcal,
         "kcal_range": None,
+        "protein_g_point": None,
+        "protein_g_range": None,
+        "carbs_g_point": None,
+        "carbs_g_range": None,
+        "fat_g_point": None,
+        "fat_g_range": None,
+        "macro_basis": "unknown",
+        "macro_confidence": "unknown",
+        "macro_source_strength": "unavailable",
+        "macro_visibility_candidate": "hidden_missing_source",
+        "macro_null_reason": "missing_source_macro",
         "source_provenance": {
             "source_id": source_id,
             "source_file": source_file,
@@ -118,6 +129,8 @@ def test_validator_passes_schema_provenance_unit_kcal_and_source_class() -> None
     assert result["candidate_id"] == "c1"
     assert result["runtime_truth_allowed"] is False
     assert result["packet_ready"] is False
+    assert result["macro_visibility_candidate"] == "hidden_missing_source"
+    assert result["macro_null_reason"] == "missing_source_macro"
 
 
 def test_validator_accepts_tfda_listed_component_candidate_without_truth_promotion() -> None:
@@ -228,6 +241,80 @@ def test_validator_rejects_missing_provenance_invalid_kcal_and_unsupported_sourc
     assert by_id["unsupported"]["validation_status"] == "rejected"
     assert "unsupported_source_class" in by_id["unsupported"]["validation_reasons"]
     assert artifact["summary"]["rejected_count"] == 3
+
+
+def test_validator_rejects_runtime_truth_and_invalid_macro_candidate_posture() -> None:
+    runtime_truth = {**_candidate("runtime_truth", "runtime"), "runtime_truth_allowed": True}
+    visible_macro = {
+        **_candidate("visible_macro", "visible"),
+        "protein_g_point": 7,
+        "carbs_g_point": 20,
+        "fat_g_point": 3,
+        "macro_basis": "per_serving",
+        "macro_confidence": "candidate",
+        "macro_source_strength": "source_declared_candidate",
+        "macro_visibility_candidate": "visible",
+        "macro_null_reason": None,
+    }
+    hidden_with_value = {
+        **_candidate("hidden_with_value", "hidden"),
+        "protein_g_point": 1,
+    }
+    missing_schema = _candidate("missing_schema", "missing")
+    missing_schema.pop("macro_visibility_candidate")
+
+    artifact = build_food_evidence_candidate_validation_artifact(
+        candidate_artifact=_candidate_artifact(
+            [runtime_truth, visible_macro, hidden_with_value, missing_schema]
+        ),
+        gap_register=None,
+    )
+
+    by_id = {item["candidate_id"]: item for item in artifact["validated_candidates"]}
+    assert by_id["runtime_truth"]["validation_status"] == "rejected"
+    assert "runtime_truth_allowed_not_false" in by_id["runtime_truth"]["validation_reasons"]
+    assert by_id["visible_macro"]["validation_status"] == "rejected"
+    assert "macro_visibility_candidate_invalid" in by_id["visible_macro"]["validation_reasons"]
+    assert by_id["hidden_with_value"]["validation_status"] == "rejected"
+    assert "hidden_missing_macro_has_value" in by_id["hidden_with_value"]["validation_reasons"]
+    assert by_id["missing_schema"]["validation_status"] == "rejected"
+    assert "missing_macro_schema" in by_id["missing_schema"]["validation_reasons"]
+
+
+def test_validator_accepts_source_declared_macro_as_hidden_candidate_only() -> None:
+    artifact = build_food_evidence_candidate_validation_artifact(
+        candidate_artifact=_candidate_artifact(
+            [
+                {
+                    **_candidate(
+                        "macro_candidate",
+                        "Brown Sugar Milk Tea",
+                        source_id="local_tw_packaged_extract_188_2",
+                        source_class="local_taiwan_packaged_extract",
+                        evidence_role="exact_card_candidate",
+                        source_file="188_2.csv",
+                    ),
+                    "protein_g_point": 6,
+                    "carbs_g_point": 38,
+                    "fat_g_point": 4,
+                    "macro_basis": "per_serving",
+                    "macro_confidence": "candidate",
+                    "macro_source_strength": "source_declared_candidate",
+                    "macro_visibility_candidate": "hidden_until_approval",
+                    "macro_null_reason": None,
+                }
+            ]
+        ),
+        gap_register=None,
+    )
+
+    result = artifact["validated_candidates"][0]
+    assert result["validation_status"] == "validator_passed"
+    assert result["protein_g_point"] == 6
+    assert result["carbs_g_point"] == 38
+    assert result["fat_g_point"] == 4
+    assert result["macro_visibility_candidate"] == "hidden_until_approval"
+    assert result["runtime_truth_allowed"] is False
 
 
 def test_validator_marks_duplicate_or_alias_collision_as_source_repair() -> None:
