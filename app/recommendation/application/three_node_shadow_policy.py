@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.shared.contracts.runtime_lab_downstream_boundary import (
+    consumer_summary_projection_blockers,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -52,11 +55,27 @@ def build_fixture_recommendation_three_node_input() -> dict[str, Any]:
 
 
 def candidate_guard(payload: Mapping[str, Any]) -> dict[str, Any]:
+    memory_projection = _mapping(payload.get("memory_summary_projection"))
+    projection_blockers = consumer_summary_projection_blockers(memory_projection)
+    memory_negative_ids = [] if projection_blockers else _memory_negative_ids(memory_projection)
+    if projection_blockers:
+        return {
+            "allowed_candidate_ids": [],
+            "filtered_candidates": [],
+            "deterministic_guard_only": True,
+            "memory_summary_projection_used": False,
+            "memory_negative_preference_ids": [],
+            "blockers": projection_blockers,
+        }
     allowed: list[str] = []
     filtered: list[dict[str, Any]] = []
     for candidate in candidates(payload):
         candidate_id = str(candidate.get("candidate_id", ""))
-        reasons = filter_reason_codes(candidate, payload)
+        reasons = filter_reason_codes(
+            candidate,
+            payload,
+            memory_negative_ids=memory_negative_ids,
+        )
         if reasons:
             filtered.append({"candidate_id": candidate_id, "reason_codes": reasons})
         else:
@@ -65,11 +84,17 @@ def candidate_guard(payload: Mapping[str, Any]) -> dict[str, Any]:
         "allowed_candidate_ids": allowed,
         "filtered_candidates": filtered,
         "deterministic_guard_only": True,
+        "memory_summary_projection_used": bool(memory_projection),
+        "memory_negative_preference_ids": memory_negative_ids,
+        "blockers": [],
     }
 
 
 def filter_reason_codes(
-    candidate: Mapping[str, Any], payload: Mapping[str, Any]
+    candidate: Mapping[str, Any],
+    payload: Mapping[str, Any],
+    *,
+    memory_negative_ids: list[str] | None = None,
 ) -> list[str]:
     reasons: list[str] = []
     remaining = _int_field(_mapping(payload.get("current_budget_view")), "remaining_kcal")
@@ -78,6 +103,8 @@ def filter_reason_codes(
         reasons.append("over_budget")
     if _matches_any(candidate, _negative_patterns(payload)):
         reasons.append("confirmed_negative_preference")
+    if _matches_any_ref(candidate, memory_negative_ids or []):
+        reasons.append("memory_negative_preference_blocker")
     if _matches_any(candidate, _rescue_conflict_patterns(payload)):
         reasons.append("accepted_rescue_conflict")
     reasons.extend(sorted({str(flag) for flag in candidate.get("hard_avoid_flags", [])}))
@@ -115,6 +142,9 @@ def empty_candidate_guard() -> dict[str, Any]:
         "allowed_candidate_ids": [],
         "filtered_candidates": [],
         "deterministic_guard_only": True,
+        "memory_summary_projection_used": False,
+        "memory_negative_preference_ids": [],
+        "blockers": [],
     }
 
 
@@ -144,6 +174,23 @@ def _matches_any(candidate: Mapping[str, Any], patterns: list[str]) -> bool:
         if normalized and (normalized in tokens or normalized in title):
             return True
     return False
+
+
+def _matches_any_ref(candidate: Mapping[str, Any], candidate_ids: list[str]) -> bool:
+    refs = [str(ref) for ref in candidate.get("source_refs", [])]
+    return any(
+        ref == candidate_id or ref.endswith(f":{candidate_id}")
+        for ref in refs
+        for candidate_id in candidate_ids
+    )
+
+
+def _memory_negative_ids(memory_projection: Mapping[str, Any]) -> list[str]:
+    profile = _mapping(memory_projection.get("preference_profile_summary"))
+    values = profile.get("negative_preference_blockers")
+    if not isinstance(values, list):
+        return []
+    return [str(value) for value in values if str(value)]
 
 
 def _candidate(
