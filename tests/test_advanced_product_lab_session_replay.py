@@ -168,6 +168,60 @@ def test_product_lab_session_replay_records_post_turn_chat_action_outcomes(
     )
 
 
+def test_product_lab_session_replay_blocks_invisible_chat_action_target(
+    tmp_path: Path,
+) -> None:
+    artifact = run_advanced_product_lab_dogfood_session(
+        artifact_root=tmp_path,
+        session_id="lab-session-action-edge-1",
+        fixture_inputs=_fixture_inputs(),
+        turns=[
+            {
+                "turn_id": "t1-dismiss",
+                "lab_now_minute": 10,
+                "post_turn_control_events": [
+                    {
+                        "event_id": "dismiss-rec",
+                        "action": "dismiss",
+                        "target_candidate_id": "recommendation_prompt:0",
+                        "trigger_type": "recommendation_prompt",
+                        "scope": "candidate_instance",
+                        "dismiss_reason": "too_frequent",
+                        "next_signal_required": "new_app_open_with_qualified_pool",
+                    }
+                ],
+            },
+            {
+                "turn_id": "t2-invalid-action",
+                "lab_now_minute": 20,
+                "post_turn_chat_actions": [
+                    {
+                        "event_id": "log-invisible-rec",
+                        "target_candidate_id": "recommendation_prompt:0",
+                        "action": "log_this",
+                    }
+                ],
+            },
+        ],
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["lab_session_store_written"] is False
+    assert artifact["canonical_product_mutation_allowed"] is False
+    assert artifact["lab_chat_action_blockers"] == [
+        "chat_action.target_not_visible:recommendation_prompt:0"
+    ]
+    assert artifact["blockers"] == [
+        "t2-invalid-action.chat_action.chat_action.target_not_visible:recommendation_prompt:0"
+    ]
+    assert artifact["turn_summaries"][1]["visible_candidate_ids"] == [
+        "rescue_nudge:1"
+    ]
+    assert artifact["turn_summaries"][1]["lab_chat_action_outcome_types"] == [
+        "target_candidate_not_visible"
+    ]
+
+
 def test_product_lab_session_replay_blocks_path_traversal_session_id(
     tmp_path: Path,
 ) -> None:
