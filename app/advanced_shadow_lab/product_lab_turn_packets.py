@@ -150,6 +150,14 @@ def _product_fields(
         )
         return {
             "product_lab_copy": copy,
+            "rescue_proposal_packet": {
+                "proposal_card": dict(card),
+                "primary_actions": list(product_rescue.get("primary_actions") or []),
+                "guardrail_math": dict(product_rescue.get("guardrail_math") or {}),
+                "pending_rescue_commit_packet": dict(
+                    product_rescue.get("pending_rescue_commit_packet") or {}
+                ),
+            },
             "product_runtime_output_refs": [
                 str(product_rescue.get("artifact_type") or ""),
                 str(product_proactive.get("artifact_type") or ""),

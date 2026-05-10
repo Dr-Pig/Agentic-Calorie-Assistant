@@ -88,6 +88,7 @@ def _message(
             str(item) for item in packet.get("product_runtime_output_refs") or []
         ],
         "recommendation_offer": _recommendation_offer(packet),
+        "rescue_proposal": _rescue_proposal(packet),
         "controls_visible": True,
         "actions": [
             _action(session_id, turn_id, candidate_id, "dismiss"),
@@ -150,6 +151,20 @@ def _recommendation_offer(packet: Mapping[str, Any]) -> dict[str, Any]:
             for item in ux.get("actions") or []
             if isinstance(item, Mapping)
         ),
+    }
+
+
+def _rescue_proposal(packet: Mapping[str, Any]) -> dict[str, Any]:
+    proposal = _mapping(packet.get("rescue_proposal_packet"))
+    if not proposal:
+        return {}
+    pending = _mapping(proposal.get("pending_rescue_commit_packet"))
+    return {
+        "handoff_state": str(pending.get("handoff_state") or ""),
+        "primary_actions": [str(item) for item in proposal.get("primary_actions") or []],
+        "guardrail_math": dict(_mapping(proposal.get("guardrail_math"))),
+        "canonical_commit_requested": pending.get("canonical_commit_requested") is True,
+        "proposal_committed": pending.get("proposal_committed") is True,
     }
 
 

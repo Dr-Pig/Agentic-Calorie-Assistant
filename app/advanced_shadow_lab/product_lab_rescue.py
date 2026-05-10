@@ -6,6 +6,9 @@ from app.rescue.application.chain_lifecycle_adapter import (
     build_rescue_chain_lifecycle_shadow_packets,
 )
 from app.rescue.application.shadow_chain_runner import run_rescue_shadow_chain
+from app.advanced_shadow_lab.product_lab_rescue_handoff import (
+    build_pending_rescue_commit_packet,
+)
 
 
 LAB_INTERACTION_INTENTS = ["present", "accept", "dismiss", "request_gentler"]
@@ -32,18 +35,29 @@ def run_product_lab_rescue(
         *_blockers("rescue_lifecycle", lifecycle),
     ]
     option = _option_stage(chain)
+    proposal_card = {} if blockers else _proposal_card(option)
+    primary_actions = [] if blockers else _primary_actions()
+    lifecycle_packets = [] if blockers else _lab_lifecycle_packets(lifecycle)
+    pending_commit = build_pending_rescue_commit_packet(
+        proposal_card=proposal_card,
+        primary_actions=primary_actions,
+        lifecycle_packets=lifecycle_packets,
+    )
+    blockers.extend(_blockers("pending_rescue_commit", pending_commit))
     return {
         "artifact_type": "advanced_product_lab_rescue_runtime_artifact",
         "artifact_schema_version": "1.0",
         "status": "blocked" if blockers else "pass",
         "source_shadow_chain_status": str(chain.get("status") or ""),
         "source_lifecycle_status": str(lifecycle.get("status") or ""),
-        "proposal_card": {} if blockers else _proposal_card(option),
+        "proposal_card": proposal_card,
         "guardrail_math": _guardrail_math(option),
-        "primary_actions": [] if blockers else _primary_actions(),
-        "lifecycle_packets": [] if blockers else _lab_lifecycle_packets(lifecycle),
+        "primary_actions": primary_actions,
+        "lifecycle_packets": lifecycle_packets,
+        "pending_rescue_commit_packet": pending_commit,
         "proposal_presented_to_lab": not bool(blockers),
         "rescue_lifecycle_enabled": not bool(blockers),
+        "rescue_intent_state_created": pending_commit.get("status") == "pass",
         "chat_first": True,
         "canonical_commit_requested": False,
         "proposal_committed": False,
