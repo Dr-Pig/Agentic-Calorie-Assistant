@@ -47,6 +47,8 @@ def build_fixture_recommendation_three_node_input() -> dict[str, Any]:
         "shadow_offer_packet_fixture": {
             "decision_mode": "llm_fixture",
             "candidate_id": "golden-1",
+            "backup_candidate_ids": [],
+            "explanation": "Fixture LLM selected the reviewed budget-fitting option.",
             "recommendation_served": False,
             "is_canonical_truth": False,
             "intake_commit_requested": False,
@@ -116,6 +118,11 @@ def offer_blockers(offer: Mapping[str, Any], allowed_ids: set[str]) -> list[str]
     candidate_id = str(offer.get("candidate_id", ""))
     if candidate_id not in allowed_ids:
         blockers.append(f"shadow_offer_packet_fixture.candidate_not_allowed:{candidate_id}")
+    for backup_id in _string_list(offer.get("backup_candidate_ids")):
+        if backup_id not in allowed_ids:
+            blockers.append(
+                f"shadow_offer_packet_fixture.backup_candidate_not_allowed:{backup_id}"
+            )
     if offer.get("recommendation_served") is True:
         blockers.append("shadow_offer_packet_fixture.recommendation_served_not_allowed")
     if offer.get("is_canonical_truth") is True:
@@ -220,6 +227,10 @@ def _int_field(mapping: Mapping[str, Any], key: str) -> int | None:
 
 def _mapping(value: Any) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
+
+
+def _string_list(value: Any) -> list[str]:
+    return [str(item) for item in value] if isinstance(value, list) else []
 
 
 def _normalize(value: str) -> str:
