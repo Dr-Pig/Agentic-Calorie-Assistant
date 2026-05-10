@@ -3,17 +3,13 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any, Iterable
 
-from app.nutrition.infrastructure.exact_item_card_loader import (
-    load_exact_item_card_seed_records,
-)
-from app.nutrition.infrastructure.small_anchor_store_loader import (
-    load_small_anchor_seed_records,
-)
 from app.nutrition.application.fooddb_macro_contract import (
     APPROVED_PACKET_READY_SCHEMA_VERSION as SCHEMA_VERSION,
     APPROVED_PACKET_READY_SOURCE_QUALITY as SOURCE_QUALITY,
     MACRO_CONTRACT,
 )
+from app.nutrition.infrastructure.exact_item_card_loader import load_exact_item_card_seed_records
+from app.nutrition.infrastructure.small_anchor_store_loader import load_small_anchor_seed_records
 
 
 def build_approved_packet_ready_fooddb_artifact(
@@ -22,13 +18,10 @@ def build_approved_packet_ready_fooddb_artifact(
     exact_item_cards: Iterable[dict[str, Any]] | None = None,
     small_anchor_records: Iterable[dict[str, Any]] | None = None,
     limit: int = 3,
+    selection_profile: str = "minimum_triad",
 ) -> dict[str, Any]:
     cards = list(exact_item_cards) if exact_item_cards is not None else load_exact_item_card_seed_records()
-    anchors = (
-        list(small_anchor_records)
-        if small_anchor_records is not None
-        else load_small_anchor_seed_records()
-    )
+    anchors = list(small_anchor_records) if small_anchor_records is not None else load_small_anchor_seed_records()
     exact_items = [_packet_ready_item(card) for card in cards if _card_has_complete_macro(card)]
     generic_items = [
         _packet_ready_anchor_item(anchor, source_lane="generic_common_serving")
@@ -40,12 +33,19 @@ def build_approved_packet_ready_fooddb_artifact(
         for anchor in anchors
         if _anchor_is_listed_component(anchor)
     ]
-    packet_items = [
-        *exact_items[:1],
-        *generic_items[:1],
-        *component_items[:1],
-    ]
-    packet_items = packet_items[: max(0, int(limit))]
+    available_packet_items = [*exact_items, *generic_items, *component_items]
+    available_lane_counts = _packet_ready_lane_counts(available_packet_items)
+    normalized_selection_profile = _text(selection_profile) or "minimum_triad"
+    if normalized_selection_profile not in {"minimum_triad", "full_current_shell"}:
+        msg = f"unsupported packet-ready selection profile: {normalized_selection_profile}"
+        raise ValueError(msg)
+    packet_items = _select_packet_ready_items(
+        exact_items=exact_items,
+        generic_items=generic_items,
+        component_items=component_items,
+        limit=limit,
+        selection_profile=normalized_selection_profile,
+    )
     lane_counts = _packet_ready_lane_counts(packet_items)
     blockers = _missing_lane_blockers(lane_counts)
     ready = not blockers
@@ -76,13 +76,23 @@ def build_approved_packet_ready_fooddb_artifact(
         "summary": {
             "source_file": "app/knowledge/exact_item_cards_tw.json",
             "small_anchor_source_file": "app/knowledge/small_anchor_store_tw.json",
+            "selection_profile": normalized_selection_profile,
             "source_card_count": len(cards),
             "source_anchor_count": len(anchors),
             "packet_ready_item_count": len(packet_items),
             "packet_ready_lane_counts": lane_counts,
+            "available_packet_ready_lane_counts": available_lane_counts,
             "macro_complete_item_count": sum(1 for card in cards if _card_has_complete_macro(card)),
         },
         "packet_ready_items": packet_items,
+        "manager_packet_forbidden_inputs": [
+            "raw_source_rows",
+            "candidate_only_records",
+            "full_fooddb_dump",
+            "websearch_snippets_as_truth",
+            "dogfood_feedback",
+            "macro_values_inferred_from_name_or_kcal",
+        ],
         "blockers": blockers,
         "runtime_truth_changed": False,
         "runtime_mutation_attempted": False,
@@ -101,7 +111,28 @@ def build_approved_packet_ready_fooddb_artifact(
             "no_product_readiness",
             "no_private_self_use_approval",
         ],
-    }
+}
+
+
+def _select_packet_ready_items(
+    *,
+    exact_items: list[dict[str, Any]],
+    generic_items: list[dict[str, Any]],
+    component_items: list[dict[str, Any]],
+    limit: int,
+    selection_profile: str,
+) -> list[dict[str, Any]]:
+    if selection_profile == "full_current_shell":
+        return [*exact_items, *generic_items, *component_items]
+
+    preferred = (item for item in generic_items if _text(item.get("runtime_usage_boundary")).startswith("generic_range"))
+    representative_generic = next(preferred, generic_items[0] if generic_items else None)
+    packet_items = [
+        *exact_items[:1],
+        *([representative_generic] if representative_generic is not None else []),
+        *component_items[:1],
+    ]
+    return packet_items[: max(0, int(limit))]
 
 
 def _packet_ready_lane_counts(packet_items: list[dict[str, Any]]) -> dict[str, int]:
@@ -227,9 +258,7 @@ def _anchor_is_generic_common_serving(anchor: dict[str, Any]) -> bool:
     return (
         _anchor_is_packet_ready(anchor)
         and _text(anchor.get("runtime_role")) == "common_serving_anchor"
-        and _text(anchor.get("composition_posture")) != "listed_item_component"
-        and "listed_component" not in _text(anchor.get("runtime_usage_boundary"))
-        and _text(anchor.get("runtime_usage_boundary")).startswith("generic_range")
+        and not _anchor_is_listed_component(anchor)
     )
 
 
@@ -259,7 +288,7 @@ def _kcal_range(value: Any) -> list[int]:
         return []
     low = _whole_number(value[0])
     high = _whole_number(value[1] if len(value) > 1 else value[0])
-    if low <= 0 or high <= 0:
+    if low < 0 or high <= 0:
         return []
     return [min(low, high), max(low, high)]
 

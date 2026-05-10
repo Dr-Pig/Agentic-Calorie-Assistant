@@ -38,12 +38,19 @@ def main(argv: list[str] | None = None) -> int:
         help="Output artifact path. Defaults to ignored local artifacts directory.",
     )
     parser.add_argument("--limit", type=int, default=3)
+    parser.add_argument(
+        "--selection-profile",
+        choices=["minimum_triad", "full_current_shell"],
+        default="minimum_triad",
+        help="Packet selection profile. Defaults to the minimal triad handoff.",
+    )
     args = parser.parse_args(argv)
 
     artifact = build_approved_packet_ready_fooddb_artifact(
         exact_item_cards=_load_exact_item_cards(args.exact_item_cards),
         artifact_path=args.output,
         limit=args.limit,
+        selection_profile=args.selection_profile,
     )
     write_json_artifact(Path(args.output), artifact)
     print(
