@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.nutrition.application.fooddb_macro_contract import build_macro_review_policy
+
 FIRST_BATCH_REVIEW_FAMILIES = [
     "breakfast_combo",
     "chicken_bento_rice_modifier",
@@ -15,6 +17,7 @@ def build_fooddb_quality_improvement_plan(
     inventory: dict[str, Any],
     food_gap_register: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    macro_review_policy = build_macro_review_policy()
     return {
         "artifact_type": "accurate_intake_fooddb_quality_improvement_plan",
         "artifact_schema_version": "1.0",
@@ -25,11 +28,13 @@ def build_fooddb_quality_improvement_plan(
         },
         "food_gap_register_summary": _gap_register_summary(food_gap_register or {}),
         "first_batch_review_families": list(FIRST_BATCH_REVIEW_FAMILIES),
+        "first_batch_macro_review_policy": macro_review_policy,
         "first_batch_review_packets": [
             {
                 "gap_family": family,
                 "status": "review_packet_only",
                 "promotion_allowed": False,
+                "macro_review_policy": dict(macro_review_policy),
                 "requires": [
                     "source_class_selection",
                     "complete_provenance",

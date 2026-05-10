@@ -8,6 +8,20 @@ MACRO_PACKET_FIELDS = [
     "macro_source_basis",
     "macro_confidence",
 ]
+MACRO_REVIEW_DECISION_REQUIRED = [
+    "source_class_macro_policy_review",
+    "macro_basis_review",
+    "macro_source_strength_review",
+    "macro_confidence_review",
+    "macro_visibility_or_null_review",
+    "do_not_infer_macro_from_food_name_kcal_or_llm",
+]
+FORBIDDEN_MACRO_SOURCES = [
+    "food_name",
+    "kcal_reverse_inference",
+    "llm_hint",
+    "websearch_snippet",
+]
 MACRO_RUNTIME_POLICY = {
     "calorie_first": True,
     "macro_aware": True,
@@ -119,12 +133,28 @@ APPROVED_PACKET_READY_SCHEMA_VERSION = "fooddb_approved_packet_ready_artifact_v1
 APPROVED_PACKET_READY_SOURCE_QUALITY = "packet_ready_approved"
 
 
+def build_macro_review_policy() -> dict:
+    return {
+        "packet_fields": list(MACRO_PACKET_FIELDS),
+        "missing_macro_policy": MACRO_CONTRACT["missing_macro_policy"],
+        "missing_macro_blocks_kcal_logging": MACRO_RUNTIME_POLICY[
+            "missing_macro_blocks_kcal_logging"
+        ],
+        "review_candidate_can_create_macro_truth": False,
+        "source_class_policy_choices": list(MACRO_SOURCE_CLASS_POLICY),
+        "forbidden_macro_sources": list(FORBIDDEN_MACRO_SOURCES),
+    }
+
+
 __all__ = [
     "APPROVED_PACKET_READY_SCHEMA_VERSION",
     "APPROVED_PACKET_READY_SOURCE_QUALITY",
+    "FORBIDDEN_MACRO_SOURCES",
     "MACRO_CONTRACT",
     "MACRO_PACKET_FIELDS",
+    "MACRO_REVIEW_DECISION_REQUIRED",
     "MACRO_RUNTIME_POLICY",
     "MACRO_SHADOW_SCHEMA",
     "MACRO_SOURCE_CLASS_POLICY",
+    "build_macro_review_policy",
 ]
