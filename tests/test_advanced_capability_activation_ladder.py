@@ -361,8 +361,14 @@ def test_recommendation_ux_acceptance_points_to_offer_shadow_packet() -> None:
         "recommendation_offer_shadow_packet"
         in recommendation_entry["existing_shadow_artifacts"]
     )
+    assert (
+        "recommendation_pending_meal_intent_shadow_packet"
+        in recommendation_entry["existing_shadow_artifacts"]
+    )
     assert "offer_synthesis_trace" in recommendation_entry["required_trace_fields"]
+    assert "acceptance_trace" in recommendation_entry["required_trace_fields"]
     assert "pending_meal_intent_created" in recommendation_entry["required_trace_fields"]
+    assert recommendation_entry["acceptance_status"] == "existing_shadow_chain_mapped"
     assert recommendation_entry["claim_boundary"] == "non_claim"
     assert recommendation_entry["mainline_activation_allowed"] is False
 

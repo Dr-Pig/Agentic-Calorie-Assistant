@@ -279,6 +279,7 @@ capabilities:
       - recommendation_shadow_summary_consumer_quality_report
       - recommendation_three_node_shadow_artifact
       - recommendation_offer_silent_shadow_contract
+      - recommendation_pending_meal_intent_shadow_packet
     stage_specific_no_go:
       recommendation_served: false
       live_search_allowed: false
@@ -651,17 +652,19 @@ edge_case_coverage_contract:
         - recommendation_three_node_shadow_artifact
         - recommendation_shadow_summary_consumer_quality_report
         - recommendation_offer_shadow_packet
+        - recommendation_pending_meal_intent_shadow_packet
         - pending_meal_intent
       required_trace_fields:
         - recommendation_planning
         - candidate_retrieval_guard_scoring
         - offer_synthesis
         - offer_synthesis_trace
+        - acceptance_trace
         - selected_candidate_id
         - intake_commit_requested
         - pending_meal_intent_created
-      acceptance_status: gap_requires_next_slice
-      next_build_slice: recommendation_pending_intent_handoff_shadow
+      acceptance_status: existing_shadow_chain_mapped
+      next_build_slice: proactive_pending_meal_followup_shadow_or_f2_rescue_direction_challenge
       claim_boundary: non_claim
       mainline_activation_allowed: false
     - journey_id: M
