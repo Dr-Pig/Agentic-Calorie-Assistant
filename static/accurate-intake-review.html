@@ -236,6 +236,7 @@
         <p class="meta"></p>
         <p class="meta"></p>
         <p class="meta"></p>
+        <p class="meta"></p>
       `;
       node.querySelector(".tag").textContent = text(record.category);
       node.querySelector("header .meta").textContent = `${text(record.severity)} · ${text(record.captured_at_utc)}`;
@@ -251,15 +252,19 @@
       metaRows[2].textContent = [
         `trace ${text(linked.trace_id)}`,
         `message ${text(linked.message_id)}`,
+        `meal_id ${text(linked.meal_id)}`,
         `page ${text(linked.page)}`,
         `date ${text(linked.selected_date)}`
       ].join(" | ");
       metaRows[3].textContent = [
+        `meal_title ${text(uiEvent.meal_title)} (display only meal title)`
+      ].join(" | ");
+      metaRows[4].textContent = [
         `source_page ${text(uiEvent.source_page)}`,
         `route ${text(uiEvent.route)}`,
         `feedback_route ${text(uiEvent.feedback_route)}`
       ].join(" | ");
-      metaRows[4].textContent = [
+      metaRows[5].textContent = [
         `endpoint ${text(operation.submitted_endpoint)}`,
         `status ${text(operation.http_status)}`,
         `duration_ms ${text(operation.duration_ms)}`,
