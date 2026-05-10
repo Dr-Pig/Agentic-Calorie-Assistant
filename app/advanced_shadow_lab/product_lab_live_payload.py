@@ -29,6 +29,15 @@ def product_lab_live_provider_payload(
             "outputs_applied_to_chat_surface": bool(
                 summary_artifact.get("product_outputs_applied_to_chat_surface")
             ),
+            "recommendation_intake_handoff_created": bool(
+                summary_artifact.get("product_recommendation_intake_handoff_created")
+            ),
+            "rescue_commit_handoff_created": bool(
+                summary_artifact.get("product_rescue_commit_handoff_created")
+            ),
+            "proactive_delivery_packet_ready": bool(
+                summary_artifact.get("product_proactive_delivery_packet_ready")
+            ),
         },
         "constraints": dict(constraints),
     }

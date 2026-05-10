@@ -180,7 +180,15 @@ def test_product_lab_live_diagnostic_payload_includes_product_runtime_summary(
         ],
         "proactive_candidate_counts": [2, 2, 2, 2],
         "outputs_applied_to_chat_surface": True,
+        "recommendation_intake_handoff_created": True,
+        "rescue_commit_handoff_created": True,
+        "proactive_delivery_packet_ready": True,
     }
+    policy = artifact["model_profile_policy"]
+    assert policy["diagnostic_live_model"] == "grok-4-fast"
+    assert policy["target_reasoning_model"] == "kimi-k2.5"
+    assert policy["provider_dependency_inversion_required"] is True
+    assert policy["kimi_live_calls_allowed"] is False
 
 
 def test_product_lab_live_diagnostic_output_guard_allows_negated_claim_words(
