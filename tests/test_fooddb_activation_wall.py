@@ -57,7 +57,7 @@ def test_fooddb_activation_wall_passes_without_runtime_or_readiness_claim() -> N
         "readiness_claimed",
     ))
     assert artifact["summary"] == {
-        "runtime_common_serving_anchor_count": 51,
+        "runtime_common_serving_anchor_count": 55,
         "listed_component_anchor_count": 30,
         "p0_modifier_count": 3,
         "p0_supported_modifier_count": 3,
@@ -72,7 +72,7 @@ def test_fooddb_activation_wall_checks_packet_boundaries_and_modifiers() -> None
     checks = _checks(_artifact())
 
     assert checks["p0_modifier_supported:cup_size"]["details"]["anchor_count"] == 6
-    assert checks["p0_modifier_supported:rice_portion"]["details"]["anchor_count"] == 2
+    assert checks["p0_modifier_supported:rice_portion"]["details"]["anchor_count"] == 5
     assert checks["p0_modifier_supported:sugar_level"]["details"]["anchor_count"] == 3
     assert checks["boba_packet_has_p0_modifier_compatibility"]["details"][
         "evidence_modifier_compatibility"
@@ -117,7 +117,7 @@ def test_fooddb_activation_wall_preserves_websearch_upstream_next_step(monkeypat
     def fake_status_packet(**_kwargs):
         return {
             "summary": {
-                "runtime_common_serving_anchor_count": 51,
+                "runtime_common_serving_anchor_count": 55,
                 "listed_component_anchor_count": 30,
                 "source_evidence_only_count": 848,
             },
