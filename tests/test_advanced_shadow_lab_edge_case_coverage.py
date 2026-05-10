@@ -51,6 +51,11 @@ def test_edge_case_coverage_contract_maps_advanced_ux_journeys_without_readiness
         "required_journey_ids": ["F", "F2", "I", "L", "M", "N"],
         "mapped_journey_count": 6,
         "missing_journey_ids": [],
+        "existing_shadow_chain_mapped_count": 6,
+        "gap_requires_next_slice_count": 0,
+        "stale_next_slice_journey_ids": [],
+        "closure_next_build_slice": "advanced_capability_gap_review",
+        "mapped_chain_closure_status": "closed_for_gap_review",
         "new_report_family_created": False,
         "mainline_activation_allowed": False,
     }
@@ -95,6 +100,41 @@ def test_edge_case_coverage_blocks_orphan_ux_acceptance_entries() -> None:
     assert "ux_acceptance[F].existing_shadow_artifacts_missing" in blocked["blockers"]
     assert "ux_acceptance[F].claim_boundary_not_non_claim" in blocked["blockers"]
     assert "ux_acceptance[F].mainline_activation_allowed" in blocked["blockers"]
+
+
+def test_edge_case_coverage_blocks_stale_gap_and_next_slice_pointers() -> None:
+    from app.advanced_shadow_lab.edge_case_coverage import (
+        load_edge_case_coverage_contract,
+        validate_edge_case_coverage_contract,
+    )
+
+    artifact = load_edge_case_coverage_contract()
+    contract = dict(artifact["source_contract"])
+    entries = [dict(entry) for entry in contract["ux_acceptance_entries"]]
+    entries[0]["acceptance_status"] = "gap_requires_next_slice"
+    entries[0]["next_build_slice"] = "rescue_missing_slice"
+    entries[1]["next_build_slice"] = "memory_review_forget_confirmation_shadow"
+    contract["ux_acceptance_entries"] = entries
+
+    blocked = validate_edge_case_coverage_contract(contract)
+
+    assert blocked["status"] == "blocked"
+    assert blocked["ux_acceptance_summary"]["mapped_chain_closure_status"] == (
+        "open_gap_requires_next_slice"
+    )
+    assert blocked["ux_acceptance_summary"]["gap_requires_next_slice_count"] == 1
+    assert blocked["ux_acceptance_summary"]["stale_next_slice_journey_ids"] == [
+        "F",
+        "F2",
+    ]
+    assert "ux_acceptance[F].gap_requires_next_slice_not_closed" in blocked["blockers"]
+    assert "ux_acceptance[F].stale_next_build_slice:rescue_missing_slice" in blocked[
+        "blockers"
+    ]
+    assert (
+        "ux_acceptance[F2].stale_next_build_slice:"
+        "memory_review_forget_confirmation_shadow"
+    ) in blocked["blockers"]
 
 
 def test_edge_case_coverage_blocks_orphan_and_keyword_owned_entries() -> None:
@@ -154,6 +194,11 @@ def test_shadow_comparison_exposes_edge_coverage_without_readiness_claim() -> No
             "required_journey_ids": ["F", "F2", "I", "L", "M", "N"],
             "mapped_journey_count": 6,
             "missing_journey_ids": [],
+            "existing_shadow_chain_mapped_count": 6,
+            "gap_requires_next_slice_count": 0,
+            "stale_next_slice_journey_ids": [],
+            "closure_next_build_slice": "advanced_capability_gap_review",
+            "mapped_chain_closure_status": "closed_for_gap_review",
             "new_report_family_created": False,
             "mainline_activation_allowed": False,
         },
