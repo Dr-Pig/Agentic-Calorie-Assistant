@@ -19,12 +19,11 @@ def build_product_lab_simulated_turns() -> list[dict[str, Any]]:
                     "next_signal_required": "new_app_open_with_qualified_pool",
                 }
             ],
-            "post_turn_memory_events": [
+            "post_turn_memory_signal_events": [
                 {
-                    "memory_id": "golden-breakfast-oatmeal",
-                    "memory_type": "golden_order",
+                    "signal_id": "golden-breakfast-oatmeal",
+                    "signal_type": "golden_order",
                     "summary": "Morning Bar oatmeal is a reliable breakfast option.",
-                    "review_status": "accepted_lab",
                     "source_object_refs": ["turn:t1-offer:user"],
                     "store_name": "Morning Bar",
                     "item_names": ["oatmeal"],
@@ -36,13 +35,28 @@ def build_product_lab_simulated_turns() -> list[dict[str, Any]]:
                     ],
                 },
                 {
-                    "memory_id": "negative-cilantro",
-                    "memory_type": "negative_preference",
+                    "signal_id": "negative-cilantro",
+                    "signal_type": "negative_preference",
                     "summary": "Avoid cilantro in recommendations.",
-                    "review_status": "accepted_lab",
                     "source_object_refs": ["turn:t1-offer:user"],
                     "blocks_candidate_types": ["recommendation_candidate"],
                     "intended_consumers": ["recommendation"],
+                },
+            ],
+            "post_turn_memory_review_decisions": [
+                {
+                    "candidate_id": "golden-breakfast-oatmeal",
+                    "decision": "promote",
+                    "confirmed": True,
+                    "reviewer": "lab-human",
+                    "reason": "confirmed_for_simulated_dogfood",
+                },
+                {
+                    "candidate_id": "negative-cilantro",
+                    "decision": "promote",
+                    "confirmed": True,
+                    "reviewer": "lab-human",
+                    "reason": "confirmed_for_simulated_dogfood",
                 },
             ],
         },
