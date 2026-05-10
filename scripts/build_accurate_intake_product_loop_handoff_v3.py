@@ -215,6 +215,52 @@ def _pl_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def _browser_fooddb_contract_validation(evidence: dict[str, Any]) -> dict[str, Any]:
+    browser_fixture = _object_dict(evidence.get("browser_fixture_dogfood"))
+    manager_summary = _object_dict(browser_fixture.get("manager_dogfood_summary"))
+    fixture_packet_evidence = browser_fixture.get("fixture_fooddb_evidence_used") is True
+    fooddb_evidence = browser_fixture.get("fooddb_evidence_used") is True
+    return _json_safe(
+        {
+            "source": "browser_fixture_dogfood.manager_dogfood_summary",
+            "packet_evidence_consumed": fixture_packet_evidence or fooddb_evidence,
+            "fixture_fooddb_evidence_used": fixture_packet_evidence,
+            "fooddb_evidence_used": fooddb_evidence,
+            "fooddb_evidence_used_normalized_for_local_review": browser_fixture.get(
+                "fooddb_evidence_used_normalized_for_local_review"
+            )
+            is True,
+            "macro_present_evidence_seen": manager_summary.get("macro_present_evidence_seen")
+            is True,
+            "macro_missing_evidence_seen": manager_summary.get("macro_missing_evidence_seen")
+            is True,
+            "real_fooddb_pass_claimed": browser_fixture.get("real_fooddb_pass_claimed")
+            is True,
+            "dogfood_pass": browser_fixture.get("dogfood_pass") is True,
+            "product_readiness_claimed": browser_fixture.get("product_readiness_claimed")
+            is True,
+        }
+    )
+
+
+def _browser_fooddb_contract_blockers(evidence: dict[str, Any]) -> list[str]:
+    validation = _browser_fooddb_contract_validation(evidence)
+    blockers: list[str] = []
+    if validation["packet_evidence_consumed"] is not True:
+        blockers.append("browser_fixture_dogfood_packet_evidence_not_consumed")
+    if validation["macro_present_evidence_seen"] is not True:
+        blockers.append("browser_fixture_dogfood_macro_present_evidence_not_seen")
+    if validation["macro_missing_evidence_seen"] is not True:
+        blockers.append("browser_fixture_dogfood_macro_missing_evidence_not_seen")
+    if validation["real_fooddb_pass_claimed"] is True:
+        blockers.append("browser_fixture_dogfood_real_fooddb_overclaim")
+    if validation["dogfood_pass"] is True:
+        blockers.append("browser_fixture_dogfood_dogfood_pass_overclaim")
+    if validation["product_readiness_claimed"] is True:
+        blockers.append("browser_fixture_dogfood_product_readiness_overclaim")
+    return blockers
+
+
 def _product_loop_evidence_status(evidence: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     statuses: dict[str, Any] = {}
     blockers: list[str] = []
@@ -428,16 +474,17 @@ def build_product_loop_handoff_v3(
     fooddb_artifact: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     evidence_status, product_loop_blockers = _product_loop_evidence_status(evidence)
+    fooddb_contract_blockers = _browser_fooddb_contract_blockers(evidence)
     fooddb = _fooddb_validation(fooddb_artifact)
     local_web_candidate = _object_dict(evidence.get("local_web_candidate"))
-    blockers = [*product_loop_blockers]
+    blockers = [*product_loop_blockers, *fooddb_contract_blockers]
     if fooddb["status"] in {
         "blocked_invalid_fooddb_metadata",
         "blocked_invalid_fooddb_macro_contract",
     }:
         blockers.extend(fooddb["blockers"])
 
-    if product_loop_blockers:
+    if product_loop_blockers or fooddb_contract_blockers:
         status = "blocked"
         selected_next_step = "fix_product_loop_evidence"
     elif fooddb["status"] in {
@@ -464,6 +511,7 @@ def build_product_loop_handoff_v3(
             "product_loop_required_evidence": list(REQUIRED_PRODUCT_LOOP_EVIDENCE),
             "product_loop_evidence_status": evidence_status,
             "appshell_browser_evidence_chain": _appshell_chain(local_web_candidate),
+            "fooddb_contract_validation": _browser_fooddb_contract_validation(evidence),
             "fooddb_input_mode": "approved_packet_ready_metadata_validation_only",
             "fooddb_artifact_status": fooddb["status"],
             "fooddb_validation": fooddb,
