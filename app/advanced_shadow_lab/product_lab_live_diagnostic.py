@@ -78,6 +78,9 @@ def run_product_lab_live_diagnostic(
         "source_summary_artifact_type": summary_artifact.get("artifact_type"),
         "source_session_id": str(summary_artifact.get("session_id") or ""),
         "source_turn_count": int(summary_artifact.get("turn_count") or 0),
+        "source_product_loop_closed": (
+            summary_artifact.get("advanced_product_lab_product_loop_closed") is True
+        ),
         "lab_user_facing_behavior_changed": bool(summary_artifact.get("lab_user_facing_behavior_changed")),
         "lab_memory_store_written": bool(summary_artifact.get("lab_memory_store_written")),
         "memory_context_injected": bool(summary_artifact.get("memory_context_injected")),
