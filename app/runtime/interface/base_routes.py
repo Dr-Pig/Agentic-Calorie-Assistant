@@ -13,8 +13,15 @@ _INDEX_HTML_PATH = Path(__file__).resolve().parent.parent.parent.parent / "stati
 _INDEX_HTML_CACHE: str | None = None
 
 
-def _public_readiness(readiness: dict) -> dict:
-    return {"status": "ok"} if readiness else {"status": "unknown"}
+def public_provider_readiness(readiness: dict | None) -> dict:
+    if not isinstance(readiness, dict) or not readiness:
+        return {"status": "unknown", "configured": False}
+    configured = readiness.get("configured")
+    if configured is True:
+        return {"status": "configured", "configured": True}
+    if configured is False:
+        return {"status": "not_configured", "configured": False}
+    return {"status": "unknown", "configured": False}
 
 
 def _load_index_html() -> str:
@@ -29,10 +36,10 @@ async def ping() -> dict:
     return {
         "canary_version": CANARY_VERSION,
         "schema_signature": SCHEMA_SIGNATURE,
-        "provider": _public_readiness(manager_provider.readiness()),
-        "manager_provider": _public_readiness(manager_provider.readiness()),
-        "search": _public_readiness(search_provider.readiness()),
-        "extract": _public_readiness(extract_provider.readiness()),
+        "provider": public_provider_readiness(manager_provider.readiness()),
+        "manager_provider": public_provider_readiness(manager_provider.readiness()),
+        "search": public_provider_readiness(search_provider.readiness()),
+        "extract": public_provider_readiness(extract_provider.readiness()),
     }
 
 

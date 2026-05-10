@@ -128,6 +128,33 @@
       gap: 10px;
       align-items: end;
     }
+    .provider-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .provider-chip {
+      min-height: 54px;
+      display: grid;
+      gap: 4px;
+      align-content: center;
+      border: 1px solid rgba(23, 33, 29, 0.12);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fff;
+      overflow-wrap: anywhere;
+    }
+    .provider-chip strong {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .provider-chip span {
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 900;
+    }
     label {
       display: grid;
       gap: 5px;
@@ -194,6 +221,7 @@
       .topbar { align-items: flex-start; flex-direction: column; }
       nav { justify-content: flex-start; }
       .session-grid,
+      .provider-grid,
       .entry-grid,
       .policy-strip {
         grid-template-columns: 1fr;
@@ -218,6 +246,7 @@
     data-fooddb-truth-update-allowed="false"
     data-canonical-eval-promotion-allowed="false"
     data-token-in-url-allowed="false"
+    data-provider-preflight-source="/ping"
   >
     <header class="topbar">
       <div class="brand">
@@ -249,6 +278,24 @@
         <button id="establish-local-session" type="button">Connect</button>
       </div>
       <div id="entry-status" class="status" aria-live="polite">Session not connected.</div>
+    </section>
+
+    <section class="panel" aria-label="Provider preflight">
+      <div class="provider-grid">
+        <div class="provider-chip">
+          <strong>Manager</strong>
+          <span id="manager-provider-status" data-provider-status="not_checked">not checked</span>
+        </div>
+        <div class="provider-chip">
+          <strong>Search</strong>
+          <span id="search-provider-status" data-provider-status="not_checked">not checked</span>
+        </div>
+        <div class="provider-chip">
+          <strong>Extract</strong>
+          <span id="extract-provider-status" data-provider-status="not_checked">not checked</span>
+        </div>
+      </div>
+      <div id="provider-preflight-status" class="status" aria-live="polite">Provider preflight not checked.</div>
     </section>
 
     <main class="entry-grid" aria-label="Desktop dogfood entry points">
@@ -308,7 +355,8 @@
 
   <script>
     const endpoints = {
-      localDebugSession: "/accurate-intake/local-debug-session"
+      localDebugSession: "/accurate-intake/local-debug-session",
+      providerPreflight: "/ping"
     };
     const el = (id) => document.getElementById(id);
     const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -349,6 +397,42 @@
       el("entry-status").dataset.state = state;
       el("entry-status").textContent = message;
     }
+    function providerDisplay(value = {}) {
+      const configured = value.configured === true;
+      const status = typeof value.status === "string" ? value.status : "unknown";
+      return configured ? "configured" : status;
+    }
+    function writeProviderStatus(id, value = {}) {
+      const status = providerDisplay(value);
+      el(id).dataset.providerStatus = status;
+      el(id).textContent = status;
+    }
+    function renderProviderPreflight(payload) {
+      writeProviderStatus("manager-provider-status", payload.manager_provider || payload.provider || {});
+      writeProviderStatus("search-provider-status", payload.search || {});
+      writeProviderStatus("extract-provider-status", payload.extract || {});
+      const managerConfigured = (payload.manager_provider || payload.provider || {}).configured === true;
+      const searchConfigured = (payload.search || {}).configured === true;
+      const extractConfigured = (payload.extract || {}).configured === true;
+      el("provider-preflight-status").dataset.state = managerConfigured ? "" : "error";
+      el("provider-preflight-status").textContent = managerConfigured
+        ? `Manager configured. Search ${searchConfigured ? "configured" : "not configured"}; extract ${extractConfigured ? "configured" : "not configured"}.`
+        : "Manager provider is not configured; live food logging will fail until provider credentials are set.";
+    }
+    async function loadProviderPreflight() {
+      try {
+        const response = await fetch(endpoints.providerPreflight, {
+          headers: { Accept: "application/json" }
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        renderProviderPreflight(await response.json());
+      } catch (error) {
+        el("provider-preflight-status").dataset.state = "error";
+        el("provider-preflight-status").textContent = `Provider preflight unavailable: ${error.message}`;
+      }
+    }
     async function establishLocalDebugSession() {
       const inputToken = el("local-debug-token").value.trim();
       const globalToken = typeof window.LOCAL_DEBUG_API_TOKEN === "string" ? window.LOCAL_DEBUG_API_TOKEN.trim() : "";
@@ -387,6 +471,7 @@
     });
     updateNavigationLinks();
     updateCurrentUrl();
+    loadProviderPreflight();
   </script>
 </body>
 </html>

@@ -29,6 +29,12 @@ from app.runtime.interface.local_debug_auth import (  # noqa: E402
     LOCAL_DEBUG_API_TOKEN_ENV,
     LOCAL_DEBUG_API_TOKEN_HEADER,
 )
+from app.runtime.interface.base_routes import public_provider_readiness  # noqa: E402
+from app.runtime.interface.provider_runtime import (  # noqa: E402
+    extract_provider,
+    manager_provider,
+    search_provider,
+)
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
@@ -56,6 +62,16 @@ def _launch_url(*, host: str, port: int, user_id: str) -> str:
     return f"http://{host}:{port}/static/accurate-intake-desktop.html?{query}"
 
 
+def _desktop_provider_status() -> dict[str, dict[str, Any]]:
+    manager_status = public_provider_readiness(manager_provider.readiness())
+    return {
+        "provider": manager_status,
+        "manager_provider": manager_status,
+        "search": public_provider_readiness(search_provider.readiness()),
+        "extract": public_provider_readiness(extract_provider.readiness()),
+    }
+
+
 def build_launch_descriptor(
     *,
     host: str,
@@ -63,6 +79,7 @@ def build_launch_descriptor(
     user_id: str,
     db_path: Path,
     local_debug_token: str,
+    provider_status: dict[str, dict[str, Any]] | None = None,
     server_started: bool = False,
     browser_open_requested: bool = False,
 ) -> dict[str, Any]:
@@ -88,6 +105,7 @@ def build_launch_descriptor(
             "review",
             "data",
         ],
+        "provider_status": provider_status or _desktop_provider_status(),
         "local_debug_token": local_debug_token,
         "local_debug_header": LOCAL_DEBUG_API_TOKEN_HEADER,
         "local_debug_token_in_url": False,
