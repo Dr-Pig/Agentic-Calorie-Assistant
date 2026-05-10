@@ -16,16 +16,20 @@ FIXTURE_TYPE = "advanced_shadow_e2e_fixture_chain_artifact"
 DOGFOOD_TYPE = "advanced_shadow_dogfood_replay_artifact"
 LIVE_TYPE = "advanced_shadow_recommendation_copy_live_diagnostic_artifact"
 RESCUE_LIVE_TYPE = "advanced_shadow_rescue_copy_live_diagnostic_artifact"
-OPTIONAL_NOT_RUN_SOURCES = ("recommendation_copy_live_diagnostic", "rescue_copy_live_diagnostic")
+PROACTIVE_LIVE_TYPE = "advanced_shadow_proactive_copy_live_diagnostic_artifact"
+OPTIONAL_NOT_RUN_SOURCES = (
+    "recommendation_copy_live_diagnostic", "rescue_copy_live_diagnostic",
+    "proactive_copy_live_diagnostic",
+)
 FALSE_FLAG_NAMES = (
     "mainline_runtime_connected", "mainline_route_or_api_mount_allowed",
     "production_scheduler_delivery_allowed", "production_db_migration_allowed",
     "canonical_product_mutation_allowed", "delivery_attempted", "proactive_sent",
-    "scheduler_enabled", "live_delivery_allowed", "push_or_line_delivery_connected",
+    "scheduler_enabled", "scheduler_enqueued", "live_delivery_allowed", "push_or_line_delivery_connected",
     "manager_context_packet_changed", "manager_context_injected",
     "recommendation_served", "rescue_committed", "proposal_committed",
-    "durable_product_memory_written", "durable_memory_written", "mutation_changed",
-    "user_facing_behavior_changed", "product_readiness_claimed",
+    "durable_product_memory_written", "durable_memory_written", "durable_snooze_written",
+    "mutation_changed", "user_facing_behavior_changed", "product_readiness_claimed",
 )
 FALSE_FLAGS = dict.fromkeys(FALSE_FLAG_NAMES, False)
 NON_CLAIMS = [
@@ -41,6 +45,7 @@ def build_advanced_shadow_comparison_artifact(
     dogfood_replay_artifact: Mapping[str, Any],
     recommendation_copy_live_diagnostic_artifact: Mapping[str, Any],
     rescue_copy_live_diagnostic_artifact: Mapping[str, Any] | None = None,
+    proactive_copy_live_diagnostic_artifact: Mapping[str, Any] | None = None,
     baseline_case_artifacts: list[Mapping[str, Any]] | None = None,
     advanced_case_artifacts: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -49,19 +54,17 @@ def build_advanced_shadow_comparison_artifact(
         "dogfood_replay": (DOGFOOD_TYPE, dogfood_replay_artifact),
         "recommendation_copy_live_diagnostic": (LIVE_TYPE, recommendation_copy_live_diagnostic_artifact),
         "rescue_copy_live_diagnostic": (RESCUE_LIVE_TYPE, rescue_copy_live_diagnostic_artifact or _not_run(RESCUE_LIVE_TYPE)),
+        "proactive_copy_live_diagnostic": (PROACTIVE_LIVE_TYPE, proactive_copy_live_diagnostic_artifact or _not_run(PROACTIVE_LIVE_TYPE)),
     }
     sources = {name: _typed(expected_type, artifact) for name, (expected_type, artifact) in source_inputs.items()}
     source_statuses = {name: str(artifact.get("status") or "missing") for name, artifact in sources.items()}
     invariant = _activation_invariant_summary(sources.values())
     control_comparison, control_row, control_blockers = compare_no_send_control_paths(
         fixture_sink=_mapping(sources["fixture_chain"].get("terminal_review_sink")),
-        dogfood_sink=_mapping(sources["dogfood_replay"].get("terminal_review_sink_summary")),
-    )
+        dogfood_sink=_mapping(sources["dogfood_replay"].get("terminal_review_sink_summary")))
     pairing_summary, paired_case_rows = build_case_pairing(
-        baseline=list(baseline_case_artifacts or []),
-        advanced=list(advanced_case_artifacts or []),
-        false_flags=FALSE_FLAG_NAMES,
-    )
+        baseline=list(baseline_case_artifacts or []), advanced=list(advanced_case_artifacts or []),
+        false_flags=FALSE_FLAG_NAMES)
     blockers = [
         *_source_type_blockers(source_inputs),
         *_source_status_blockers(sources),
@@ -79,13 +82,11 @@ def build_advanced_shadow_comparison_artifact(
         "retirement_trigger": "approved_advanced_runtime_activation_plan",
         "source_statuses": source_statuses,
         "surface_status_rows": [
-            terminal_sink_row(
-                fixture_chain=sources["fixture_chain"],
-                dogfood_replay=sources["dogfood_replay"],
-            ),
+            terminal_sink_row(fixture_chain=sources["fixture_chain"], dogfood_replay=sources["dogfood_replay"]),
             control_row,
             _live_copy_row("recommendation_prompt_reason_copy", sources["recommendation_copy_live_diagnostic"]),
             _live_copy_row("rescue_proposal_copy_posture", sources["rescue_copy_live_diagnostic"]),
+            _live_copy_row("proactive_chat_copy_posture", sources["proactive_copy_live_diagnostic"]),
         ],
         "no_send_control_path_comparison": control_comparison,
         "activation_invariant_summary": invariant,
@@ -94,6 +95,7 @@ def build_advanced_shadow_comparison_artifact(
         "live_diagnostic_signals": {
             "recommendation_copy_live_diagnostic": _live_diagnostic_signal(sources["recommendation_copy_live_diagnostic"]),
             "rescue_copy_live_diagnostic": _live_diagnostic_signal(sources["rescue_copy_live_diagnostic"]),
+            "proactive_copy_live_diagnostic": _live_diagnostic_signal(sources["proactive_copy_live_diagnostic"]),
         },
         "blockers": blockers,
         "runtime_connected": False,

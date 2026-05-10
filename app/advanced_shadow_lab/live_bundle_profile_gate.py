@@ -79,6 +79,7 @@ def build_blocked_live_profile_terminal_artifact(
         "live_diagnostic_signals": {
             "recommendation_copy_live_diagnostic": _not_invoked_signal(),
             "rescue_copy_live_diagnostic": _not_invoked_signal(),
+            "proactive_copy_live_diagnostic": _not_invoked_signal(),
         },
         "non_claims": [
             "not_runtime_activation_evidence",
