@@ -33,6 +33,7 @@ def _copy_sidecar_if_present(*, source_path: Path, export_dir: Path, filename: s
     if not source_path.exists():
         return None
     copy_path = export_dir / filename
+    copy_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source_path, copy_path)
     return str(copy_path)
 
