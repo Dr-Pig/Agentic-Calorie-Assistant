@@ -134,6 +134,7 @@ def _product_fields(
         ux = _mapping(_mapping(product_recommendation.get("offer_synthesis")).get("ux_packet"))
         return {
             "product_lab_copy": str(ux.get("explanation") or ""),
+            "recommendation_ux_packet": dict(ux),
             "product_runtime_output_refs": [
                 str(product_recommendation.get("artifact_type") or ""),
                 str(product_proactive.get("artifact_type") or ""),

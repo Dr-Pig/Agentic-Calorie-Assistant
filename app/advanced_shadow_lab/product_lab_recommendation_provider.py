@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.advanced_shadow_lab.product_lab_recommendation_ux import (
+    build_recommendation_ux_packet,
+)
+
 
 class FixtureProductLabRecommendationProvider:
     provider_name = "fixture_product_lab_llm"
@@ -78,13 +82,16 @@ class FixtureProductLabRecommendationProvider:
             }
         primary = dict(allowed[0])
         backups = [dict(item) for item in allowed[1:3]]
+        public_primary = _public_candidate(primary)
+        public_backups = [_public_candidate(item) for item in backups]
+        explanation = _explanation(primary)
         backup_ids = [str(item.get("candidate_id") or "") for item in backups]
         return {
             "node": "offer_synthesis",
             "owner": "llm_fixture_provider",
             "model_profile": self.offer_model_profile,
-            "selected_primary": _public_candidate(primary),
-            "backup_candidates": [_public_candidate(item) for item in backups],
+            "selected_primary": public_primary,
+            "backup_candidates": public_backups,
             "ranking_result": {
                 "ranked_candidate_ids": [
                     str(item.get("candidate_id") or "") for item in allowed
@@ -94,17 +101,14 @@ class FixtureProductLabRecommendationProvider:
             },
             "recommendation_response_result": {
                 "surface": "chat",
-                "explanation": _explanation(primary),
+                "explanation": explanation,
                 "response_packet_owner": "offer_synthesis",
             },
-            "ux_packet": {
-                "surface": "chat",
-                "serve_allowed_in_lab": True,
-                "served_to_mainline_user": False,
-                "primary_candidate_id": str(primary.get("candidate_id") or ""),
-                "backup_candidate_ids": backup_ids,
-                "explanation": _explanation(primary),
-            },
+            "ux_packet": build_recommendation_ux_packet(
+                primary_candidate=public_primary,
+                backup_candidates=public_backups,
+                explanation=explanation,
+            ),
             "blockers": [],
         }
 

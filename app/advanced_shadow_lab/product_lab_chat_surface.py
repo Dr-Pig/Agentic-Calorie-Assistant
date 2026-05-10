@@ -87,6 +87,7 @@ def _message(
         "product_runtime_output_refs": [
             str(item) for item in packet.get("product_runtime_output_refs") or []
         ],
+        "recommendation_offer": _recommendation_offer(packet),
         "controls_visible": True,
         "actions": [
             _action(session_id, turn_id, candidate_id, "dismiss"),
@@ -126,6 +127,22 @@ def _copy(packet: Mapping[str, Any], workflow_family: str) -> str:
     if workflow_family == "rescue":
         return "I can help adjust the next step without making it harsh."
     return "I can help with this when it is useful."
+
+
+def _recommendation_offer(packet: Mapping[str, Any]) -> dict[str, Any]:
+    ux = packet.get("recommendation_ux_packet")
+    if not isinstance(ux, Mapping):
+        return {}
+    return {
+        "primary_candidate_id": str(ux.get("primary_candidate_id") or ""),
+        "backup_candidate_ids": [str(item) for item in ux.get("backup_candidate_ids") or []],
+        "offer_actions": [dict(item) for item in ux.get("actions") or [] if isinstance(item, Mapping)],
+        "requires_explicit_user_intake_action": any(
+            item.get("requires_explicit_user_intake_action") is True
+            for item in ux.get("actions") or []
+            if isinstance(item, Mapping)
+        ),
+    }
 
 
 def _visible_packets(packet: Mapping[str, Any]) -> list[Mapping[str, Any]]:
