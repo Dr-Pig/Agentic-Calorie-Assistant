@@ -33,6 +33,21 @@ Locked execution decisions:
 - FoodDB expansion waits for real self-use. Until then, lab tests may use simulated traces, fixtures, and approved packets only.
 - Isolated lab semantic memory candidate generation may be introduced after the dormancy contract is green, but mainline live semantic extraction and durable product memory writes remain forbidden until a separate activation PR.
 
+### Advanced Product Lab Runtime Closure Record
+
+The advanced product lab now has a fixture-backed product loop that exercises memory, recommendation, rescue, proactive, chat surface, control state, chat action outcome replay, simulated dogfood session replay, and product loop closure inside the isolated lab.
+
+Current implemented closure evidence:
+
+- `run_advanced_product_lab_dogfood_session` replays a multi-turn simulated dogfood session with memory write/retrieval, control journal carryover, and post-turn chat actions.
+- Chat action outcome replay records recommendation `log_this` and rescue `accept_rescue_plan` outcomes as lab artifacts only.
+- `build_simulated_dogfood_summary` records `advanced_product_lab_product_loop_closed=true` only when product loop closure criteria pass.
+- The live Grokfast diagnostic payload receives the product runtime summary, chat action summary, and product loop closure criteria before any provider call.
+- Live diagnostic input blockers reject unclosed product loops or chat action blockers before invoking the provider.
+- The merge-back activation wall regression verifies that active runtime files and Alembic migrations do not import or mount product lab modules.
+
+This record is lab closure evidence, not mainline activation evidence. It does not authorize production routes, schedulers, production DB migrations, canonical mutation, durable product memory activation, default Manager context injection, Kimi live calls, or self-use V1 behavior changes.
+
 ### Long-Term Memory Stage Closure
 
 The activation ladder now records long-term memory as `read_only_runtime` only because the manual `runtime_lab_memory_stage_promotion_decision` artifact proves the transition from `shadow` to `read_only_runtime`.
