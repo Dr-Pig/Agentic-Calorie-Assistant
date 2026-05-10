@@ -104,6 +104,15 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "today_reload_preserved_user_id": True,
         "today_summary_rendered": True,
         "today_meal_list_rendered": True,
+        "today_meal_feedback_context_checked": True,
+        "today_meal_feedback_context_values": {
+            "report_link_present": True,
+            "feedback_source_page": "today_diary",
+            "feedback_meal_id": "present",
+            "feedback_meal_title": "present",
+            "review_meal_id_present": True,
+            "review_meal_title_present": True,
+        },
         "macro_present_exact_item_browser_checked": True,
         "macro_present_exact_item_values": {
             "macro_state": "visible",
@@ -196,12 +205,12 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "feedback_jsonl_written": True,
         "feedback_review_queue_ingested": True,
         "feedback_record_values": {
-            "category": "latency",
-            "feedback_text": "Synthetic browser feedback",
-            "page": "chat",
+            "category": "nutrition_estimate",
+            "feedback_text": module.DEFAULT_TODAY_MEAL_FEEDBACK_TEXT,
+            "page": "today_diary",
             "trace_id": "trace-browser-feedback",
             "message_id": "assistant-browser-feedback",
-            "source_page": "chat",
+            "source_page": "today_diary",
             "do_not_commit": True,
             "manager_context_injection_allowed": False,
             "food_kb_truth_update_allowed": False,
@@ -323,7 +332,7 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
                     "url": "/accurate-intake/feedback",
                     "method": "POST",
                     "body": (
-                        '{"category":"latency","feedback_text":"Synthetic browser feedback",'
+                        '{"category":"nutrition_estimate","feedback_text":"Today meal feedback",'
                         '"trace_id":"trace-browser-feedback"}'
                     ),
                 },
@@ -449,6 +458,25 @@ def test_product_pages_browser_smoke_validator_requires_review_source_context() 
     assert status == "fail"
     assert "review_source_context_not_checked" in blockers
     assert "review_source_context_missing:feedback_id_present" in blockers
+
+
+def test_product_pages_browser_smoke_validator_requires_today_meal_feedback_context() -> None:
+    report = _passing_report()
+    report["today_meal_feedback_context_checked"] = False
+    report["today_meal_feedback_context_values"] = {
+        "report_link_present": False,
+        "feedback_source_page": "today_diary",
+        "feedback_meal_id": "present",
+        "feedback_meal_title": "present",
+        "review_meal_id_present": True,
+        "review_meal_title_present": True,
+    }
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "today_meal_feedback_context_not_checked" in blockers
+    assert "today_meal_feedback_context_mismatch:report_link_present" in blockers
 
 
 def test_product_pages_browser_smoke_validator_requires_data_hygiene_loop() -> None:

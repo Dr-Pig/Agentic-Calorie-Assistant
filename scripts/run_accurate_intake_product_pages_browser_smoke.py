@@ -152,16 +152,16 @@ CDK_BROWSER_SAME_TRUTH_NON_CLAIMS = {
     "product_readiness_claimed": False,
     "private_self_use_approved": False,
 }
-DEFAULT_FEEDBACK_TEXT = "Synthetic browser feedback"
+DEFAULT_TODAY_MEAL_FEEDBACK_TEXT = "Today meal feedback"
 DEFAULT_FEEDBACK_TRACE_ID = "trace-browser-feedback"
 DEFAULT_FEEDBACK_MESSAGE_ID = "assistant-browser-feedback"
 EXPECTED_FEEDBACK_RECORD_VALUES = {
-    "category": "latency",
-    "feedback_text": DEFAULT_FEEDBACK_TEXT,
-    "page": "chat",
+    "category": "nutrition_estimate",
+    "feedback_text": DEFAULT_TODAY_MEAL_FEEDBACK_TEXT,
+    "page": "today_diary",
     "trace_id": DEFAULT_FEEDBACK_TRACE_ID,
     "message_id": DEFAULT_FEEDBACK_MESSAGE_ID,
-    "source_page": "chat",
+    "source_page": "today_diary",
     "do_not_commit": True,
     "manager_context_injection_allowed": False,
     "food_kb_truth_update_allowed": False,
@@ -182,6 +182,14 @@ EXPECTED_REVIEW_SOURCE_CONTEXT_VALUES = {
     "source_page_present": True,
     "route_present": True,
     "feedback_route_present": True,
+}
+EXPECTED_TODAY_MEAL_FEEDBACK_CONTEXT_VALUES = {
+    "report_link_present": True,
+    "feedback_source_page": "today_diary",
+    "feedback_meal_id": "present",
+    "feedback_meal_title": "present",
+    "review_meal_id_present": True,
+    "review_meal_title_present": True,
 }
 FEEDBACK_NON_CLAIMS = {
     "product_readiness_claimed": False,
@@ -315,6 +323,8 @@ def _base_report(
         "today_reload_preserved_user_id": False,
         "today_summary_rendered": False,
         "today_meal_list_rendered": False,
+        "today_meal_feedback_context_checked": False,
+        "today_meal_feedback_context_values": {},
         "macro_present_exact_item_browser_checked": False,
         "macro_present_exact_item_values": {},
         "macro_missing_exact_item_browser_checked": False,
@@ -486,6 +496,26 @@ def _review_source_context_values(*, page_text: str, record: dict[str, Any] | No
         "source_page_present": contains(f"source_page {ui_event.get('source_page')}"),
         "route_present": contains(f"route {ui_event.get('route')} | feedback_route"),
         "feedback_route_present": contains(f"feedback_route {ui_event.get('feedback_route')}"),
+    }
+
+
+def _today_meal_feedback_context_values(
+    *,
+    report_link_present: bool,
+    page_text: str,
+    record: dict[str, Any] | None,
+) -> dict[str, Any]:
+    linked = _object_dict(record.get("linked_context") if record else {})
+    ui_event = _object_dict(record.get("ui_event") if record else {})
+    meal_id = str(linked.get("meal_id") or "")
+    meal_title = str(ui_event.get("meal_title") or "")
+    return {
+        "report_link_present": report_link_present,
+        "feedback_source_page": str(ui_event.get("source_page") or linked.get("page") or ""),
+        "feedback_meal_id": "present" if meal_id else "missing",
+        "feedback_meal_title": "present" if meal_title else "missing",
+        "review_meal_id_present": bool(meal_id and f"meal_id {meal_id}" in page_text),
+        "review_meal_title_present": bool(meal_title and f"meal_title {meal_title}" in page_text),
     }
 
 
@@ -1766,26 +1796,41 @@ def _run_feedback_capture_sequence(
         "feedback_review_queue_values": {},
         "review_source_context_checked": False,
         "review_source_context_values": {},
+        "today_meal_feedback_context_checked": False,
+        "today_meal_feedback_context_values": {},
         "feedback_non_claims": dict(FEEDBACK_NON_CLAIMS),
         "feedback_store_path": str(_feedback_jsonl_path(feedback_dir)),
         "page_text": "",
     }
-    feedback = _open_page(
+    today = _open_page(
         browser,
         viewport=viewport,
-        url=(
-            _page_url(base_url, "feedback", user_external_id=user_external_id, local_date=local_date)
-            + f"&source_page=chat&message_id={DEFAULT_FEEDBACK_MESSAGE_ID}"
-        ),
+        url=_page_url(base_url, "today", user_external_id=user_external_id, local_date=local_date),
         timeout_ms=timeout_ms,
         local_debug_token=local_debug_token,
     )
+    today.wait_for_selector('[data-surface-role="today-diary"]', timeout=timeout_ms)
+    today.wait_for_function(
+        """() => document.querySelector('[data-feedback-action="report-meal"]') !== null """,
+        timeout=timeout_ms,
+    )
+    report_link = today.locator('[data-feedback-action="report-meal"]').first
+    report_link_present = bool(report_link.get_attribute("href"))
+    report_link.click()
+    today.wait_for_url("**/static/accurate-intake-feedback.html?**", timeout=timeout_ms)
+    today.wait_for_load_state("networkidle", timeout=timeout_ms)
+    feedback = today
     feedback.wait_for_selector('[data-surface-role="dogfood-feedback"]', timeout=timeout_ms)
+    feedback.wait_for_function(
+        """() => document.querySelector("#meal-id")?.value?.trim().length > 0 """,
+        timeout=timeout_ms,
+    )
     result["feedback_page_loaded"] = True
     feedback.fill("#trace-id", DEFAULT_FEEDBACK_TRACE_ID)
-    feedback.select_option("#category", "latency")
+    feedback.fill("#message-id", DEFAULT_FEEDBACK_MESSAGE_ID)
+    feedback.select_option("#category", "nutrition_estimate")
     feedback.select_option("#severity", "medium")
-    feedback.fill("#feedback-text", DEFAULT_FEEDBACK_TEXT)
+    feedback.fill("#feedback-text", DEFAULT_TODAY_MEAL_FEEDBACK_TEXT)
     feedback.click("#submit-feedback")
     feedback.wait_for_function(
         """() => (document.querySelector("#feedback-status")?.textContent || "").includes("Captured feedback-")""",
@@ -1815,6 +1860,15 @@ def _run_feedback_capture_sequence(
     result["review_source_context_values"] = _review_source_context_values(
         page_text=review_text,
         record=feedback_record,
+    )
+    result["today_meal_feedback_context_values"] = _today_meal_feedback_context_values(
+        report_link_present=report_link_present,
+        page_text=review_text,
+        record=feedback_record,
+    )
+    result["today_meal_feedback_context_checked"] = (
+        result["today_meal_feedback_context_values"]
+        == EXPECTED_TODAY_MEAL_FEEDBACK_CONTEXT_VALUES
     )
     result["review_source_context_checked"] = (
         result["review_source_context_values"] == EXPECTED_REVIEW_SOURCE_CONTEXT_VALUES
@@ -2861,6 +2915,12 @@ def _run_browser_sequence(
             result["feedback_review_queue_values"] = feedback_result["feedback_review_queue_values"]
             result["review_source_context_checked"] = feedback_result["review_source_context_checked"]
             result["review_source_context_values"] = feedback_result["review_source_context_values"]
+            result["today_meal_feedback_context_checked"] = feedback_result[
+                "today_meal_feedback_context_checked"
+            ]
+            result["today_meal_feedback_context_values"] = feedback_result[
+                "today_meal_feedback_context_values"
+            ]
             result["feedback_non_claims"] = feedback_result["feedback_non_claims"]
             result["feedback_store_path"] = feedback_result["feedback_store_path"]
             result["fetch_sequence"].extend(feedback_result["fetch_sequence"])
@@ -3065,6 +3125,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("feedback_jsonl_written", "feedback_jsonl_not_written")
     require_true("feedback_review_queue_ingested", "feedback_review_queue_not_ingested")
     require_true("review_source_context_checked", "review_source_context_not_checked")
+    require_true(
+        "today_meal_feedback_context_checked",
+        "today_meal_feedback_context_not_checked",
+    )
     require_true("data_page_loaded", "data_page_not_loaded")
     require_true("data_inspected", "data_hygiene_not_inspected")
     require_true("data_backup_created", "data_backup_not_created")
@@ -3199,6 +3263,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     for field, expected_value in EXPECTED_REVIEW_SOURCE_CONTEXT_VALUES.items():
         if review_source_context_values.get(field) != expected_value:
             blockers.append(f"review_source_context_missing:{field}")
+    today_feedback_context_values = dict(report.get("today_meal_feedback_context_values") or {})
+    for field, expected_value in EXPECTED_TODAY_MEAL_FEEDBACK_CONTEXT_VALUES.items():
+        if today_feedback_context_values.get(field) != expected_value:
+            blockers.append(f"today_meal_feedback_context_mismatch:{field}")
     feedback_non_claims = dict(report.get("feedback_non_claims") or {})
     for field, expected_value in FEEDBACK_NON_CLAIMS.items():
         if feedback_non_claims.get(field) != expected_value:
