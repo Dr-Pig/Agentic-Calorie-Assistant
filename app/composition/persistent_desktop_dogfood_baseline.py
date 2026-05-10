@@ -142,7 +142,9 @@ def _snapshot(client: TestClient, *, user_external_id: str, local_date: str) -> 
     complete = sum(1 for message in chat.get("messages", []) if message.get("trace_chain_complete") is True)
     return {
         "today": {
+            "budget_kcal": today.get("budget_kcal"),
             "consumed_kcal": today.get("consumed_kcal"),
+            "remaining_kcal": today.get("remaining_kcal"),
             "active_meal_count": today.get("active_meal_count"),
             "show_macro": today.get("show_macro"),
             "macro_guard_reason": today.get("macro_guard_reason"),

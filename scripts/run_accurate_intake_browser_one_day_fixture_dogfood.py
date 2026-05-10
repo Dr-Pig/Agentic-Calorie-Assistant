@@ -296,10 +296,17 @@ def _desktop_entry_state(page: Any) -> dict[str, Any]:
     )
 
 
-def _page_url(base_url: str, page: str, *, extra: dict[str, str] | None = None) -> str:
+def _page_url(
+    base_url: str,
+    page: str,
+    *,
+    user_external_id: str = USER_EXTERNAL_ID,
+    local_date: str = LOCAL_DATE,
+    extra: dict[str, str] | None = None,
+) -> str:
     params = {
-        "user_id": USER_EXTERNAL_ID,
-        "local_date": LOCAL_DATE,
+        "user_id": user_external_id,
+        "local_date": local_date,
         **(extra or {}),
     }
     query = "&".join(f"{key}={value}" for key, value in params.items())
@@ -345,6 +352,8 @@ def _run_desktop_loop_sequence(
     feedback_dir: Path,
     review_queue_artifact_path: Path,
     timeout_ms: int,
+    user_external_id: str = USER_EXTERNAL_ID,
+    local_date: str = LOCAL_DATE,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {
         "page_navigation": {page_name: False for page_name in PAGE_SURFACE_SELECTORS},
@@ -366,7 +375,13 @@ def _run_desktop_loop_sequence(
 
     def goto(page_name: str, *, extra: dict[str, str] | None = None) -> None:
         page.goto(
-            _page_url(base_url, page_name, extra=extra),
+            _page_url(
+                base_url,
+                page_name,
+                user_external_id=user_external_id,
+                local_date=local_date,
+                extra=extra,
+            ),
             wait_until="networkidle",
             timeout=timeout_ms,
         )

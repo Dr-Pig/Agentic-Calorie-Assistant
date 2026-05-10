@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
+from scripts import run_accurate_intake_persistent_desktop_dogfood_baseline as module
 from scripts.run_accurate_intake_persistent_desktop_dogfood_baseline import (
     DEFAULT_DB_PATH,
     build_persistent_desktop_dogfood_baseline_report,
@@ -36,6 +39,8 @@ def test_persistent_desktop_dogfood_baseline_survives_restart_and_exports_sideca
     assert report["before_restart"]["today"]["consumed_kcal"] == 80
     assert report["after_restart"]["today"]["consumed_kcal"] == 80
     assert report["after_restart"]["today"]["active_meal_count"] == 1
+    assert isinstance(report["after_restart"]["today"]["budget_kcal"], int)
+    assert isinstance(report["after_restart"]["today"]["remaining_kcal"], int)
     assert report["after_restart"]["chat_history"]["message_count"] >= 4
     assert report["after_restart"]["chat_history"]["complete_trace_message_count"] >= 4
     assert report["after_restart"]["debug"]["same_truth_status"] == "pass"
@@ -96,6 +101,50 @@ def test_persistent_desktop_dogfood_cli_accepts_disposable_sidecar_paths(tmp_pat
     assert '"feedback_triage_record_count": 1' in report
 
 
+def test_persistent_desktop_dogfood_cli_reports_required_browser_dependency_gap(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    def missing_playwright() -> object:
+        raise module.BrowserSmokeDependencyMissing("playwright_not_installed")
+
+    output_path = tmp_path / "artifact.json"
+    monkeypatch.setattr(module, "_load_sync_playwright", missing_playwright)
+
+    exit_code = persistent_baseline_main(
+        [
+            "--db-path",
+            str(tmp_path / "fixture-dogfood.sqlite3"),
+            "--local-date",
+            "2026-05-10",
+            "--user-id",
+            "persistent-dogfood-user",
+            "--local-debug-token",
+            "persistent-token",
+            "--reset-db",
+            "--require-browser-execution",
+            "--feedback-dir",
+            str(tmp_path / "feedback"),
+            "--backup-dir",
+            str(tmp_path / "backups"),
+            "--export-dir",
+            str(tmp_path / "exports"),
+            "--review-queue-artifact-path",
+            str(tmp_path / "review" / "queue.json"),
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    artifact = output_path.read_text(encoding="utf-8")
+
+    assert exit_code == 1
+    assert '"browser_execution_required": true' in artifact
+    assert '"browser_executed": false' in artifact
+    assert '"playwright_not_installed"' in artifact
+    assert '"product_readiness_claimed": false' in artifact
+
+
 def test_self_use_runbook_documents_persistent_desktop_baseline() -> None:
     runbook = Path("docs/quality/ACCURATE_INTAKE_MVP_SELF_USE_RUNBOOK.md").read_text(
         encoding="utf-8-sig"
@@ -103,4 +152,5 @@ def test_self_use_runbook_documents_persistent_desktop_baseline() -> None:
 
     assert "run_accurate_intake_persistent_desktop_dogfood_baseline.py" in runbook
     assert "approved FoodDB packet commit plus ambiguous no-commit" in runbook
+    assert "Add `--require-browser-execution`" in runbook
     assert "backup_required_before_reset" in runbook
