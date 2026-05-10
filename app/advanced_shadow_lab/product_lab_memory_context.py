@@ -125,11 +125,11 @@ def _omission_reason(
     lab_now_minute: int,
 ) -> str:
     record_state = str(entry.get("record_state") or record.get("record_state") or "")
-    if record_state in {"deleted_lab", "forgotten_lab"}:
+    if record_state in {"archived_lab", "deleted_lab", "forgotten_lab"}:
         return record_state
     if entry.get("conflict_review_required") is True:
         return "conflict_review_required"
-    if str(entry.get("freshness_posture") or "") in {"stale", "expired"}:
+    if str(entry.get("freshness_posture") or "") in {"archived", "stale", "expired"}:
         return "stale_or_expired"
     valid_until = entry.get("valid_until_minute")
     if (
