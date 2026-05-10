@@ -87,6 +87,12 @@ def context_entry(record: Mapping[str, Any]) -> dict[str, Any]:
         "blocks_candidate_types": [
             str(item) for item in payload.get("blocks_candidate_types") or []
         ],
+        "blocked_item_patterns": [
+            str(item) for item in payload.get("blocked_item_patterns") or []
+        ],
+        "suppressed_trigger_types": [
+            str(item) for item in payload.get("suppressed_trigger_types") or []
+        ],
     }
 
 

@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.advanced_shadow_lab.product_lab_memory_action_projection import (
+    memory_action_projection_from_context,
+    recommendation_memory_blocker_reasons,
+)
 from app.advanced_shadow_lab.product_lab_recommendation_candidate_quality import (
     hard_rejected_review,
     omission_traces,
@@ -33,6 +37,7 @@ def build_candidate_retrieval_guard_scoring(
     filtered: list[dict[str, Any]] = []
     quality_rejected: list[dict[str, Any]] = []
     candidate_reviews: list[dict[str, Any]] = []
+    memory_action_projection = memory_action_projection_from_context(memory_context_pack)
     memory_negative_ids = [
         str(item) for item in memory_context_pack.get("negative_preference_blockers") or []
     ]
@@ -42,6 +47,10 @@ def build_candidate_retrieval_guard_scoring(
             payload,
             memory_negative_ids=memory_negative_ids,
         )
+        reasons.extend(
+            recommendation_memory_blocker_reasons(candidate, memory_action_projection)
+        )
+        reasons = list(dict.fromkeys(reasons))
         if reasons:
             filtered.append(
                 {
@@ -97,10 +106,30 @@ def build_candidate_retrieval_guard_scoring(
         "primary_candidate_id": pool["primary_candidate_id"],
         "backup_candidate_ids": pool["backup_candidate_ids"],
         "offer_candidate_ids": pool["offer_candidate_ids"],
-        "omission_traces": omission_traces(quality_rejected),
+        "omission_traces": [
+            *omission_traces(quality_rejected),
+            *_memory_action_omission_traces(filtered),
+        ],
+        "memory_action_projection": memory_action_projection,
+        "memory_action_omission_traces": _memory_action_omission_traces(filtered),
         "candidate_spec_obeyed": bool(planning.get("candidate_spec")),
         "blockers": [],
     }
+
+
+def _memory_action_omission_traces(
+    filtered: list[Mapping[str, Any]],
+) -> list[dict[str, str]]:
+    return [
+        {
+            "candidate_id": str(item.get("candidate_id") or ""),
+            "omission_reason": str(reason),
+            "source_node": "candidate_retrieval_guard_scoring",
+        }
+        for item in filtered
+        for reason in item.get("reason_codes") or []
+        if str(reason).startswith("memory_")
+    ]
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:
