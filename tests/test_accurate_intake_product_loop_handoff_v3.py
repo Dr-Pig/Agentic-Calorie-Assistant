@@ -89,6 +89,7 @@ def _fooddb_artifact(
     source_quality: str = "approved",
     ready_for_product_loop: bool = True,
     macro_contract: dict | None = None,
+    packet_ready_items: list[dict] | None = None,
 ) -> dict:
     if macro_contract is None:
         macro_contract = MACRO_CONTRACT
@@ -100,8 +101,64 @@ def _fooddb_artifact(
             "source_quality": source_quality,
             "ready_for_product_loop": ready_for_product_loop,
             "macro_contract": macro_contract,
-        }
+        },
+        "packet_ready_items": _packet_ready_items()
+        if packet_ready_items is None
+        else packet_ready_items,
     }
+
+
+def _packet_ready_items() -> list[dict]:
+    return [
+        {
+            "source_lane": "exact_item_card",
+            "item_id": "exact_test_chocolate_milk_400ml",
+            "runtime_truth_allowed": True,
+            "runtime_usage_boundary": "exact_item_seed_label_macro_present",
+            "kcal_point": 300,
+            "kcal_range": [300, 300],
+            "protein_g": 12,
+            "carbs_g": 48,
+            "fat_g": 6,
+            "macro_visibility_status": "visible",
+            "macro_source_basis": "exact_item_seed_label",
+            "macro_confidence": "high",
+            "source_provenance": {"source_id": "exact_item_cards_tw"},
+            "approval_metadata": {"runtime_truth_allowed": True},
+        },
+        {
+            "source_lane": "generic_common_serving",
+            "item_id": "generic_test_chicken_bento",
+            "runtime_truth_allowed": True,
+            "runtime_usage_boundary": "generic_range_estimate_only_not_exact",
+            "kcal_point": 780,
+            "kcal_range": [650, 900],
+            "protein_g": None,
+            "carbs_g": None,
+            "fat_g": None,
+            "macro_visibility_status": "hidden_missing_source",
+            "macro_source_basis": "unknown",
+            "macro_confidence": "unknown",
+            "source_provenance": {"source_id": "test_small_anchor_store"},
+            "approval_metadata": {"runtime_truth_allowed": True},
+        },
+        {
+            "source_lane": "listed_component",
+            "item_id": "listed_test_tofu_dried",
+            "runtime_truth_allowed": True,
+            "runtime_usage_boundary": "listed_component_only",
+            "kcal_point": 95,
+            "kcal_range": [70, 120],
+            "protein_g": None,
+            "carbs_g": None,
+            "fat_g": None,
+            "macro_visibility_status": "hidden_missing_source",
+            "macro_source_basis": "unknown",
+            "macro_confidence": "unknown",
+            "source_provenance": {"source_id": "test_tfda_source"},
+            "approval_metadata": {"runtime_truth_allowed": True},
+        },
+    ]
 
 
 def test_handoff_missing_fooddb_artifact_waits_without_claiming_real_pass() -> None:
@@ -298,6 +355,15 @@ def test_handoff_valid_real_fooddb_metadata_allows_validation_only_integration()
     assert pack["fooddb_validation"]["metadata"]["macro_contract"]["macro_truth_owner"] == (
         "fooddb_approved_packet"
     )
+    packet_validation = pack["fooddb_validation"]["packet_ready_validation"]
+    assert packet_validation["status"] == "approved_packet_ready_items_valid"
+    assert packet_validation["lane_counts"] == {
+        "exact_item_card": 1,
+        "generic_common_serving": 1,
+        "listed_component": 1,
+    }
+    assert packet_validation["macro_visible_item_count"] == 1
+    assert packet_validation["macro_hidden_item_count"] == 2
     assert pack["fooddb_contract_validation"] == {
         "source": "browser_fixture_dogfood.manager_dogfood_summary",
         "packet_evidence_consumed": True,
@@ -312,6 +378,39 @@ def test_handoff_valid_real_fooddb_metadata_allows_validation_only_integration()
     }
     assert pack["real_fooddb_pass_claimed"] is False
     assert pack["dogfood_pass"] is False
+
+
+def test_handoff_blocks_fooddb_artifact_without_packet_ready_items() -> None:
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(),
+        fooddb_artifact=_fooddb_artifact(packet_ready_items=[]),
+    )
+
+    assert pack["status"] == "blocked"
+    assert pack["ready_for_fdb_integration"] is False
+    assert pack["fooddb_artifact_status"] == "blocked_invalid_fooddb_packet_ready_items"
+    assert "fooddb_packet_ready_items_missing" in pack["blockers"]
+    assert "fooddb_packet_ready_lane_missing:exact_item_card" in pack["blockers"]
+    assert "fooddb_packet_ready_lane_missing:generic_common_serving" in pack["blockers"]
+    assert "fooddb_packet_ready_lane_missing:listed_component" in pack["blockers"]
+
+
+def test_handoff_blocks_hidden_macro_item_with_invented_macro_value() -> None:
+    packet_items = _packet_ready_items()
+    packet_items[1] = {**packet_items[1], "protein_g": 20}
+
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(),
+        fooddb_artifact=_fooddb_artifact(packet_ready_items=packet_items),
+    )
+
+    assert pack["status"] == "blocked"
+    assert pack["ready_for_fdb_integration"] is False
+    assert pack["fooddb_artifact_status"] == "blocked_invalid_fooddb_packet_ready_items"
+    assert (
+        "fooddb_packet_ready_item_hidden_macro_value_present:"
+        "generic_common_serving:protein_g"
+    ) in pack["blockers"]
 
 
 def test_handoff_requires_browser_fooddb_macro_contract_validation() -> None:
