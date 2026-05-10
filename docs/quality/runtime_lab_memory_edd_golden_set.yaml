@@ -3,6 +3,8 @@ version: 1
 status: active_fixture_contract
 owner: MemoryRuntimeArchitecture
 consumer: runtime_lab_memory_slices
+artifact_classification: merge_safe
+retirement_trigger: approved_durable_memory_activation_plan
 capability_domain: long_term_memory_runtime_lab
 runtime_connected: false
 lab_isolated: true
@@ -10,6 +12,54 @@ user_facing_behavior_changed: false
 canonical_mutation_changed: false
 durable_product_memory_written: false
 manager_context_packet_changed: false
+suite_contract:
+  schema_version: 1.1
+  owner_required: true
+  consumer_required: true
+  retirement_trigger_required: true
+  artifact_classification_required: merge_safe
+  required_case_types:
+    - explicit_preference
+    - negative_preference
+    - temporary_preference
+    - repeated_pattern
+    - golden_order
+    - correction_not_memory
+    - suppression
+    - stale_conflict
+    - scope_leak
+    - prompt_injection_attempt
+  required_split_counts:
+    fixture: 6
+    holdout: 2
+    negative: 2
+  required_rubric_dimensions:
+    - extraction
+    - promotion_legality
+    - retrieval_precision
+    - omission
+    - no_canonical_mutation
+    - scope_isolation
+    - secret_redaction
+  required_runtime_effects:
+    runtime_connected: false
+    user_facing_behavior_changed: false
+    canonical_mutation_changed: false
+    durable_product_memory_written: false
+    manager_context_packet_changed: false
+  required_scope_keys:
+    - user_id
+    - workspace_id
+    - project_id
+    - surface
+    - run_id
+  forbidden_capabilities:
+    - provider_call
+    - memory_store_write
+    - extraction_pipeline_activation
+    - manager_context_packet_injection
+    - scheduler_delivery
+    - canonical_mutation
 golden_set_policy:
   eval_driven_development: true
   product_truth_source:

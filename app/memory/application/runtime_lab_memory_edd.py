@@ -52,6 +52,16 @@ REQUIRED_PRODUCT_TRUTH_REFS = {
     "docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md",
     "docs/quality/ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md",
 }
+EXPECTED_SPLIT_COUNTS = {"fixture": 6, "holdout": 2, "negative": 2}
+REQUIRED_SCOPE_KEYS = {"user_id", "workspace_id", "project_id", "surface", "run_id"}
+FORBIDDEN_CAPABILITIES = {
+    "provider_call",
+    "memory_store_write",
+    "extraction_pipeline_activation",
+    "manager_context_packet_injection",
+    "scheduler_delivery",
+    "canonical_mutation",
+}
 
 
 def load_runtime_lab_memory_edd_suite(
@@ -104,6 +114,7 @@ def _validate_suite(
     rubric: list[dict[str, Any]],
 ) -> list[str]:
     blockers: list[str] = []
+    blockers.extend(_top_level_contract_blockers(artifact))
 
     missing_case_types = REQUIRED_CASE_TYPES - set(case_type_counts)
     if missing_case_types:
@@ -115,14 +126,20 @@ def _validate_suite(
     if duplicated_case_types:
         blockers.append(f"case_type_count_not_one:{','.join(sorted(duplicated_case_types))}")
 
-    expected_splits = {"fixture": 6, "holdout": 2, "negative": 2}
-    if dict(split_counts) != expected_splits:
+    if dict(split_counts) != EXPECTED_SPLIT_COUNTS:
         blockers.append(f"split_counts:{dict(split_counts)}")
 
     rubric_dimensions = {str(item.get("dimension_id")) for item in rubric}
     missing_dimensions = REQUIRED_RUBRIC_DIMENSIONS - rubric_dimensions
     if missing_dimensions:
         blockers.append(f"missing_rubric_dimensions:{','.join(sorted(missing_dimensions))}")
+    for item in rubric:
+        dimension_id = str(item.get("dimension_id"))
+        for field in ("grader_type", "truth_owner", "pass_rule"):
+            if not item.get(field):
+                blockers.append(f"{dimension_id}.rubric_missing_{field}")
+        if not isinstance(item.get("blocking"), bool):
+            blockers.append(f"{dimension_id}.rubric_blocking_not_bool")
 
     for flag in (
         "runtime_connected",
@@ -136,6 +153,9 @@ def _validate_suite(
 
     for case in cases:
         case_id = str(case.get("case_id"))
+        trace_fields = case.get("trace_fields") or {}
+        if not trace_fields.get("source_refs"):
+            blockers.append(f"{case_id}.missing_source_refs")
         if case.get("expected_runtime_effects") != EXPECTED_RUNTIME_EFFECTS:
             blockers.append(f"{case_id}.runtime_effects")
         oracle = case.get("oracle") or {}
@@ -146,6 +166,35 @@ def _validate_suite(
         if "raw_keyword_rules" in case or "raw_input_keyword" in oracle:
             blockers.append(f"{case_id}.raw_keyword_semantic_oracle")
 
+    return blockers
+
+
+def _top_level_contract_blockers(artifact: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    if artifact.get("owner") != "MemoryRuntimeArchitecture":
+        blockers.append("owner_missing_or_unexpected")
+    if artifact.get("consumer") != "runtime_lab_memory_slices":
+        blockers.append("consumer_missing_or_unexpected")
+    if artifact.get("retirement_trigger") != "approved_durable_memory_activation_plan":
+        blockers.append("retirement_trigger_missing_or_unexpected")
+    if artifact.get("artifact_classification") != "merge_safe":
+        blockers.append("artifact_classification_not_merge_safe")
+
+    contract = artifact.get("suite_contract") or {}
+    if contract.get("artifact_classification_required") != "merge_safe":
+        blockers.append("suite_contract.artifact_classification_required")
+    if set(contract.get("required_case_types") or []) != REQUIRED_CASE_TYPES:
+        blockers.append("suite_contract.required_case_types")
+    if contract.get("required_split_counts") != EXPECTED_SPLIT_COUNTS:
+        blockers.append("suite_contract.required_split_counts")
+    if set(contract.get("required_rubric_dimensions") or []) != REQUIRED_RUBRIC_DIMENSIONS:
+        blockers.append("suite_contract.required_rubric_dimensions")
+    if contract.get("required_runtime_effects") != EXPECTED_RUNTIME_EFFECTS:
+        blockers.append("suite_contract.required_runtime_effects")
+    if set(contract.get("required_scope_keys") or []) != REQUIRED_SCOPE_KEYS:
+        blockers.append("suite_contract.required_scope_keys")
+    if set(contract.get("forbidden_capabilities") or []) != FORBIDDEN_CAPABILITIES:
+        blockers.append("suite_contract.forbidden_capabilities")
     return blockers
 
 
@@ -223,7 +272,12 @@ def _projection_blockers(
 __all__ = [
     "DEFAULT_SUITE_PATH",
     "EXPECTED_RUNTIME_EFFECTS",
+    "EXPECTED_SPLIT_COUNTS",
+    "FORBIDDEN_CAPABILITIES",
+    "REQUIRED_CASE_TYPES",
     "REQUIRED_PRODUCT_TRUTH_REFS",
+    "REQUIRED_RUBRIC_DIMENSIONS",
+    "REQUIRED_SCOPE_KEYS",
     "SIDECAR_ACTIVATION_CONTRACT",
     "build_reviewed_dogfood_edd_suite_projection",
     "load_runtime_lab_memory_edd_suite",
