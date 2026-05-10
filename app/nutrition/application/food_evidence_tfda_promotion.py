@@ -5,6 +5,11 @@ import hashlib
 import json
 from typing import Any
 
+from app.nutrition.application.food_evidence_tfda_source_macro import (
+    SOURCE_EVIDENCE_MACRO_FIELDS,
+    source_evidence_macro_fields,
+)
+
 
 POLICY_VERSION = "food_evidence_tfda_batch_promotion_v1"
 SELECTED_PORTION_DEFAULTS = {
@@ -98,6 +103,12 @@ def build_tfda_per100g_source_evidence_artifact(
         "runtime_role": "source_evidence_only",
         "runtime_estimate_allowed": False,
         "packetizer_common_serving_allowed": False,
+        "macro_contract": {
+            "fields": list(SOURCE_EVIDENCE_MACRO_FIELDS),
+            "source_denominator": "per_100g_edible_portion",
+            "runtime_truth_allowed": False,
+            "missing_macro_policy": "preserve_null_do_not_invent",
+        },
         "records": promotion_artifact["source_evidence_records"],
     }
 
@@ -158,6 +169,7 @@ def _source_evidence_record(candidate: dict[str, Any]) -> dict[str, Any]:
         "aliases": list(candidate.get("aliases") or []),
         "category": candidate.get("category"),
         "kcal_per_100g": candidate.get("kcal_point"),
+        **source_evidence_macro_fields(candidate),
         "serving_basis": candidate.get("serving_basis")
         or {"unit_type": "g", "amount": 100, "label": "per_100g_edible_portion"},
         "runtime_role": "source_evidence_only",
