@@ -4,6 +4,11 @@ from typing import Any, Mapping
 
 from app.advanced_shadow_lab.edge_case_coverage import load_edge_case_coverage_contract
 from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAG_NAMES
+from app.advanced_shadow_lab.journey_terminal_contract import (
+    expected_terminal_output,
+    terminal_output_status,
+    terminal_output_summary,
+)
 from app.advanced_shadow_lab.paired_fixture_cases import CASE_DEFINITIONS
 from app.advanced_shadow_lab.ux_acceptance_coverage import REQUIRED_UX_JOURNEY_IDS
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
@@ -45,8 +50,11 @@ def journey_terminal_evidence_summary(
         if journey_id in by_id and _row_status(by_id.get(journey_id)) != "pass"
     ]
     activation = _activation_violations(rows)
+    output_summary = terminal_output_summary(rows)
     return {
-        "status": "pass" if not missing and not blocked and not activation else "blocked",
+        "status": "pass"
+        if not missing and not blocked and not activation and terminal_output_status(output_summary) == "pass"
+        else "blocked",
         "required_journey_ids": list(REQUIRED_UX_JOURNEY_IDS),
         "observed_journey_ids": [
             journey_id
@@ -56,6 +64,7 @@ def journey_terminal_evidence_summary(
         "evidence_count": len(rows),
         "missing_journey_ids": missing,
         "blocked_journey_ids": blocked,
+        **output_summary,
         "activation_violations": activation,
         "new_report_family_created": False,
     }
@@ -63,12 +72,16 @@ def journey_terminal_evidence_summary(
 
 def journey_terminal_evidence_blockers(summary: Mapping[str, Any]) -> list[str]:
     return [
-        *(f"journey_terminal_evidence.missing_journey:{journey_id}"
-          for journey_id in summary.get("missing_journey_ids") or []),
-        *(f"journey_terminal_evidence.blocked_journey:{journey_id}"
-          for journey_id in summary.get("blocked_journey_ids") or []),
-        *(f"journey_terminal_evidence.activation:{violation}"
-          for violation in summary.get("activation_violations") or []),
+        f"journey_terminal_evidence.{label}:{value}"
+        for label, field in (
+            ("missing_journey", "missing_journey_ids"),
+            ("blocked_journey", "blocked_journey_ids"),
+            ("missing_terminal_output", "missing_terminal_output_journey_ids"),
+            ("output_kind_mismatch", "output_kind_mismatch_journey_ids"),
+            ("workflow_family_mismatch", "workflow_family_mismatch_journey_ids"),
+            ("activation", "activation_violations"),
+        )
+        for value in summary.get(field) or []
     ]
 
 
@@ -99,7 +112,9 @@ def _evidence_row(
         "status": "blocked" if blockers else "pass",
         "comparison_scope": "ux_journey_terminal_lab_only_evidence",
         "source_artifact_refs": list(source_refs),
+        "product_contract_refs": list(ux_entry.get("product_contract_refs") or []),
         "required_trace_fields": list(ux_entry.get("required_trace_fields") or []),
+        "ux_terminal_output": expected_terminal_output(journey_id),
         "terminal_artifact_refs": list(TERMINAL_ARTIFACT_REFS),
         "terminal_statuses": _terminal_statuses(fixture_chain),
         "no_send_control_evidence": _control_evidence(fixture_chain),
@@ -135,14 +150,8 @@ def _terminal_blockers(
 def _terminal_statuses(fixture_chain: Mapping[str, Any]) -> dict[str, str]:
     return {
         "fixture_chain": str(fixture_chain.get("status") or "missing"),
-        "terminal_review_sink": str(
-            _mapping(fixture_chain.get("terminal_review_sink")).get("status")
-            or "missing"
-        ),
-        "chat_ux_packet": str(
-            _mapping(fixture_chain.get("chat_ux_packet")).get("status")
-            or "missing"
-        ),
+        "terminal_review_sink": _artifact_status(fixture_chain.get("terminal_review_sink")),
+        "chat_ux_packet": _artifact_status(fixture_chain.get("chat_ux_packet")),
     }
 
 
@@ -152,9 +161,7 @@ def _control_evidence(fixture_chain: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "status": str(control.get("status") or "missing"),
         "configured_paths": dict(_mapping(control.get("configured_paths"))),
-        "next_signal_required_present": (
-            control.get("next_signal_required_present") is True
-        ),
+        "next_signal_required_present": control.get("next_signal_required_present") is True,
     }
 
 
@@ -185,11 +192,8 @@ def _row_status(row: Mapping[str, Any] | None) -> str:
 def _mapping(value: Any) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
+def _artifact_status(value: Any) -> str:
+    return str(_mapping(value).get("status") or "missing")
 
-__all__ = [
-    "SIDECAR_ACTIVATION_CONTRACT",
-    "build_journey_terminal_evidence",
-    "journey_terminal_evidence_blockers",
-    "journey_terminal_evidence_row",
-    "journey_terminal_evidence_summary",
-]
+
+__all__ = ["SIDECAR_ACTIVATION_CONTRACT", "build_journey_terminal_evidence", "journey_terminal_evidence_blockers", "journey_terminal_evidence_row", "journey_terminal_evidence_summary"]
