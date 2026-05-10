@@ -44,7 +44,6 @@ from app.advanced_shadow_lab.product_lab_turn_policy import (
 )
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
-
 SIDECAR_ACTIVATION_CONTRACT = offline_sidecar_contract("advanced_shadow_lab.product_lab_runtime")
 def run_advanced_product_lab_turn(
     *,
@@ -109,6 +108,7 @@ def run_advanced_product_lab_turn(
         recommendation_artifact=product_recommendation,
         rescue_artifact=product_rescue,
         action_state=prior_action_state,
+        prior_control_journal=list(prior_control_journal or []),
     )
     control_state = build_product_lab_control_state(
         session_id=str(turn.get("session_id") or ""),
