@@ -69,6 +69,8 @@ def test_all_advanced_capabilities_have_explicit_current_stage_and_dependencies(
     assert capabilities["recommendation"]["next_allowed_stage"] == "canary"
     assert capabilities["rescue"]["current_stage"] == "read_only_runtime"
     assert capabilities["rescue"]["next_allowed_stage"] == "canary"
+    assert capabilities["proactive"]["current_stage"] == "read_only_runtime"
+    assert capabilities["proactive"]["next_allowed_stage"] == "canary"
     assert capabilities["recommendation"]["depends_on"] == [
         "long_term_memory.read_only_runtime"
     ]
@@ -181,6 +183,42 @@ def test_rescue_read_only_runtime_stage_is_backed_by_manual_transition_artifact(
         "rescue_proposal_committed": False,
         "budget_mutation_allowed": False,
         "proposal_acceptance_route_allowed": False,
+    }
+
+
+def test_proactive_read_only_runtime_stage_is_backed_by_manual_transition_artifact() -> None:
+    contract = _contract()
+    proactive = contract["capabilities"]["proactive"]
+    evidence = proactive["stage_transition_evidence"]
+
+    assert evidence == {
+        "artifact_type": "proactive_read_only_runtime_stage_decision",
+        "status": "approved",
+        "stage_change_recorded": True,
+        "manual_promotion_approved": True,
+        "current_stage_in_decision_artifact": "shadow",
+        "target_stage_in_decision_artifact": "read_only_runtime",
+        "activation_stage_after_decision": "read_only_runtime",
+        "dependencies_satisfied": [
+            "recommendation.read_only_runtime",
+            "rescue.read_only_runtime",
+        ],
+        "required_preflight_artifact": "proactive_read_only_runtime_preflight_report",
+        "required_human_review_artifact": (
+            "proactive_read_only_runtime_stage_review_decision"
+        ),
+    }
+    assert "proactive_read_only_runtime_stage_decision" in proactive[
+        "current_allowed_outputs"
+    ]
+    assert "proactive_read_only_runtime_preflight_report" in proactive[
+        "current_allowed_outputs"
+    ]
+    assert "proactive_no_send_decision_pack" in proactive["current_allowed_outputs"]
+    assert proactive["stage_specific_no_go"] == {
+        "scheduler_activation_allowed": False,
+        "notification_delivery_allowed": False,
+        "trigger_persistence_allowed": False,
     }
 
 

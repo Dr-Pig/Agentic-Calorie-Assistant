@@ -312,13 +312,28 @@ capabilities:
       proposal_acceptance_route_allowed: false
   proactive:
     owner_module: app/runtime/application
-    current_stage: shadow
-    next_allowed_stage: read_only_runtime
+    current_stage: read_only_runtime
+    next_allowed_stage: canary
     depends_on:
       - long_term_memory.read_only_runtime
       - recommendation.read_only_runtime
       - rescue.read_only_runtime
+    stage_transition_evidence:
+      artifact_type: proactive_read_only_runtime_stage_decision
+      status: approved
+      stage_change_recorded: true
+      manual_promotion_approved: true
+      current_stage_in_decision_artifact: shadow
+      target_stage_in_decision_artifact: read_only_runtime
+      activation_stage_after_decision: read_only_runtime
+      dependencies_satisfied:
+        - recommendation.read_only_runtime
+        - rescue.read_only_runtime
+      required_preflight_artifact: proactive_read_only_runtime_preflight_report
+      required_human_review_artifact: proactive_read_only_runtime_stage_review_decision
     current_allowed_outputs:
+      - proactive_read_only_runtime_preflight_report
+      - proactive_read_only_runtime_stage_decision
       - proactive_no_send_summary_consumer_projection
       - proactive_no_send_decision_pack
     stage_specific_no_go:
