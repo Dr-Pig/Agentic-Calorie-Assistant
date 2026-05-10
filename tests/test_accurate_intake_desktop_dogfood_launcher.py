@@ -21,6 +21,12 @@ def test_desktop_dogfood_launch_descriptor_uses_persistent_local_sqlite_and_laun
         user_id="dogfood-user",
         db_path=Path("workspace_data/local_dogfood/accurate_intake.sqlite3"),
         local_debug_token="test-token",
+        provider_status={
+            "provider": {"status": "configured", "configured": True},
+            "manager_provider": {"status": "configured", "configured": True},
+            "search": {"status": "not_configured", "configured": False},
+            "extract": {"status": "not_configured", "configured": False},
+        },
     )
 
     assert descriptor["artifact_type"] == "accurate_intake_desktop_dogfood_launcher_descriptor"
@@ -43,9 +49,26 @@ def test_desktop_dogfood_launch_descriptor_uses_persistent_local_sqlite_and_laun
         "review",
         "data",
     ]
+    assert descriptor["entry_page_urls"] == {
+        "desktop": "http://127.0.0.1:8765/static/accurate-intake-desktop.html?user_id=dogfood-user",
+        "chat": "http://127.0.0.1:8765/static/accurate-intake-chat.html?user_id=dogfood-user",
+        "today": "http://127.0.0.1:8765/static/accurate-intake-today.html?user_id=dogfood-user",
+        "body": "http://127.0.0.1:8765/static/accurate-intake-body.html?user_id=dogfood-user",
+        "feedback": "http://127.0.0.1:8765/static/accurate-intake-feedback.html?user_id=dogfood-user",
+        "review": "http://127.0.0.1:8765/static/accurate-intake-review.html?user_id=dogfood-user",
+        "data": "http://127.0.0.1:8765/static/accurate-intake-data.html?user_id=dogfood-user",
+    }
     assert descriptor["local_debug_token"] == "test-token"
     assert descriptor["local_debug_header"] == "X-Local-Debug-Token"
     assert descriptor["local_debug_token_in_url"] is False
+    assert descriptor["provider_status"]["manager_provider"] == {
+        "status": "configured",
+        "configured": True,
+    }
+    assert descriptor["provider_status"]["search"] == {
+        "status": "not_configured",
+        "configured": False,
+    }
 
 
 def test_desktop_dogfood_launch_descriptor_preserves_non_claims_and_boundaries() -> None:
@@ -72,6 +95,8 @@ def test_desktop_dogfood_launch_descriptor_preserves_non_claims_and_boundaries()
         "live_llm_ready",
         "fooddb_expansion_ready",
     ]
+    assert "base_url" not in json.dumps(descriptor)
+    assert "api_key" not in json.dumps(descriptor).lower()
 
 
 def test_desktop_dogfood_launcher_cli_prints_descriptor_without_starting_server(
@@ -199,4 +224,17 @@ def test_self_use_runbook_documents_desktop_launcher_without_readiness_claim() -
     assert "workspace_data/local_dogfood/accurate_intake.sqlite3" in runbook
     assert "/static/accurate-intake-desktop.html" in runbook
     assert "X-Local-Debug-Token" in runbook
+    assert "provider preflight" in runbook
     assert "does not approve private self-use" in runbook
+
+
+def test_desktop_entry_page_displays_sanitized_provider_preflight() -> None:
+    html = Path("static/accurate-intake-desktop.html").read_text(encoding="utf-8")
+
+    assert 'data-provider-preflight-source="/ping"' in html
+    assert 'id="manager-provider-status"' in html
+    assert 'id="search-provider-status"' in html
+    assert 'id="extract-provider-status"' in html
+    assert "function renderProviderPreflight(payload)" in html
+    assert "base_url" not in html
+    assert "timeout_seconds" not in html

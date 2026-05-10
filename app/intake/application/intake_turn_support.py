@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from app.intake.application.latency_attribution import build_latency_attribution
+
 
 def normalized_activity_level(activity_level: str | None) -> str:
     value = (activity_level or "").strip().lower()
@@ -31,6 +33,7 @@ def intake_turn_latency_tracking(
     *,
     manager_decision: Any,
     stage_timings: list[dict[str, Any]],
+    react_trace: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "intent_type": manager_decision.intent_type,
@@ -42,6 +45,10 @@ def intake_turn_latency_tracking(
         "slowest_step_ms": max((st["duration_ms"] for st in stage_timings), default=0),
         "slowest_step_name": max(stage_timings, key=lambda x: x["duration_ms"])["stage"] if stage_timings else "none",
         "stage_timings": stage_timings,
+        "latency_attribution": build_latency_attribution(
+            stage_timings=stage_timings,
+            react_trace=react_trace,
+        ),
     }
 
 

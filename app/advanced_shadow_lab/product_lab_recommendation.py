@@ -5,6 +5,12 @@ from typing import Any, Mapping
 from app.advanced_shadow_lab.product_lab_recommendation_candidates import (
     build_candidate_retrieval_guard_scoring,
 )
+from app.advanced_shadow_lab.product_lab_recommendation_graph_contract import (
+    build_recommendation_graph_contract,
+)
+from app.advanced_shadow_lab.product_lab_recommendation_handoff import (
+    build_pending_intake_handoff_packet,
+)
 from app.advanced_shadow_lab.product_lab_recommendation_provider import (
     FixtureProductLabRecommendationProvider,
 )
@@ -65,26 +71,41 @@ def run_product_lab_recommendation(
     offer_synthesis = active_provider.synthesize_offer(
         retrieval_guard_scoring=retrieval_guard_scoring,
     )
+    graph_contract = build_recommendation_graph_contract(
+        physical_node_order=PHYSICAL_NODE_ORDER,
+        logical_stage_trace=LOGICAL_STAGE_TRACE,
+    )
     blockers = [
+        *_blockers("graph_contract", graph_contract),
         *_blockers("planning", planning),
         *_blockers("candidate_retrieval_guard_scoring", retrieval_guard_scoring),
         *_blockers("offer_synthesis", offer_synthesis),
     ]
     primary = _mapping(offer_synthesis.get("selected_primary"))
+    pending_handoff = build_pending_intake_handoff_packet(
+        primary_candidate=primary,
+        ux_packet=_mapping(offer_synthesis.get("ux_packet")),
+    )
+    blockers = [
+        *blockers,
+        *_blockers("pending_intake_handoff", pending_handoff),
+    ]
     return {
         "artifact_type": "advanced_product_lab_recommendation_runtime_artifact",
         "artifact_schema_version": "1.0",
         "status": "blocked" if blockers else "pass",
         "physical_node_order": list(PHYSICAL_NODE_ORDER),
         "logical_stage_trace": [dict(row) for row in LOGICAL_STAGE_TRACE],
+        "graph_contract": graph_contract,
         "provider_profile": active_provider.profile(),
         "planning": planning,
         "retrieval_guard_scoring": retrieval_guard_scoring,
         "offer_synthesis": offer_synthesis,
         "intake_handoff_packet": _intake_handoff(primary),
+        "pending_intake_handoff_packet": pending_handoff,
         "recommendation_served_to_lab": not bool(blockers),
         "lab_user_facing_behavior_changed": not bool(blockers),
-        "recommendation_intent_state_created": False,
+        "recommendation_intent_state_created": pending_handoff.get("status") == "pass",
         "raw_user_text_semantic_inference_performed": False,
         "mainline_activation_enabled": False,
         "self_use_v1_affected": False,

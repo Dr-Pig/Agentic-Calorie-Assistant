@@ -100,6 +100,7 @@ def test_desktop_feedback_capture_is_trace_linked_local_triage_not_product_truth
         page="chat",
         selected_date="2026-05-10",
         user_external_id="local-self-use-001",
+        request_id="request-bubble-tea",
         trace_id="trace-bubble-tea",
         message_id="assistant-message-9",
         severity="medium",
@@ -134,10 +135,16 @@ def test_desktop_feedback_capture_is_trace_linked_local_triage_not_product_truth
         "page": "chat",
         "selected_date": "2026-05-10",
         "user_external_id": "local-self-use-001",
+        "request_id": "request-bubble-tea",
         "trace_id": "trace-bubble-tea",
         "message_id": "assistant-message-9",
         "meal_id": None,
     }
+    assert feedback["source_refs"] == [
+        "request:request-bubble-tea",
+        "trace:trace-bubble-tea",
+        "message:assistant-message-9",
+    ]
     assert feedback["ui_event"]["route"] == "/static/accurate-intake-chat.html"
     assert feedback["operation_context"] == {
         "submitted_endpoint": "/accurate-intake/feedback",

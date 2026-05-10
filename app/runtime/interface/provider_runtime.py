@@ -5,6 +5,10 @@ import os
 from ...providers.builderspace_adapter import BuilderSpaceAdapter
 from ...providers.deepseek_adapter import DeepSeekAdapter
 from ...providers.tavily_search_port import TavilySearchPort
+from .current_shell_manager_provider import (
+    CurrentShellManagerContractProvider,
+    current_shell_manager_provider_profile,
+)
 
 
 def _create_provider(
@@ -12,13 +16,18 @@ def _create_provider(
     provider_env: str,
     default_provider: str,
     role_label: str,
-) -> BuilderSpaceAdapter | DeepSeekAdapter:
+) -> BuilderSpaceAdapter | DeepSeekAdapter | CurrentShellManagerContractProvider:
     provider_name = os.getenv(provider_env, default_provider).strip().lower()
     if provider_name == "deepseek":
         return DeepSeekAdapter()
     if provider_name == "gemini":
         raise RuntimeError("Gemini provider is not supported in V2 single-manager runtime yet.")
-    return BuilderSpaceAdapter(role_label=role_label)
+    profile = current_shell_manager_provider_profile()
+    adapter = BuilderSpaceAdapter(
+        manager_model_override=str(profile["model"]),
+        role_label=role_label,
+    )
+    return CurrentShellManagerContractProvider(adapter, profile=profile)
 
 
 manager_provider = _create_provider(

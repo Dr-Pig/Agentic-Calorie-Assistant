@@ -3,6 +3,9 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAGS
+from app.advanced_shadow_lab.product_lab_closure_summary import (
+    build_product_lab_closure_summary,
+)
 
 
 def build_simulated_dogfood_summary(
@@ -34,6 +37,28 @@ def build_simulated_dogfood_summary(
         "product_outputs_applied_to_chat_surface": bool(
             session_artifact.get("product_outputs_applied_to_chat_surface")
         ),
+        "product_recommendation_intake_handoff_created": bool(
+            session_artifact.get("product_recommendation_intake_handoff_created")
+        ),
+        "product_rescue_commit_handoff_created": bool(
+            session_artifact.get("product_rescue_commit_handoff_created")
+        ),
+        "product_proactive_delivery_packet_ready": bool(
+            session_artifact.get("product_proactive_delivery_packet_ready")
+        ),
+        "lab_chat_action_outcome_count": int(
+            session_artifact.get("lab_chat_action_outcome_count") or 0
+        ),
+        "lab_chat_action_outcome_types": list(
+            session_artifact.get("lab_chat_action_outcome_types") or []
+        ),
+        "lab_chat_action_canonical_mutation_allowed": bool(
+            session_artifact.get("lab_chat_action_canonical_mutation_allowed")
+        ),
+        "lab_chat_action_blockers": list(
+            session_artifact.get("lab_chat_action_blockers") or []
+        ),
+        **build_product_lab_closure_summary(session_artifact),
         "session_artifact_path": str(session_artifact.get("session_artifact_path") or ""),
         "turn_artifact_paths": list(session_artifact.get("turn_artifact_paths") or []),
         "lab_session_store_written": bool(

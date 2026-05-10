@@ -3,16 +3,22 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from app.advanced_shadow_lab.product_lab_runtime import run_advanced_product_lab_turn
+from app.advanced_shadow_lab.product_lab_chat_actions import (
+    apply_product_lab_chat_actions,
+)
 from app.advanced_shadow_lab.product_lab_memory import (
     ProductLabMemoryStore,
     build_product_lab_memory_context_pack,
 )
+from app.advanced_shadow_lab.product_lab_runtime import run_advanced_product_lab_turn
 from app.advanced_shadow_lab.product_lab_session_controls import (
     event_ids,
     post_turn_control_state,
     post_turn_events,
     release_completed_controls,
+)
+from app.advanced_shadow_lab.product_lab_session_memory_pipeline import (
+    run_product_lab_turn_memory_pipeline,
 )
 from app.advanced_shadow_lab.product_lab_session_policy import (
     LAB_MODE,
@@ -91,15 +97,13 @@ def run_advanced_product_lab_dogfood_session(
             prior_journal=released_journal,
         )
         history_event_ids.extend(event_ids(post_turn_events(turn_spec)))
-        memory_write = memory_store.write_memory_events(
+        memory_pipeline = run_product_lab_turn_memory_pipeline(
+            store=memory_store,
             session_id=session_id,
             turn_id=turn_id,
-            events=[
-                item
-                for item in turn_spec.get("post_turn_memory_events") or []
-                if isinstance(item, Mapping)
-            ],
+            turn_spec=turn_spec,
         )
+        memory_write = dict(memory_pipeline.get("memory_write_artifact") or {})
         memory_record_ids = list(memory_write.get("all_record_ids") or memory_record_ids)
         if memory_write.get("surface_paths"):
             memory_surface_paths = {
@@ -108,11 +112,28 @@ def run_advanced_product_lab_dogfood_session(
             }
         journal = list(post_control["journal_entries"])
         run_blockers.extend(turn_blockers(turn_id, turn_artifact, post_control))
+        if memory_pipeline.get("status") != "pass":
+            run_blockers.append(f"{turn_id}.memory_pipeline_blocked")
+        chat_action_outcomes = apply_product_lab_chat_actions(
+            messages=_chat_messages(turn_artifact),
+            action_specs=_post_turn_chat_actions(turn_spec),
+        )
+        run_blockers.extend(
+            f"{turn_id}.chat_action.{blocker}"
+            for outcome in chat_action_outcomes
+            for blocker in outcome.get("blockers") or []
+        )
+        record = turn_record(
+            turn_artifact,
+            post_control,
+            chat_action_outcomes=chat_action_outcomes,
+        )
+        record["memory_pipeline_artifact"] = memory_pipeline
         path = write_turn_record(
             artifact_root=artifact_root,
             session_id=session_id,
             turn_id=turn_id,
-            record=turn_record(turn_artifact, post_control),
+            record=record,
         )
         turn_paths.append(str(path))
         turn_summaries.append(
@@ -122,6 +143,7 @@ def run_advanced_product_lab_dogfood_session(
                 post_control,
                 memory_context_pack=memory_context_pack,
                 memory_write_artifact=memory_write,
+                chat_action_outcomes=chat_action_outcomes,
             )
         )
 
@@ -149,6 +171,23 @@ def run_advanced_product_lab_dogfood_session(
         artifact=artifact,
     )
     return artifact
+
+
+def _post_turn_chat_actions(turn_spec: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    return [
+        item
+        for item in turn_spec.get("post_turn_chat_actions") or []
+        if isinstance(item, Mapping)
+    ]
+
+
+def _chat_messages(turn_artifact: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    surface = turn_artifact.get("lab_chat_surface")
+    if not isinstance(surface, Mapping):
+        return []
+    return [
+        item for item in surface.get("messages") or [] if isinstance(item, Mapping)
+    ]
 
 
 __all__ = [

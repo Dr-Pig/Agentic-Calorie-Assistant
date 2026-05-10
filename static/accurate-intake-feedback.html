@@ -156,6 +156,9 @@
       <label>Trace ID
         <input id="trace-id" autocomplete="off" />
       </label>
+      <label>Request ID
+        <input id="request-id" autocomplete="off" />
+      </label>
       <label>Meal ID
         <input id="meal-id" autocomplete="off" />
       </label>
@@ -210,6 +213,7 @@
     el("user-id").value = params.get("user_id") || el("user-id").value;
     el("local-date").value = params.get("local_date") || todayIso();
     el("trace-id").value = params.get("trace_id") || "";
+    el("request-id").value = params.get("request_id") || params.get("trace_id") || "";
     el("message-id").value = params.get("message_id") || "";
     el("meal-id").value = params.get("meal_id") || "";
     el("meal-title-context").textContent = params.get("meal_title") || "No meal selected";
@@ -229,6 +233,9 @@
         query.set("source_page", sourcePage());
         if (el("trace-id").value.trim()) {
           query.set("trace_id", el("trace-id").value.trim());
+        }
+        if (el("request-id").value.trim()) {
+          query.set("request_id", el("request-id").value.trim());
         }
         if (el("message-id").value.trim()) {
           query.set("message_id", el("message-id").value.trim());
@@ -283,6 +290,7 @@
       const latest = [...messages].reverse().find((message) => message.trace_id);
       if (latest) {
         el("trace-id").value = el("trace-id").value || latest.trace_id || "";
+        el("request-id").value = el("request-id").value || latest.trace_id || "";
         el("message-id").value = el("message-id").value || latest.message_id || "";
       }
     }
@@ -294,6 +302,7 @@
         page: sourcePage(),
         selected_date: selectedDate(),
         user_external_id: userId(),
+        request_id: el("request-id").value.trim() || el("trace-id").value.trim() || null,
         trace_id: el("trace-id").value.trim() || null,
         message_id: el("message-id").value.trim() || null,
         meal_id: el("meal-id").value.trim() || null,

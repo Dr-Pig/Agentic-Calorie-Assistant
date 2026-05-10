@@ -454,6 +454,9 @@
         source_page: "today_diary"
       });
       query.set("meal_id", String(meal.meal_thread_id));
+      if (meal.source_request_id) {
+        query.set("request_id", meal.source_request_id);
+      }
       if (meal.meal_title) {
         query.set("meal_title", meal.meal_title);
       }

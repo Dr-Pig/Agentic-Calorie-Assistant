@@ -316,6 +316,7 @@ def build_rt13_observability_pack_artifact(
                 "react_trace_layer_latency",
                 "request_trace_linkage",
                 "latency_tracking_summary",
+                "latency_attribution_breakdown",
                 "route_latency_bucket",
             ],
         },

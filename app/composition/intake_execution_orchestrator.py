@@ -495,11 +495,9 @@ async def process_intake_execution_turn(
             state_mutation_summary=state_mutation_summary,
         )
 
-    state_after = resolve_intake_state(
-        db,
-        user_external_id=user_external_id,
-        local_date=local_date,
-    )
+    stage_start = _now_ms()
+    state_after = resolve_intake_state(db, user_external_id=user_external_id, local_date=local_date)
+    record_timing("state_after_resolution", _now_ms() - stage_start)
     refreshed_tool_results = [dict(item) for item in manager_result.tool_results]
     if nutrition_artifact is not None:
         refreshed_nutrition_output = nutrition_tool_output(

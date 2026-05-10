@@ -285,11 +285,9 @@ async def execute_intake_turn(
     else:
         raise ValueError(f"Unsupported intake intent_type: {manager_decision.intent_type}")
 
-    state_after = resolve_intake_state(
-        db,
-        user_external_id=user_external_id,
-        local_date=resolved_local_date,
-    )
+    stage_start = int(time.time() * 1000)
+    state_after = resolve_intake_state(db, user_external_id=user_external_id, local_date=resolved_local_date)
+    _record_timing(stage_timings, "state_after_resolution", int(time.time() * 1000) - stage_start)
     if remaining_budget is None:
         remaining_budget = build_remaining_budget_answer_contract(
             db,
@@ -297,6 +295,7 @@ async def execute_intake_turn(
             local_date=resolved_local_date,
         )
 
+    stage_start = int(time.time() * 1000)
     assistant_message = assistant_message_override or render_intake_reply(
         intent_type=manager_decision.intent_type,
         onboarding_result=onboarding_result,
@@ -315,6 +314,7 @@ async def execute_intake_turn(
         trace_summary=trace_summary,
         overshoot_summary=None,
     )
+    _record_timing(stage_timings, "renderer_response", int(time.time() * 1000) - stage_start)
     append_trace_event_tool(
         request_id=request_id,
         stage="v2_renderer_sidecar",

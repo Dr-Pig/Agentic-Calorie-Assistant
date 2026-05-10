@@ -87,6 +87,8 @@ def _message(
         "product_runtime_output_refs": [
             str(item) for item in packet.get("product_runtime_output_refs") or []
         ],
+        "recommendation_offer": _recommendation_offer(packet),
+        "rescue_proposal": _rescue_proposal(packet),
         "controls_visible": True,
         "actions": [
             _action(session_id, turn_id, candidate_id, "dismiss"),
@@ -128,12 +130,54 @@ def _copy(packet: Mapping[str, Any], workflow_family: str) -> str:
     return "I can help with this when it is useful."
 
 
+def _recommendation_offer(packet: Mapping[str, Any]) -> dict[str, Any]:
+    ux = packet.get("recommendation_ux_packet")
+    if not isinstance(ux, Mapping):
+        return {}
+    return {
+        "primary_candidate_id": str(ux.get("primary_candidate_id") or ""),
+        "backup_candidate_ids": [str(item) for item in ux.get("backup_candidate_ids") or []],
+        "offer_actions": [dict(item) for item in ux.get("actions") or [] if isinstance(item, Mapping)],
+        "intake_handoff_state": str(
+            _mapping(packet.get("pending_intake_handoff_packet")).get("handoff_state")
+            or ""
+        ),
+        "canonical_commit_requested": _mapping(
+            packet.get("pending_intake_handoff_packet")
+        ).get("canonical_commit_requested")
+        is True,
+        "requires_explicit_user_intake_action": any(
+            item.get("requires_explicit_user_intake_action") is True
+            for item in ux.get("actions") or []
+            if isinstance(item, Mapping)
+        ),
+    }
+
+
+def _rescue_proposal(packet: Mapping[str, Any]) -> dict[str, Any]:
+    proposal = _mapping(packet.get("rescue_proposal_packet"))
+    if not proposal:
+        return {}
+    pending = _mapping(proposal.get("pending_rescue_commit_packet"))
+    return {
+        "handoff_state": str(pending.get("handoff_state") or ""),
+        "primary_actions": [str(item) for item in proposal.get("primary_actions") or []],
+        "guardrail_math": dict(_mapping(proposal.get("guardrail_math"))),
+        "canonical_commit_requested": pending.get("canonical_commit_requested") is True,
+        "proposal_committed": pending.get("proposal_committed") is True,
+    }
+
+
 def _visible_packets(packet: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     return [
         item
         for item in packet.get("visible_chat_packets") or []
         if isinstance(item, Mapping)
     ]
+
+
+def _mapping(value: Any) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
 
 
 __all__ = [

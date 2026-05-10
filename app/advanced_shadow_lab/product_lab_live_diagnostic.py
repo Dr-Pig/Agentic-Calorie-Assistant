@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAGS
+from app.advanced_shadow_lab.model_profiles import advanced_lab_model_profile_policy
 from app.advanced_shadow_lab.product_lab_live_payload import (
     product_lab_live_provider_payload,
 )
@@ -77,10 +78,14 @@ def run_product_lab_live_diagnostic(
         "source_summary_artifact_type": summary_artifact.get("artifact_type"),
         "source_session_id": str(summary_artifact.get("session_id") or ""),
         "source_turn_count": int(summary_artifact.get("turn_count") or 0),
+        "source_product_loop_closed": (
+            summary_artifact.get("advanced_product_lab_product_loop_closed") is True
+        ),
         "lab_user_facing_behavior_changed": bool(summary_artifact.get("lab_user_facing_behavior_changed")),
         "lab_memory_store_written": bool(summary_artifact.get("lab_memory_store_written")),
         "memory_context_injected": bool(summary_artifact.get("memory_context_injected")),
         "model_input_policy": _model_input_policy(),
+        "model_profile_policy": advanced_lab_model_profile_policy(),
         "provider_mode": str(provider_mode),
         "live_invoked": bool(live_invoked),
         "live_provider_used": bool(live_invoked and provider_invoked),
@@ -133,6 +138,14 @@ def _summary_blockers(summary: Mapping[str, Any]) -> list[str]:
         blockers.append("summary.unsupported_artifact_type")
     if summary.get("status") != "pass":
         blockers.append("summary.status_not_pass")
+    if summary.get("advanced_product_lab_product_loop_closed") is not True:
+        missing = ",".join(
+            str(item)
+            for item in summary.get("advanced_product_lab_closure_missing") or []
+        )
+        blockers.append(f"summary.product_loop_not_closed:{missing or 'unknown'}")
+    for blocker in summary.get("lab_chat_action_blockers") or []:
+        blockers.append(f"summary.chat_action_blocker:{blocker}")
     for flag in (
         "live_provider_invoked",
         "user_facing_behavior_changed",

@@ -13,6 +13,7 @@ def test_rt13_observability_pack_artifact_passes_and_targets_gate() -> None:
     assert artifact["summary"]["passed_case_count"] == 5
     assert "react_trace_call_topology" in artifact["summary"]["observability_contracts"]
     assert "react_trace_layer_latency" in artifact["summary"]["observability_contracts"]
+    assert "latency_attribution_breakdown" in artifact["summary"]["observability_contracts"]
 
 
 def test_rt13_observability_pack_records_prompt_registry_and_trace_lineage() -> None:
@@ -60,6 +61,8 @@ def test_rt13_observability_pack_records_request_links_and_latency_contracts() -
     assert latency["total_duration_ms"] == 860
     assert latency["slowest_step_name"] == "tool_batch"
     assert latency["tools_used"] == ["estimate_nutrition", "compare_against_budget"]
+    assert latency["latency_attribution"]["category_totals_ms"]["manager_provider"] == 440
+    assert latency["latency_attribution"]["category_totals_ms"]["manager_tool_execution"] == 420
 
     buckets = by_id["route_latency_bucket_thresholds_are_stable"]["observed"]
     assert buckets == {

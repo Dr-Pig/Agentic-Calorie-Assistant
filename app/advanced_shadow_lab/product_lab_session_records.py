@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAGS
+from app.advanced_shadow_lab.product_lab_session_action_summary import (
+    session_chat_action_summary,
+    turn_chat_action_summary,
+)
 from app.advanced_shadow_lab.product_lab_session_controls import event_ids
 from app.advanced_shadow_lab.product_lab_session_product_summary import (
     session_product_summary,
@@ -47,6 +51,7 @@ def session_artifact(
         **session_product_summary(turn_summaries),
         "control_event_history_ids": list(history_event_ids),
         "final_control_journal_event_ids": event_ids(journal),
+        **session_chat_action_summary(turn_summaries),
         "lab_session_store_written": not blockers,
         "lab_memory_store_written": not blockers and has_memory,
         "lab_memory_record_ids": list(memory_record_ids or []),
@@ -96,11 +101,16 @@ def blocked_session(*, session_id: str, blockers: list[str]) -> dict[str, Any]:
 def turn_record(
     turn_artifact: Mapping[str, Any],
     post_control: Mapping[str, Any],
+    *,
+    chat_action_outcomes: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return {
         "artifact_type": "advanced_product_lab_dogfood_turn_record",
         "turn_artifact": dict(turn_artifact),
         "post_turn_control_state": dict(post_control),
+        "post_turn_chat_action_outcomes": [
+            dict(item) for item in chat_action_outcomes or []
+        ],
     }
 
 
@@ -111,9 +121,11 @@ def turn_summary(
     *,
     memory_context_pack: Mapping[str, Any] | None = None,
     memory_write_artifact: Mapping[str, Any] | None = None,
+    chat_action_outcomes: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     context_pack = memory_context_pack or {}
     memory_write = memory_write_artifact or {}
+    action_outcomes = list(chat_action_outcomes or [])
     return {
         "turn_id": turn_id,
         "status": str(turn_artifact.get("status") or "blocked"),
@@ -131,6 +143,7 @@ def turn_summary(
         "lab_memory_written_record_ids": list(
             memory_write.get("written_record_ids") or []
         ),
+        **turn_chat_action_summary(action_outcomes),
         **turn_product_summary(turn_artifact),
     }
 

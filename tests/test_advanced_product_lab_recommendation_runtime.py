@@ -77,7 +77,7 @@ def test_product_lab_recommendation_runtime_uses_three_nodes_and_memory_candidat
         "canonical_commit_requested": False,
     }
     assert artifact["recommendation_served_to_lab"] is True
-    assert artifact["recommendation_intent_state_created"] is False
+    assert artifact["recommendation_intent_state_created"] is True
     assert artifact["canonical_product_mutation_allowed"] is False
     assert artifact["raw_user_text_semantic_inference_performed"] is False
     assert "no_send" not in serialized

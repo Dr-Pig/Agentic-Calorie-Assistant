@@ -180,7 +180,66 @@ def test_product_lab_live_diagnostic_payload_includes_product_runtime_summary(
         ],
         "proactive_candidate_counts": [2, 2, 2, 2],
         "outputs_applied_to_chat_surface": True,
+        "recommendation_intake_handoff_created": True,
+        "rescue_commit_handoff_created": True,
+        "proactive_delivery_packet_ready": True,
     }
+    assert provider.user_payload["chat_action_summary"] == {
+        "action_outcome_count": 2,
+        "action_outcome_types": [
+            "recommendation_intake_draft",
+            "rescue_commit_confirmation",
+        ],
+        "canonical_mutation_allowed": False,
+        "blockers": [],
+    }
+    assert provider.user_payload["product_loop_closure"] == {
+        "closed": True,
+        "missing": [],
+        "criteria": {
+            "session_passed": True,
+            "memory_store_written": True,
+            "memory_context_injected": True,
+            "recommendation_selected": True,
+            "recommendation_intake_action_replayed": True,
+            "rescue_commit_action_replayed": True,
+            "proactive_chat_delivery_ready": True,
+            "chat_surface_outputs_applied": True,
+            "activation_wall_intact": True,
+            "no_chat_action_blockers": True,
+        },
+    }
+    assert artifact["source_product_loop_closed"] is True
+    policy = artifact["model_profile_policy"]
+    assert policy["diagnostic_live_model"] == "grok-4-fast"
+    assert policy["target_reasoning_model"] == "kimi-k2.5"
+    assert policy["provider_dependency_inversion_required"] is True
+    assert policy["kimi_live_calls_allowed"] is False
+
+
+def test_product_lab_live_diagnostic_blocks_unclosed_product_loop(
+    tmp_path: Path,
+) -> None:
+    summary = read_json_artifact(_write_simulated_pack(tmp_path))
+    summary["advanced_product_lab_product_loop_closed"] = False
+    summary["advanced_product_lab_closure_missing"] = [
+        "rescue_commit_action_replayed"
+    ]
+    provider = _CapturingProvider()
+
+    artifact = run_product_lab_live_diagnostic(
+        summary_artifact=summary,
+        provider=provider,
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["provider_invoked"] is False
+    assert artifact["blockers"] == [
+        "summary.product_loop_not_closed:rescue_commit_action_replayed"
+    ]
+    assert provider.user_payload == {}
 
 
 def test_product_lab_live_diagnostic_output_guard_allows_negated_claim_words(

@@ -34,11 +34,31 @@ def test_persistent_desktop_dogfood_baseline_survives_restart_and_exports_sideca
     assert report["product_readiness_claimed"] is False
     assert report["private_self_use_approved"] is False
     assert report["approved_packet_turn"]["canonical_commit"] is True
+    assert report["approved_packet_turn"]["macro_visibility_status"] == "visible"
+    assert report["approved_packet_turn"]["macro_display_status"] == "show"
+    assert report["approved_packet_turn"]["protein_g"] == 12
+    assert report["approved_packet_turn"]["carbs_g"] == 48
+    assert report["approved_packet_turn"]["fat_g"] == 6
     assert report["ambiguous_packet_turn"]["canonical_commit"] is False
     assert report["ambiguous_packet_turn"]["disambiguation_required"] is True
-    assert report["before_restart"]["today"]["consumed_kcal"] == 80
-    assert report["after_restart"]["today"]["consumed_kcal"] == 80
+    assert report["ambiguous_packet_turn"]["macro_display_status"] == "hide"
+    assert report["ambiguous_packet_turn"]["macro_guard_reason"] == "no_macro_data"
+    assert report["ambiguous_packet_turn"]["protein_g"] in (0, None)
+    assert report["ambiguous_packet_turn"]["carbs_g"] in (0, None)
+    assert report["ambiguous_packet_turn"]["fat_g"] in (0, None)
+    assert report["before_restart"]["today"]["consumed_kcal"] == 300
+    assert report["before_restart"]["today"]["consumed_protein"] == 12
+    assert report["before_restart"]["today"]["consumed_carbs"] == 48
+    assert report["before_restart"]["today"]["consumed_fat"] == 6
+    assert report["before_restart"]["today"]["show_macro"] is True
+    assert report["before_restart"]["today"]["macro_guard_reason"] == "committed_and_aligned"
+    assert report["after_restart"]["today"]["consumed_kcal"] == 300
     assert report["after_restart"]["today"]["active_meal_count"] == 1
+    assert report["after_restart"]["today"]["consumed_protein"] == 12
+    assert report["after_restart"]["today"]["consumed_carbs"] == 48
+    assert report["after_restart"]["today"]["consumed_fat"] == 6
+    assert report["after_restart"]["today"]["show_macro"] is True
+    assert report["after_restart"]["today"]["macro_guard_reason"] == "committed_and_aligned"
     assert isinstance(report["after_restart"]["today"]["budget_kcal"], int)
     assert isinstance(report["after_restart"]["today"]["remaining_kcal"], int)
     assert report["after_restart"]["chat_history"]["message_count"] >= 4
@@ -171,6 +191,15 @@ def test_persistent_browser_execution_checks_arbitrary_next_day_is_empty(
                     "data": True,
                 },
                 "today_same_truth_checked": True,
+                "today_macro_panel_checked": True,
+                "today_macro_panel": {
+                    "checked": True,
+                    "macro_state": "visible",
+                    "protein_text": "12",
+                    "carbs_text": "48",
+                    "fat_text": "6",
+                    "macro_guard_reason_hidden": True,
+                },
                 "feedback_submitted": True,
                 "review_queue_ingested_feedback": True,
                 "data_export_sidecars_included": True,
@@ -246,13 +275,51 @@ def test_persistent_browser_execution_requires_adjacent_date_isolation() -> None
     assert "adjacent_date_not_checked" in blockers
 
 
+def test_persistent_browser_execution_requires_macro_visible_today_panel() -> None:
+    blockers = module._browser_blockers(
+        {
+            "desktop_entry": {
+                "surface_loaded": True,
+                "session_connected": True,
+                "token_in_url": False,
+            },
+            "desktop_loop": {
+                "page_navigation": {
+                    "chat": True,
+                    "today": True,
+                    "body": True,
+                    "feedback": True,
+                    "review": True,
+                    "data": True,
+                },
+                "today_same_truth_checked": True,
+                "feedback_submitted": True,
+                "review_queue_ingested_feedback": True,
+                "data_export_sidecars_included": True,
+                "local_debug_token_in_url": False,
+                "forbidden_storage_used": False,
+                "today_macro_panel_checked": False,
+            },
+            "adjacent_date": {
+                "local_date": "2026-05-11",
+                "today_consumed_kcal": 0,
+                "chat_history_message_count": 0,
+            },
+            "forbidden_storage_used": False,
+        }
+    )
+
+    assert "today_macro_panel_not_checked" in blockers
+
+
 def test_self_use_runbook_documents_persistent_desktop_baseline() -> None:
     runbook = Path("docs/quality/ACCURATE_INTAKE_MVP_SELF_USE_RUNBOOK.md").read_text(
         encoding="utf-8-sig"
     )
 
     assert "run_accurate_intake_persistent_desktop_dogfood_baseline.py" in runbook
-    assert "approved FoodDB packet commit plus ambiguous no-commit" in runbook
+    assert "macro-present approved exact FoodDB packet commit plus ambiguous no-commit" in runbook
     assert "Add `--require-browser-execution`" in runbook
+    assert "Today macro panel" in runbook
     assert "adjacent-date isolation" in runbook
     assert "backup_required_before_reset" in runbook

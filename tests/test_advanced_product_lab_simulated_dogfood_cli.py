@@ -76,6 +76,30 @@ def test_simulated_dogfood_cli_writes_operator_review_artifacts(
     ]
     assert file_summary["product_proactive_candidate_counts"] == [2, 2, 2, 2]
     assert file_summary["product_outputs_applied_to_chat_surface"] is True
+    assert file_summary["product_recommendation_intake_handoff_created"] is True
+    assert file_summary["product_rescue_commit_handoff_created"] is True
+    assert file_summary["product_proactive_delivery_packet_ready"] is True
+    assert file_summary["lab_chat_action_outcome_count"] == 2
+    assert file_summary["lab_chat_action_outcome_types"] == [
+        "recommendation_intake_draft",
+        "rescue_commit_confirmation",
+    ]
+    assert file_summary["lab_chat_action_canonical_mutation_allowed"] is False
+    assert file_summary["lab_chat_action_blockers"] == []
+    assert file_summary["advanced_product_lab_product_loop_closed"] is True
+    assert file_summary["advanced_product_lab_closure_missing"] == []
+    assert file_summary["advanced_product_lab_closure_criteria"] == {
+        "session_passed": True,
+        "memory_store_written": True,
+        "memory_context_injected": True,
+        "recommendation_selected": True,
+        "recommendation_intake_action_replayed": True,
+        "rescue_commit_action_replayed": True,
+        "proactive_chat_delivery_ready": True,
+        "chat_surface_outputs_applied": True,
+        "activation_wall_intact": True,
+        "no_chat_action_blockers": True,
+    }
 
     session_artifact = read_json_artifact(Path(file_summary["session_artifact_path"]))
     assert session_artifact["artifact_type"] == (
@@ -89,6 +113,13 @@ def test_simulated_dogfood_cli_writes_operator_review_artifacts(
         output_root.resolve(strict=False)
     )
     assert len(file_summary["turn_artifact_paths"]) == 4
+    first_turn = read_json_artifact(Path(file_summary["turn_artifact_paths"][0]))
+    memory_pipeline = first_turn["memory_pipeline_artifact"]
+    assert memory_pipeline["pipeline_path"] == "candidate_review_promotion"
+    assert memory_pipeline["promotion_artifact"]["promoted_record_ids"] == [
+        "golden-breakfast-oatmeal",
+        "negative-cilantro",
+    ]
     assert all(
         Path(path).is_relative_to(output_root.resolve(strict=False))
         for path in file_summary["turn_artifact_paths"]
