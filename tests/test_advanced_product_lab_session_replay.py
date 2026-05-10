@@ -143,6 +143,12 @@ def test_product_lab_session_replay_records_post_turn_chat_action_outcomes(
     ]
     assert artifact["lab_chat_action_canonical_mutation_allowed"] is False
     assert artifact["lab_chat_action_blockers"] == []
+    assert artifact["lab_pending_intake_draft_count"] == 1
+    assert artifact["lab_pending_intake_draft_candidate_ids"] == ["golden-1"]
+    assert artifact["lab_pending_intake_draft_canonical_mutation_allowed"] is False
+    assert "memory_candidate:golden-1" in artifact[
+        "lab_pending_intake_draft_source_refs"
+    ]
     assert artifact["canonical_product_mutation_allowed"] is False
 
     [turn_summary] = artifact["turn_summaries"]
@@ -155,6 +161,8 @@ def test_product_lab_session_replay_records_post_turn_chat_action_outcomes(
         "recommendation_intake_draft",
         "rescue_commit_confirmation",
     ]
+    assert turn_summary["lab_pending_intake_draft_count"] == 1
+    assert turn_summary["lab_pending_intake_draft_candidate_ids"] == ["golden-1"]
 
     [turn_path] = [Path(path) for path in artifact["turn_artifact_paths"]]
     turn_record = read_json_artifact(turn_path)
@@ -163,6 +171,11 @@ def test_product_lab_session_replay_records_post_turn_chat_action_outcomes(
         "recommendation_prompt:0",
         "rescue_nudge:1",
     ]
+    draft = outcomes[0]["pending_intake_draft_packet"]
+    assert draft["status"] == "pass"
+    assert draft["requires_followup_commit_confirmation"] is True
+    assert draft["actual_intake_observed"] is False
+    assert draft["canonical_product_mutation_allowed"] is False
     assert all(
         item["canonical_product_mutation_allowed"] is False for item in outcomes
     )
@@ -267,6 +280,8 @@ def test_product_lab_session_replay_blocks_invisible_chat_action_target(
     assert artifact["lab_chat_action_blockers"] == [
         "chat_action.target_not_visible:recommendation_prompt:0"
     ]
+    assert artifact["lab_pending_intake_draft_count"] == 0
+    assert artifact["lab_pending_intake_draft_source_refs"] == []
     assert artifact["blockers"] == [
         "t2-invalid-action.chat_action.chat_action.target_not_visible:recommendation_prompt:0"
     ]

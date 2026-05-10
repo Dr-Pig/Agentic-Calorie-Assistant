@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.advanced_shadow_lab.product_lab_pending_intake_draft import (
+    build_pending_intake_draft_packet,
+)
+
 
 RECOMMENDATION_ACTIONS = {"log_this", "show_backups", "dismiss"}
 RESCUE_ACTIONS = {
@@ -79,18 +83,29 @@ def recommendation_outcome(
             blockers=[f"recommendation.action_unsupported:{action}"],
         )
     offer = mapping(message.get("recommendation_offer"))
+    pending_draft = (
+        build_pending_intake_draft_packet(message=message, action=action)
+        if action == "log_this"
+        else {}
+    )
+    blockers = [
+        f"pending_intake_draft.{blocker}"
+        for blocker in pending_draft.get("blockers") or []
+    ]
     outcome = base_outcome(
-        status="pass",
+        status="blocked" if blockers else "pass",
         workflow_family="recommendation",
         action=action,
         outcome_type=recommendation_outcome_type(action),
-        blockers=[],
+        blockers=blockers,
     )
     return {
         **outcome,
         "candidate_id": str(message.get("candidate_id") or ""),
         "primary_candidate_id": str(offer.get("primary_candidate_id") or ""),
-        "lab_intake_draft_created": action == "log_this",
+        "lab_intake_draft_created": pending_draft.get("status") == "pass",
+        "lab_pending_intake_draft_created": pending_draft.get("status") == "pass",
+        "pending_intake_draft_packet": dict(pending_draft),
         "backup_options_visible": action == "show_backups",
     }
 

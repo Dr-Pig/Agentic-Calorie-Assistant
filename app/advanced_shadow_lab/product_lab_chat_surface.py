@@ -134,22 +134,21 @@ def _recommendation_offer(packet: Mapping[str, Any]) -> dict[str, Any]:
     ux = packet.get("recommendation_ux_packet")
     if not isinstance(ux, Mapping):
         return {}
+    handoff = _mapping(packet.get("pending_intake_handoff_packet"))
     return {
         "primary_candidate_id": str(ux.get("primary_candidate_id") or ""),
         "backup_candidate_ids": [str(item) for item in ux.get("backup_candidate_ids") or []],
+        "candidate_snapshot": dict(_mapping(handoff.get("candidate_snapshot"))),
         "offer_actions": [dict(item) for item in ux.get("actions") or [] if isinstance(item, Mapping)],
-        "intake_handoff_state": str(
-            _mapping(packet.get("pending_intake_handoff_packet")).get("handoff_state")
-            or ""
-        ),
-        "canonical_commit_requested": _mapping(
-            packet.get("pending_intake_handoff_packet")
-        ).get("canonical_commit_requested")
-        is True,
+        "intake_handoff_state": str(handoff.get("handoff_state") or ""),
+        "canonical_commit_requested": handoff.get("canonical_commit_requested") is True,
         "requires_explicit_user_intake_action": any(
             item.get("requires_explicit_user_intake_action") is True
             for item in ux.get("actions") or []
             if isinstance(item, Mapping)
+        ),
+        "source_pending_intake_handoff_artifact_type": str(
+            handoff.get("artifact_type") or ""
         ),
     }
 
