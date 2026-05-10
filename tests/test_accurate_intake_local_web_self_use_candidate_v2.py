@@ -1,11 +1,36 @@
 from __future__ import annotations
 
+import subprocess
+import sys
+from pathlib import Path
+
 from app.composition.current_shell_compatibility_ids import (
     CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
     CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
     CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG,
 )
 from scripts.build_accurate_intake_local_web_self_use_candidate_v2 import build_local_web_self_use_candidate_v2
+
+
+def test_local_web_candidate_v2_script_bootstraps_repo_root_for_cli_help() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(repo_root / "scripts" / "build_accurate_intake_local_web_self_use_candidate_v2.py"),
+            "--help",
+        ],
+        cwd=repo_root,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "usage:" in result.stdout
+    assert "--evidence-json" in result.stdout
 
 def _ready_claim_boundary() -> dict:
     return {
