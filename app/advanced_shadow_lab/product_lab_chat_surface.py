@@ -161,9 +161,13 @@ def _rescue_proposal(packet: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "handoff_state": str(pending.get("handoff_state") or ""),
         "primary_actions": [str(item) for item in proposal.get("primary_actions") or []],
+        "proposal_card": dict(_mapping(proposal.get("proposal_card"))),
         "guardrail_math": dict(_mapping(proposal.get("guardrail_math"))),
         "canonical_commit_requested": pending.get("canonical_commit_requested") is True,
         "proposal_committed": pending.get("proposal_committed") is True,
+        "source_pending_rescue_commit_artifact_type": str(
+            pending.get("artifact_type") or ""
+        ),
     }
 
 
