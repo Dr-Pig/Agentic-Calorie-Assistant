@@ -28,6 +28,7 @@ Locked execution decisions:
 - Later lab live diagnostics may use BuilderSpace `grok-4-fast` only.
 - `kimi-k2.5` is the target reasoning-model profile, but it is not live-called in this PR train.
 - Model IDs must stay behind role/profile selection; provider-specific behavior must not become product semantics.
+- The lab profile seam exposes `builderspace-grok-4-fast-advanced-shadow-lab-live-diagnostic` for manual live diagnostics and `builderspace-kimi-k2-5-advanced-shadow-lab-dormant-reference` as dormant target-reasoning metadata only.
 - Proactive output is chat-only in the lab; inbox mirrors, push, LINE, OS notifications, and scheduler delivery remain out of scope.
 - FoodDB expansion waits for real self-use. Until then, lab tests may use simulated traces, fixtures, and approved packets only.
 - Isolated lab semantic memory candidate generation may be introduced after the dormancy contract is green, but mainline live semantic extraction and durable product memory writes remain forbidden until a separate activation PR.

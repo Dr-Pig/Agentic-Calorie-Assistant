@@ -15,6 +15,10 @@ if str(ROOT) not in sys.path:
 from app.advanced_shadow_lab.rescue_copy_live_diagnostic import (  # noqa: E402
     run_rescue_copy_live_diagnostic,
 )
+from app.advanced_shadow_lab.model_profiles import (  # noqa: E402
+    ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
+    resolve_live_diagnostic_profile,
+)
 
 
 ALLOW_ENV = "ADVANCED_SHADOW_LAB_ALLOW_LIVE_LLM_DIAGNOSTIC"
@@ -61,12 +65,12 @@ def _blocked_not_invoked(*, output: Path, reason: str) -> dict[str, Any]:
     return artifact
 
 
-def _live_provider(model: str) -> Any:
+def _live_provider(profile: dict[str, object]) -> Any:
     from app.providers.builderspace_adapter import BuilderSpaceAdapter
 
     return BuilderSpaceAdapter(
-        manager_model_override=model,
-        role_label="advanced_shadow_lab_rescue_copy_live_diagnostic",
+        manager_model_override=str(profile["model_id"]),
+        role_label=str(profile["role_label"]) + "_rescue_copy",
     )
 
 
@@ -99,19 +103,34 @@ def main() -> int:
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     parser.add_argument("--provider-mode", choices=("fake", "live"), default="fake")
     parser.add_argument("--allow-live-provider", action="store_true")
-    parser.add_argument("--model", default=os.getenv("BUILDERSPACE_MANAGER_MODEL", "grok-4-fast"))
+    parser.add_argument("--provider-profile-id", default=ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID)
     args = parser.parse_args()
 
     output = Path(args.output)
     if args.provider_mode == "live":
-        if not args.allow_live_provider or os.getenv(ALLOW_ENV) != "1":
+        try:
+            profile, blockers = resolve_live_diagnostic_profile(str(args.provider_profile_id))
+        except ValueError as exc:
+            artifact = _blocked_not_invoked(output=output, reason=str(exc))
+            print(json.dumps({
+                "artifact": str(output),
+                "status": artifact.get("status"),
+                "provider_mode": artifact.get("provider_mode"),
+                "live_invoked": artifact.get("live_invoked"),
+                "live_provider_used": artifact.get("live_provider_used"),
+                "blockers": artifact.get("blockers"),
+            }, ensure_ascii=False))
+            return 0
+        if blockers:
+            artifact = _blocked_not_invoked(output=output, reason=";".join(blockers))
+        elif not args.allow_live_provider or os.getenv(ALLOW_ENV) != "1":
             artifact = _blocked_not_invoked(output=output, reason="live_gate_not_enabled")
         else:
             artifact = run_rescue_copy_live_diagnostic(
                 rescue_shaping_input_packet=_read_json(Path(args.input)),
                 output_path=output,
-                provider=_live_provider(str(args.model)),
-                provider_mode="builderspace_live_diagnostic",
+                provider=_live_provider(profile),
+                provider_mode=str(profile["provider_profile_id"]),
                 live_invoked=True,
             )
     else:

@@ -105,6 +105,13 @@ advanced_lab_execution_policy:
   fooddb_expansion_requires_real_self_use: true
   simulated_dogfood_allowed_until_real_traces_exist: true
   mainline_activation_requires_separate_pr: true
+  model_profile_seam:
+    default_live_diagnostic_profile_id: builderspace-grok-4-fast-advanced-shadow-lab-live-diagnostic
+    target_reasoning_profile_id: builderspace-kimi-k2-5-advanced-shadow-lab-dormant-reference
+    live_provider_calls_allowed_by_default: false
+    kimi_selection_status: dormant_reference_only
+    production_selected: false
+    provider_specific_product_semantics_allowed: false
   required_dormant_merge_flags:
     mainline_runtime_connected: false
     mainline_route_or_api_mount_allowed: false

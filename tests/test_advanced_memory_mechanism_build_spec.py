@@ -136,6 +136,13 @@ def test_advanced_lab_memory_policy_records_latest_model_and_trace_decisions() -
     assert policy["diagnostic_live_model"] == "grok-4-fast"
     assert policy["target_reasoning_model"] == "kimi-k2.5"
     assert policy["kimi_live_calls_allowed_in_this_train"] is False
+    assert policy["model_profile_seam"]["target_reasoning_profile_id"] == (
+        "builderspace-kimi-k2-5-advanced-shadow-lab-dormant-reference"
+    )
+    assert policy["model_profile_seam"]["kimi_selection_status"] == (
+        "dormant_reference_only"
+    )
+    assert policy["model_profile_seam"]["production_selected"] is False
     assert policy["simulated_dogfood_allowed_until_real_traces_exist"] is True
     assert policy["real_dogfood_trace_required_for_promotion_claim"] is True
     assert policy["fooddb_expansion_allowed"] is False
@@ -157,6 +164,8 @@ def test_spec_forbids_runtime_first_overengineering() -> None:
     assert "Advanced Runtime Lab Addendum" in spec
     assert "BuilderSpace `grok-4-fast` only" in spec
     assert "`kimi-k2.5` is the target reasoning-model profile" in spec
+    assert "builderspace-grok-4-fast-advanced-shadow-lab-live-diagnostic" in spec
+    assert "builderspace-kimi-k2-5-advanced-shadow-lab-dormant-reference" in spec
     assert "Proactive output is chat-only" in spec
     assert "FoodDB expansion waits for real self-use" in spec
 

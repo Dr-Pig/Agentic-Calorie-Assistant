@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.advanced_shadow_lab.model_profiles import advanced_lab_model_profile_policy
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -72,6 +73,7 @@ def build_advanced_shadow_lab_manifest() -> dict[str, Any]:
             "kimi_live_calls_allowed": False,
             "provider_specific_product_semantics_allowed": False,
         },
+        "model_profile_policy": advanced_lab_model_profile_policy(),
         "proactive_surface_policy": {
             "chat_only": True,
             "inbox_mirror_allowed": False,
