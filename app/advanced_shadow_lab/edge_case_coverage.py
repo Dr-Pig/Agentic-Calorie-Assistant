@@ -6,6 +6,10 @@ from typing import Any, Mapping
 
 import yaml
 
+from app.advanced_shadow_lab.ux_acceptance_coverage import (
+    build_ux_acceptance_summary,
+    ux_acceptance_blockers,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -42,10 +46,12 @@ def load_edge_case_coverage_contract(
 def validate_edge_case_coverage_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     source_contract = dict(contract)
     entries = [_entry(item) for item in contract.get("coverage_entries") or []]
+    ux_entries = [_entry(item) for item in contract.get("ux_acceptance_entries") or []]
     blockers = [
         *_top_level_blockers(contract),
         *_domain_blockers(contract, entries),
         *_entry_blockers(entries),
+        *ux_acceptance_blockers(contract, ux_entries),
     ]
     domains = Counter(str(entry.get("capability_domain") or "") for entry in entries)
     missing = _missing_domains(entries)
@@ -66,6 +72,9 @@ def validate_edge_case_coverage_contract(contract: Mapping[str, Any]) -> dict[st
             for domain in sorted(domain for domain in REQUIRED_DOMAINS if domains[domain] > 0)
         },
         "coverage_entries": entries,
+        "ux_acceptance_role": str(contract.get("ux_acceptance_role") or ""),
+        "ux_acceptance_entries": ux_entries,
+        "ux_acceptance_summary": build_ux_acceptance_summary(contract, ux_entries),
         "source_contract": source_contract,
         "blockers": blockers,
         "new_report_family_created": contract.get("new_report_family_created") is True,
@@ -84,6 +93,9 @@ def edge_case_coverage_summary(artifact: Mapping[str, Any]) -> dict[str, Any]:
         "missing_domains": list(artifact.get("missing_domains") or []),
         "new_report_family_created": artifact.get("new_report_family_created") is True,
         "coverage_role": str(artifact.get("coverage_role") or ""),
+        "ux_acceptance_summary": dict(
+            _mapping(artifact.get("ux_acceptance_summary"))
+        ),
     }
 
 

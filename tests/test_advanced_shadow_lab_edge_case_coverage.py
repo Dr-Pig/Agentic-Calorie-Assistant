@@ -37,6 +37,66 @@ def test_edge_case_coverage_contract_maps_domains_without_semantic_authority() -
         assert entry["guard_or_rubric_refs"]
 
 
+def test_edge_case_coverage_contract_maps_advanced_ux_journeys_without_readiness_claim() -> None:
+    from app.advanced_shadow_lab.edge_case_coverage import (
+        load_edge_case_coverage_contract,
+    )
+
+    artifact = load_edge_case_coverage_contract()
+
+    assert artifact["ux_acceptance_role"] == (
+        "acceptance_map_not_product_readiness_authority"
+    )
+    assert artifact["ux_acceptance_summary"] == {
+        "required_journey_ids": ["F", "F2", "I", "L", "M", "N"],
+        "mapped_journey_count": 6,
+        "missing_journey_ids": [],
+        "new_report_family_created": False,
+        "mainline_activation_allowed": False,
+    }
+    assert [entry["journey_id"] for entry in artifact["ux_acceptance_entries"]] == [
+        "F",
+        "F2",
+        "I",
+        "L",
+        "M",
+        "N",
+    ]
+    for entry in artifact["ux_acceptance_entries"]:
+        assert entry["claim_boundary"] == "non_claim"
+        assert entry["mainline_activation_allowed"] is False
+        assert entry["product_contract_refs"]
+        assert entry["existing_shadow_artifacts"]
+        assert entry["required_trace_fields"]
+        assert entry["acceptance_status"] in {
+            "existing_shadow_chain_mapped",
+            "gap_requires_next_slice",
+        }
+        assert entry["next_build_slice"]
+
+
+def test_edge_case_coverage_blocks_orphan_ux_acceptance_entries() -> None:
+    from app.advanced_shadow_lab.edge_case_coverage import (
+        load_edge_case_coverage_contract,
+        validate_edge_case_coverage_contract,
+    )
+
+    artifact = load_edge_case_coverage_contract()
+    contract = dict(artifact["source_contract"])
+    entries = [dict(entry) for entry in contract["ux_acceptance_entries"]]
+    entries[0]["existing_shadow_artifacts"] = []
+    entries[0]["claim_boundary"] = "product_readiness"
+    entries[0]["mainline_activation_allowed"] = True
+    contract["ux_acceptance_entries"] = entries
+
+    blocked = validate_edge_case_coverage_contract(contract)
+
+    assert blocked["status"] == "blocked"
+    assert "ux_acceptance[F].existing_shadow_artifacts_missing" in blocked["blockers"]
+    assert "ux_acceptance[F].claim_boundary_not_non_claim" in blocked["blockers"]
+    assert "ux_acceptance[F].mainline_activation_allowed" in blocked["blockers"]
+
+
 def test_edge_case_coverage_blocks_orphan_and_keyword_owned_entries() -> None:
     from app.advanced_shadow_lab.edge_case_coverage import (
         load_edge_case_coverage_contract,
@@ -90,6 +150,13 @@ def test_shadow_comparison_exposes_edge_coverage_without_readiness_claim() -> No
         "missing_domains": [],
         "new_report_family_created": False,
         "coverage_role": "evidence_index_not_product_semantic_authority",
+        "ux_acceptance_summary": {
+            "required_journey_ids": ["F", "F2", "I", "L", "M", "N"],
+            "mapped_journey_count": 6,
+            "missing_journey_ids": [],
+            "new_report_family_created": False,
+            "mainline_activation_allowed": False,
+        },
     }
     assert artifact["surface_status_rows"][3] == {
         "surface": "cross_domain_edge_case_coverage",
