@@ -35,7 +35,7 @@ def test_truth_audit_reports_current_fooddb_boundaries_without_runtime_change() 
     assert audit["summary"]["runtime_common_serving_anchor_count"] == 68
     assert audit["summary"]["tfda_source_evidence_only_count"] == 848
     assert audit["summary"]["semantic_only_basket_count"] == 4
-    assert audit["summary"]["exact_card_count"] == 8
+    assert audit["summary"]["exact_card_count"] == 11
     assert audit["summary"]["blocker_count"] == 0
     assert audit["non_claims"] == [
         "no_product_loop_integration",

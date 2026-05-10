@@ -62,7 +62,7 @@ def test_fooddb_evidence_status_packet_summarizes_current_fdb_without_runtime_ch
         "source_evidence_only_count": 848,
         "semantic_only_basket_family_count": 4,
         "exact_card_staging_candidate_count": _expected_exact_card_staging_candidate_count(),
-        "exact_card_existing_report_only_count": 8,
+        "exact_card_existing_report_only_count": 11,
         "integration_edges_contract_backed": packet["integration_status"][
             "contract_backed_edge_count"
         ],

@@ -69,6 +69,9 @@ def test_fooddb_activation_gap_report_reports_repo_truth_controls_without_runtim
         "exact_chungabern_mini_scallion_pancake_90g",
         "exact_wangsteak_braised_lion_head_100g",
         "exact_yuhofang_sweet_potato_crisps_60g",
+        "exact_7eleven_jiucai_he_135g",
+        "exact_shaka_shrimp_cracker_original_30g",
+        "exact_regent_braised_beef_noodle_pack",
         ]
     )
     assert gap["known_modifier_limitations"] == build_modifier_limitation_labels()
