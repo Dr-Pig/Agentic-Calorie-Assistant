@@ -217,6 +217,13 @@ EXPECTED_DATA_EXPORT_VALUES = {
     "fooddb_truth_updated": False,
     "export_path_exists": True,
     "manifest_path_exists": True,
+    "sidecar_evidence_included": True,
+    "feedback_jsonl_copied": True,
+    "feedback_jsonl_record_count": 2,
+    "review_queue_copied": False,
+    "sidecar_evidence_can_create_product_truth": False,
+    "sidecar_evidence_can_create_fooddb_truth": False,
+    "sidecar_evidence_can_create_eval_truth": False,
 }
 DATA_NON_CLAIMS = {
     "product_readiness_claimed": False,
@@ -505,6 +512,9 @@ def _data_backup_values(payload: dict[str, Any]) -> dict[str, Any]:
 def _data_export_values(payload: dict[str, Any]) -> dict[str, Any]:
     export_path = Path(str(payload.get("export_path") or ""))
     manifest_path = Path(str(payload.get("manifest_path") or ""))
+    sidecar_evidence = dict(payload.get("sidecar_evidence") or {})
+    feedback_jsonl = dict(sidecar_evidence.get("feedback_jsonl") or {})
+    review_queue = dict(sidecar_evidence.get("review_queue") or {})
     return {
         "status": payload.get("status"),
         "local_only": payload.get("local_only"),
@@ -513,6 +523,19 @@ def _data_export_values(payload: dict[str, Any]) -> dict[str, Any]:
         "fooddb_truth_updated": payload.get("fooddb_truth_updated"),
         "export_path_exists": export_path.exists(),
         "manifest_path_exists": manifest_path.exists(),
+        "sidecar_evidence_included": payload.get("sidecar_evidence_included"),
+        "feedback_jsonl_copied": feedback_jsonl.get("copied"),
+        "feedback_jsonl_record_count": feedback_jsonl.get("record_count"),
+        "review_queue_copied": review_queue.get("copied"),
+        "sidecar_evidence_can_create_product_truth": payload.get(
+            "sidecar_evidence_can_create_product_truth"
+        ),
+        "sidecar_evidence_can_create_fooddb_truth": payload.get(
+            "sidecar_evidence_can_create_fooddb_truth"
+        ),
+        "sidecar_evidence_can_create_eval_truth": payload.get(
+            "sidecar_evidence_can_create_eval_truth"
+        ),
     }
 
 
@@ -3297,10 +3320,12 @@ def build_product_pages_browser_smoke_report(
     feedback_dir = db_path.parent / f"{db_path.stem}_feedback_{secrets.token_hex(6)}"
     report["feedback_store_path"] = str(_feedback_jsonl_path(feedback_dir))
     previous_feedback_dir = accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR
+    previous_data_feedback_dir = local_data_hygiene_routes.DOGFOOD_FEEDBACK_DIR
     previous_backup_dir = local_data_hygiene_routes.DOGFOOD_BACKUP_DIR
     previous_export_dir = local_data_hygiene_routes.DOGFOOD_EXPORT_DIR
     data_hygiene_dir = ROOT / ".pytest_tmp_local" / "product_pages_data_hygiene" / secrets.token_hex(6)
     accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR = feedback_dir
+    local_data_hygiene_routes.DOGFOOD_FEEDBACK_DIR = feedback_dir
     local_data_hygiene_routes.DOGFOOD_BACKUP_DIR = data_hygiene_dir / "backups"
     local_data_hygiene_routes.DOGFOOD_EXPORT_DIR = data_hygiene_dir / "exports"
     server, thread = _run_uvicorn_in_thread(app, port=port)
@@ -3343,6 +3368,7 @@ def build_product_pages_browser_smoke_report(
         thread.join(timeout=5)
         _restore_runtime(app)
         accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR = previous_feedback_dir
+        local_data_hygiene_routes.DOGFOOD_FEEDBACK_DIR = previous_data_feedback_dir
         local_data_hygiene_routes.DOGFOOD_BACKUP_DIR = previous_backup_dir
         local_data_hygiene_routes.DOGFOOD_EXPORT_DIR = previous_export_dir
         if previous_debug_token is None:
