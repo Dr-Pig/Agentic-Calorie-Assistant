@@ -892,6 +892,9 @@ def _generate_current_shell_local_mvp_candidate_bundle(
             "local_operator_data_hygiene_bundle": build_local_operator_data_hygiene_bundle(
                 db_path=artifacts_dir / "accurate_intake_fixture_full_product_loop_e2e.sqlite3"
             ),
+            "fixture_full_product_loop_e2e": _read_payload(
+                _group_path(artifacts_dir, PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["fixture_full_product_loop_e2e"])
+            ),
             "mvp_gate_summary": mvp_gate_summary,
         }
     )

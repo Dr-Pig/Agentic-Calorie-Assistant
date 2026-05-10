@@ -798,6 +798,49 @@ def test_refresh_chain_generates_required_fixture_full_product_loop_before_next_
     )
 
 
+def test_local_mvp_candidate_bundle_consumes_generated_fixture_full_loop(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+    from tests.test_accurate_intake_pl_ce_local_mvp_candidate_bundle import _valid_inputs
+
+    valid_inputs = _valid_inputs()
+    artifact_dir = tmp_path / "artifacts"
+    _write(
+        artifact_dir / module.PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["ui_same_truth_contract"].name,
+        valid_inputs["ui_same_truth_contract"],
+    )
+    _write(
+        artifact_dir / module.PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["fixture_full_product_loop_e2e"].name,
+        valid_inputs["fixture_full_product_loop_e2e"],
+    )
+    monkeypatch.setattr(module, "build_context_conditioned_intent_wall_artifact", lambda: valid_inputs["context_conditioned_intent_wall"])
+    monkeypatch.setattr(module, "build_short_term_context_runtime_replay_artifact", lambda: valid_inputs["short_term_context_runtime_replay"])
+    monkeypatch.setattr(module, "build_fake_provider_context_smoke_artifact", lambda: {"artifact_type": "fake_context", "status": "pass"})
+    monkeypatch.setattr(module, "build_context_quality_pack_report", lambda: valid_inputs["context_quality_pack"])
+    monkeypatch.setattr(module, "build_pl_ce_context_coverage_matrix_artifact", lambda **_: valid_inputs["context_coverage_matrix"])
+    monkeypatch.setattr(module, "build_context_live_diagnostic_case_matrix_artifact", lambda: valid_inputs["context_live_diagnostic_case_matrix"])
+    monkeypatch.setattr(module, "build_context_live_diagnostic_anti_overfit_guard_artifact", lambda _: valid_inputs["context_live_diagnostic_anti_overfit_guard"])
+    monkeypatch.setattr(module, "build_fixture_evidence_packet_emulator_artifact", lambda: valid_inputs["fixture_packet_emulator"])
+    monkeypatch.setattr(module, "build_correction_removal_fixture_flow_artifact", lambda: valid_inputs["correction_removal_fixture_flow"])
+    monkeypatch.setattr(module, "build_responder_input_contract_fake_smoke_artifact", lambda: valid_inputs["responder_input_contract_fake_smoke"])
+    monkeypatch.setattr(module, "build_fake_provider_tool_loop_smoke_artifact", lambda **_: valid_inputs["fake_provider_tool_loop_smoke"])
+    monkeypatch.setattr(module, "build_review_eval_candidate_pipeline_report", lambda **_: valid_inputs["review_eval_candidate_pipeline"])
+    monkeypatch.setattr(module, "build_local_operator_data_hygiene_bundle", lambda **_: valid_inputs["local_operator_data_hygiene_bundle"])
+
+    bundle = module._generate_current_shell_local_mvp_candidate_bundle(
+        artifacts_dir=artifact_dir,
+        mvp_gate_summary=valid_inputs["mvp_gate_summary"],
+    )
+
+    assert bundle["status"] == "pl_ce_local_mvp_candidate_ready_for_human_review"
+    assert bundle["blockers"] == []
+    fixture_status = bundle["included_artifact_statuses"]["fixture_full_product_loop_e2e"]
+    assert fixture_status["present"] is True
+    assert fixture_status["status"] == "fixture_product_loop_e2e_diagnostic_pass"
+
+
 def test_refresh_chain_generates_local_mvp_candidate_bundle_before_browser_activation(
     tmp_path: Path,
     capsys,
