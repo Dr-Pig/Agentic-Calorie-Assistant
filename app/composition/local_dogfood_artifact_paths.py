@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-import json
 import re
+import os
+import shutil
 from hashlib import sha1
 from pathlib import Path
 from typing import Any
+
+from app.shared.infra.json_artifacts import artifact_io_path, write_json_artifact
 
 
 def sanitize_artifact_label(label: str, *, fallback: str = "manual") -> str:
@@ -24,12 +27,21 @@ def compact_dogfood_copy_name(*, db_path: Path, label: str, timestamp: str) -> s
 
 
 def write_json_manifest(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_json_artifact(path, payload)
+
+
+def copy_local_artifact_file(source: Path, target: Path) -> None:
+    os.makedirs(artifact_io_path(target.parent), exist_ok=True)
+    with open(artifact_io_path(source), "rb") as source_file, open(
+        artifact_io_path(target),
+        "wb",
+    ) as target_file:
+        shutil.copyfileobj(source_file, target_file)
 
 
 __all__ = [
     "compact_dogfood_copy_name",
+    "copy_local_artifact_file",
     "sanitize_artifact_label",
     "write_json_manifest",
 ]

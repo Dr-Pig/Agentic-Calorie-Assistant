@@ -142,7 +142,11 @@ from app.database import get_db  # noqa: E402
 from app.models import Base  # noqa: E402
 from app.routes import router  # noqa: E402
 from app.shared.infra.sqlite_route_harness import LocalSQLiteRouteHarness  # noqa: E402
-from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
+from app.shared.infra.json_artifacts import (  # noqa: E402
+    artifact_path_exists,
+    read_json_artifact,
+    write_json_artifact,
+)
 from scripts.build_current_shell_compatibility_product_pages_self_use_flow_gate import (  # noqa: E402
     DEFAULT_ARTIFACT_PATHS as PRODUCT_PAGES_FLOW_ARTIFACT_PATHS,
     build_input_artifacts as build_product_pages_flow_inputs,
@@ -335,19 +339,19 @@ def _read_yaml_payload(path: Path) -> dict[str, Any]:
 def _snapshot_existing_json_artifacts(paths: list[Path]) -> dict[Path, dict[str, Any]]:
     snapshot: dict[Path, dict[str, Any]] = {}
     for path in paths:
-        if path.exists():
+        if artifact_path_exists(path):
             snapshot[path] = read_json_artifact(path)
     return snapshot
 
 
 def _restore_json_artifact_snapshot(snapshot: dict[Path, dict[str, Any]]) -> None:
     for path, payload in snapshot.items():
-        if not path.exists():
+        if not artifact_path_exists(path):
             write_json_artifact(path, payload)
 
 
 def _read_or_generate_json_artifact(path: Path, builder: Any) -> dict[str, Any]:
-    if path.exists():
+    if artifact_path_exists(path):
         return read_json_artifact(path)
     payload = builder()
     write_json_artifact(path, payload)
@@ -1289,7 +1293,7 @@ def _generate_product_loop_operator_review(artifacts_dir: Path) -> dict[str, Any
         artifacts_dir,
         PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["operator_review"],
     )
-    if operator_review_path.exists():
+    if artifact_path_exists(operator_review_path):
         return read_json_artifact(operator_review_path)
 
     browser_realistic = _read_payload(
@@ -1529,7 +1533,9 @@ def build_local_web_self_use_candidate_refresh_chain(
     local_review_manifest_status = _object_dict(
         local_review_manifest.get("_manifest_metadata")
     ).get("status")
-    if local_review_manifest_status == "complete" or not local_review_decision_path.exists():
+    if local_review_manifest_status == "complete" or not artifact_path_exists(
+        local_review_decision_path
+    ):
         local_review_decision_pack = (
             build_current_shell_compatibility_local_review_decision_pack(
                 local_review_manifest

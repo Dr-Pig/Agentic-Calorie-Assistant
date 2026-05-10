@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -9,6 +8,7 @@ from typing import Literal
 
 from app.composition.local_dogfood_artifact_paths import (
     compact_dogfood_copy_name,
+    copy_local_artifact_file,
     sanitize_artifact_label,
     write_json_manifest,
 )
@@ -162,9 +162,8 @@ def backup_local_dogfood_db(
 
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     safe_label = _sanitize_label(label)
-    backup_dir.mkdir(parents=True, exist_ok=True)
     backup_path = backup_dir / compact_dogfood_copy_name(db_path=db_path, label=safe_label, timestamp=timestamp)
-    shutil.copy2(db_path, backup_path)
+    copy_local_artifact_file(db_path, backup_path)
     manifest = {
         **build_local_dogfood_data_manifest(
             db_path=db_path,
@@ -196,9 +195,8 @@ def export_local_dogfood_db(
 
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     safe_label = _sanitize_label(label)
-    export_dir.mkdir(parents=True, exist_ok=True)
     export_path = export_dir / compact_dogfood_copy_name(db_path=db_path, label=safe_label, timestamp=timestamp)
-    shutil.copy2(db_path, export_path)
+    copy_local_artifact_file(db_path, export_path)
     sidecar_evidence = build_export_sidecar_evidence_manifest(
         export_dir=export_dir,
         feedback_jsonl_path=feedback_jsonl_path, review_queue_artifact_path=review_queue_artifact_path,
