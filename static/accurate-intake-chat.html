@@ -294,6 +294,25 @@
     .user .bubble {
       background: var(--user);
     }
+    .message-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+    .message-actions a {
+      min-height: 30px;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(23, 33, 29, 0.14);
+      border-radius: 8px;
+      padding: 5px 8px;
+      color: var(--ink);
+      background: #fff;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 900;
+    }
     .composer {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -437,6 +456,7 @@
     const todayIso = () => new Date().toISOString().slice(0, 10);
     const el = (id) => document.getElementById(id);
     const params = new URLSearchParams(window.location.search);
+    const CURRENT_PAGE = "chat";
     el("user-id").value = params.get("user_id") || el("user-id").value;
     el("local-date").value = params.get("local_date") || todayIso();
 
@@ -447,7 +467,11 @@
       return el("local-date").value || todayIso();
     }
     function pageUrl(page) {
-      return `/static/accurate-intake-${page}.html?user_id=${encodeURIComponent(userId())}&local_date=${encodeURIComponent(selectedDate())}`;
+      const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
+      if (page === "feedback") {
+        query.set("source_page", CURRENT_PAGE);
+      }
+      return `/static/accurate-intake-${page}.html?${query.toString()}`;
     }
     function updateNavigationLinks() {
       document.querySelectorAll("[data-nav-target]").forEach((link) => {
@@ -556,7 +580,21 @@
       }
       return { "X-Local-Debug-Token": token };
     }
-    function appendMessage(role, text, source = "backend_message") {
+    function feedbackUrlForMessage(message = {}) {
+      const query = new URLSearchParams({
+        user_id: userId(),
+        local_date: selectedDate(),
+        source_page: CURRENT_PAGE
+      });
+      if (message.trace_id) {
+        query.set("trace_id", message.trace_id);
+      }
+      if (message.message_id) {
+        query.set("message_id", String(message.message_id));
+      }
+      return `/static/accurate-intake-feedback.html?${query.toString()}`;
+    }
+    function appendMessage(role, text, source = "backend_message", message = {}) {
       const row = document.createElement("div");
       row.className = `message ${role}`;
       row.dataset.messageRole = role;
@@ -564,6 +602,16 @@
       bubble.className = "bubble";
       bubble.dataset.renderSource = source;
       bubble.textContent = text || "";
+      if (role === "bot" && message.trace_id && message.message_id) {
+        const actions = document.createElement("div");
+        actions.className = "message-actions";
+        const report = document.createElement("a");
+        report.dataset.feedbackAction = "report-message";
+        report.href = feedbackUrlForMessage(message);
+        report.textContent = "Report";
+        actions.append(report);
+        bubble.append(actions);
+      }
       if (role === "bot") {
         const avatar = document.createElement("div");
         avatar.className = "avatar";
@@ -598,7 +646,7 @@
       }
       for (const message of messages) {
         const role = message.role === "user" ? "user" : "bot";
-        appendMessage(role, message.content || "", "chat_history.sqlite_message_buffer");
+        appendMessage(role, message.content || "", "chat_history.sqlite_message_buffer", message);
       }
     }
     async function loadHistory() {

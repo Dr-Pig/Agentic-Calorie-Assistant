@@ -50,6 +50,7 @@ def test_local_feedback_route_writes_trace_linked_record_without_promotion(
             "severity": "high",
             "ui_event": {
                 "route": "/static/accurate-intake-chat.html",
+                "source_page": "chat",
                 "api_duration_ms": 197000,
             },
         },
@@ -63,13 +64,17 @@ def test_local_feedback_route_writes_trace_linked_record_without_promotion(
     assert payload["manager_context_injection_allowed"] is False
     assert payload["food_kb_truth_update_allowed"] is False
     assert payload["canonical_eval_promotion_allowed"] is False
+    assert payload["linked_context"]["page"] == "chat"
     assert payload["linked_context"]["trace_id"] == "trace-latency-001"
+    assert payload["linked_context"]["message_id"] == "assistant-1"
+    assert payload["ui_event"]["source_page"] == "chat"
 
     jsonl_path = tmp_path / "feedback" / "accurate_intake_dogfood_feedback.jsonl"
     rows = [json.loads(line) for line in jsonl_path.read_text(encoding="utf-8").splitlines()]
     assert len(rows) == 1
     assert rows[0]["feedback_id"] == payload["feedback_id"]
     assert rows[0]["ui_event"]["api_duration_ms"] == 197000
+    assert rows[0]["ui_event"]["source_page"] == "chat"
 
 
 def test_local_review_queue_route_reads_feedback_without_promotion(

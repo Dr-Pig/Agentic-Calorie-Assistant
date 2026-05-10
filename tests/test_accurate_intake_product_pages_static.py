@@ -41,8 +41,10 @@ def test_product_pages_preserve_user_and_date_in_nav_without_token_query() -> No
         assert 'data-nav-target="feedback"' in html
         assert 'data-nav-target="data"' in html
         assert "function updateNavigationLinks()" in html
-        assert "encodeURIComponent(userId())" in html
-        assert "local_date=${encodeURIComponent(selectedDate())}" in html
+        assert "new URLSearchParams" in html
+        assert "user_id" in html
+        assert "local_date" in html
+        assert 'query.set("source_page"' in html
         assert "updateNavigationLinks();" in html
         assert "local_debug_token" not in html
 
@@ -101,6 +103,10 @@ def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() ->
     assert 'class="action-link" data-nav-target="today"' in html
     assert "overflow-y: auto" in html
     assert 'id="chat-history-status"' in html
+    assert "function feedbackUrlForMessage(message = {})" in html
+    assert 'report.dataset.feedbackAction = "report-message";' in html
+    assert 'report.textContent = "Report";' in html
+    assert 'source_page: CURRENT_PAGE' in html
     assert "clip: rect(0 0 0 0)" not in html
     assert "Conversation loading" in html or "Conversation history not loaded." in html
     assert 'id="message-input"' in html
@@ -120,11 +126,11 @@ def test_chat_page_renders_assistant_replies_only_from_backend_sources() -> None
     html = _html(CHAT)
 
     assert 'data-reply-source="backend_render_contract"' in html
-    assert "function appendMessage(role, text, source = \"backend_message\")" in html
+    assert "function appendMessage(role, text, source = \"backend_message\", message = {})" in html
     assert "row.dataset.messageRole = role;" in html
     assert "bubble.dataset.renderSource = source;" in html
+    assert 'appendMessage(role, message.content || "", "chat_history.sqlite_message_buffer", message);' in html
     assert 'data-render-source="static_welcome"' in html
-    assert 'appendMessage(role, message.content || "", "chat_history.sqlite_message_buffer");' in html
     assert 'pending.dataset.renderSource = "estimate.coach_message";' in html
     assert "pending.textContent = payload.coach_message ||" in html
     assert '"estimate.coach_message"' in html
@@ -361,6 +367,10 @@ def test_feedback_page_is_local_only_trace_linked_capture_without_frontend_seman
     assert '"X-Local-Debug-Token": token' in html
     assert "window.LOCAL_DEBUG_API_TOKEN" in html
     assert "trace_id: el(\"trace-id\").value.trim() || null" in html
+    assert 'function sourcePage()' in html
+    assert 'page: sourcePage()' in html
+    assert 'source_page: sourcePage()' in html
+    assert 'feedback_route: window.location.pathname' in html
     assert "feedback_text: el(\"feedback-text\").value.trim()" in html
 
     forbidden = [

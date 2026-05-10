@@ -150,7 +150,8 @@ def test_local_web_shell_ui_polish_uses_accessible_control_and_focus_tokens() ->
     html = _shell_html()
 
     assert "function updateLaunchpadLinks()" in html
-    assert "encodeURIComponent(userId())" in html
+    assert "new URLSearchParams({ user_id: userId() })" in html
+    assert 'query.set("source_page", "local-shell");' in html
     assert "new URLSearchParams(window.location.search).get(\"local_date\") || backendLocalDate" in html
     assert "function applyUrlSessionState()" in html
     assert "params.get(\"user_id\")" in html

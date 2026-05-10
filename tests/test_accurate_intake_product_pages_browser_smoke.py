@@ -54,6 +54,16 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "chat_reload_scroll_behavior_checked": True,
         "chat_session_status_rendered": True,
         "chat_context_status_rendered": True,
+        "chat_report_link_checked": True,
+        "chat_report_link_values": {
+            "present": True,
+            "sourcePage": "chat",
+            "traceIdPresent": True,
+            "messageIdPresent": True,
+            "userIdPreserved": True,
+            "localDatePreserved": True,
+            "tokenInUrl": False,
+        },
         "chat_no_debug_trace": True,
         "chat_body_observation_same_truth_checked": True,
         "chat_body_observation_written": True,
@@ -188,7 +198,10 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "feedback_record_values": {
             "category": "latency",
             "feedback_text": "Synthetic browser feedback",
+            "page": "chat",
             "trace_id": "trace-browser-feedback",
+            "message_id": "assistant-browser-feedback",
+            "source_page": "chat",
             "do_not_commit": True,
             "manager_context_injection_allowed": False,
             "food_kb_truth_update_allowed": False,
@@ -561,6 +574,7 @@ def test_product_pages_browser_smoke_validator_rejects_missing_reload_body_user_
     report["chat_scroll_behavior_checked"] = False
     report["chat_session_status_rendered"] = False
     report["chat_context_status_rendered"] = False
+    report["chat_report_link_checked"] = False
     report["body_query_user_id_honored"] = False
     report["body_url_state_preserved_after_date_change"] = False
     report["body_reload_preserved_selected_date"] = False
@@ -583,6 +597,7 @@ def test_product_pages_browser_smoke_validator_rejects_missing_reload_body_user_
     assert "chat_scroll_behavior_not_checked" in blockers
     assert "chat_session_status_not_rendered" in blockers
     assert "chat_context_status_not_rendered" in blockers
+    assert "chat_report_link_not_checked" in blockers
     assert "body_query_user_id_not_honored" in blockers
     assert "body_url_state_not_preserved_after_date_change" in blockers
     assert "body_reload_did_not_preserve_selected_date" in blockers
@@ -965,6 +980,9 @@ def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available
     assert report["chat_shift_enter_multiline_checked"] is True
     assert report["chat_session_status_rendered"] is True
     assert report["chat_context_status_rendered"] is True
+    assert report["chat_report_link_checked"] is True
+    assert report["chat_report_link_values"]["sourcePage"] == "chat"
+    assert report["chat_report_link_values"]["tokenInUrl"] is False
     assert report["chat_url_state_preserved_after_date_change"] is True
     assert report["chat_reload_preserved_selected_date"] is True
     assert report["chat_user_url_state_preserved_after_user_change"] is True

@@ -548,10 +548,16 @@
 
     function updateLaunchpadLinks() {
       const date = launchpadLocalDate();
-      const query = `user_id=${encodeURIComponent(userId())}${date ? `&local_date=${encodeURIComponent(date)}` : ""}`;
       document.querySelectorAll("[data-entry-target]").forEach((link) => {
         const url = new URL(link.getAttribute("href"), window.location.href);
-        url.search = query;
+        const query = new URLSearchParams({ user_id: userId() });
+        if (date) {
+          query.set("local_date", date);
+        }
+        if (link.getAttribute("data-entry-target") === "feedback") {
+          query.set("source_page", "local-shell");
+        }
+        url.search = query.toString();
         link.href = url.pathname + url.search;
       });
     }

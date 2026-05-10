@@ -179,6 +179,7 @@
     const todayIso = () => new Date().toISOString().slice(0, 10);
     const el = (id) => document.getElementById(id);
     const params = new URLSearchParams(window.location.search);
+    const CURRENT_PAGE = "feedback";
     el("user-id").value = params.get("user_id") || el("user-id").value;
     el("local-date").value = params.get("local_date") || todayIso();
     el("trace-id").value = params.get("trace_id") || "";
@@ -190,8 +191,15 @@
     function selectedDate() {
       return el("local-date").value || todayIso();
     }
+    function sourcePage() {
+      return params.get("source_page") || CURRENT_PAGE;
+    }
     function pageUrl(page) {
-      return `/static/accurate-intake-${page}.html?user_id=${encodeURIComponent(userId())}&local_date=${encodeURIComponent(selectedDate())}`;
+      const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
+      if (page === "feedback") {
+        query.set("source_page", sourcePage());
+      }
+      return `/static/accurate-intake-${page}.html?${query.toString()}`;
     }
     function updateNavigationLinks() {
       document.querySelectorAll("[data-nav-target]").forEach((link) => {
@@ -241,14 +249,16 @@
         category: el("category").value,
         severity: el("severity").value,
         feedback_text: el("feedback-text").value.trim(),
-        page: "feedback",
+        page: sourcePage(),
         selected_date: selectedDate(),
         user_external_id: userId(),
         trace_id: el("trace-id").value.trim() || null,
         message_id: el("message-id").value.trim() || null,
         meal_id: null,
         ui_event: {
+          feedback_route: window.location.pathname,
           route: window.location.pathname,
+          source_page: sourcePage(),
           selected_date: selectedDate()
         }
       };
