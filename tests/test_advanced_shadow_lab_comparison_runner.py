@@ -6,6 +6,9 @@ from pathlib import Path
 from scripts import build_advanced_shadow_comparison_artifact as runner
 
 
+EXPECTED_UX_JOURNEY_IDS = ["F", "F2", "I", "L", "M", "N"]
+
+
 def test_comparison_runner_reads_existing_json_and_writes_existing_artifact(
     tmp_path: Path,
 ) -> None:
@@ -85,6 +88,10 @@ def _fixture_chain() -> dict[str, object]:
             "record_count": 2,
             "control_path_evidence": _control_evidence(),
         },
+        "journey_terminal_evidence": [
+            _journey_terminal_evidence(journey_id)
+            for journey_id in EXPECTED_UX_JOURNEY_IDS
+        ],
         "mainline_runtime_connected": False,
         "delivery_attempted": False,
         "scheduler_enabled": False,
@@ -92,6 +99,36 @@ def _fixture_chain() -> dict[str, object]:
         "proactive_sent": False,
         "mutation_changed": False,
         "user_facing_behavior_changed": False,
+    }
+
+
+def _journey_terminal_evidence(journey_id: str) -> dict[str, object]:
+    return {
+        "journey_id": journey_id,
+        "journey_name": f"fixture_{journey_id}",
+        "status": "pass",
+        "comparison_scope": "ux_journey_terminal_lab_only_evidence",
+        "source_artifact_refs": ["fixture_source"],
+        "required_trace_fields": ["fixture_trace_field"],
+        "terminal_artifact_refs": [
+            "advanced_shadow_e2e_fixture_chain_artifact",
+            "proactive_no_send_review_sink_artifact",
+            "advanced_shadow_chat_ux_packet_artifact",
+        ],
+        "no_send_control_evidence": {
+            "status": "pass",
+            "configured_paths": {"dismiss": True, "snooze": True, "undo": True},
+            "next_signal_required_present": True,
+        },
+        "semantic_decision_inferred_by_runner": False,
+        "mainline_runtime_connected": False,
+        "delivery_attempted": False,
+        "recommendation_served": False,
+        "rescue_committed": False,
+        "proposal_committed": False,
+        "mutation_changed": False,
+        "user_facing_behavior_changed": False,
+        "product_readiness_claimed": False,
     }
 
 
