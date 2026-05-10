@@ -271,6 +271,14 @@ python scripts/build_accurate_intake_approved_packet_ready_fooddb_artifact.py --
 
 This artifact is the first real FoodDB handoff input for Current Shell validation. It selects a minimal three-lane packet set: one tracked exact item card with kcal plus complete label macros, one approved generic common-serving anchor with kcal/range and macro values preserved as null/unknown, and one approved listed-component anchor with kcal/range and macro values preserved as null/unknown. It reports `fixture_or_real=real`, includes the `macro_contract` required by the Current Shell handoff, and exposes lane counts for exact / generic / listed-component coverage. It does not broaden FoodDB coverage, ingest WebSearch, promote raw source rows, update runtime truth, or claim dogfood pass.
 
+Build the real packet-ready FoodDB -> Manager evidence-path E2E artifact with:
+
+```powershell
+python scripts/build_accurate_intake_fooddb_real_manager_e2e.py --output artifacts/accurate_intake_fooddb_real_manager_e2e.json
+```
+
+This E2E is offline/runtime diagnostic evidence, not a live provider run. It uses the full Current Shell packet-ready profile plus semantic-only basket records to verify exact macro-visible, generic macro-hidden, listed-component, and bare-basket follow-up boundaries through the compact Manager evidence packet. It must preserve source lane and macro visibility fields, keep raw source rows and candidate-only records out of Manager packets, and must not claim runtime mutation, WebSearch truth, product readiness, or private self-use approval.
+
 Build the legacy-named CurrentShell/FoodDB handoff v3 metadata gate without the FoodDB artifact to keep the previous blocked posture, or with the minimal approved artifact to validate the handoff:
 
 ```powershell

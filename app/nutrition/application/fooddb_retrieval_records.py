@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Iterable
 
 
 @dataclass(frozen=True)
@@ -45,6 +45,30 @@ def build_runtime_retrieval_records_from_packet_ready_artifact(
         if isinstance(item, dict) and item.get("runtime_truth_allowed") is True:
             records.append(_record_from_packet_ready_item(item))
     return tuple(sorted(records, key=lambda record: record.anchor_id))
+
+
+def build_semantic_basket_retrieval_records_from_small_anchor_records(
+    records: Iterable[dict[str, Any]],
+) -> tuple[IndexedFoodRecord, ...]:
+    return tuple(
+        record
+        for record in _retrieval_records({"anchors": list(records)})
+        if record.source_lane == "basket_family_semantic_only"
+    )
+
+
+def build_current_shell_retrieval_records_from_packet_ready_artifact(
+    artifact: dict[str, Any],
+    *,
+    semantic_small_anchor_records: Iterable[dict[str, Any]] = (),
+) -> tuple[IndexedFoodRecord, ...]:
+    records = [
+        *build_runtime_retrieval_records_from_packet_ready_artifact(artifact),
+        *build_semantic_basket_retrieval_records_from_small_anchor_records(
+            semantic_small_anchor_records,
+        ),
+    ]
+    return tuple(sorted(records, key=lambda record: (record.source_lane, record.anchor_id)))
 
 
 def _retrieval_records(payload: dict[str, Any]) -> tuple[IndexedFoodRecord, ...]:
