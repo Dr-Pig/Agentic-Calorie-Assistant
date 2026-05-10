@@ -5,6 +5,11 @@ from typing import Any, Mapping
 from app.advanced_shadow_lab.product_lab_proactive_delivery import (
     build_product_lab_proactive_delivery_packet,
 )
+from app.advanced_shadow_lab.product_lab_proactive_action_state import (
+    action_state_source_refs,
+    pending_intake_followup_candidate,
+    rescue_omission_trace,
+)
 
 
 def run_product_lab_proactive(
@@ -14,10 +19,30 @@ def run_product_lab_proactive(
     memory_context_pack: Mapping[str, Any],
     recommendation_artifact: Mapping[str, Any],
     rescue_artifact: Mapping[str, Any],
+    action_state: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    candidates = [
+    current_action_state = action_state or {}
+    rescue_omission = rescue_omission_trace(current_action_state)
+    specs = [
         _recommendation_candidate(recommendation_artifact, fixture_inputs),
-        _rescue_candidate(rescue_artifact, fixture_inputs),
+        pending_intake_followup_candidate(
+            action_state=current_action_state,
+            control_model=_control_model(fixture_inputs, "pending_intake_followup"),
+        ),
+    ]
+    if rescue_omission is None:
+        specs.append(_rescue_candidate(rescue_artifact, fixture_inputs))
+    candidates = [
+        _candidate(
+            trigger_type=str(spec.get("trigger_type") or ""),
+            candidate_kind=str(spec.get("candidate_kind") or ""),
+            source_output_refs=[str(item) for item in spec.get("source_output_refs") or []],
+            source_status=str(spec.get("source_status") or ""),
+            control_model=_mapping(spec.get("control_model")),
+            next_signal_fallback=str(spec.get("next_signal_fallback") or ""),
+        )
+        for spec in specs
+        if spec is not None
     ]
     blockers = [
         blocker
@@ -42,9 +67,12 @@ def run_product_lab_proactive(
         "memory_context_refs": [
             str(item) for item in memory_context_pack.get("selected_record_ids") or []
         ],
+        "action_state_refs": action_state_source_refs(current_action_state),
+        "omission_traces": [] if rescue_omission is None else [rescue_omission],
         "source_outputs_read": [
             str(recommendation_artifact.get("artifact_type") or ""),
             str(rescue_artifact.get("artifact_type") or ""),
+            str(current_action_state.get("artifact_type") or ""),
         ],
         "lab_chat_delivery_allowed": not bool(blockers),
         "scheduler_delivery_allowed": False,
@@ -65,17 +93,17 @@ def _recommendation_candidate(
     fixture_inputs: Mapping[str, Any],
 ) -> dict[str, Any]:
     primary = _mapping(_mapping(recommendation.get("offer_synthesis")).get("selected_primary"))
-    return _candidate(
-        trigger_type="recommendation_prompt",
-        candidate_kind="next_meal_recommendation",
-        source_output_refs=[
+    return {
+        "trigger_type": "recommendation_prompt",
+        "candidate_kind": "next_meal_recommendation",
+        "source_output_refs": [
             str(recommendation.get("artifact_type") or ""),
             f"candidate:{primary.get('candidate_id') or ''}",
         ],
-        source_status=str(recommendation.get("status") or ""),
-        control_model=_control_model(fixture_inputs, "recommendation_prompt"),
-        next_signal_fallback="new_app_open_with_qualified_pool",
-    )
+        "source_status": str(recommendation.get("status") or ""),
+        "control_model": _control_model(fixture_inputs, "recommendation_prompt"),
+        "next_signal_fallback": "new_app_open_with_qualified_pool",
+    }
 
 
 def _rescue_candidate(
@@ -83,17 +111,17 @@ def _rescue_candidate(
     fixture_inputs: Mapping[str, Any],
 ) -> dict[str, Any]:
     card = _mapping(rescue.get("proposal_card"))
-    return _candidate(
-        trigger_type="rescue_nudge",
-        candidate_kind="same_day_rescue_proposal",
-        source_output_refs=[
+    return {
+        "trigger_type": "rescue_nudge",
+        "candidate_kind": "same_day_rescue_proposal",
+        "source_output_refs": [
             str(rescue.get("artifact_type") or ""),
             f"proposal:{card.get('card_kind') or ''}",
         ],
-        source_status=str(rescue.get("status") or ""),
-        control_model=_control_model(fixture_inputs, "rescue_nudge"),
-        next_signal_fallback="material_budget_change_or_user_reopens_rescue",
-    )
+        "source_status": str(rescue.get("status") or ""),
+        "control_model": _control_model(fixture_inputs, "rescue_nudge"),
+        "next_signal_fallback": "material_budget_change_or_user_reopens_rescue",
+    }
 
 
 def _candidate(
