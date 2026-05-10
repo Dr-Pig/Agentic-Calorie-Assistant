@@ -20,7 +20,19 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
             "today": True,
             "body": True,
             "feedback": True,
+            "review": True,
             "data": True,
+        },
+        "launchpad_local_debug_session_established": True,
+        "protected_pages_cookie_only_checked": True,
+        "protected_pages_cookie_only_values": {
+            "feedback": True,
+            "feedback_api_posted": True,
+            "review": True,
+            "data": True,
+            "window_token_used": False,
+            "token_in_url": False,
+            "forbidden_storage_used": False,
         },
         "launchpad_non_claims": {
             "frontend_semantic_owner": False,
@@ -437,6 +449,24 @@ def test_product_pages_browser_smoke_validator_requires_launchpad_navigation() -
     assert "launchpad_page_not_loaded" in blockers
     assert "launchpad_navigation_not_checked" in blockers
     assert "launchpad_navigation_not_preserved:feedback" in blockers
+
+
+def test_product_pages_browser_smoke_validator_requires_natural_debug_session_path() -> None:
+    report = _passing_report()
+    report["launchpad_local_debug_session_established"] = False
+    report["protected_pages_cookie_only_checked"] = False
+    values = dict(report["protected_pages_cookie_only_values"])
+    values["feedback"] = False
+    values["window_token_used"] = True
+    report["protected_pages_cookie_only_values"] = values
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "launchpad_local_debug_session_not_established" in blockers
+    assert "protected_pages_cookie_only_not_checked" in blockers
+    assert "protected_page_cookie_only_failed:feedback" in blockers
+    assert "protected_page_cookie_only_overclaim:window_token_used" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_launchpad_truth_or_token_claims() -> None:
