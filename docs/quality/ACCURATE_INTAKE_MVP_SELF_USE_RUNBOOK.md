@@ -144,6 +144,14 @@ python scripts/run_accurate_intake_browser_realistic_web_dogfood_v2.py --require
 
 This browser diagnostic drives the local shell through a target update and CJK food/query turns with deterministic fixture Manager decisions and fixture evidence only. Its success status is `browser_diagnostic_pass_with_fixture_evidence_gap` or `browser_diagnostic_pass_with_evidence_gap`; it must not emit `pass`, `dogfood_pass`, `realistic_pass`, or `fooddb_pass`. The fixture Manager can provide structured Manager decisions, and fixture evidence can simulate packet-ready evidence for local diagnostics only; those fixtures must not become FoodDB truth or update app knowledge.
 
+Run the browser-executed one-day desktop loop closure fixture with:
+
+```powershell
+python scripts/run_accurate_intake_browser_one_day_fixture_dogfood.py --require-browser-execution --db-path .pytest_tmp_local/accurate_intake_browser_one_day_fixture.sqlite3 --output artifacts/accurate_intake_browser_one_day_fixture_dogfood.json
+```
+
+This fixture consumes the existing one-day Manager runtime scenario and then verifies the desktop shell loop across Chat, Today, Body, Feedback, Review, and Data. It checks same-truth Today numbers, trace-linked feedback capture, Review Queue ingestion, and local export sidecars for feedback/review evidence. It remains fixture scoped: it must not claim `dogfood_pass`, product readiness, live LLM readiness, production DB readiness, or real FoodDB truth promotion.
+
 Run a fresh local shell pass with:
 
 ```powershell
