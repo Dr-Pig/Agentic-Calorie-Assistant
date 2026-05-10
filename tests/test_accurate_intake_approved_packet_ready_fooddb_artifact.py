@@ -337,10 +337,50 @@ def test_default_repo_artifact_builds_from_tracked_exact_item_seed() -> None:
         "generic_common_serving": 1,
         "listed_component": 1,
     }
+    assert artifact["summary"]["available_packet_ready_lane_counts"] == {
+        "exact_item_card": 4,
+        "generic_common_serving": 25,
+        "listed_component": 34,
+    }
     by_lane = {item["source_lane"]: item for item in artifact["packet_ready_items"]}
     assert by_lane["exact_item_card"]["macro_visibility_status"] == "visible"
     assert by_lane["generic_common_serving"]["macro_visibility_status"] == "hidden_missing_source"
     assert by_lane["listed_component"]["macro_visibility_status"] == "hidden_missing_source"
+
+
+def test_full_current_shell_profile_includes_all_approved_packet_ready_lanes() -> None:
+    artifact = build_approved_packet_ready_fooddb_artifact(
+        artifact_path="artifacts/approved_packet_ready_fooddb_full.json",
+        selection_profile="full_current_shell",
+    )
+
+    assert artifact["status"] == "approved_packet_ready_fooddb_artifact_ready"
+    assert artifact["summary"]["selection_profile"] == "full_current_shell"
+    assert artifact["summary"]["packet_ready_item_count"] == 63
+    assert artifact["summary"]["packet_ready_lane_counts"] == {
+        "exact_item_card": 4,
+        "generic_common_serving": 25,
+        "listed_component": 34,
+    }
+    assert artifact["summary"]["available_packet_ready_lane_counts"] == {
+        "exact_item_card": 4,
+        "generic_common_serving": 25,
+        "listed_component": 34,
+    }
+    assert artifact["manager_packet_forbidden_inputs"] == [
+        "raw_source_rows",
+        "candidate_only_records",
+        "full_fooddb_dump",
+        "websearch_snippets_as_truth",
+        "dogfood_feedback",
+        "macro_values_inferred_from_name_or_kcal",
+    ]
+
+    by_id = {item["item_id"]: item for item in artifact["packet_ready_items"]}
+    assert by_id["exact_yuhofang_sweet_potato_crisps_60g"]["macro_visibility_status"] == "visible"
+    assert by_id["custom_drink_boba_milk_tea"]["source_lane"] == "generic_common_serving"
+    assert by_id["listed_item_milkfish_ball"]["source_lane"] == "listed_component"
+    assert all("raw_row" not in item for item in artifact["packet_ready_items"])
 
 
 def test_artifact_is_accepted_by_product_loop_handoff_validation_only() -> None:
@@ -387,6 +427,28 @@ def test_approved_packet_ready_fooddb_artifact_cli_writes_json(tmp_path: Path) -
     assert artifact["status"] == "approved_packet_ready_fooddb_artifact_ready"
     assert artifact["approved_packet_ready_evidence_artifact"]["path"] == str(output_path)
     assert artifact["summary"]["packet_ready_item_count"] == 3
+
+
+def test_approved_packet_ready_fooddb_artifact_cli_can_write_full_current_shell_profile(
+    tmp_path: Path,
+) -> None:
+    output_path = tmp_path / "approved_packet_ready_fooddb_full.json"
+
+    from scripts.build_accurate_intake_approved_packet_ready_fooddb_artifact import main
+
+    exit_code = main(
+        [
+            "--selection-profile",
+            "full_current_shell",
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    assert exit_code == 0
+    artifact = json.loads(output_path.read_text(encoding="utf-8"))
+    assert artifact["summary"]["selection_profile"] == "full_current_shell"
+    assert artifact["summary"]["packet_ready_item_count"] == 63
 
 
 def test_runbook_documents_minimal_fooddb_packet_ready_artifact() -> None:
