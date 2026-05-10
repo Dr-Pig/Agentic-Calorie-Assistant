@@ -148,6 +148,18 @@ def test_advanced_lab_execution_policy_locks_provider_surface_and_fooddb_decisio
     assert policy["diagnostic_live_model"] == "grok-4-fast"
     assert policy["target_reasoning_model"] == "kimi-k2.5"
     assert policy["kimi_live_calls_allowed_in_this_train"] is False
+    assert policy["model_profile_seam"] == {
+        "default_live_diagnostic_profile_id": (
+            "builderspace-grok-4-fast-advanced-shadow-lab-live-diagnostic"
+        ),
+        "target_reasoning_profile_id": (
+            "builderspace-kimi-k2-5-advanced-shadow-lab-dormant-reference"
+        ),
+        "live_provider_calls_allowed_by_default": False,
+        "kimi_selection_status": "dormant_reference_only",
+        "production_selected": False,
+        "provider_specific_product_semantics_allowed": False,
+    }
     assert policy["proactive_surface"] == "chat_only"
     assert policy["inbox_mirror_allowed"] is False
     assert policy["push_line_or_os_notification_allowed"] is False

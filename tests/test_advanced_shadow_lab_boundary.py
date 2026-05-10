@@ -339,6 +339,19 @@ def test_advanced_shadow_lab_has_no_route_scheduler_persistence_or_provider_impo
     assert not list((ROOT / "alembic" / "versions").glob("*advanced_shadow_lab*"))
 
 
+def test_advanced_shadow_lab_scripts_use_profile_seam_for_live_model_selection() -> None:
+    for path in [
+        ROOT / "scripts" / "run_advanced_shadow_lab_recommendation_copy_live_diagnostic.py",
+        ROOT / "scripts" / "run_advanced_shadow_lab_rescue_copy_live_diagnostic.py",
+    ]:
+        text = path.read_text(encoding="utf-8-sig")
+        assert "--provider-profile-id" in text
+        assert "--model" not in text
+        assert "BUILDERSPACE_MANAGER_MODEL" not in text
+        assert "resolve_live_diagnostic_profile" in text
+        assert "manager_model_override=str(profile[\"model_id\"])" in text
+
+
 def _absolute_imports(path: Path) -> list[str]:
     tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
     imports: list[str] = []
