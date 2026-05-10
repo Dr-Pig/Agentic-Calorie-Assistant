@@ -117,7 +117,8 @@ def _packet_blockers(packet: Mapping[str, Any]) -> list[str]:
         blockers.append("recommendation_offer_packet.unsupported_artifact_type")
     if packet.get("status") != "pass":
         blockers.append("recommendation_offer_packet.status_not_pass")
-    if packet.get("ux_packet", {}).get("serve_allowed") is True:
+    ux_packet = packet.get("ux_packet")
+    if isinstance(ux_packet, Mapping) and ux_packet.get("serve_allowed") is True:
         blockers.append("recommendation_offer_packet.ux_packet.serve_allowed")
     for flag in CLAIM_FLAGS:
         if packet.get(flag) is True:

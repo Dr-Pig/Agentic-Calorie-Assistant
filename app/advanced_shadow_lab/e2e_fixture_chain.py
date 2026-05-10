@@ -8,6 +8,12 @@ from app.recommendation.application.three_node_shadow_contract import (
 from app.recommendation.application.three_node_summary_bridge import (
     build_summary_quality_report_from_three_node_shadow_artifact,
 )
+from app.recommendation.application.offer_shadow_packet import (
+    build_recommendation_offer_shadow_packet,
+)
+from app.rescue.application.chain_lifecycle_adapter import (
+    build_rescue_chain_lifecycle_shadow_packets,
+)
 from app.rescue.application.shadow_chain_runner import run_rescue_shadow_chain
 from app.rescue.application.shadow_summary_context import build_rescue_shadow_summary_context_projection
 from app.advanced_shadow_lab.e2e_fixture_chain_policy import (
@@ -26,6 +32,9 @@ from app.advanced_shadow_lab.journey_terminal_evidence import (
 )
 from app.runtime.application.proactive_no_send_nudge_bridge import build_no_send_nudge_candidate_bridge
 from app.runtime.application.proactive_no_send_review_sink import build_no_send_review_sink
+from app.runtime.application.proactive_recommendation_offer_packet_bridge import (
+    build_recommendation_offer_packet_no_send_review,
+)
 from app.runtime.application.proactive_recommendation_prompt_bridge import build_recommendation_prompt_no_send_review
 from app.runtime.application.proactive_rescue_nudge_bridge import build_rescue_nudge_no_send_review
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
@@ -53,6 +62,14 @@ def run_advanced_shadow_e2e_fixture_chain(
         three_node_artifact=recommendation,
         source_payload=recommendation_payload,
     )
+    recommendation_offer = build_recommendation_offer_shadow_packet(
+        recommendation_quality_report=recommendation_report,
+        three_node_artifact=recommendation,
+        requested_surface="chat",
+    )
+    recommendation_offer_review = build_recommendation_offer_packet_no_send_review(
+        recommendation_offer
+    )
     recommendation_review = build_recommendation_prompt_no_send_review(
         recommendation_report
     )
@@ -68,6 +85,10 @@ def run_advanced_shadow_e2e_fixture_chain(
         open_proposals_view=open_proposals_view,
         proposal_candidate_output=proposal_candidate_output,
     )
+    rescue_lifecycle = build_rescue_chain_lifecycle_shadow_packets(
+        rescue_shadow_chain_artifact=rescue_chain,
+        interaction_intents=["present", "accept", "dismiss", "request_gentler"],
+    )
     rescue_review = build_rescue_nudge_no_send_review(rescue_projection)
     bridge = build_no_send_nudge_candidate_bridge(
         recommendation_prompt_review=recommendation_review,
@@ -77,9 +98,12 @@ def run_advanced_shadow_e2e_fixture_chain(
     stages = [
         recommendation,
         recommendation_report,
+        recommendation_offer,
+        recommendation_offer_review,
         named_stage("recommendation_prompt_no_send_review", recommendation_review),
         rescue_projection,
         rescue_chain,
+        rescue_lifecycle,
         named_stage("rescue_nudge_no_send_review", rescue_review),
         bridge,
     ]
@@ -107,6 +131,11 @@ def run_advanced_shadow_e2e_fixture_chain(
         "stage_order": list(STAGE_ORDER),
         "stage_trace": stage_trace(all_stages),
         "stage_artifacts": all_stages,
+        "product_shaped_artifacts_used": [
+            "recommendation_offer_shadow_packet",
+            "recommendation_offer_packet_no_send_review",
+            "rescue_chain_lifecycle_adapter_artifact",
+        ],
         "terminal_review_sink": sink,
         "blockers": all_blockers,
         "non_claims": list(NON_CLAIMS),

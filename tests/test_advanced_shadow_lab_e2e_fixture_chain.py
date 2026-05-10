@@ -48,9 +48,12 @@ def test_fixture_chain_terminates_in_no_send_review_sink() -> None:
     assert artifact["stage_order"] == [
         "recommendation_three_node_shadow_artifact",
         "recommendation_shadow_summary_consumer_quality_report",
+        "recommendation_offer_shadow_packet",
+        "recommendation_offer_packet_no_send_review",
         "recommendation_prompt_no_send_review",
         "rescue_shadow_summary_context_projection",
         "rescue_shadow_chain_runner_artifact",
+        "rescue_chain_lifecycle_adapter_artifact",
         "rescue_nudge_no_send_review",
         "proactive_no_send_nudge_candidate_bridge",
         "proactive_no_send_review_sink_artifact",
@@ -58,7 +61,10 @@ def test_fixture_chain_terminates_in_no_send_review_sink() -> None:
     assert [row["status"] for row in artifact["stage_trace"]] == [
         "pass",
         "pass",
+        "pass",
         "candidate_for_human_review",
+        "candidate_for_human_review",
+        "pass",
         "pass",
         "pass",
         "context_available",
@@ -73,6 +79,20 @@ def test_fixture_chain_terminates_in_no_send_review_sink() -> None:
     )
     assert artifact["stage_artifacts"][1]["three_node_lab_bridge_used"] is True
     assert artifact["stage_artifacts"][1]["five_node_lab_bridge_used"] is False
+    assert artifact["stage_artifacts"][2]["artifact_type"] == (
+        "recommendation_offer_shadow_packet"
+    )
+    assert artifact["stage_artifacts"][3]["artifact_type"] == (
+        "recommendation_offer_packet_no_send_review"
+    )
+    assert artifact["stage_artifacts"][7]["artifact_type"] == (
+        "rescue_chain_lifecycle_adapter_artifact"
+    )
+    assert artifact["product_shaped_artifacts_used"] == [
+        "recommendation_offer_shadow_packet",
+        "recommendation_offer_packet_no_send_review",
+        "rescue_chain_lifecycle_adapter_artifact",
+    ]
     assert artifact["terminal_review_sink"]["status"] == "pass"
     assert artifact["chat_ux_packet"]["artifact_type"] == (
         "advanced_shadow_chat_ux_packet_artifact"

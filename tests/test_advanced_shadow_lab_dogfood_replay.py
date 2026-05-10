@@ -59,7 +59,10 @@ def test_dogfood_replay_projects_reviewed_trace_into_advanced_chain() -> None:
     assert [row["status"] for row in artifact["chain_stage_trace"]] == [
         "pass",
         "pass",
+        "pass",
         "candidate_for_human_review",
+        "candidate_for_human_review",
+        "pass",
         "pass",
         "pass",
         "context_available",

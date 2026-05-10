@@ -50,6 +50,11 @@ def test_fixture_vertical_proof_runs_complete_lab_loop_without_mainline_effects(
     assert memory_projection["reviewed_memory_store_used"] is True
     assert fixture_chain["status"] == "pass"
     assert fixture_chain["stage_artifacts"][1]["three_node_lab_bridge_used"] is True
+    assert fixture_chain["product_shaped_artifacts_used"] == [
+        "recommendation_offer_shadow_packet",
+        "recommendation_offer_packet_no_send_review",
+        "rescue_chain_lifecycle_adapter_artifact",
+    ]
     assert terminal_sink["status"] == "pass"
     assert terminal_sink["record_count"] == 2
     assert chat_packet["status"] == "pass"
