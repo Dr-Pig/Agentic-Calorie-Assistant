@@ -184,6 +184,7 @@
     const todayIso = () => new Date().toISOString().slice(0, 10);
     const el = (id) => document.getElementById(id);
     const params = new URLSearchParams(window.location.search);
+    const CURRENT_PAGE = "data";
     el("user-id").value = params.get("user_id") || el("user-id").value;
     el("local-date").value = params.get("local_date") || todayIso();
 
@@ -194,7 +195,11 @@
       return el("local-date").value || todayIso();
     }
     function pageUrl(page) {
-      return `/static/accurate-intake-${page}.html?user_id=${encodeURIComponent(userId())}&local_date=${encodeURIComponent(selectedDate())}`;
+      const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
+      if (page === "feedback") {
+        query.set("source_page", CURRENT_PAGE);
+      }
+      return `/static/accurate-intake-${page}.html?${query.toString()}`;
     }
     function updateNavigationLinks() {
       document.querySelectorAll("[data-nav-target]").forEach((link) => {

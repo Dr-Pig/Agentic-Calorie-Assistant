@@ -154,10 +154,14 @@ CDK_BROWSER_SAME_TRUTH_NON_CLAIMS = {
 }
 DEFAULT_FEEDBACK_TEXT = "Synthetic browser feedback"
 DEFAULT_FEEDBACK_TRACE_ID = "trace-browser-feedback"
+DEFAULT_FEEDBACK_MESSAGE_ID = "assistant-browser-feedback"
 EXPECTED_FEEDBACK_RECORD_VALUES = {
     "category": "latency",
     "feedback_text": DEFAULT_FEEDBACK_TEXT,
+    "page": "chat",
     "trace_id": DEFAULT_FEEDBACK_TRACE_ID,
+    "message_id": DEFAULT_FEEDBACK_MESSAGE_ID,
+    "source_page": "chat",
     "do_not_commit": True,
     "manager_context_injection_allowed": False,
     "food_kb_truth_update_allowed": False,
@@ -273,6 +277,8 @@ def _base_report(
         "chat_reload_scroll_behavior_checked": False,
         "chat_session_status_rendered": False,
         "chat_context_status_rendered": False,
+        "chat_report_link_checked": False,
+        "chat_report_link_values": {},
         "chat_no_debug_trace": False,
         "chat_body_observation_same_truth_checked": False,
         "chat_body_observation_written": False,
@@ -394,6 +400,10 @@ def _read_jsonl_records(path: Path) -> list[dict[str, Any]]:
     return records
 
 
+def _object_dict(value: Any) -> dict[str, Any]:
+    return dict(value) if isinstance(value, dict) else {}
+
+
 def _wait_for_feedback_record(feedback_dir: Path, *, timeout_ms: int) -> dict[str, Any] | None:
     path = _feedback_jsonl_path(feedback_dir)
     deadline = time.monotonic() + (timeout_ms / 1000)
@@ -412,7 +422,10 @@ def _feedback_record_values(record: dict[str, Any] | None) -> dict[str, Any]:
     return {
         "category": record.get("category"),
         "feedback_text": record.get("feedback_text"),
+        "page": linked_context.get("page"),
         "trace_id": linked_context.get("trace_id"),
+        "message_id": linked_context.get("message_id"),
+        "source_page": _object_dict(record.get("ui_event")).get("source_page"),
         "do_not_commit": record.get("do_not_commit"),
         "manager_context_injection_allowed": record.get("manager_context_injection_allowed"),
         "food_kb_truth_update_allowed": record.get("food_kb_truth_update_allowed"),
@@ -1696,7 +1709,10 @@ def _run_feedback_capture_sequence(
     feedback = _open_page(
         browser,
         viewport=viewport,
-        url=_page_url(base_url, "feedback", user_external_id=user_external_id, local_date=local_date),
+        url=(
+            _page_url(base_url, "feedback", user_external_id=user_external_id, local_date=local_date)
+            + f"&source_page=chat&message_id={DEFAULT_FEEDBACK_MESSAGE_ID}"
+        ),
         timeout_ms=timeout_ms,
         local_debug_token=local_debug_token,
     )
@@ -1964,6 +1980,8 @@ def _run_browser_sequence(
         "launchpad_navigation_checked": False,
         "launchpad_navigation_values": {},
         "launchpad_non_claims": dict(LAUNCHPAD_NON_CLAIMS),
+        "chat_report_link_checked": False,
+        "chat_report_link_values": {},
         "chat_body_observation_same_truth_checked": False,
         "chat_body_observation_written": False,
         "chat_body_observation_body_page_readback": False,
@@ -2154,6 +2172,35 @@ def _run_browser_sequence(
                 and context_pins in {"present", "not_available"}
                 and context_targets not in {"", "not_checked"}
             )
+            report_link_values = chat.evaluate(
+                """({ userExternalId, localDate }) => {
+                  const link = document.querySelector('[data-feedback-action="report-message"]');
+                  if (!link) {
+                    return { present: false };
+                  }
+                  const url = new URL(link.href, window.location.href);
+                  return {
+                    present: true,
+                    sourcePage: url.searchParams.get("source_page"),
+                    traceIdPresent: Boolean(url.searchParams.get("trace_id")),
+                    messageIdPresent: Boolean(url.searchParams.get("message_id")),
+                    userIdPreserved: url.searchParams.get("user_id") === userExternalId,
+                    localDatePreserved: url.searchParams.get("local_date") === localDate,
+                    tokenInUrl: url.searchParams.has("local_debug_token")
+                  };
+                }""",
+                {"userExternalId": user_external_id, "localDate": local_date},
+            )
+            result["chat_report_link_values"] = report_link_values
+            result["chat_report_link_checked"] = report_link_values == {
+                "present": True,
+                "sourcePage": "chat",
+                "traceIdPresent": True,
+                "messageIdPresent": True,
+                "userIdPreserved": True,
+                "localDatePreserved": True,
+                "tokenInUrl": False,
+            }
             reload_scroll_state = _chat_scroll_state(chat)
             result["chat_reload_scroll_state"] = reload_scroll_state
             result["chat_reload_scroll_behavior_checked"] = (
@@ -2849,6 +2896,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("chat_reload_scroll_behavior_checked", "chat_reload_scroll_behavior_not_checked")
     require_true("chat_session_status_rendered", "chat_session_status_not_rendered")
     require_true("chat_context_status_rendered", "chat_context_status_not_rendered")
+    require_true("chat_report_link_checked", "chat_report_link_not_checked")
     require_true("chat_no_debug_trace", "chat_debug_trace_leaked")
     require_true(
         "chat_body_observation_same_truth_checked",

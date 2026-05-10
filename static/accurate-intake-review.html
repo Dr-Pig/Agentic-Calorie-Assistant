@@ -174,13 +174,17 @@
     const endpoint = "/accurate-intake/review-queue";
     const todayIso = () => new Date().toISOString().slice(0, 10);
     const params = new URLSearchParams(window.location.search);
+    const CURRENT_PAGE = "review";
     const userId = () => params.get("user_id") || "local-self-use-001";
     const selectedDate = () => params.get("local_date") || todayIso();
     const el = (id) => document.getElementById(id);
 
     function pageUrl(page) {
-      const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() }).toString();
-      return `/static/accurate-intake-${page}.html?${query}`;
+      const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
+      if (page === "feedback") {
+        query.set("source_page", CURRENT_PAGE);
+      }
+      return `/static/accurate-intake-${page}.html?${query.toString()}`;
     }
     function updateNavigationLinks() {
       document.querySelectorAll("[data-nav-target]").forEach((link) => {
