@@ -45,6 +45,7 @@ def build_reviewed_memory_recommendation_three_node_payload(
         "shadow_offer_packet_fixture": {
             "decision_mode": "llm_fixture",
             "candidate_id": selected_id,
+            "explanation": "Reviewed memory golden order fits the remaining budget." if selected_id else "",
             "recommendation_served": False,
             "is_canonical_truth": False,
             "intake_commit_requested": False,
