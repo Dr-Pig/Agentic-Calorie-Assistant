@@ -71,6 +71,7 @@ jobs:
             tests/test_manager_service.py \
             tests/test_deepseek_adapter.py \
             tests/test_builderspace_adapter.py \
+            tests/test_current_shell_manager_contract_provider.py \
             tests/test_bootstrap_semantic_ownership_guardrails.py \
             tests/test_long_term_context_shadow_lab_guards.py \
             tests/test_runner_timeout_contract.py \
