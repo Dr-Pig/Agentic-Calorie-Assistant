@@ -5,15 +5,12 @@ from typing import Any, Mapping
 from app.advanced_shadow_lab.product_lab_pending_intake_draft import (
     build_pending_intake_draft_packet,
 )
+from app.advanced_shadow_lab.product_lab_rescue_chat_action import (
+    rescue_outcome,
+)
 
 
 RECOMMENDATION_ACTIONS = {"log_this", "show_backups", "dismiss"}
-RESCUE_ACTIONS = {
-    "accept_rescue_plan",
-    "dismiss_rescue_plan",
-    "request_gentler_plan",
-    "ask_why_this_plan",
-}
 
 
 def apply_product_lab_chat_action(
@@ -25,7 +22,11 @@ def apply_product_lab_chat_action(
     if workflow == "recommendation":
         return recommendation_outcome(message=message, action=action)
     if workflow == "rescue":
-        return rescue_outcome(message=message, action=action)
+        return rescue_outcome(
+            message=message,
+            action=action,
+            base_outcome=base_outcome,
+        )
     return base_outcome(
         status="blocked",
         workflow_family=workflow,
@@ -110,35 +111,6 @@ def recommendation_outcome(
     }
 
 
-def rescue_outcome(*, message: Mapping[str, Any], action: str) -> dict[str, Any]:
-    if action not in RESCUE_ACTIONS:
-        return base_outcome(
-            status="blocked",
-            workflow_family="rescue",
-            action=action,
-            outcome_type="unsupported_action",
-            blockers=[f"rescue.action_unsupported:{action}"],
-        )
-    proposal = mapping(message.get("rescue_proposal"))
-    outcome = base_outcome(
-        status="pass",
-        workflow_family="rescue",
-        action=action,
-        outcome_type=rescue_outcome_type(action),
-        blockers=[],
-    )
-    return {
-        **outcome,
-        "candidate_id": str(message.get("candidate_id") or ""),
-        "handoff_state": str(proposal.get("handoff_state") or ""),
-        "lab_rescue_commit_pending": action == "accept_rescue_plan",
-        "proposal_dismissed_lab": action == "dismiss_rescue_plan",
-        "gentler_plan_requested": action == "request_gentler_plan",
-        "proposal_committed": False,
-        "ledger_entry_created": False,
-    }
-
-
 def base_outcome(
     *,
     status: str,
@@ -168,16 +140,6 @@ def recommendation_outcome_type(action: str) -> str:
     if action == "show_backups":
         return "recommendation_backups_visible"
     return "recommendation_dismissed_lab"
-
-
-def rescue_outcome_type(action: str) -> str:
-    if action == "accept_rescue_plan":
-        return "rescue_commit_confirmation"
-    if action == "dismiss_rescue_plan":
-        return "rescue_dismissed_lab"
-    if action == "request_gentler_plan":
-        return "rescue_gentler_plan_requested"
-    return "rescue_explanation_requested"
 
 
 def mapping(value: Any) -> Mapping[str, Any]:

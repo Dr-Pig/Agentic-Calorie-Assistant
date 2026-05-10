@@ -89,6 +89,12 @@ def test_retrieval_policy_artifact_is_report_only_and_manager_packet_is_compact(
     assert artifact["manager_context_changed"] is False
     assert artifact["packetizer_format_changed"] is False
     assert artifact["summary"]["runtime_anchor_indexed_count"] == 59
+    assert artifact["summary"]["source_lane_counts"] == {
+        "exact_item_card": 0,
+        "generic_common_serving": 25,
+        "listed_component": 34,
+        "basket_family_semantic_only": 4,
+    }
     assert artifact["manager_retrieval_catalog"]["raw_source_rows_included"] is False
     assert artifact["manager_retrieval_catalog"]["candidate_only_records_included"] is False
     assert artifact["manager_retrieval_catalog"]["full_fooddb_included"] is False
@@ -120,6 +126,7 @@ def test_retrieval_policy_exposes_ranking_features_and_modifier_compatibility() 
     assert result["normalized_query"]["candidate_terms"] == ["large boba", "boba"]
     assert result["ranking_policy"]["features"] == [
         "lexical_match",
+        "source_lane",
         "runtime_truth_allowed",
         "source_quality",
         "serving_basis",
@@ -133,6 +140,7 @@ def test_retrieval_policy_exposes_ranking_features_and_modifier_compatibility() 
     assert candidate["ranking_reasons"] == [
         "alias_expansion_exact",
         "runtime_truth_allowed",
+        "source_lane:generic_common_serving",
         "kcal_range_present",
         "serving_basis_present",
         "portion_basis_present",

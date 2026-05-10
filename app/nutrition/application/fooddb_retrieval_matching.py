@@ -22,6 +22,14 @@ def _best_match(term: str, records: tuple[IndexedFoodRecord, ...]) -> dict[str, 
                 "confidence": "high",
                 "requires_manager_disambiguation": False,
             }
+        elif term_key and any(term_key in key for key in name_keys):
+            candidate = {
+                "record": record,
+                "match_path": "canonical_or_alias_substring",
+                "score": 92,
+                "confidence": "medium_high",
+                "requires_manager_disambiguation": True,
+            }
         elif expanded_key and expanded_key in name_keys:
             candidate = {
                 "record": record,

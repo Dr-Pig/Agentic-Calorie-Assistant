@@ -149,6 +149,15 @@ def test_product_lab_session_replay_records_post_turn_chat_action_outcomes(
     assert "memory_candidate:golden-1" in artifact[
         "lab_pending_intake_draft_source_refs"
     ]
+    assert artifact["lab_rescue_action_decision_count"] == 1
+    assert artifact["lab_rescue_action_decision_kinds"] == [
+        "pending_rescue_commit_confirmation"
+    ]
+    assert artifact["lab_rescue_commit_pending_count"] == 1
+    assert artifact["lab_rescue_action_canonical_mutation_allowed"] is False
+    assert "rescue_proposal_card:same_day_rescue_lab" in artifact[
+        "lab_rescue_action_decision_source_refs"
+    ]
     assert artifact["canonical_product_mutation_allowed"] is False
 
     [turn_summary] = artifact["turn_summaries"]
@@ -163,6 +172,8 @@ def test_product_lab_session_replay_records_post_turn_chat_action_outcomes(
     ]
     assert turn_summary["lab_pending_intake_draft_count"] == 1
     assert turn_summary["lab_pending_intake_draft_candidate_ids"] == ["golden-1"]
+    assert turn_summary["lab_rescue_action_decision_count"] == 1
+    assert turn_summary["lab_rescue_commit_pending_count"] == 1
 
     [turn_path] = [Path(path) for path in artifact["turn_artifact_paths"]]
     turn_record = read_json_artifact(turn_path)
@@ -176,8 +187,69 @@ def test_product_lab_session_replay_records_post_turn_chat_action_outcomes(
     assert draft["requires_followup_commit_confirmation"] is True
     assert draft["actual_intake_observed"] is False
     assert draft["canonical_product_mutation_allowed"] is False
+    rescue_decision = outcomes[1]["rescue_action_decision_packet"]
+    assert rescue_decision["status"] == "pass"
+    assert rescue_decision["decision_kind"] == "pending_rescue_commit_confirmation"
+    assert rescue_decision["lab_rescue_commit_pending"] is True
+    assert rescue_decision["proposal_committed"] is False
+    assert rescue_decision["ledger_entry_created"] is False
     assert all(
         item["canonical_product_mutation_allowed"] is False for item in outcomes
+    )
+
+
+def test_product_lab_session_replay_distinguishes_rescue_non_commit_actions(
+    tmp_path: Path,
+) -> None:
+    artifact = run_advanced_product_lab_dogfood_session(
+        artifact_root=tmp_path,
+        session_id="lab-session-rescue-actions-1",
+        fixture_inputs=_fixture_inputs(),
+        turns=[
+            {
+                "turn_id": "t1-action",
+                "post_turn_chat_actions": [
+                    {
+                        "event_id": "dismiss-rescue",
+                        "target_candidate_id": "rescue_nudge:1",
+                        "action": "dismiss_rescue_plan",
+                    },
+                    {
+                        "event_id": "gentler-rescue",
+                        "target_candidate_id": "rescue_nudge:1",
+                        "action": "request_gentler_plan",
+                    },
+                    {
+                        "event_id": "why-rescue",
+                        "target_candidate_id": "rescue_nudge:1",
+                        "action": "ask_why_this_plan",
+                    },
+                ],
+            }
+        ],
+    )
+
+    assert artifact["status"] == "pass"
+    assert artifact["lab_rescue_action_decision_count"] == 3
+    assert artifact["lab_rescue_action_decision_kinds"] == [
+        "dismiss_current_proposal_instance",
+        "request_gentler_variant",
+        "request_explanation",
+    ]
+    assert artifact["lab_rescue_commit_pending_count"] == 0
+    assert artifact["lab_rescue_action_canonical_mutation_allowed"] is False
+    assert artifact["canonical_product_mutation_allowed"] is False
+
+    [turn_path] = [Path(path) for path in artifact["turn_artifact_paths"]]
+    outcomes = read_json_artifact(turn_path)["post_turn_chat_action_outcomes"]
+    assert [item["rescue_action_decision_packet"]["requested_next_signal"] for item in outcomes] == [
+        "material_context_change_or_user_reopens_rescue",
+        "chat_negotiation_requested_gentler_plan",
+        "chat_explanation_requested",
+    ]
+    assert all(
+        item["rescue_action_decision_packet"]["lab_rescue_commit_pending"] is False
+        for item in outcomes
     )
 
 
@@ -282,6 +354,7 @@ def test_product_lab_session_replay_blocks_invisible_chat_action_target(
     ]
     assert artifact["lab_pending_intake_draft_count"] == 0
     assert artifact["lab_pending_intake_draft_source_refs"] == []
+    assert artifact["lab_rescue_action_decision_count"] == 0
     assert artifact["blockers"] == [
         "t2-invalid-action.chat_action.chat_action.target_not_visible:recommendation_prompt:0"
     ]
