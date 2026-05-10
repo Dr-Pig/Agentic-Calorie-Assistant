@@ -55,6 +55,7 @@ def build_food_evidence_recall_packet(
         "ranking_policy": retrieval_result.get("ranking_policy"),
         "manager_may_use_for": [
             "grounded_food_evidence",
+            "macro_visibility_honesty",
             "followup_or_uncertainty_decision",
             "disambiguation",
         ],
@@ -62,6 +63,7 @@ def build_food_evidence_recall_packet(
             "runtime_mutation",
             "creating_fooddb_truth",
             "inventing_source",
+            "inventing_macro",
         ],
     }
     if manager_expected_behavior is not None:
@@ -87,9 +89,16 @@ def _compact_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         "confidence": candidate.get("confidence"),
         "requires_manager_disambiguation": candidate.get("requires_manager_disambiguation"),
         "runtime_role": candidate.get("runtime_role"),
+        "source_lane": candidate.get("source_lane"),
         "runtime_truth_allowed": candidate.get("runtime_truth_allowed"),
         "kcal_point": candidate.get("kcal_point"),
         "kcal_range": candidate.get("kcal_range"),
+        "protein_g": candidate.get("protein_g"),
+        "carbs_g": candidate.get("carbs_g"),
+        "fat_g": candidate.get("fat_g"),
+        "macro_visibility_status": candidate.get("macro_visibility_status"),
+        "macro_source_basis": candidate.get("macro_source_basis"),
+        "macro_confidence": candidate.get("macro_confidence"),
         "serving_basis": candidate.get("serving_basis"),
         "portion_basis": candidate.get("portion_basis"),
         "runtime_usage_boundary": candidate.get("runtime_usage_boundary"),
