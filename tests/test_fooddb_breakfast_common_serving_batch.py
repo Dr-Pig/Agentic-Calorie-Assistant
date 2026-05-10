@@ -70,8 +70,8 @@ def test_breakfast_common_serving_batch_is_packet_ready_without_macro_guessing()
     }
 
     assert set(items) == BREAKFAST_COMMON_SERVING_IDS
-    assert packet_ready["summary"]["source_anchor_count"] == 68
-    assert packet_ready["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 30
+    assert packet_ready["summary"]["source_anchor_count"] == 72
+    assert packet_ready["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 34
     for item in items.values():
         assert item["source_lane"] == "generic_common_serving"
         assert item["protein_g"] is None

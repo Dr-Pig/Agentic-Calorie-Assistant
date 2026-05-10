@@ -60,6 +60,10 @@ EXPECTED_RUNTIME_VISIBLE_ANCHOR_IDS = {
     "breakfast_staple_ham_egg_sandwich",
     "stable_base_beef_noodle",
     "stable_base_zhajiangmian",
+    "staple_fried_rice",
+    "snack_shuijianbao",
+    "snack_pork_bun",
+    "stable_base_cantonese_congee",
     "single_item_sweet_potato",
     "listed_item_tofu_dried",
     "listed_item_kelp",
@@ -213,7 +217,7 @@ def test_status_packet_reports_runtime_anchors_without_claiming_integration_read
     assert status["pl_ce_files_changed"] is False
     assert status["real_fooddb_evidence_available"] is True
     assert status["product_loop_integration_claimed"] is False
-    assert status["runtime_visible_anchor_count"] == 64
+    assert status["runtime_visible_anchor_count"] == 68
     assert set(status["runtime_visible_anchor_ids"]) == EXPECTED_RUNTIME_VISIBLE_ANCHOR_IDS
 
 

@@ -40,7 +40,7 @@ def test_composition_builds_sqlite_fts_port_from_small_anchor_source(tmp_path: P
 
     assert isinstance(index, FoodEvidenceIndexPort)
     assert index.describe_index()["adapter_type"] == "sqlite_fts_food_evidence_index"
-    assert len(index.load_records()) == 68
+    assert len(index.load_records()) == 72
 
 
 def test_composition_builds_supabase_row_port_without_live_supabase() -> None:

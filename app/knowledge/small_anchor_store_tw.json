@@ -6315,6 +6315,454 @@
         "runtime_value_source": "existing_mvp_anchor_baseline",
         "external_source_role": "not_used_for_runtime_truth"
       }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "staple_fried_rice",
+      "canonical_name": "\u7092\u98ef",
+      "aliases": [
+        "\u7092\u98ef",
+        "\u706b\u817f\u7092\u98ef",
+        "\u8766\u4ec1\u7092\u98ef"
+      ],
+      "dish_type": "stable_base_variable_dish",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "taiwan_common_meal_or_snack"
+      ],
+      "followup_hints": [
+        "ask_portion",
+        "ask_add_ons"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        520,
+        850
+      ],
+      "baseline_likely_kcal": 650,
+      "major_modifiers": [
+        {
+          "name": "portion",
+          "values": [
+            "small",
+            "regular",
+            "large"
+          ]
+        },
+        {
+          "name": "add_ons",
+          "values": [
+            "egg",
+            "ham",
+            "shrimp",
+            "extra_oil"
+          ]
+        }
+      ],
+      "composition_hints": [
+        "rice",
+        "egg",
+        "oil",
+        "protein_or_vegetable_addins"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "meal_or_snack_serving",
+        "portion_quantity": 1,
+        "portion_grams": 350,
+        "label": "one generic fried rice plate",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "common_meal_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 650,
+      "kcal_range": [
+        520,
+        850
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_e8b714605f7d",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 185.2,
+          "canonical_name": "\u51b7\u51cd\u706b\u817f\u7092\u98ef"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_e8b714605f7d",
+        "raw_row_hash": "9c9f3d7b41f3c6b26f7b28efcb48039f38e34af037515fb85056e884432742b4"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus common meal-serving portion policy",
+      "reviewed_date": "2026-05-11",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "common_meal_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_common_meal_serving_batch",
+        "policy_version": "fooddb_tfda_common_meal_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_common_meal_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_common_meal_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "snack_shuijianbao",
+      "canonical_name": "\u6c34\u714e\u5305",
+      "aliases": [
+        "\u6c34\u714e\u5305"
+      ],
+      "dish_type": "stable_base_variable_dish",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "taiwan_common_meal_or_snack"
+      ],
+      "followup_hints": [
+        "ask_piece_count"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        210,
+        360
+      ],
+      "baseline_likely_kcal": 260,
+      "major_modifiers": [
+        {
+          "name": "piece_count",
+          "values": [
+            "one",
+            "two",
+            "three"
+          ]
+        },
+        {
+          "name": "filling",
+          "values": [
+            "pork",
+            "vegetable"
+          ]
+        }
+      ],
+      "composition_hints": [
+        "pan_fried_bun",
+        "dough",
+        "savory_filling"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "meal_or_snack_serving",
+        "portion_quantity": 1,
+        "portion_grams": 160,
+        "label": "two pan-fried buns",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "common_meal_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 260,
+      "kcal_range": [
+        210,
+        360
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_ab16f9074080",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 162.5599,
+          "canonical_name": "\u6c34\u714e\u5305"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_ab16f9074080",
+        "raw_row_hash": "f9a7109dd624cb4e89a649522fa4d0abd02c2fd1e5b5a5118d96ae2d88b19575"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus common meal-serving portion policy",
+      "reviewed_date": "2026-05-11",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "common_meal_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_common_meal_serving_batch",
+        "policy_version": "fooddb_tfda_common_meal_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_common_meal_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_common_meal_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "snack_pork_bun",
+      "canonical_name": "\u8089\u5305",
+      "aliases": [
+        "\u8089\u5305",
+        "\u8c6c\u8089\u5305",
+        "\u5305\u5b50"
+      ],
+      "dish_type": "stable_base_variable_dish",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "taiwan_common_meal_or_snack"
+      ],
+      "followup_hints": [
+        "ask_size",
+        "ask_filling"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        260,
+        420
+      ],
+      "baseline_likely_kcal": 316,
+      "major_modifiers": [
+        {
+          "name": "size",
+          "values": [
+            "small",
+            "regular",
+            "large"
+          ]
+        },
+        {
+          "name": "filling",
+          "values": [
+            "pork",
+            "vegetable",
+            "barbecue_pork"
+          ]
+        }
+      ],
+      "composition_hints": [
+        "steamed_bun",
+        "pork_filling"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "meal_or_snack_serving",
+        "portion_quantity": 1,
+        "portion_grams": 120,
+        "label": "one pork bun",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "common_meal_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 316,
+      "kcal_range": [
+        260,
+        420
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_1bc9e90ed7e9",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 263.292,
+          "canonical_name": "\u51b7\u51cd\u8c6c\u8089\u5305\u5b50"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_1bc9e90ed7e9",
+        "raw_row_hash": "de8fe8c7e73e837dd643c6f2635d1558e38332d9bf839564c99a0c477f272e52"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus common meal-serving portion policy",
+      "reviewed_date": "2026-05-11",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "common_meal_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_common_meal_serving_batch",
+        "policy_version": "fooddb_tfda_common_meal_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_common_meal_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_common_meal_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "stable_base_cantonese_congee",
+      "canonical_name": "\u5ee3\u6771\u7ca5",
+      "aliases": [
+        "\u5ee3\u6771\u7ca5",
+        "\u7ca5"
+      ],
+      "dish_type": "stable_base_variable_dish",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "taiwan_common_meal_or_snack"
+      ],
+      "followup_hints": [
+        "ask_bowl_size",
+        "ask_add_ons"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        250,
+        460
+      ],
+      "baseline_likely_kcal": 325,
+      "major_modifiers": [
+        {
+          "name": "bowl_size",
+          "values": [
+            "small",
+            "regular",
+            "large"
+          ]
+        },
+        {
+          "name": "add_ons",
+          "values": [
+            "egg",
+            "pork",
+            "fish",
+            "extra_meat"
+          ]
+        }
+      ],
+      "composition_hints": [
+        "rice_porridge",
+        "meat_or_egg_addins"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "meal_or_snack_serving",
+        "portion_quantity": 1,
+        "portion_grams": 400,
+        "label": "one congee bowl",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "common_meal_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 325,
+      "kcal_range": [
+        250,
+        460
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_db8c81f677fb",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 80.961,
+          "canonical_name": "\u5ee3\u6771\u7ca5"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_db8c81f677fb",
+        "raw_row_hash": "5e0cb5b1d1f72b21afbfbded96319a2ae80c35c1059951be76f459ff77b9cea1"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus common meal-serving portion policy",
+      "reviewed_date": "2026-05-11",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "common_meal_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_common_meal_serving_batch",
+        "policy_version": "fooddb_tfda_common_meal_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_common_meal_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_common_meal_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
     }
   ]
 }
