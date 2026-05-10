@@ -132,6 +132,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "smoke_id": "accurate_intake_product_pages_seven_day_diary_smoke_v1",
             "status": "pass",
             "browser_executed": True,
+            "selected_dates_checked": True,
             "seven_day_window_checked": True,
             "day_count_checked": 7,
             "per_day_diary_isolated": True,
@@ -440,6 +441,19 @@ def test_browser_activation_gate_blocks_swapped_identity_and_unknown_mvp_candida
     assert artifact["status"] == "blocked"
     assert "product_pages_seven_day_diary_smoke.unexpected_smoke_id:accurate_intake_product_pages_browser_smoke_v1" in artifact["blockers"]
     assert "current_shell_compatibility_local_mvp_candidate_bundle.unexpected_artifact_type:wrong" in artifact["blockers"]
+
+
+def test_browser_activation_gate_blocks_missing_selected_date_diary_evidence() -> None:
+    inputs = _valid_inputs()
+    inputs["product_pages_seven_day_diary_smoke"]["selected_dates_checked"] = False
+
+    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert (
+        "product_pages_seven_day_diary_smoke.selected_dates_checked_not_true"
+        in artifact["blockers"]
+    )
 
 
 def test_browser_activation_gate_blocks_frontend_semantics_live_or_fooddb_claims() -> None:

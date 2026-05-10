@@ -32,6 +32,7 @@ In scope for this phase:
 - local API plus browser-based Current Shell entrypoint
 - Chat / Today / Body / Feedback / Review Queue navigation
 - date-scoped diary behavior through `local_date`
+- arbitrary selected-date diary navigation; the seven-day strip is a navigation affordance, not the storage or review limit
 - local SQLite persistence
 - local backup/export of product truth, trace summaries, feedback, and review records
 - trace-linked issue capture for UI bugs, Manager behavior, nutrition estimate problems, macro gaps, latency, and product feedback

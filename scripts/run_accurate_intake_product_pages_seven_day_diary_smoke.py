@@ -59,6 +59,23 @@ def _iso_days(start_date: str, day_count: int) -> list[str]:
     return [(start + timedelta(days=offset)).isoformat() for offset in range(day_count)]
 
 
+def _resolved_diary_dates(
+    *,
+    start_date: str,
+    day_count: int,
+    selected_dates: list[str] | None = None,
+) -> list[str]:
+    if selected_dates:
+        return [date.fromisoformat(item).isoformat() for item in selected_dates]
+    return _iso_days(start_date, day_count)
+
+
+def _is_seven_day_window(local_dates: list[str]) -> bool:
+    if len(local_dates) != 7:
+        return False
+    return local_dates == _iso_days(local_dates[0], 7)
+
+
 def _day_fixture(local_date: str, index: int, *, budget_kcal: int) -> dict[str, Any]:
     consumed_kcal = 300 + (index * 35)
     return {
@@ -79,6 +96,7 @@ def _base_report(
     start_date: str,
     day_count: int,
     budget_kcal: int,
+    selected_dates: list[str],
 ) -> dict[str, Any]:
     return {
         "artifact_schema_version": "1.0",
@@ -91,8 +109,11 @@ def _base_report(
         "browser_execution_required": browser_execution_required,
         "start_date": start_date,
         "day_count_expected": day_count,
+        "selected_dates_expected": list(selected_dates),
         "budget_kcal": budget_kcal,
         "browser_executed": False,
+        "selected_dates_checked": False,
+        "arbitrary_selected_dates_checked": False,
         "seven_day_window_checked": False,
         "day_count_checked": 0,
         "per_day_diary_isolated": False,
@@ -122,11 +143,17 @@ def _seed_seven_day_diary(
     start_date: str,
     day_count: int,
     budget_kcal: int,
+    selected_dates: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     user = get_or_create_user(db, user_external_id)
+    local_dates = _resolved_diary_dates(
+        start_date=start_date,
+        day_count=day_count,
+        selected_dates=selected_dates,
+    )
     fixtures = [
         _day_fixture(local_date, index, budget_kcal=budget_kcal)
-        for index, local_date in enumerate(_iso_days(start_date, day_count))
+        for index, local_date in enumerate(local_dates)
     ]
     for index, fixture in enumerate(fixtures):
         commit_meal_payload_to_canonical(
@@ -343,8 +370,16 @@ def _run_browser_sequence(
                 result["fetch_sequence"].extend(_capture_fetches(mobile))
                 mobile.close()
 
-            result["day_count_checked"] = len(result["checked_days"])
-            result["seven_day_window_checked"] = len(result["checked_days"]) == len(fixtures)
+            checked_dates = [str(day.get("local_date")) for day in result["checked_days"]]
+            result["day_count_checked"] = len(checked_dates)
+            result["selected_dates_checked"] = checked_dates == [
+                str(fixture["local_date"]) for fixture in fixtures
+            ]
+            result["seven_day_window_checked"] = _is_seven_day_window(checked_dates)
+            result["arbitrary_selected_dates_checked"] = (
+                result["selected_dates_checked"] is True
+                and result["seven_day_window_checked"] is not True
+            )
             result["per_day_diary_isolated"] = bool(isolation_checks) and all(isolation_checks)
             result["per_day_budget_values_checked"] = bool(budget_checks) and all(budget_checks)
             result["today_date_strip_checked"] = bool(date_strip_checks) and all(date_strip_checks)
@@ -382,7 +417,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
             blockers.append(blocker)
 
     require_true("browser_executed", "browser_not_executed")
-    require_true("seven_day_window_checked", "seven_day_window_not_checked")
+    require_true("selected_dates_checked", "selected_dates_not_checked")
     require_true("per_day_diary_isolated", "per_day_diary_not_isolated")
     require_true("per_day_budget_values_checked", "per_day_budget_values_not_checked")
     require_true("today_date_strip_checked", "today_date_strip_not_checked")
@@ -392,8 +427,19 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("mobile_no_overflow", "mobile_overflow_detected")
 
     checked_days = list(report.get("checked_days") or [])
-    if int(report.get("day_count_checked") or 0) != 7 or len(checked_days) != 7:
-        blockers.append("seven_day_window_incomplete")
+    expected_day_count = int(report.get("day_count_expected") or 7)
+    if int(report.get("day_count_checked") or 0) != expected_day_count:
+        blockers.append("selected_dates_incomplete")
+        if expected_day_count == 7:
+            blockers.append("seven_day_window_incomplete")
+    if len(checked_days) != expected_day_count:
+        blockers.append("checked_day_count_mismatch")
+    if expected_day_count == 7 and report.get("seven_day_window_checked") is not True:
+        blockers.append("seven_day_window_not_checked")
+    expected_dates = [str(item) for item in list(report.get("selected_dates_expected") or [])]
+    checked_dates = [str(day.get("local_date") or "") for day in checked_days if isinstance(day, dict)]
+    if expected_dates and checked_dates != expected_dates:
+        blockers.append("selected_dates_order_mismatch")
     for day in checked_days:
         if not isinstance(day, dict):
             blockers.append("checked_day_not_object")
@@ -446,14 +492,21 @@ def build_seven_day_diary_smoke_report(
     require_browser_execution: bool = False,
     timeout_ms: int = 15000,
     headless: bool = True,
+    selected_dates: list[str] | None = None,
 ) -> dict[str, Any]:
+    resolved_dates = _resolved_diary_dates(
+        start_date=start_date,
+        day_count=day_count,
+        selected_dates=selected_dates,
+    )
     report = _base_report(
         user_external_id=user_external_id,
         db_path=db_path,
         browser_execution_required=require_browser_execution,
         start_date=start_date,
-        day_count=day_count,
+        day_count=len(resolved_dates),
         budget_kcal=budget_kcal,
+        selected_dates=resolved_dates,
     )
     try:
         _load_sync_playwright()
@@ -481,8 +534,9 @@ def build_seven_day_diary_smoke_report(
             db,
             user_external_id=user_external_id,
             start_date=start_date,
-            day_count=day_count,
+            day_count=len(resolved_dates),
             budget_kcal=budget_kcal,
+            selected_dates=resolved_dates,
         )
         browser_result = _run_browser_sequence(
             base_url=base_url,
@@ -523,6 +577,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--user-id", default=DEFAULT_USER_ID)
     parser.add_argument("--start-date", default=DEFAULT_START_DATE)
     parser.add_argument("--day-count", type=int, default=DEFAULT_DAY_COUNT)
+    parser.add_argument(
+        "--selected-dates",
+        default="",
+        help="Comma-separated ISO local dates to verify instead of the default consecutive seven-day window.",
+    )
     parser.add_argument("--budget-kcal", type=int, default=DEFAULT_BUDGET_KCAL)
     parser.add_argument("--keep-db", action="store_true")
     parser.add_argument("--require-browser-execution", action="store_true")
@@ -540,6 +599,10 @@ def main(argv: list[str] | None = None) -> int:
         require_browser_execution=args.require_browser_execution,
         timeout_ms=args.timeout_ms,
         headless=not args.headed,
+        selected_dates=[
+            item.strip() for item in args.selected_dates.split(",") if item.strip()
+        ]
+        or None,
     )
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)

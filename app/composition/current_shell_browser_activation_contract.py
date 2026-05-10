@@ -174,6 +174,7 @@ REQUIRED_TRUE_FLAGS = {
     ),
     "product_pages_seven_day_diary_smoke": (
         "browser_executed",
+        "selected_dates_checked",
         "seven_day_window_checked",
         "per_day_diary_isolated",
         "per_day_budget_values_checked",
