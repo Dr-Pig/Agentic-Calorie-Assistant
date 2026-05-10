@@ -5,6 +5,9 @@ from typing import Any, Mapping
 from app.advanced_shadow_lab.product_lab_recommendation_candidates import (
     build_candidate_retrieval_guard_scoring,
 )
+from app.advanced_shadow_lab.product_lab_recommendation_graph_contract import (
+    build_recommendation_graph_contract,
+)
 from app.advanced_shadow_lab.product_lab_recommendation_provider import (
     FixtureProductLabRecommendationProvider,
 )
@@ -65,7 +68,12 @@ def run_product_lab_recommendation(
     offer_synthesis = active_provider.synthesize_offer(
         retrieval_guard_scoring=retrieval_guard_scoring,
     )
+    graph_contract = build_recommendation_graph_contract(
+        physical_node_order=PHYSICAL_NODE_ORDER,
+        logical_stage_trace=LOGICAL_STAGE_TRACE,
+    )
     blockers = [
+        *_blockers("graph_contract", graph_contract),
         *_blockers("planning", planning),
         *_blockers("candidate_retrieval_guard_scoring", retrieval_guard_scoring),
         *_blockers("offer_synthesis", offer_synthesis),
@@ -77,6 +85,7 @@ def run_product_lab_recommendation(
         "status": "blocked" if blockers else "pass",
         "physical_node_order": list(PHYSICAL_NODE_ORDER),
         "logical_stage_trace": [dict(row) for row in LOGICAL_STAGE_TRACE],
+        "graph_contract": graph_contract,
         "provider_profile": active_provider.profile(),
         "planning": planning,
         "retrieval_guard_scoring": retrieval_guard_scoring,
