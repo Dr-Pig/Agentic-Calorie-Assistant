@@ -28,6 +28,7 @@ def _product_loop_evidence(**overrides: dict) -> dict:
             },
         },
         "local_dogfood_hygiene": {"status": "pass"},
+        "one_day_realistic_dogfood": _one_day_realistic_dogfood(),
         "browser_realistic_dogfood": {
             "status": "browser_diagnostic_pass_with_fixture_evidence_gap",
             "fixture_evidence_used": True,
@@ -53,6 +54,62 @@ def _product_loop_evidence(**overrides: dict) -> dict:
     }
     evidence.update(overrides)
     return evidence
+
+
+def _one_day_realistic_dogfood() -> dict:
+    return {
+        "one_day_realistic_web_dogfood": {
+            "status": "pass",
+            "browser_executed": False,
+            "live_provider_called": False,
+            "kimi_activated": False,
+            "production_db_touched": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "blockers": [],
+            "turns": [
+                {"turn_id": "target_001"},
+                {"turn_id": "breakfast_001"},
+                {"turn_id": "lunch_001"},
+                {"turn_id": "tea_001"},
+                {"turn_id": "dinner_draft_001"},
+                {"turn_id": "dinner_basket_001"},
+                {"turn_id": "dinner_remove_001"},
+                {"turn_id": "query_001"},
+            ],
+            "evidence": {
+                "approved_fooddb_evidence_fixture_used": True,
+                "fooddb_evidence_used": True,
+                "macro_present_evidence_seen": True,
+                "macro_missing_evidence_seen": True,
+                "food_evidence_gap_observed": False,
+                "evidence_gap_observed": False,
+            },
+        }
+    }
+
+
+def _one_day_operator_review() -> dict:
+    return {
+        "artifact_type": "accurate_intake_dogfood_operator_review_surface",
+        "status": "diagnostic_review_with_approved_evidence",
+        "source_artifact": "accurate_intake_one_day_realistic_web_dogfood",
+        "source_status": "pass",
+        "claim_scope": "local_dogfood_operator_review_surface",
+        "local_only": True,
+        "do_not_commit": True,
+        "food_kb_truth_updated": False,
+        "fooddb_truth_updated": False,
+        "real_fooddb_pass_claimed": False,
+        "dogfood_pass": False,
+        "product_readiness_claimed": False,
+        "private_self_use_approved": False,
+        "production_readiness_claimed": False,
+        "classification_policy": {
+            "food_kb_truth_update_allowed": False,
+            "frontend_semantic_owner": False,
+        },
+    }
 
 
 def _local_web_candidate(**chain_overrides: object) -> dict:
@@ -365,17 +422,50 @@ def test_handoff_valid_real_fooddb_metadata_allows_validation_only_integration()
     assert packet_validation["macro_visible_item_count"] == 1
     assert packet_validation["macro_hidden_item_count"] == 2
     assert pack["fooddb_contract_validation"] == {
-        "source": "browser_fixture_dogfood.manager_dogfood_summary",
+        "source": "one_day_realistic_web_dogfood.evidence",
         "packet_evidence_consumed": True,
-        "fixture_fooddb_evidence_used": True,
-        "fooddb_evidence_used": False,
-        "fooddb_evidence_used_normalized_for_local_review": True,
+        "approved_fooddb_evidence_fixture_used": True,
+        "fooddb_evidence_used": True,
         "macro_present_evidence_seen": True,
         "macro_missing_evidence_seen": True,
         "real_fooddb_pass_claimed": False,
         "dogfood_pass": False,
         "product_readiness_claimed": False,
     }
+    assert pack["real_fooddb_pass_claimed"] is False
+    assert pack["dogfood_pass"] is False
+
+
+def test_handoff_prefers_one_day_approved_evidence_over_stale_browser_fixture_gap() -> None:
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(
+            one_day_realistic_dogfood=_one_day_realistic_dogfood(),
+            operator_review=_one_day_operator_review(),
+        ),
+        fooddb_artifact=_fooddb_artifact(),
+    )
+
+    assert pack["status"] == "product_loop_handoff_ready_for_fdb_integration_validation"
+    assert pack["ready_for_fdb_integration"] is True
+    assert "one_day_realistic_dogfood" in pack["product_loop_required_evidence"]
+    assert "browser_realistic_dogfood" not in pack["product_loop_required_evidence"]
+    assert pack["product_loop_evidence_status"]["one_day_realistic_dogfood"] == {
+        "present": True,
+        "status": "pass",
+        "blockers": [],
+    }
+    assert pack["fooddb_contract_validation"] == {
+        "source": "one_day_realistic_web_dogfood.evidence",
+        "packet_evidence_consumed": True,
+        "approved_fooddb_evidence_fixture_used": True,
+        "fooddb_evidence_used": True,
+        "macro_present_evidence_seen": True,
+        "macro_missing_evidence_seen": True,
+        "real_fooddb_pass_claimed": False,
+        "dogfood_pass": False,
+        "product_readiness_claimed": False,
+    }
+    assert pack["fooddb_evidence_used"] is False
     assert pack["real_fooddb_pass_claimed"] is False
     assert pack["dogfood_pass"] is False
 
@@ -414,65 +504,57 @@ def test_handoff_blocks_hidden_macro_item_with_invented_macro_value() -> None:
 
 
 def test_handoff_requires_browser_fooddb_macro_contract_validation() -> None:
+    one_day = _one_day_realistic_dogfood()
+    one_day["one_day_realistic_web_dogfood"]["evidence"][
+        "macro_missing_evidence_seen"
+    ] = False
+
     pack = build_product_loop_handoff_v3(
         _product_loop_evidence(
-            browser_fixture_dogfood={
-                "status": "browser_fixture_pass",
-                "fixture_evidence_used": True,
-                "real_fooddb_pass_claimed": False,
-                "fixture_fooddb_evidence_used": True,
-                "fooddb_evidence_used": False,
-                "manager_dogfood_summary": {
-                    "macro_present_evidence_seen": True,
-                    "macro_missing_evidence_seen": False,
-                },
-            }
+            one_day_realistic_dogfood=one_day,
         ),
         fooddb_artifact=_fooddb_artifact(),
     )
 
     assert pack["status"] == "blocked"
     assert pack["ready_for_fdb_integration"] is False
-    assert "browser_fixture_dogfood_macro_missing_evidence_not_seen" in pack["blockers"]
+    assert "one_day_realistic_dogfood_macro_missing_evidence_not_seen" in pack["blockers"]
 
 
 def test_handoff_requires_browser_packet_evidence_consumption_before_fooddb_validation() -> None:
+    one_day = _one_day_realistic_dogfood()
+    one_day["one_day_realistic_web_dogfood"]["evidence"][
+        "approved_fooddb_evidence_fixture_used"
+    ] = False
+    one_day["one_day_realistic_web_dogfood"]["evidence"]["fooddb_evidence_used"] = False
+
     pack = build_product_loop_handoff_v3(
         _product_loop_evidence(
-            browser_fixture_dogfood={
-                "status": "browser_fixture_pass",
-                "fixture_evidence_used": True,
-                "real_fooddb_pass_claimed": False,
-                "fooddb_evidence_used": False,
-                "fixture_fooddb_evidence_used": False,
-                "manager_dogfood_summary": {
-                    "macro_present_evidence_seen": True,
-                    "macro_missing_evidence_seen": True,
-                },
-            }
+            one_day_realistic_dogfood=one_day,
         ),
         fooddb_artifact=_fooddb_artifact(),
     )
 
     assert pack["status"] == "blocked"
     assert pack["ready_for_fdb_integration"] is False
-    assert "browser_fixture_dogfood_packet_evidence_not_consumed" in pack["blockers"]
+    assert "one_day_realistic_dogfood_packet_evidence_not_consumed" in pack["blockers"]
 
 
 def test_handoff_blocks_product_loop_overclaims_before_fooddb_validation() -> None:
     pack = build_product_loop_handoff_v3(
         _product_loop_evidence(
-            browser_realistic_dogfood={
-                "status": "browser_diagnostic_pass_with_fixture_evidence_gap",
-                "fixture_evidence_used": True,
-                "real_fooddb_pass_claimed": True,
-            }
+            one_day_realistic_dogfood={
+                "one_day_realistic_web_dogfood": {
+                    **_one_day_realistic_dogfood()["one_day_realistic_web_dogfood"],
+                    "real_fooddb_pass_claimed": True,
+                },
+            },
         ),
         fooddb_artifact=_fooddb_artifact(),
     )
 
     assert pack["status"] == "blocked"
-    assert "browser_realistic_dogfood_real_fooddb_overclaim" in pack["blockers"]
+    assert "one_day_realistic_dogfood_real_fooddb_overclaim" in pack["blockers"]
     assert pack["ready_for_fdb_integration"] is False
 
 

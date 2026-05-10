@@ -26,7 +26,7 @@ REQUIRED_PRODUCT_LOOP_EVIDENCE = (
     "local_web_candidate",
     "browser_fixture_dogfood",
     "local_dogfood_hygiene",
-    "browser_realistic_dogfood",
+    "one_day_realistic_dogfood",
     "operator_review",
     "mvp_gate",
 )
@@ -39,6 +39,7 @@ OPERATOR_REVIEW_STATUSES = {
     "browser_diagnostic_review_with_fixture_evidence_gap",
     "browser_diagnostic_review_with_evidence_gap",
     "diagnostic_review_with_evidence_gap",
+    "diagnostic_review_with_approved_evidence",
 }
 OPERATOR_REVIEW_ARTIFACT_TYPES = {
     "accurate_intake_dogfood_operator_review_surface",
@@ -141,6 +142,15 @@ def _local_web_candidate_blockers(payload: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def _one_day_realistic_scenario(payload: dict[str, Any]) -> dict[str, Any]:
+    return _object_dict(payload.get("one_day_realistic_web_dogfood"))
+
+
+def _one_day_realistic_status(payload: dict[str, Any]) -> str:
+    scenario = _one_day_realistic_scenario(payload)
+    return str(scenario.get("status") or _status(payload))
+
+
 def _pl_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     status = _status(payload)
     blockers: list[str] = []
@@ -161,13 +171,38 @@ def _pl_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     elif group_id == "local_dogfood_hygiene":
         if status not in {"pass", "generated"}:
             blockers.append("local_dogfood_hygiene_not_clean")
-    elif group_id == "browser_realistic_dogfood":
-        if status not in REALISTIC_BROWSER_STATUSES:
-            blockers.append("browser_realistic_dogfood_not_diagnostic_gap")
-        if payload.get("fixture_evidence_used") is not True:
-            blockers.append("browser_realistic_dogfood_fixture_scope_missing")
-        if payload.get("real_fooddb_pass_claimed") is not False:
-            blockers.append("browser_realistic_dogfood_real_fooddb_overclaim")
+    elif group_id == "one_day_realistic_dogfood":
+        scenario = _one_day_realistic_scenario(payload)
+        evidence = _object_dict(scenario.get("evidence"))
+        if not scenario:
+            blockers.append("one_day_realistic_dogfood_scenario_missing")
+        elif _one_day_realistic_status(payload) != "pass":
+            blockers.append("one_day_realistic_dogfood_not_pass")
+        if scenario.get("blockers") not in (None, []):
+            blockers.append("one_day_realistic_dogfood_upstream_blockers_present")
+        if evidence.get("approved_fooddb_evidence_fixture_used") is not True:
+            blockers.append("one_day_realistic_dogfood_approved_evidence_not_consumed")
+        if evidence.get("macro_present_evidence_seen") is not True:
+            blockers.append("one_day_realistic_dogfood_macro_present_evidence_not_seen")
+        if evidence.get("macro_missing_evidence_seen") is not True:
+            blockers.append("one_day_realistic_dogfood_macro_missing_evidence_not_seen")
+        for field, blocker in (
+            ("live_provider_called", "one_day_realistic_dogfood_live_provider_called"),
+            ("kimi_activated", "one_day_realistic_dogfood_kimi_activated"),
+            ("production_db_touched", "one_day_realistic_dogfood_production_db_touched"),
+            (
+                "product_readiness_claimed",
+                "one_day_realistic_dogfood_product_readiness_overclaim",
+            ),
+            (
+                "private_self_use_approved",
+                "one_day_realistic_dogfood_private_self_use_overclaim",
+            ),
+            ("real_fooddb_pass_claimed", "one_day_realistic_dogfood_real_fooddb_overclaim"),
+            ("dogfood_pass", "one_day_realistic_dogfood_dogfood_pass_overclaim"),
+        ):
+            if scenario.get(field) is True:
+                blockers.append(blocker)
     elif group_id == "operator_review":
         if (
             status == "missing"
@@ -219,6 +254,39 @@ def _pl_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
 
 
 def _browser_fooddb_contract_validation(evidence: dict[str, Any]) -> dict[str, Any]:
+    one_day = _one_day_realistic_scenario(_object_dict(evidence.get("one_day_realistic_dogfood")))
+    if one_day:
+        scenario_evidence = _object_dict(one_day.get("evidence"))
+        return _json_safe(
+            {
+                "source": "one_day_realistic_web_dogfood.evidence",
+                "packet_evidence_consumed": scenario_evidence.get(
+                    "approved_fooddb_evidence_fixture_used"
+                )
+                is True
+                or scenario_evidence.get("fooddb_evidence_used") is True,
+                "approved_fooddb_evidence_fixture_used": scenario_evidence.get(
+                    "approved_fooddb_evidence_fixture_used"
+                )
+                is True,
+                "fooddb_evidence_used": scenario_evidence.get("fooddb_evidence_used")
+                is True,
+                "macro_present_evidence_seen": scenario_evidence.get(
+                    "macro_present_evidence_seen"
+                )
+                is True,
+                "macro_missing_evidence_seen": scenario_evidence.get(
+                    "macro_missing_evidence_seen"
+                )
+                is True,
+                "real_fooddb_pass_claimed": one_day.get("real_fooddb_pass_claimed")
+                is True,
+                "dogfood_pass": one_day.get("dogfood_pass") is True,
+                "product_readiness_claimed": one_day.get("product_readiness_claimed")
+                is True,
+            }
+        )
+
     browser_fixture = _object_dict(evidence.get("browser_fixture_dogfood"))
     manager_summary = _object_dict(browser_fixture.get("manager_dogfood_summary"))
     fixture_packet_evidence = browser_fixture.get("fixture_fooddb_evidence_used") is True
@@ -248,19 +316,24 @@ def _browser_fooddb_contract_validation(evidence: dict[str, Any]) -> dict[str, A
 
 def _browser_fooddb_contract_blockers(evidence: dict[str, Any]) -> list[str]:
     validation = _browser_fooddb_contract_validation(evidence)
+    source_prefix = (
+        "one_day_realistic_dogfood"
+        if validation.get("source") == "one_day_realistic_web_dogfood.evidence"
+        else "browser_fixture_dogfood"
+    )
     blockers: list[str] = []
     if validation["packet_evidence_consumed"] is not True:
-        blockers.append("browser_fixture_dogfood_packet_evidence_not_consumed")
+        blockers.append(f"{source_prefix}_packet_evidence_not_consumed")
     if validation["macro_present_evidence_seen"] is not True:
-        blockers.append("browser_fixture_dogfood_macro_present_evidence_not_seen")
+        blockers.append(f"{source_prefix}_macro_present_evidence_not_seen")
     if validation["macro_missing_evidence_seen"] is not True:
-        blockers.append("browser_fixture_dogfood_macro_missing_evidence_not_seen")
+        blockers.append(f"{source_prefix}_macro_missing_evidence_not_seen")
     if validation["real_fooddb_pass_claimed"] is True:
-        blockers.append("browser_fixture_dogfood_real_fooddb_overclaim")
+        blockers.append(f"{source_prefix}_real_fooddb_overclaim")
     if validation["dogfood_pass"] is True:
-        blockers.append("browser_fixture_dogfood_dogfood_pass_overclaim")
+        blockers.append(f"{source_prefix}_dogfood_pass_overclaim")
     if validation["product_readiness_claimed"] is True:
-        blockers.append("browser_fixture_dogfood_product_readiness_overclaim")
+        blockers.append(f"{source_prefix}_product_readiness_overclaim")
     return blockers
 
 
@@ -277,7 +350,9 @@ def _product_loop_evidence_status(evidence: dict[str, Any]) -> tuple[dict[str, A
         )
         statuses[group_id] = {
             "present": bool(payload),
-            "status": status,
+            "status": _one_day_realistic_status(payload)
+            if group_id == "one_day_realistic_dogfood"
+            else status,
             "blockers": group_blockers,
         }
         blockers.extend(group_blockers)
@@ -578,7 +653,7 @@ def _load_evidence_from_args(args: argparse.Namespace) -> dict[str, Any]:
         ("local_web_candidate", args.local_web_candidate),
         ("browser_fixture_dogfood", args.browser_fixture_dogfood),
         ("local_dogfood_hygiene", args.local_dogfood_hygiene),
-        ("browser_realistic_dogfood", args.browser_realistic_dogfood),
+        ("one_day_realistic_dogfood", args.one_day_realistic_dogfood),
         ("operator_review", args.operator_review),
         ("mvp_gate", args.mvp_gate),
     ):
@@ -598,6 +673,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--browser-fixture-dogfood")
     parser.add_argument("--local-dogfood-hygiene")
     parser.add_argument("--browser-realistic-dogfood")
+    parser.add_argument("--one-day-realistic-dogfood")
     parser.add_argument("--operator-review")
     parser.add_argument("--mvp-gate")
     parser.add_argument("--fooddb-artifact")

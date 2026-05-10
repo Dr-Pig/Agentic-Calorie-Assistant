@@ -54,6 +54,42 @@ def _browser_realistic_dogfood_payload() -> dict[str, object]:
     }
 
 
+def _one_day_realistic_dogfood_payload() -> dict[str, object]:
+    return {
+        "one_day_realistic_web_dogfood": {
+            "status": "pass",
+            "browser_executed": False,
+            "live_provider_called": False,
+            "kimi_activated": False,
+            "production_db_touched": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "blockers": [],
+            "turns": [
+                {"turn_id": "target_001"},
+                {"turn_id": "breakfast_001"},
+                {"turn_id": "lunch_001"},
+                {"turn_id": "tea_001"},
+                {"turn_id": "dinner_draft_001"},
+                {"turn_id": "dinner_basket_001"},
+                {"turn_id": "dinner_remove_001"},
+                {"turn_id": "query_001"},
+            ],
+            "evidence": {
+                "approved_fooddb_evidence_fixture_used": True,
+                "fooddb_evidence_used": True,
+                "macro_present_evidence_seen": True,
+                "macro_missing_evidence_seen": True,
+                "food_evidence_gap_observed": False,
+                "evidence_gap_observed": False,
+                "same_truth_verified": "not_checked",
+                "dogfood_review_queue_compatible": "not_checked",
+                "local_data_hygiene_respected": "not_checked",
+            },
+        }
+    }
+
+
 @pytest.fixture(autouse=True)
 def _fast_expensive_refresh_chain_generators(monkeypatch: pytest.MonkeyPatch) -> None:
     from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
@@ -158,6 +194,7 @@ def _fast_expensive_refresh_chain_generators(monkeypatch: pytest.MonkeyPatch) ->
         "build_session_context_carryover_qa_bundle_artifact": session_context_bundle,
         "build_browser_one_day_fixture_dogfood_report": _browser_fixture_dogfood_payload(),
         "build_browser_realistic_web_dogfood_v2_report": _browser_realistic_dogfood_payload(),
+        "build_one_day_realistic_web_dogfood_report": _one_day_realistic_dogfood_payload(),
     }
     for name, payload in fast_payloads.items():
         monkeypatch.setattr(
@@ -286,10 +323,13 @@ def _seed_required_gate_inputs(
             "fixture_evidence_used": True,
             "real_fooddb_pass_claimed": False,
         },
+        "one_day_realistic_dogfood": _one_day_realistic_dogfood_payload(),
         "operator_review": {
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_dogfood_operator_review_surface",
-            "status": "browser_diagnostic_review_with_fixture_evidence_gap",
+            "status": "diagnostic_review_with_approved_evidence",
+            "source_artifact": "accurate_intake_one_day_realistic_web_dogfood",
+            "source_status": "pass",
             "claim_scope": "local_dogfood_operator_review_surface",
             "local_only": True,
             "do_not_commit": True,
@@ -470,12 +510,8 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
     )
     assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
     assert "ready_for_live_diagnostic_decision" not in pre_live_pack
-    assert dogfood_review_queue["review_candidate_count"] == 1
-    assert dogfood_review_queue["review_candidates"][0]["auto_flags"] == ["evidence_gap"]
-    assert (
-        dogfood_review_queue["review_candidates"][0]["canonical_eval_promotion"]["allowed"]
-        is False
-    )
+    assert dogfood_review_queue["review_candidate_count"] == 0
+    assert dogfood_review_queue["review_candidates"] == []
     assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is True
     assert candidate["local_web_self_use_candidate_v2"]["route_backed_macro_checked"] is True
     assert (
@@ -513,12 +549,24 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
         "approved_packet_ready_evidence_metadata_valid"
     )
     assert product_loop_handoff["ready_for_fdb_integration"] is True
+    assert "one_day_realistic_dogfood" in product_loop_handoff[
+        "product_loop_required_evidence"
+    ]
+    assert "browser_realistic_dogfood" not in product_loop_handoff[
+        "product_loop_required_evidence"
+    ]
+    assert product_loop_handoff["product_loop_evidence_status"][
+        "one_day_realistic_dogfood"
+    ] == {
+        "present": True,
+        "status": "pass",
+        "blockers": [],
+    }
     assert product_loop_handoff["fooddb_contract_validation"] == {
-        "source": "browser_fixture_dogfood.manager_dogfood_summary",
+        "source": "one_day_realistic_web_dogfood.evidence",
         "packet_evidence_consumed": True,
-        "fixture_fooddb_evidence_used": True,
-        "fooddb_evidence_used": False,
-        "fooddb_evidence_used_normalized_for_local_review": True,
+        "approved_fooddb_evidence_fixture_used": True,
+        "fooddb_evidence_used": True,
         "macro_present_evidence_seen": True,
         "macro_missing_evidence_seen": True,
         "real_fooddb_pass_claimed": False,
@@ -1223,7 +1271,9 @@ def test_refresh_chain_generates_operator_review_before_product_loop_handoff(
     assert exit_code == 0
     assert printed["status"] == "pass"
     assert operator_review["artifact_type"] == "accurate_intake_dogfood_operator_review_surface"
-    assert operator_review["status"] == "browser_diagnostic_review_with_fixture_evidence_gap"
+    assert operator_review["status"] == "diagnostic_review_with_approved_evidence"
+    assert operator_review["source_artifact"] == "accurate_intake_one_day_realistic_web_dogfood"
+    assert operator_review["source_status"] == "pass"
     assert operator_review["local_only"] is True
     assert operator_review["real_fooddb_pass_claimed"] is False
     assert operator_review["dogfood_pass"] is False
@@ -1232,7 +1282,7 @@ def test_refresh_chain_generates_operator_review_before_product_loop_handoff(
     assert operator_review["food_kb_truth_updated"] is False
     assert product_loop_handoff["product_loop_evidence_status"]["operator_review"][
         "status"
-    ] == "browser_diagnostic_review_with_fixture_evidence_gap"
+    ] == "diagnostic_review_with_approved_evidence"
     assert "operator_review_not_diagnostic_review" not in product_loop_handoff["blockers"]
     assert "operator_review_real_fooddb_overclaim" not in product_loop_handoff["blockers"]
     assert product_loop_handoff["ready_for_fdb_integration"] is True
