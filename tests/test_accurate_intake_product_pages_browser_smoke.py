@@ -262,6 +262,13 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
             "fooddb_truth_updated": False,
             "export_path_exists": True,
             "manifest_path_exists": True,
+            "sidecar_evidence_included": True,
+            "feedback_jsonl_copied": True,
+            "feedback_jsonl_record_count": 2,
+            "review_queue_copied": False,
+            "sidecar_evidence_can_create_product_truth": False,
+            "sidecar_evidence_can_create_fooddb_truth": False,
+            "sidecar_evidence_can_create_eval_truth": False,
         },
         "data_non_claims": {
             "product_readiness_claimed": False,

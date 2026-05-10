@@ -15,6 +15,8 @@ from app.runtime.interface.local_debug_auth import require_local_debug_access
 router = APIRouter()
 DOGFOOD_BACKUP_DIR = Path("workspace_data/local_dogfood_backups")
 DOGFOOD_EXPORT_DIR = Path("workspace_data/local_dogfood_exports")
+DOGFOOD_FEEDBACK_DIR = Path("workspace_data/local_dogfood_feedback")
+DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH = Path("artifacts/accurate_intake_dogfood_review_queue.json")
 
 
 def _local_sqlite_db_path(db: Any) -> Path:
@@ -67,4 +69,6 @@ async def accurate_intake_local_data_hygiene_export(
         db_path=_local_sqlite_db_path(db),
         export_dir=DOGFOOD_EXPORT_DIR,
         label=_label_from_payload(payload, fallback="browser-export"),
+        feedback_jsonl_path=DOGFOOD_FEEDBACK_DIR / "accurate_intake_dogfood_feedback.jsonl",
+        review_queue_artifact_path=DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH,
     )

@@ -8,6 +8,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
+from app.composition.local_dogfood_export_sidecars import build_export_sidecar_evidence_manifest
+
 DogfoodDataOperation = Literal["inspect", "backup", "reset", "export", "import-preview"]
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -183,6 +185,7 @@ def export_local_dogfood_db(
     db_path: Path,
     export_dir: Path,
     label: str = "manual-export",
+    feedback_jsonl_path: Path | None = None, review_queue_artifact_path: Path | None = None,
 ) -> dict:
     if not db_path.exists():
         manifest = build_local_dogfood_data_manifest(db_path=db_path, operation="export")
@@ -197,6 +200,10 @@ def export_local_dogfood_db(
     export_dir.mkdir(parents=True, exist_ok=True)
     export_path = export_dir / f"{db_path.stem}.{safe_label}.{timestamp}{db_path.suffix}"
     shutil.copy2(db_path, export_path)
+    sidecar_evidence = build_export_sidecar_evidence_manifest(
+        export_dir=export_dir,
+        feedback_jsonl_path=feedback_jsonl_path, review_queue_artifact_path=review_queue_artifact_path,
+    )
     manifest = {
         **build_local_dogfood_data_manifest(db_path=db_path, operation="export"),
         "status": "pass",
@@ -204,6 +211,11 @@ def export_local_dogfood_db(
         "export_contains_sqlite_copy": True,
         "export_path": str(export_path),
         "export_manifest_contains_personal_log_paths": True,
+        "sidecar_evidence_included": any(bool(item.get("copied")) for item in sidecar_evidence.values()),
+        "sidecar_evidence": sidecar_evidence,
+        "sidecar_evidence_can_create_product_truth": False,
+        "sidecar_evidence_can_create_fooddb_truth": False,
+        "sidecar_evidence_can_create_eval_truth": False,
     }
     manifest_path = export_dir / f"{export_path.stem}.manifest.json"
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
