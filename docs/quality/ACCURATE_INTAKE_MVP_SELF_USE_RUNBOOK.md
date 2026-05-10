@@ -279,6 +279,14 @@ python scripts/build_accurate_intake_fooddb_real_manager_e2e.py --output artifac
 
 This E2E is offline/runtime diagnostic evidence, not a live provider run. It uses the full Current Shell packet-ready profile plus semantic-only basket records to verify exact macro-visible, generic macro-hidden, listed-component, and bare-basket follow-up boundaries through the compact Manager evidence packet. It must preserve source lane and macro visibility fields, keep raw source rows and candidate-only records out of Manager packets, and must not claim runtime mutation, WebSearch truth, product readiness, or private self-use approval.
 
+Build the FoodDB raw-source to packet-ready rebuild drill with:
+
+```powershell
+python scripts/build_accurate_intake_fooddb_rebuild_drill.py --scan-root path\to\local\data --scan-root path\to\local\staging --output artifacts/accurate_intake_fooddb_rebuild_drill.json
+```
+
+This drill proves that a raw/staging source row can be rebuilt through candidate normalization, validation, auto-eligible review selection, selected-anchor metadata, and the packet-ready artifact path without writing runtime truth. It must preserve macro visibility/source fields and source refs, and it must not broaden FoodDB coverage, update tracked nutrition seeds, promote WebSearch truth, call a live provider, or claim product readiness.
+
 Build the legacy-named CurrentShell/FoodDB handoff v3 metadata gate without the FoodDB artifact to keep the previous blocked posture, or with the minimal approved artifact to validate the handoff:
 
 ```powershell
