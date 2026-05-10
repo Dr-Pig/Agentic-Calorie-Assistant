@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="zh-Hant" data-page-id="accurate-intake-desktop-entry-v1">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Accurate Intake Desktop</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17211d;
+      --muted: #5f6b66;
+      --paper: #eef2f1;
+      --panel: #ffffff;
+      --line: #ccd6d2;
+      --accent: #1f7a3d;
+      --accent-soft: #dff3e6;
+      --danger: #a33d3d;
+      --shadow: 0 12px 34px rgba(31, 45, 39, 0.10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font: 15px/1.5 "Aptos", "Segoe UI", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    .app {
+      width: min(1120px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 18px 0 28px;
+      display: grid;
+      gap: 16px;
+    }
+    .topbar,
+    .panel,
+    .entry-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 16px;
+    }
+    .brand {
+      display: grid;
+      gap: 2px;
+    }
+    .brand strong {
+      font-size: 18px;
+      font-weight: 900;
+    }
+    .brand span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    a,
+    button {
+      min-height: 40px;
+      border-radius: 8px;
+      font: inherit;
+      font-weight: 850;
+    }
+    nav a,
+    .entry-card a,
+    .action-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      padding: 9px 12px;
+      color: var(--ink);
+      text-decoration: none;
+      background: #fff;
+    }
+    nav a[aria-current="page"],
+    .primary-link {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: #fff;
+    }
+    button {
+      border: 0;
+      padding: 10px 14px;
+      color: #fff;
+      background: var(--accent);
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.58; cursor: wait; }
+    input,
+    select {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid rgba(23, 33, 29, 0.16);
+      border-radius: 8px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 3px solid rgba(31, 122, 61, 0.34);
+      outline-offset: 2px;
+    }
+    .panel {
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+    .session-grid {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) minmax(150px, 0.8fr) minmax(180px, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+    }
+    label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    .status {
+      min-height: 24px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .status[data-state="error"] { color: var(--danger); }
+    .entry-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .entry-card {
+      min-height: 150px;
+      padding: 14px;
+      display: grid;
+      align-content: space-between;
+      gap: 12px;
+    }
+    .entry-card h2 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.15;
+    }
+    .entry-card p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .entry-card a {
+      justify-self: start;
+    }
+    .policy-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .policy-strip li {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      border: 1px solid rgba(23, 33, 29, 0.12);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+    @media (max-width: 860px) {
+      .topbar { align-items: flex-start; flex-direction: column; }
+      nav { justify-content: flex-start; }
+      .session-grid,
+      .entry-grid,
+      .policy-strip {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 560px) {
+      .app {
+        width: calc(100vw - 16px);
+        padding-top: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div
+    class="app"
+    data-surface-role="desktop-dogfood-entry"
+    data-claim-scope="local_desktop_operator_entry"
+    data-product-truth-owner="backend_local_sqlite"
+    data-frontend-semantic-owner="false"
+    data-manager-context-injection="false"
+    data-fooddb-truth-update-allowed="false"
+    data-canonical-eval-promotion-allowed="false"
+    data-token-in-url-allowed="false"
+  >
+    <header class="topbar">
+      <div class="brand">
+        <strong>Accurate Intake</strong>
+        <span>Local desktop</span>
+      </div>
+      <nav aria-label="Accurate Intake pages">
+        <a data-nav-target="desktop" href="/static/accurate-intake-desktop.html" aria-current="page">Home</a>
+        <a data-nav-target="chat" href="/static/accurate-intake-chat.html">Chat</a>
+        <a data-nav-target="today" href="/static/accurate-intake-today.html">Today</a>
+        <a data-nav-target="body" href="/static/accurate-intake-body.html">Body</a>
+        <a data-nav-target="feedback" href="/static/accurate-intake-feedback.html">Feedback</a>
+        <a data-nav-target="review" href="/static/accurate-intake-review.html">Review</a>
+        <a data-nav-target="data" href="/static/accurate-intake-data.html">Data</a>
+      </nav>
+    </header>
+
+    <section class="panel" aria-label="Desktop session">
+      <div class="session-grid">
+        <label>User ID
+          <input id="user-id" value="local-self-use-001" autocomplete="off" />
+        </label>
+        <label>Date
+          <input id="local-date" type="date" />
+        </label>
+        <label>Local Access Token
+          <input id="local-debug-token" type="password" autocomplete="off" />
+        </label>
+        <button id="establish-local-session" type="button">Connect</button>
+      </div>
+      <div id="entry-status" class="status" aria-live="polite">Session not connected.</div>
+    </section>
+
+    <main class="entry-grid" aria-label="Desktop dogfood entry points">
+      <article class="entry-card">
+        <div>
+          <h2>Chat</h2>
+          <p>Log food, correct entries, and ask remaining budget.</p>
+        </div>
+        <a class="primary-link" data-nav-target="chat" href="/static/accurate-intake-chat.html">Open Chat</a>
+      </article>
+      <article class="entry-card">
+        <div>
+          <h2>Today</h2>
+          <p>Daily diary, kcal, remaining, overshoot, and macro visibility.</p>
+        </div>
+        <a data-nav-target="today" href="/static/accurate-intake-today.html">Open Today</a>
+      </article>
+      <article class="entry-card">
+        <div>
+          <h2>Body</h2>
+          <p>Plan, weight, target, and body read models.</p>
+        </div>
+        <a data-nav-target="body" href="/static/accurate-intake-body.html">Open Body</a>
+      </article>
+      <article class="entry-card">
+        <div>
+          <h2>Feedback</h2>
+          <p>Capture trace-linked product, UI, estimate, and bug feedback.</p>
+        </div>
+        <a data-nav-target="feedback" href="/static/accurate-intake-feedback.html">Open Feedback</a>
+      </article>
+      <article class="entry-card">
+        <div>
+          <h2>Review</h2>
+          <p>Review captured feedback and candidate follow-ups.</p>
+        </div>
+        <a data-nav-target="review" href="/static/accurate-intake-review.html">Open Review</a>
+      </article>
+      <article class="entry-card">
+        <div>
+          <h2>Data</h2>
+          <p>Inspect, backup, and export local dogfood data.</p>
+        </div>
+        <a data-nav-target="data" href="/static/accurate-intake-data.html">Open Data</a>
+      </article>
+    </main>
+
+    <section class="panel" aria-label="Local-only boundaries">
+      <ul class="policy-strip">
+        <li>local SQLite only</li>
+        <li>backend truth only</li>
+        <li>no token in URL</li>
+        <li>no readiness claim</li>
+      </ul>
+    </section>
+  </div>
+
+  <script>
+    const endpoints = {
+      localDebugSession: "/accurate-intake/local-debug-session"
+    };
+    const el = (id) => document.getElementById(id);
+    const todayIso = () => new Date().toISOString().slice(0, 10);
+    const params = new URLSearchParams(window.location.search);
+    const CURRENT_PAGE = "desktop";
+    el("user-id").value = params.get("user_id") || el("user-id").value;
+    el("local-date").value = params.get("local_date") || todayIso();
+
+    function userId() {
+      return el("user-id").value.trim() || "local-self-use-001";
+    }
+    function selectedDate() {
+      return el("local-date").value || todayIso();
+    }
+    function pageUrl(page) {
+      const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
+      if (page === "feedback") {
+        query.set("source_page", CURRENT_PAGE);
+      }
+      return `/static/accurate-intake-${page}.html?${query.toString()}`;
+    }
+    function updateNavigationLinks() {
+      document.querySelectorAll("[data-nav-target]").forEach((link) => {
+        const target = link.getAttribute("data-nav-target");
+        if (target) {
+          link.href = pageUrl(target);
+        }
+      });
+    }
+    function updateCurrentUrl() {
+      const nextUrl = pageUrl("desktop");
+      const resolved = new URL(nextUrl, window.location.href);
+      if (window.location.search !== resolved.search) {
+        window.history.replaceState(null, "", nextUrl);
+      }
+    }
+    function setStatus(message, state = "") {
+      el("entry-status").dataset.state = state;
+      el("entry-status").textContent = message;
+    }
+    async function establishLocalDebugSession() {
+      const inputToken = el("local-debug-token").value.trim();
+      const globalToken = typeof window.LOCAL_DEBUG_API_TOKEN === "string" ? window.LOCAL_DEBUG_API_TOKEN.trim() : "";
+      const token = inputToken || globalToken;
+      if (!token) {
+        setStatus("Local access token required.", "error");
+        return false;
+      }
+      el("establish-local-session").disabled = true;
+      try {
+        const response = await fetch(endpoints.localDebugSession, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+          body: JSON.stringify({ token })
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        setStatus("Session connected.");
+        return true;
+      } catch (error) {
+        setStatus(`Session failed: ${error.message}`, "error");
+        return false;
+      } finally {
+        el("establish-local-session").disabled = false;
+      }
+    }
+    window.establishLocalDebugSessionForSmoke = establishLocalDebugSession;
+    el("establish-local-session").addEventListener("click", establishLocalDebugSession);
+    ["user-id", "local-date"].forEach((id) => {
+      el(id).addEventListener("change", () => {
+        updateCurrentUrl();
+        updateNavigationLinks();
+      });
+    });
+    updateNavigationLinks();
+    updateCurrentUrl();
+  </script>
+</body>
+</html>

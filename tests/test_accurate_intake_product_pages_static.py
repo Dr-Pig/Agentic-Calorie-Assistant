@@ -7,7 +7,9 @@ CHAT = Path("static/accurate-intake-chat.html")
 TODAY = Path("static/accurate-intake-today.html")
 BODY = Path("static/accurate-intake-body.html")
 FEEDBACK = Path("static/accurate-intake-feedback.html")
+REVIEW = Path("static/accurate-intake-review.html")
 DATA = Path("static/accurate-intake-data.html")
+DESKTOP = Path("static/accurate-intake-desktop.html")
 
 
 def _html(path: Path) -> str:
@@ -16,29 +18,35 @@ def _html(path: Path) -> str:
 
 def test_product_pages_are_three_separate_static_surfaces_with_shared_nav() -> None:
     for path, page_id in (
+        (DESKTOP, "accurate-intake-desktop-entry-v1"),
         (CHAT, "accurate-intake-chat-page-v1"),
         (TODAY, "accurate-intake-today-page-v1"),
         (BODY, "accurate-intake-body-page-v1"),
         (FEEDBACK, "accurate-intake-feedback-page-v1"),
+        (REVIEW, "accurate-intake-review-page-v1"),
         (DATA, "accurate-intake-data-page-v1"),
     ):
         html = _html(path)
         assert f'data-page-id="{page_id}"' in html
+        assert 'href="/static/accurate-intake-desktop.html"' in html
         assert 'href="/static/accurate-intake-chat.html"' in html
         assert 'href="/static/accurate-intake-today.html"' in html
         assert 'href="/static/accurate-intake-body.html"' in html
         assert 'href="/static/accurate-intake-feedback.html"' in html
+        assert 'href="/static/accurate-intake-review.html"' in html
         assert 'href="/static/accurate-intake-data.html"' in html
 
 
 def test_product_pages_preserve_user_and_date_in_nav_without_token_query() -> None:
-    for path in (CHAT, TODAY, BODY, FEEDBACK, DATA):
+    for path in (CHAT, TODAY, BODY, FEEDBACK, REVIEW, DATA, DESKTOP):
         html = _html(path)
 
+        assert 'data-nav-target="desktop"' in html
         assert 'data-nav-target="chat"' in html
         assert 'data-nav-target="today"' in html
         assert 'data-nav-target="body"' in html
         assert 'data-nav-target="feedback"' in html
+        assert 'data-nav-target="review"' in html
         assert 'data-nav-target="data"' in html
         assert "function updateNavigationLinks()" in html
         assert "new URLSearchParams" in html
@@ -46,7 +54,31 @@ def test_product_pages_preserve_user_and_date_in_nav_without_token_query() -> No
         assert "local_date" in html
         assert 'query.set("source_page"' in html
         assert "updateNavigationLinks();" in html
-        assert "local_debug_token" not in html
+        assert "local_debug_token=" not in html
+
+
+def test_desktop_entry_page_is_local_hub_not_runtime_truth_owner() -> None:
+    html = _html(DESKTOP)
+
+    assert 'data-surface-role="desktop-dogfood-entry"' in html
+    assert 'data-claim-scope="local_desktop_operator_entry"' in html
+    assert 'data-product-truth-owner="backend_local_sqlite"' in html
+    assert 'data-frontend-semantic-owner="false"' in html
+    assert 'data-manager-context-injection="false"' in html
+    assert 'data-fooddb-truth-update-allowed="false"' in html
+    assert 'data-canonical-eval-promotion-allowed="false"' in html
+    assert 'data-token-in-url-allowed="false"' in html
+    assert 'id="user-id"' in html
+    assert 'id="local-date"' in html
+    assert 'id="local-debug-token"' in html
+    assert 'id="establish-local-session"' in html
+    assert 'localDebugSession: "/accurate-intake/local-debug-session"' in html
+    assert "window.establishLocalDebugSessionForSmoke = establishLocalDebugSession;" in html
+    assert 'body: JSON.stringify({ token })' in html
+    assert "localStorage" not in html
+    assert "sessionStorage" not in html
+    assert "product_readiness_claimed=true" not in html
+    assert "private_self_use_approved=true" not in html
 
 
 def test_data_page_is_local_only_export_surface_not_truth_or_readiness_surface() -> None:
