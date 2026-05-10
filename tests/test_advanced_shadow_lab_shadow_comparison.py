@@ -8,6 +8,22 @@ from app.advanced_shadow_lab.shadow_comparison import (
 
 
 EXPECTED_UX_JOURNEY_IDS = ["F", "F2", "I", "L", "M", "N"]
+EXPECTED_OUTPUT_KIND_BY_JOURNEY = {
+    "F": "same_day_rescue_coaching_hook",
+    "F2": "planned_event_rescue_negotiation_packet",
+    "I": "calibration_proposal_review_packet",
+    "L": "recommendation_offer_pending_intent_packet",
+    "M": "memory_review_adjusted_recommendation_packet",
+    "N": "proactive_no_send_intervention_packet",
+}
+EXPECTED_WORKFLOW_FAMILY_BY_JOURNEY = {
+    "F": "rescue",
+    "F2": "rescue",
+    "I": "calibration",
+    "L": "recommendation",
+    "M": "recommendation",
+    "N": "proactive",
+}
 
 
 def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> None:
@@ -95,6 +111,11 @@ def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> N
         "evidence_count": 6,
         "missing_journey_ids": [],
         "blocked_journey_ids": [],
+        "output_kind_by_journey": EXPECTED_OUTPUT_KIND_BY_JOURNEY,
+        "workflow_family_by_journey": EXPECTED_WORKFLOW_FAMILY_BY_JOURNEY,
+        "missing_terminal_output_journey_ids": [],
+        "output_kind_mismatch_journey_ids": [],
+        "workflow_family_mismatch_journey_ids": [],
         "activation_violations": [],
         "new_report_family_created": False,
     }
@@ -166,6 +187,30 @@ def test_shadow_comparison_blocks_missing_journey_terminal_evidence() -> None:
     ]
     assert artifact["blockers"] == ["journey_terminal_evidence.missing_journey:N"]
     assert artifact["product_readiness_claimed"] is False
+    assert artifact["user_facing_behavior_changed"] is False
+
+
+def test_shadow_comparison_blocks_journey_terminal_output_mismatch() -> None:
+    fixture = _fixture_chain()
+    fixture["journey_terminal_evidence"][5]["ux_terminal_output"][  # type: ignore[index]
+        "output_kind"
+    ] = "same_day_rescue_coaching_hook"
+
+    artifact = build_advanced_shadow_comparison_artifact(
+        fixture_chain_artifact=fixture,
+        dogfood_replay_artifact=_dogfood_replay(),
+        recommendation_copy_live_diagnostic_artifact=_live_diagnostic(),
+        rescue_copy_live_diagnostic_artifact=_rescue_live_diagnostic(),
+        proactive_copy_live_diagnostic_artifact=_proactive_live_diagnostic(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["journey_terminal_evidence_summary"][
+        "output_kind_mismatch_journey_ids"
+    ] == ["N"]
+    assert artifact["blockers"] == ["journey_terminal_evidence.output_kind_mismatch:N"]
+    assert artifact["recommendation_served"] is False
+    assert artifact["proactive_sent"] is False
     assert artifact["user_facing_behavior_changed"] is False
 
 
@@ -493,7 +538,9 @@ def _journey_terminal_evidence(journey_id: str) -> dict[str, object]:
         "status": "pass",
         "comparison_scope": "ux_journey_terminal_lab_only_evidence",
         "source_artifact_refs": ["fixture_source"],
+        "product_contract_refs": ["fixture_contract"],
         "required_trace_fields": ["fixture_trace_field"],
+        "ux_terminal_output": _ux_terminal_output(journey_id),
         "terminal_artifact_refs": [
             "advanced_shadow_e2e_fixture_chain_artifact",
             "proactive_no_send_review_sink_artifact",
@@ -513,6 +560,23 @@ def _journey_terminal_evidence(journey_id: str) -> dict[str, object]:
         "mutation_changed": False,
         "user_facing_behavior_changed": False,
         "product_readiness_claimed": False,
+    }
+
+
+def _ux_terminal_output(journey_id: str) -> dict[str, object]:
+    return {
+        "status": "pass",
+        "output_kind": EXPECTED_OUTPUT_KIND_BY_JOURNEY[journey_id],
+        "workflow_family": EXPECTED_WORKFLOW_FAMILY_BY_JOURNEY[journey_id],
+        "surface": "chat",
+        "chat_first": True,
+        "control_contract": {
+            "primary_affordance": f"fixture_primary_{journey_id}",
+            "dismiss_available": True,
+            "served_to_user": False,
+            "canonical_mutation_requested": False,
+            "scheduler_enqueued": False,
+        },
     }
 
 

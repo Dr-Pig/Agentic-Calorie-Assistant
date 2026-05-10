@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.advanced_shadow_lab.journey_terminal_contract import expected_terminal_output
 from scripts import build_advanced_shadow_comparison_artifact as runner
 
 
@@ -109,7 +110,9 @@ def _journey_terminal_evidence(journey_id: str) -> dict[str, object]:
         "status": "pass",
         "comparison_scope": "ux_journey_terminal_lab_only_evidence",
         "source_artifact_refs": ["fixture_source"],
+        "product_contract_refs": ["fixture_contract"],
         "required_trace_fields": ["fixture_trace_field"],
+        "ux_terminal_output": expected_terminal_output(journey_id),
         "terminal_artifact_refs": [
             "advanced_shadow_e2e_fixture_chain_artifact",
             "proactive_no_send_review_sink_artifact",

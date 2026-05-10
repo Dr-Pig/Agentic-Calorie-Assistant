@@ -11,6 +11,14 @@ from app.recommendation.application.three_node_shadow_contract import (
 
 
 EXPECTED_UX_JOURNEY_IDS = ["F", "F2", "I", "L", "M", "N"]
+EXPECTED_TERMINAL_OUTPUTS = {
+    "F": ("same_day_rescue_coaching_hook", "rescue", "open_rescue_discussion"),
+    "F2": ("planned_event_rescue_negotiation_packet", "rescue", "review_planned_event_adjustment"),
+    "I": ("calibration_proposal_review_packet", "calibration", "review_calibration_proposal"),
+    "L": ("recommendation_offer_pending_intent_packet", "recommendation", "review_recommendation_offer"),
+    "M": ("memory_review_adjusted_recommendation_packet", "recommendation", "review_memory_signal"),
+    "N": ("proactive_no_send_intervention_packet", "proactive", "review_no_send_candidate"),
+}
 
 
 def test_fixture_chain_terminates_in_no_send_review_sink() -> None:
@@ -126,10 +134,26 @@ def test_fixture_chain_emits_terminal_evidence_for_each_mapped_ux_journey() -> N
 
     assert [row["journey_id"] for row in evidence] == EXPECTED_UX_JOURNEY_IDS
     for row in evidence:
+        output_kind, workflow_family, primary_affordance = EXPECTED_TERMINAL_OUTPUTS[
+            row["journey_id"]
+        ]
+        terminal = row["ux_terminal_output"]
+
         assert row["status"] == "pass"
         assert row["comparison_scope"] == "ux_journey_terminal_lab_only_evidence"
         assert row["source_artifact_refs"]
+        assert row["product_contract_refs"]
         assert row["required_trace_fields"]
+        assert terminal["status"] == "pass"
+        assert terminal["output_kind"] == output_kind
+        assert terminal["workflow_family"] == workflow_family
+        assert terminal["surface"] == "chat"
+        assert terminal["chat_first"] is True
+        assert terminal["control_contract"]["primary_affordance"] == primary_affordance
+        assert terminal["control_contract"]["dismiss_available"] is True
+        assert terminal["control_contract"]["served_to_user"] is False
+        assert terminal["control_contract"]["canonical_mutation_requested"] is False
+        assert terminal["control_contract"]["scheduler_enqueued"] is False
         assert row["terminal_artifact_refs"] == [
             "advanced_shadow_e2e_fixture_chain_artifact",
             "proactive_no_send_review_sink_artifact",
