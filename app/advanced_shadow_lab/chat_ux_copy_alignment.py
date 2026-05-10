@@ -96,6 +96,22 @@ def public_copy_metadata(copy: Mapping[str, Any]) -> dict[str, Any] | None:
     }
 
 
+def lab_only_copy_preview(copy: Mapping[str, Any]) -> dict[str, Any] | None:
+    if str(copy.get("alignment_status") or "") != "aligned":
+        return None
+    preview_text = str(copy.get("diagnostic_copy_preview") or "").strip()
+    if not preview_text:
+        return None
+    return {
+        "preview_text": preview_text,
+        "lab_only": True,
+        "served_to_user": False,
+        "delivery_attempted": False,
+        "source_field": "model_output_summary.diagnostic_copy_preview",
+        "source_surface": str(copy.get("target_surface") or ""),
+    }
+
+
 def chat_packet_copy_alignment_row(
     fixture_chain: Mapping[str, Any],
 ) -> dict[str, str]:
@@ -133,13 +149,15 @@ def _copy_metadata_row(artifact: Mapping[str, Any]) -> dict[str, Any]:
     surface = str(artifact.get("target_surface") or "")
     status = str(artifact.get("status") or "")
     guard_status = str(_mapping(artifact.get("output_guard")).get("status") or "")
+    alignment_status = _alignment_status(surface, status, guard_status)
     return {
         "artifact_type": str(artifact.get("artifact_type") or ""),
         "status": status,
         "target_surface": surface,
         "provider_mode": str(artifact.get("provider_mode") or ""),
         "output_guard_status": guard_status,
-        "alignment_status": _alignment_status(surface, status, guard_status),
+        "alignment_status": alignment_status,
+        **_copy_preview_field(artifact, alignment_status),
         **{flag: artifact.get(flag) for flag in COPY_SIDE_EFFECT_FLAG_NAMES if artifact.get(flag) is True},
     }
 
@@ -152,6 +170,21 @@ def _alignment_status(surface: str, status: str, guard_status: str) -> str:
     if status == "pass" and guard_status == "pass":
         return "aligned"
     return "blocked"
+
+
+def _diagnostic_copy_preview(artifact: Mapping[str, Any]) -> str:
+    summary = _mapping(artifact.get("model_output_summary"))
+    return str(summary.get("diagnostic_copy_preview") or "").strip()
+
+
+def _copy_preview_field(
+    artifact: Mapping[str, Any],
+    alignment_status: str,
+) -> dict[str, str]:
+    if alignment_status != "aligned":
+        return {}
+    preview = _diagnostic_copy_preview(artifact)
+    return {"diagnostic_copy_preview": preview} if preview else {}
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:
