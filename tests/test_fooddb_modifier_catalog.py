@@ -23,8 +23,8 @@ def test_modifier_catalog_reports_runtime_modifier_coverage_without_schema_chang
     assert catalog["runtime_truth_changed"] is False
     assert catalog["manager_context_changed"] is False
     assert catalog["packetizer_format_changed"] is False
-    assert catalog["summary"]["runtime_common_serving_anchor_count"] == 55
-    assert catalog["summary"]["modifier_aware_anchor_count"] == 24
+    assert catalog["summary"]["runtime_common_serving_anchor_count"] == 64
+    assert catalog["summary"]["modifier_aware_anchor_count"] == 29
     assert catalog["summary"]["modifier_name_count"] >= 10
 
 
@@ -34,7 +34,7 @@ def test_modifier_catalog_groups_known_modifier_names() -> None:
 
     assert groups["sugar_level"]["anchor_count"] == 3
     assert groups["cup_size"]["anchor_count"] == 6
-    assert groups["piece_count"]["anchor_count"] == 2
+    assert groups["piece_count"]["anchor_count"] == 3
     assert groups["rice_portion"]["anchor_count"] == 5
     assert "custom_drink_boba_milk_tea" in groups["sugar_level"]["anchor_ids"]
     assert "staple_dumplings" in groups["piece_count"]["anchor_ids"]
@@ -51,7 +51,7 @@ def test_modifier_catalog_surfaces_p0_priority_groups_and_support_matrix() -> No
     assert {"piece_count", "size", "milk_type"} <= set(
         priority_groups["observed_runtime_non_p0_modifier_names"]
     )
-    assert len(priority_groups["observed_runtime_non_p0_modifier_names"]) == 15
+    assert len(priority_groups["observed_runtime_non_p0_modifier_names"]) == 18
     assert priority_groups["policy_staged_modifier_labels"] == build_staged_policy_modifier_labels()
 
     matrix = catalog["p0_support_matrix"]
@@ -106,7 +106,7 @@ def test_modifier_catalog_surfaces_compact_p0_anchor_coverage_and_staged_non_p0_
     assert non_p0_posture["posture"] == NON_P0_STAGED_POSTURE
     assert non_p0_posture["runtime_truth_promoted"] is False
     assert {"add_ons", "piece_count", "size"} <= set(non_p0_posture["observed_runtime_modifier_names"])
-    assert len(non_p0_posture["observed_runtime_modifier_names"]) == 15
+    assert len(non_p0_posture["observed_runtime_modifier_names"]) == 18
     assert non_p0_posture["policy_staged_modifier_labels"] == build_staged_policy_modifier_labels()
 
 
@@ -116,7 +116,7 @@ def test_modifier_catalog_manager_payload_is_compact_runtime_only() -> None:
 
     assert manager_catalog["raw_source_rows_included"] is False
     assert manager_catalog["candidate_only_records_included"] is False
-    assert len(manager_catalog["anchors"]) == 24
+    assert len(manager_catalog["anchors"]) == 29
     for item in manager_catalog["anchors"]:
         assert set(item) == {"anchor_id", "canonical_name", "modifiers", "followup_hints"}
         assert item["modifiers"]
@@ -148,5 +148,5 @@ def test_modifier_catalog_cli_writes_roundtrippable_artifact(tmp_path: Path) -> 
     assert main(["--output", str(output)]) == 0
 
     artifact = read_json_artifact(output)
-    assert artifact["summary"]["modifier_aware_anchor_count"] == 24
+    assert artifact["summary"]["modifier_aware_anchor_count"] == 29
     assert artifact["product_loop_integration_claimed"] is False

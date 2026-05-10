@@ -111,7 +111,7 @@ def test_apply_guarded_afk_batch_updates_existing_records_without_promoting_sema
         and item.get("runtime_truth_allowed") is True
     ]
     semantic = [item for item in updated["anchors"] if item.get("record_kind") == "generic_semantic_only"]
-    assert len(runtime) == 55
+    assert len(runtime) == 64
     assert len(semantic) == 4
     assert all(item.get("runtime_truth_allowed") is not True for item in semantic)
 
@@ -141,4 +141,4 @@ def test_guarded_afk_runtime_batch_cli_writes_and_updates_store(tmp_path: Path) 
     updated = read_json_artifact(small_anchor_path)
     runtime = [item for item in updated["anchors"] if item.get("runtime_truth_allowed") is True]
     assert batch["summary"]["selected_runtime_anchor_count"] == 31
-    assert len(runtime) == 55
+    assert len(runtime) == 64
