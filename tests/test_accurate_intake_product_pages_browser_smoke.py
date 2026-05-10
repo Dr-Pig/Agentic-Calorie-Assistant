@@ -213,6 +213,17 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
             "feedback_can_create_fooddb_truth": False,
             "feedback_can_create_eval_truth": False,
         },
+        "review_source_context_checked": True,
+        "review_source_context_values": {
+            "feedback_id_present": True,
+            "status_captured_present": True,
+            "user_id_present": True,
+            "trace_id_present": True,
+            "message_id_present": True,
+            "source_page_present": True,
+            "route_present": True,
+            "feedback_route_present": True,
+        },
         "feedback_non_claims": {
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
@@ -410,6 +421,27 @@ def test_product_pages_browser_smoke_validator_rejects_feedback_truth_promotion(
     assert "feedback_record_truth_promotion:food_kb_truth_update_allowed" in blockers
     assert "feedback_review_queue_truth_promotion:feedback_can_create_eval_truth" in blockers
     assert "feedback_non_claim_overclaim:manager_context_injected" in blockers
+
+
+def test_product_pages_browser_smoke_validator_requires_review_source_context() -> None:
+    report = _passing_report()
+    report["review_source_context_checked"] = False
+    report["review_source_context_values"] = {
+        "feedback_id_present": False,
+        "status_captured_present": True,
+        "user_id_present": True,
+        "trace_id_present": True,
+        "message_id_present": True,
+        "source_page_present": True,
+        "route_present": True,
+        "feedback_route_present": True,
+    }
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "review_source_context_not_checked" in blockers
+    assert "review_source_context_missing:feedback_id_present" in blockers
 
 
 def test_product_pages_browser_smoke_validator_requires_data_hygiene_loop() -> None:

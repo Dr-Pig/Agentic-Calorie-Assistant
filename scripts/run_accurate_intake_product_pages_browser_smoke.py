@@ -173,6 +173,16 @@ EXPECTED_FEEDBACK_REVIEW_QUEUE_VALUES = {
     "feedback_can_create_fooddb_truth": False,
     "feedback_can_create_eval_truth": False,
 }
+EXPECTED_REVIEW_SOURCE_CONTEXT_VALUES = {
+    "feedback_id_present": True,
+    "status_captured_present": True,
+    "user_id_present": True,
+    "trace_id_present": True,
+    "message_id_present": True,
+    "source_page_present": True,
+    "route_present": True,
+    "feedback_route_present": True,
+}
 FEEDBACK_NON_CLAIMS = {
     "product_readiness_claimed": False,
     "private_self_use_approved": False,
@@ -339,6 +349,8 @@ def _base_report(
         "feedback_review_queue_ingested": False,
         "feedback_record_values": {},
         "feedback_review_queue_values": {},
+        "review_source_context_checked": False,
+        "review_source_context_values": {},
         "feedback_non_claims": dict(FEEDBACK_NON_CLAIMS),
         "feedback_store_path": "",
         "data_page_loaded": False,
@@ -440,6 +452,27 @@ def _feedback_review_queue_values(artifact: dict[str, Any]) -> dict[str, Any]:
         "feedback_can_create_product_truth": promotion_policy.get("feedback_can_create_product_truth"),
         "feedback_can_create_fooddb_truth": promotion_policy.get("feedback_can_create_fooddb_truth"),
         "feedback_can_create_eval_truth": promotion_policy.get("feedback_can_create_eval_truth"),
+    }
+
+
+def _review_source_context_values(*, page_text: str, record: dict[str, Any] | None) -> dict[str, bool]:
+    linked = _object_dict(record.get("linked_context") if record else {})
+    ui_event = _object_dict(record.get("ui_event") if record else {})
+    feedback_id = str(record.get("feedback_id") or "") if record else ""
+
+    def contains(value: Any) -> bool:
+        text = str(value or "")
+        return bool(text and text in page_text)
+
+    return {
+        "feedback_id_present": bool(feedback_id and feedback_id in page_text),
+        "status_captured_present": "status captured" in page_text,
+        "user_id_present": contains(linked.get("user_external_id")),
+        "trace_id_present": contains(linked.get("trace_id")),
+        "message_id_present": contains(linked.get("message_id")),
+        "source_page_present": contains(f"source_page {ui_event.get('source_page')}"),
+        "route_present": contains(f"route {ui_event.get('route')} | feedback_route"),
+        "feedback_route_present": contains(f"feedback_route {ui_event.get('feedback_route')}"),
     }
 
 
@@ -1702,6 +1735,8 @@ def _run_feedback_capture_sequence(
         "feedback_review_queue_ingested": False,
         "feedback_record_values": {},
         "feedback_review_queue_values": {},
+        "review_source_context_checked": False,
+        "review_source_context_values": {},
         "feedback_non_claims": dict(FEEDBACK_NON_CLAIMS),
         "feedback_store_path": str(_feedback_jsonl_path(feedback_dir)),
         "page_text": "",
@@ -1739,6 +1774,24 @@ def _run_feedback_capture_sequence(
     result["feedback_review_queue_ingested"] = (
         result["feedback_review_queue_values"] == EXPECTED_FEEDBACK_REVIEW_QUEUE_VALUES
     )
+    review = _open_page(
+        browser,
+        viewport=viewport,
+        url=_page_url(base_url, "review", user_external_id=user_external_id, local_date=local_date),
+        timeout_ms=timeout_ms,
+        local_debug_token=local_debug_token,
+    )
+    review.wait_for_selector("#feedback-list .record", timeout=timeout_ms)
+    review_text = review.locator("body").inner_text(timeout=timeout_ms)
+    result["review_source_context_values"] = _review_source_context_values(
+        page_text=review_text,
+        record=feedback_record,
+    )
+    result["review_source_context_checked"] = (
+        result["review_source_context_values"] == EXPECTED_REVIEW_SOURCE_CONTEXT_VALUES
+    )
+    result["fetch_sequence"].extend(_capture_fetches(review))
+    review.close()
     result["page_text"] = feedback.locator("body").inner_text(timeout=timeout_ms)
     result["fetch_sequence"].extend(_capture_fetches(feedback))
     feedback.close()
@@ -2006,6 +2059,8 @@ def _run_browser_sequence(
         "feedback_review_queue_ingested": False,
         "feedback_record_values": {},
         "feedback_review_queue_values": {},
+        "review_source_context_checked": False,
+        "review_source_context_values": {},
         "feedback_non_claims": dict(FEEDBACK_NON_CLAIMS),
         "feedback_store_path": "",
         "data_page_loaded": False,
@@ -2775,6 +2830,8 @@ def _run_browser_sequence(
             result["feedback_review_queue_ingested"] = feedback_result["feedback_review_queue_ingested"]
             result["feedback_record_values"] = feedback_result["feedback_record_values"]
             result["feedback_review_queue_values"] = feedback_result["feedback_review_queue_values"]
+            result["review_source_context_checked"] = feedback_result["review_source_context_checked"]
+            result["review_source_context_values"] = feedback_result["review_source_context_values"]
             result["feedback_non_claims"] = feedback_result["feedback_non_claims"]
             result["feedback_store_path"] = feedback_result["feedback_store_path"]
             result["fetch_sequence"].extend(feedback_result["fetch_sequence"])
@@ -2978,6 +3035,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("feedback_submitted", "feedback_not_submitted")
     require_true("feedback_jsonl_written", "feedback_jsonl_not_written")
     require_true("feedback_review_queue_ingested", "feedback_review_queue_not_ingested")
+    require_true("review_source_context_checked", "review_source_context_not_checked")
     require_true("data_page_loaded", "data_page_not_loaded")
     require_true("data_inspected", "data_hygiene_not_inspected")
     require_true("data_backup_created", "data_backup_not_created")
@@ -3108,6 +3166,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     for field, expected_value in EXPECTED_FEEDBACK_REVIEW_QUEUE_VALUES.items():
         if feedback_review_queue_values.get(field) != expected_value:
             blockers.append(f"feedback_review_queue_truth_promotion:{field}")
+    review_source_context_values = dict(report.get("review_source_context_values") or {})
+    for field, expected_value in EXPECTED_REVIEW_SOURCE_CONTEXT_VALUES.items():
+        if review_source_context_values.get(field) != expected_value:
+            blockers.append(f"review_source_context_missing:{field}")
     feedback_non_claims = dict(report.get("feedback_non_claims") or {})
     for field, expected_value in FEEDBACK_NON_CLAIMS.items():
         if feedback_non_claims.get(field) != expected_value:

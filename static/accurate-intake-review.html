@@ -221,6 +221,7 @@
     }
     function feedbackRecord(record) {
       const linked = record.linked_context || {};
+      const uiEvent = record.ui_event || {};
       const node = document.createElement("article");
       node.className = "record";
       node.innerHTML = `
@@ -230,16 +231,29 @@
         </header>
         <p></p>
         <p class="meta"></p>
+        <p class="meta"></p>
+        <p class="meta"></p>
       `;
       node.querySelector(".tag").textContent = text(record.category);
       node.querySelector("header .meta").textContent = `${text(record.severity)} · ${text(record.captured_at_utc)}`;
       node.querySelector("p").textContent = text(record.feedback_text);
-      node.querySelectorAll(".meta")[1].textContent = [
+      const metaRows = node.querySelectorAll(".meta");
+      metaRows[1].textContent = [
+        `feedback_id ${text(record.feedback_id)}`,
+        `status ${text(record.status)}`,
+        `user ${text(linked.user_external_id)}`
+      ].join(" | ");
+      metaRows[2].textContent = [
         `trace ${text(linked.trace_id)}`,
         `message ${text(linked.message_id)}`,
         `page ${text(linked.page)}`,
         `date ${text(linked.selected_date)}`
-      ].join(" · ");
+      ].join(" | ");
+      metaRows[3].textContent = [
+        `source_page ${text(uiEvent.source_page)}`,
+        `route ${text(uiEvent.route)}`,
+        `feedback_route ${text(uiEvent.feedback_route)}`
+      ].join(" | ");
       return node;
     }
     function candidateRecord(record) {
