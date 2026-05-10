@@ -50,6 +50,78 @@
       "serving_basis": "\u7279\u76db",
       "kcal": 1350,
       "kcal_band": "per_bowl"
+    },
+    {
+      "item_id": "exact_chungabern_mini_scallion_pancake_90g",
+      "title": "\u8525\u963f\u4f2f Mini\u4e09\u661f\u8525\u6cb9\u990c(90g)",
+      "aliases": [
+        "\u8525\u963f\u4f2fMini\u4e09\u661f\u8525\u6cb9\u990c90\u516c\u514b",
+        "\u8525\u963f\u4f2f Mini\u4e09\u661f\u8525\u6cb9\u990c 90g",
+        "Mini\u4e09\u661f\u8525\u6cb9\u990c90g"
+      ],
+      "brand": "\u8525\u963f\u4f2f",
+      "serving_basis": "\u6bcf\u4efd90\u516c\u514b",
+      "kcal": 219.6,
+      "protein_g": 7.3,
+      "carb_g": 40.0,
+      "fat_g": 3.3,
+      "macro_basis": "per_serving",
+      "macro_confidence": "high",
+      "macro_source_strength": "official_label",
+      "kcal_band": "per_serving",
+      "source_class": "official_brand_chain_page",
+      "source_url": "https://711go.7-11.com.tw/product/224014",
+      "reviewed_date": "2026-05-11",
+      "source_record_id": "7-11_product_224014",
+      "source_note": "7-ELEVEN i\u9810\u8cfc official nutrition label; per serving 90g; values copied from label."
+    },
+    {
+      "item_id": "exact_wangsteak_braised_lion_head_100g",
+      "title": "\u738b\u54c1\u56b4\u9078\u91ac\u7168\u7d05\u71d2\u7345\u5b50\u982d(100g)",
+      "aliases": [
+        "\u738b\u54c1\u56b4\u9078\u91ac\u7168\u7d05\u71d2\u7345\u5b50\u982d100\u516c\u514b",
+        "\u738b\u54c1\u91ac\u7168\u7d05\u71d2\u7345\u5b50\u982d100g",
+        "\u91ac\u7168\u7d05\u71d2\u7345\u5b50\u982d100g"
+      ],
+      "brand": "\u738b\u54c1\u56b4\u9078",
+      "serving_basis": "\u6bcf\u4efd100\u516c\u514b",
+      "kcal": 164.0,
+      "protein_g": 11.1,
+      "carb_g": 7.4,
+      "fat_g": 10.0,
+      "macro_basis": "per_serving",
+      "macro_confidence": "high",
+      "macro_source_strength": "official_label",
+      "kcal_band": "per_serving",
+      "source_class": "official_brand_chain_page",
+      "source_url": "https://711go.7-11.com.tw/Product/198987",
+      "reviewed_date": "2026-05-11",
+      "source_record_id": "7-11_product_198987",
+      "source_note": "7-ELEVEN i\u9810\u8cfc official nutrition label; per serving 100g; values copied from label."
+    },
+    {
+      "item_id": "exact_yuhofang_sweet_potato_crisps_60g",
+      "title": "\u5fa1\u79be\u574a\u5730\u74dc\u9165(60g)",
+      "aliases": [
+        "\u5fa1\u79be\u574a\u5730\u74dc\u916560\u516c\u514b",
+        "\u5fa1\u79be\u574a \u5730\u74dc\u9165 60g",
+        "\u5730\u74dc\u916560g"
+      ],
+      "brand": "\u5fa1\u79be\u574a",
+      "serving_basis": "\u6bcf\u4efd60\u516c\u514b",
+      "kcal": 281.4,
+      "protein_g": 1.0,
+      "carb_g": 44.4,
+      "fat_g": 11.2,
+      "macro_basis": "per_serving",
+      "macro_confidence": "high",
+      "macro_source_strength": "official_label",
+      "kcal_band": "per_serving",
+      "source_class": "official_brand_chain_page",
+      "source_url": "https://711go.7-11.com.tw/product/204904",
+      "reviewed_date": "2026-05-11",
+      "source_record_id": "7-11_product_204904",
+      "source_note": "7-ELEVEN i\u9810\u8cfc official nutrition label; per serving 60g; values copied from label."
     }
   ]
 }
