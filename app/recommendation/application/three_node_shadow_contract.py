@@ -118,6 +118,8 @@ def run_recommendation_three_node_shadow(payload: Mapping[str, Any]) -> dict[str
         selected_candidate_id=selected_candidate_id,
         offer_packet={
             "candidate_id": selected_candidate_id,
+            "backup_candidate_ids": _string_list(offer.get("backup_candidate_ids")),
+            "explanation": str(offer.get("explanation") or ""),
             "is_canonical_truth": False,
             "recommendation_served": False,
             "intake_commit_requested": False,
@@ -174,6 +176,10 @@ def _selection_blockers(candidate_id: str, allowed_ids: set[str]) -> list[str]:
 
 def _mapping(value: Any) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
+
+
+def _string_list(value: Any) -> list[str]:
+    return [str(item) for item in value] if isinstance(value, list) else []
 
 
 __all__ = [

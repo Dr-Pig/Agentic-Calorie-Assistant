@@ -33,18 +33,35 @@ def build_summary_quality_report_from_three_node_shadow_artifact(
     blockers = _artifact_blockers(three_node_artifact)
     selected_candidate_id = str(three_node_artifact.get("selected_candidate_id") or "")
 
-    source_candidate: Mapping[str, Any] = {}
+    source_candidates: list[Mapping[str, Any]] = []
     if not blockers:
-        source_candidate = _source_candidate(source_payload, selected_candidate_id)
-        blockers.extend(
-            _source_candidate_blockers(source_candidate, selected_candidate_id)
+        source_candidates = _source_candidates(
+            source_payload,
+            candidate_ids=_ordered_allowed_candidate_ids(
+                three_node_artifact,
+                selected_candidate_id,
+            ),
         )
+        for source_candidate in source_candidates:
+            blockers.extend(
+                _source_candidate_blockers(
+                    source_candidate,
+                    str(source_candidate.get("candidate_id") or ""),
+                )
+            )
+        missing_ids = set(_allowed_candidate_ids(three_node_artifact)) - {
+            str(candidate.get("candidate_id") or "") for candidate in source_candidates
+        }
+        blockers.extend(f"source_candidate.not_found:{candidate_id}" for candidate_id in sorted(missing_ids))
     if blockers:
         return _blocked_report(memory_summary_projection, three_node_artifact, blockers)
 
     report = build_recommendation_shadow_summary_consumer_quality_report(
         memory_summary_projection=memory_summary_projection,
-        prepared_candidates=[_prepared_candidate(source_payload, source_candidate)],
+        prepared_candidates=[
+            _prepared_candidate(source_payload, source_candidate)
+            for source_candidate in source_candidates
+        ],
     )
     report["source_recommendation_artifact_type"] = three_node_artifact.get(
         "artifact_type"
@@ -155,14 +172,36 @@ def _blocked_report(
     }
 
 
-def _source_candidate(
+def _source_candidates(
     source_payload: Mapping[str, Any],
-    selected_candidate_id: str,
-) -> Mapping[str, Any]:
+    *,
+    candidate_ids: list[str],
+) -> list[Mapping[str, Any]]:
+    wanted = set(candidate_ids)
+    candidates_by_id: dict[str, Mapping[str, Any]] = {}
     for item in _list_field(source_payload.get("candidate_source_fixture")):
-        if isinstance(item, Mapping) and item.get("candidate_id") == selected_candidate_id:
-            return item
-    return {}
+        if isinstance(item, Mapping):
+            candidate_id = str(item.get("candidate_id") or "")
+            if candidate_id in wanted:
+                candidates_by_id[candidate_id] = item
+    return [
+        candidates_by_id[candidate_id]
+        for candidate_id in candidate_ids
+        if candidate_id in candidates_by_id
+    ]
+
+
+def _ordered_allowed_candidate_ids(
+    artifact: Mapping[str, Any],
+    selected_candidate_id: str,
+) -> list[str]:
+    ordered: list[str] = []
+    if selected_candidate_id:
+        ordered.append(selected_candidate_id)
+    for candidate_id in _allowed_candidate_ids(artifact):
+        if candidate_id not in ordered:
+            ordered.append(candidate_id)
+    return ordered
 
 
 def _allowed_candidate_ids(artifact: Mapping[str, Any]) -> list[str]:
