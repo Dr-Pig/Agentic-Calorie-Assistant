@@ -118,29 +118,29 @@ recommendation 必須支援：
 
 ## 4. Canonical Runtime Shape
 
-正式 recommendation flow 的 canonical default 應採 **5-node graph**：
+正式 recommendation flow 的 canonical default 應採 **3-node physical graph**，
+同時保留 **5 個 logical stage boundaries**：
 
-1. `recommendation_context`（LLM）
-2. `candidate_spec_generation`（LLM）
-3. `candidate_retrieval`（Deterministic）
-4. `ranking_and_synthesis`（LLM）
-5. `recommendation_response`（LLM）
+1. `recommendation_planning`（LLM）
+2. `candidate_retrieval_guard_scoring`（Deterministic）
+3. `offer_synthesis`（LLM）
 
 **設計原則：**
 
-- Node 1：LLM 理解使用者當下的意圖和情境
-- Node 2：LLM 把「自然語言偏好」轉成可檢索的 candidate blueprint（candidate spec）。這一層是關鍵——沒有它，Node 3 的 deterministic retrieval 只是 dumb SQL，候選集合從一開始就錯了
-- Node 3：Deterministic retrieval，用 Node 2 的 candidate spec 去撈候選。這樣 deterministic retrieval 才不是機械查表
-- Node 4：LLM 讀取候選 + 完整情境，真正判斷「哪個最適合現在、為什麼」
-- Node 5：LLM 對話呈現，non-mutating
+- Physical Node 1：LLM recommendation planning，輸出 `recommendation_context_result`
+  與 `candidate_spec`。這兩個 logical artifacts 必須分開 trace，但可以共用一次 LLM call。
+- Physical Node 2：Deterministic candidate retrieval / guard / scoring，用 `candidate_spec`
+  撈候選並執行 hard blockers、budget posture、negative preference、rescue conflict、availability
+  等 deterministic checks。
+- Physical Node 3：LLM offer synthesis，讀取 allowed pool + deterministic quality signals，
+  輸出 selected primary、backup picks、explanation、UX packet、non-serve flags。
 
 **Logical model roles：**
 
-- Node 1 `recommendation_context` → `fast_router_model`
-- Node 2 `candidate_spec_generation` → `fast_router_model`
-- Node 3 `candidate_retrieval` → deterministic（無 LLM）
-- Node 4 `ranking_and_synthesis` → `strict_reasoner_model`
-- Node 5 `recommendation_response` → `response_writer_model`
+- Physical Node 1 `recommendation_planning` → `fast_router_model`
+- Physical Node 2 `candidate_retrieval_guard_scoring` → deterministic（無 LLM）
+- Physical Node 3 `offer_synthesis` → `strict_reasoner_model` / `response_writer_model`
+  role profile behind one physical handoff
 
 ### 4.0A Final Product Graph Decision
 
@@ -166,17 +166,18 @@ fixture pass-chain 的數量偏好。
 - Node 4 和 Node 5 分開，是因為 ranking truth 需要可被 chat、UI、proactive、rescue 等 surface
   消費，而 response 只是呈現層，不應回寫或改寫 ranking。
 
-因此，3-node 或 4-node 只能是 **physical implementation compaction profile**，不是 canonical
-product contract 的替代品。
+因此，final product 的 canonical shape 是 **3 個 physical responsibility handoffs + 5 個
+logical trace artifacts**。5-node graph 是語義拆解與歷史 lab observability 參考，不再是
+canonical physical runtime graph。
 
 允許的 compaction 條件：
 
-- implementation 可把 Node 1 + Node 2 放在同一次 LLM call，只要仍輸出獨立的
+- implementation 必須把 logical Node 1 + Node 2 放在同一次 planning LLM call，且仍輸出獨立的
   `recommendation_context_result` 與 `candidate_spec`。
-- implementation 可把 Node 4 + Node 5 放在同一次 LLM call，只要仍輸出獨立的
+- implementation 必須把 logical Node 4 + Node 5 放在同一次 offer synthesis LLM call，且仍輸出獨立的
   `ranking_result` 與 `recommendation_response_result`。
-- implementation 可用 3-node 或 4-node runner 做 lab / cost / latency / eval 對照，但 trace
-  必須映射回上述 5 個 logical stages。
+- 5-node runner 可保留為 compatibility / observability reference，但不得是 downstream
+  preflight、E2E chain、或 activation review 的 canonical source artifact。
 
 不允許的 compaction：
 
@@ -185,14 +186,17 @@ product contract 的替代品。
 - 不得省略 deterministic retrieval / guard，讓 LLM 直接決定 hard constraint legality。
 - 不得讓 response node 改寫 ranking result、candidate legality、budget truth、intake handoff
   legality，或建立 recommendation intent state。
-- 不得把 3-node / 4-node runner 的 fixture convenience 寫成 final product architecture。
+- 不得把 fixture key names、5-node compatibility runner、或 old pass-chain convenience 寫成
+  final product architecture。
 
-4-node graph 不是禁用，但它必須說明哪一對 adjacent logical stages 被合併、為什麼合併後仍能
-保留獨立 artifacts、以及哪個 eval / latency / cost 證據支持這個合併。若沒有這些證據，
-4-node 只是介於 3-node 與 5-node 之間的 implementation compromise，不是新的 canonical
-architecture。
+4-node graph 不是禁用，但它必須說明為什麼要比 canonical 3-node 多一個 physical handoff、
+為什麼增加的 handoff 能降低行為風險或成本、以及哪個 eval / latency / cost 證據支持。
+若沒有這些證據，4-node 只是 implementation compromise，不是新的 canonical architecture。
 
 ### 4.1 Canonical Path Walkthrough
+
+以下是 5 個 logical artifacts 的 walkthrough。它們映射到 Section 4 的 3 個 physical nodes，
+不是要求 5 個 physical runtime nodes。
 
 1. `recommendation_context`（LLM）
    - 理解使用者當下說的話：「輕的」「不要太油」「今天超標了」「想吃熱的」

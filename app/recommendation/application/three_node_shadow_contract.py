@@ -21,9 +21,41 @@ NODE_ORDER = [
     "deterministic_candidate_guard",
     "shadow_offer_packet_fixture",
 ]
+PHYSICAL_NODE_ORDER = [
+    "recommendation_planning",
+    "candidate_retrieval_guard_scoring",
+    "offer_synthesis",
+]
 LLM_NODES = [
     "manager_recommendation_decision_fixture",
     "shadow_offer_packet_fixture",
+]
+LOGICAL_STAGE_TRACE = [
+    {
+        "logical_stage": "recommendation_context_result",
+        "physical_node": "recommendation_planning",
+        "owner": "llm_fixture",
+    },
+    {
+        "logical_stage": "candidate_spec",
+        "physical_node": "recommendation_planning",
+        "owner": "llm_fixture",
+    },
+    {
+        "logical_stage": "candidate_retrieval_guard_scoring",
+        "physical_node": "candidate_retrieval_guard_scoring",
+        "owner": "deterministic",
+    },
+    {
+        "logical_stage": "ranking_result",
+        "physical_node": "offer_synthesis",
+        "owner": "llm_fixture",
+    },
+    {
+        "logical_stage": "recommendation_response_result",
+        "physical_node": "offer_synthesis",
+        "owner": "llm_fixture",
+    },
 ]
 FALSE_ACTIVATION_FLAGS = {
     "runtime_effect_allowed": False,
@@ -98,6 +130,10 @@ def _artifact(
         "status": status,
         "blockers": blockers,
         "node_order": NODE_ORDER,
+        "physical_graph_profile": "three_node_recommendation_planning_guard_offer",
+        "physical_node_order": list(PHYSICAL_NODE_ORDER),
+        "logical_stage_trace": [dict(item) for item in LOGICAL_STAGE_TRACE],
+        "legacy_five_node_artifact_source": False,
         "llm_owned_nodes": LLM_NODES,
         "deterministic_nodes": ["deterministic_candidate_guard"],
         "candidate_guard": guard,

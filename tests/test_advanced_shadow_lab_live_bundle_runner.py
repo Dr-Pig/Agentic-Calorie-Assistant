@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from app.recommendation.application.five_node_shadow_fixture import (
-    build_fixture_recommendation_five_node_input,
+from app.recommendation.application.three_node_shadow_contract import (
+    build_fixture_recommendation_three_node_input,
 )
 
 
@@ -343,7 +343,7 @@ def _derived_views() -> dict[str, object]:
 
 
 def _recommendation_payload() -> dict[str, object]:
-    payload = build_fixture_recommendation_five_node_input()
+    payload = build_fixture_recommendation_three_node_input()
     golden = _candidate(payload, "golden-1")
     golden.update(
         {

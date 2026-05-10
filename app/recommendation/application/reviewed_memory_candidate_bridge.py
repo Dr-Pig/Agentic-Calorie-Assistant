@@ -13,13 +13,17 @@ SIDECAR_ACTIVATION_CONTRACT = offline_sidecar_contract(
 )
 
 
-def build_reviewed_memory_recommendation_five_node_payload(
+def build_reviewed_memory_recommendation_three_node_payload(
     memory_summary_projection: Mapping[str, Any],
     *,
     remaining_budget_kcal: int,
 ) -> dict[str, Any]:
     blockers = consumer_summary_projection_blockers(memory_summary_projection)
-    candidates = [] if blockers else _candidate_source(memory_summary_projection, remaining_budget_kcal)
+    candidates = (
+        []
+        if blockers
+        else _candidate_source(memory_summary_projection, remaining_budget_kcal)
+    )
     selected_id = str(candidates[0]["candidate_id"]) if candidates else ""
     return {
         "source_memory_artifact_type": memory_summary_projection.get("artifact_type"),
@@ -29,22 +33,16 @@ def build_reviewed_memory_recommendation_five_node_payload(
         "negative_preference_summary": _negative_summary(memory_summary_projection),
         "open_rescue_context": {"accepted_conflict_patterns": []},
         "candidate_source_fixture": candidates,
-        "recommendation_context_fixture": {
+        "manager_recommendation_decision_fixture": {
             "decision_mode": "llm_fixture",
-            "context_summary": "reviewed memory projection framed for lab recommendation",
+            "top_candidate_id": selected_id,
+            "decision_summary": "lab fixture selects reviewed-memory golden order",
+            "candidate_spec": {
+                "source": "reviewed_memory_projection",
+                "constraints": ["budget", "negative_preference", "reviewed_memory"],
+            },
         },
-        "candidate_spec_fixture": {
-            "decision_mode": "llm_fixture",
-            "intent": "suggest_reviewed_memory_candidate",
-            "constraints": ["budget", "negative_preference", "reviewed_memory"],
-        },
-        "ranking_synthesis_fixture": {
-            "decision_mode": "llm_fixture",
-            "selected_candidate_id": selected_id,
-            "ranked_candidate_ids": [selected_id] if selected_id else [],
-            "rationale": "lab fixture selects reviewed-memory golden order",
-        },
-        "response_offer_fixture": {
+        "shadow_offer_packet_fixture": {
             "decision_mode": "llm_fixture",
             "candidate_id": selected_id,
             "recommendation_served": False,
@@ -53,6 +51,53 @@ def build_reviewed_memory_recommendation_five_node_payload(
         },
         "activation_flags": _false_flags(),
     }
+
+
+def build_reviewed_memory_recommendation_five_node_payload(
+    memory_summary_projection: Mapping[str, Any],
+    *,
+    remaining_budget_kcal: int,
+) -> dict[str, Any]:
+    payload = build_reviewed_memory_recommendation_three_node_payload(
+        memory_summary_projection,
+        remaining_budget_kcal=remaining_budget_kcal,
+    )
+    selected_id = str(
+        _mapping(payload.get("manager_recommendation_decision_fixture")).get(
+            "top_candidate_id", ""
+        )
+    )
+    payload.update(
+        {
+            "legacy_five_node_compatibility_payload": True,
+            "canonical_recommendation_graph": "three_node",
+            "recommendation_context_fixture": {
+                "decision_mode": "llm_fixture",
+                "context_summary": (
+                    "reviewed memory projection framed for lab recommendation"
+                ),
+            },
+            "candidate_spec_fixture": {
+                "decision_mode": "llm_fixture",
+                "intent": "suggest_reviewed_memory_candidate",
+                "constraints": ["budget", "negative_preference", "reviewed_memory"],
+            },
+            "ranking_synthesis_fixture": {
+                "decision_mode": "llm_fixture",
+                "selected_candidate_id": selected_id,
+                "ranked_candidate_ids": [selected_id] if selected_id else [],
+                "rationale": "lab fixture selects reviewed-memory golden order",
+            },
+            "response_offer_fixture": {
+                "decision_mode": "llm_fixture",
+                "candidate_id": selected_id,
+                "recommendation_served": False,
+                "is_canonical_truth": False,
+                "intake_commit_requested": False,
+            },
+        }
+    )
+    return payload
 
 
 def _candidate_source(
@@ -66,12 +111,18 @@ def _candidate_source(
     ]
 
 
-def _candidate_from_order(order: Mapping[str, Any], remaining_budget_kcal: int) -> dict[str, Any]:
+def _candidate_from_order(
+    order: Mapping[str, Any],
+    remaining_budget_kcal: int,
+) -> dict[str, Any]:
     candidate_id = str(order.get("candidate_id") or "unknown_candidate")
     item_names = [str(item) for item in order.get("item_names") or []]
     store_name = str(order.get("store_name") or "")
     title = str(order.get("summary") or " ".join([store_name, *item_names]).strip())
-    kcal = _int_or_default(order.get("estimated_kcal"), min(520, remaining_budget_kcal + 1))
+    kcal = _int_or_default(
+        order.get("estimated_kcal"),
+        min(520, remaining_budget_kcal + 1),
+    )
     return {
         "candidate_id": candidate_id,
         "title": title,
@@ -125,7 +176,9 @@ def _false_flags() -> dict[str, bool]:
 
 
 def _items(value: Any) -> list[Mapping[str, Any]]:
-    return [item for item in value if isinstance(item, Mapping)] if isinstance(value, list) else []
+    return [
+        item for item in value if isinstance(item, Mapping)
+    ] if isinstance(value, list) else []
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:
@@ -138,5 +191,6 @@ def _int_or_default(value: Any, default: int) -> int:
 
 __all__ = [
     "SIDECAR_ACTIVATION_CONTRACT",
+    "build_reviewed_memory_recommendation_three_node_payload",
     "build_reviewed_memory_recommendation_five_node_payload",
 ]

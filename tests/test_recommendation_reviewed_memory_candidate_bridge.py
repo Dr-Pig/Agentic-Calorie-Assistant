@@ -13,19 +13,19 @@ def _memory_projection(tmp_path):
     )
 
 
-def test_reviewed_memory_bridge_builds_five_node_payload(tmp_path) -> None:
-    from app.recommendation.application.five_node_shadow_runner import (
-        run_recommendation_five_node_lab_runner,
+def test_reviewed_memory_bridge_builds_three_node_payload(tmp_path) -> None:
+    from app.recommendation.application.three_node_shadow_contract import (
+        run_recommendation_three_node_shadow,
     )
     from app.recommendation.application.reviewed_memory_candidate_bridge import (
-        build_reviewed_memory_recommendation_five_node_payload,
+        build_reviewed_memory_recommendation_three_node_payload,
     )
 
-    payload = build_reviewed_memory_recommendation_five_node_payload(
+    payload = build_reviewed_memory_recommendation_three_node_payload(
         _memory_projection(tmp_path),
         remaining_budget_kcal=700,
     )
-    artifact = run_recommendation_five_node_lab_runner(payload)
+    artifact = run_recommendation_three_node_shadow(payload)
 
     assert payload["source_memory_artifact_type"] == (
         "runtime_lab_memory_consumer_summary_projection"
@@ -40,10 +40,10 @@ def test_reviewed_memory_bridge_builds_five_node_payload(tmp_path) -> None:
         }
     ]
     assert artifact["status"] == "pass"
-    assert artifact["candidate_retrieval"]["allowed_candidate_ids"] == [
+    assert artifact["candidate_guard"]["allowed_candidate_ids"] == [
         "golden-order-morning-bar-oatmeal-latte"
     ]
-    assert artifact["response_offer_packet"]["source_refs"] == [
+    assert artifact["shadow_offer_packet"]["source_refs"] == [
         "memory_candidate:golden-order-morning-bar-oatmeal-latte"
     ]
     assert artifact["activation_flags"]["recommendation_served"] is False
@@ -51,30 +51,31 @@ def test_reviewed_memory_bridge_builds_five_node_payload(tmp_path) -> None:
 
 
 def test_reviewed_memory_bridge_feeds_existing_summary_bridge(tmp_path) -> None:
-    from app.recommendation.application.five_node_shadow_runner import (
-        run_recommendation_five_node_lab_runner,
+    from app.recommendation.application.three_node_shadow_contract import (
+        run_recommendation_three_node_shadow,
     )
-    from app.recommendation.application.five_node_summary_bridge import (
-        build_summary_quality_report_from_five_node_lab_artifact,
+    from app.recommendation.application.three_node_summary_bridge import (
+        build_summary_quality_report_from_three_node_shadow_artifact,
     )
     from app.recommendation.application.reviewed_memory_candidate_bridge import (
-        build_reviewed_memory_recommendation_five_node_payload,
+        build_reviewed_memory_recommendation_three_node_payload,
     )
 
     memory = _memory_projection(tmp_path)
-    payload = build_reviewed_memory_recommendation_five_node_payload(
+    payload = build_reviewed_memory_recommendation_three_node_payload(
         memory,
         remaining_budget_kcal=700,
     )
-    five_node = run_recommendation_five_node_lab_runner(payload)
-    report = build_summary_quality_report_from_five_node_lab_artifact(
+    three_node = run_recommendation_three_node_shadow(payload)
+    report = build_summary_quality_report_from_three_node_shadow_artifact(
         memory_summary_projection=memory,
-        five_node_artifact=five_node,
+        three_node_artifact=three_node,
         source_payload=payload,
     )
 
     assert report["status"] == "pass"
-    assert report["five_node_lab_bridge_used"] is True
+    assert report["three_node_lab_bridge_used"] is True
+    assert report["five_node_lab_bridge_used"] is False
     assert report["candidate_evaluations"][0]["candidate_id"] == (
         "golden-order-morning-bar-oatmeal-latte"
     )
@@ -86,21 +87,21 @@ def test_reviewed_memory_bridge_feeds_existing_summary_bridge(tmp_path) -> None:
 
 
 def test_reviewed_memory_bridge_keeps_candidate_silent_when_over_budget(tmp_path) -> None:
-    from app.recommendation.application.five_node_shadow_runner import (
-        run_recommendation_five_node_lab_runner,
+    from app.recommendation.application.three_node_shadow_contract import (
+        run_recommendation_three_node_shadow,
     )
     from app.recommendation.application.reviewed_memory_candidate_bridge import (
-        build_reviewed_memory_recommendation_five_node_payload,
+        build_reviewed_memory_recommendation_three_node_payload,
     )
 
-    payload = build_reviewed_memory_recommendation_five_node_payload(
+    payload = build_reviewed_memory_recommendation_three_node_payload(
         _memory_projection(tmp_path),
         remaining_budget_kcal=300,
     )
-    artifact = run_recommendation_five_node_lab_runner(payload)
+    artifact = run_recommendation_three_node_shadow(payload)
 
     assert artifact["status"] == "blocked"
-    assert artifact["candidate_retrieval"]["filtered_candidates"] == [
+    assert artifact["candidate_guard"]["filtered_candidates"] == [
         {
             "candidate_id": "golden-order-morning-bar-oatmeal-latte",
             "reason_codes": ["over_budget"],
@@ -111,13 +112,13 @@ def test_reviewed_memory_bridge_keeps_candidate_silent_when_over_budget(tmp_path
 
 def test_reviewed_memory_bridge_blocks_projection_claim_drift(tmp_path) -> None:
     from app.recommendation.application.reviewed_memory_candidate_bridge import (
-        build_reviewed_memory_recommendation_five_node_payload,
+        build_reviewed_memory_recommendation_three_node_payload,
     )
 
     memory = _memory_projection(tmp_path)
     memory["recommendation_served"] = True
 
-    payload = build_reviewed_memory_recommendation_five_node_payload(
+    payload = build_reviewed_memory_recommendation_three_node_payload(
         memory,
         remaining_budget_kcal=700,
     )
@@ -127,4 +128,4 @@ def test_reviewed_memory_bridge_blocks_projection_claim_drift(tmp_path) -> None:
         "consumer_summary_projection.recommendation_served"
     ]
     assert payload["candidate_source_fixture"] == []
-    assert payload["response_offer_fixture"]["recommendation_served"] is False
+    assert payload["shadow_offer_packet_fixture"]["recommendation_served"] is False
