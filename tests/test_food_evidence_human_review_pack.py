@@ -198,6 +198,57 @@ def test_human_review_pack_requires_item_level_human_approval() -> None:
         ]
 
 
+def test_human_review_pack_is_macro_aware_without_promoting_macro_truth() -> None:
+    pack = build_food_evidence_human_review_pack(
+        food_gap_register=_gap_register_with_unrelated_display_text(),
+        inventory=_inventory(),
+        quality_plan=_quality_plan(),
+    )
+
+    macro_contract = pack["macro_review_contract"]
+    assert macro_contract["packet_fields"] == [
+        "protein_g",
+        "carbs_g",
+        "fat_g",
+        "macro_visibility_status",
+        "macro_source_basis",
+        "macro_confidence",
+    ]
+    assert macro_contract["missing_macro_policy"] == "preserve_null_do_not_invent"
+    assert macro_contract["review_candidate_can_create_macro_truth"] is False
+    assert macro_contract["missing_macro_blocks_kcal_logging"] is False
+    assert macro_contract["forbidden_macro_sources"] == [
+        "food_name",
+        "kcal_reverse_inference",
+        "llm_hint",
+        "websearch_snippet",
+    ]
+    assert macro_contract["source_class_policy_choices"] == [
+        "exact_brand_item",
+        "generic_common_serving",
+        "listed_component",
+        "basket_family_alias_modifier",
+        "source_evidence_candidate",
+    ]
+
+    for packet in pack["review_packets"]:
+        assert packet["macro_review_decision_required"] == [
+            "source_class_macro_policy_review",
+            "macro_basis_review",
+            "macro_source_strength_review",
+            "macro_confidence_review",
+            "macro_visibility_or_null_review",
+            "do_not_infer_macro_from_food_name_kcal_or_llm",
+        ]
+        assert packet["blocked_actions"]["can_create_macro_truth"] is False
+        for candidate in packet["candidates"]:
+            macro_review = candidate["macro_candidate_review"]
+            assert macro_review["status"] == "needs_review"
+            assert macro_review["candidate_can_create_macro_truth"] is False
+            assert macro_review["values_may_remain_null"] is True
+            assert macro_review["missing_macro_blocks_kcal_logging"] is False
+
+
 def test_human_review_pack_builder_writes_only_review_artifact(tmp_path: Path) -> None:
     gap_register = tmp_path / "gap_register.json"
     inventory = tmp_path / "inventory.json"
