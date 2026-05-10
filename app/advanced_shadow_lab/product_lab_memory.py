@@ -4,6 +4,9 @@ from app.advanced_shadow_lab.product_lab_memory_context import (
     build_product_lab_memory_context_pack,
     empty_product_lab_memory_context_pack,
 )
+from app.advanced_shadow_lab.product_lab_memory_lifecycle_policy import (
+    apply_product_lab_memory_lifecycle_policy,
+)
 from app.advanced_shadow_lab.product_lab_memory_candidate_extraction import (
     extract_product_lab_memory_candidates,
 )
@@ -26,6 +29,7 @@ from app.advanced_shadow_lab.product_lab_memory_tools import (
 
 __all__ = [
     "ProductLabMemoryStore",
+    "apply_product_lab_memory_lifecycle_policy",
     "apply_product_lab_memory_review_decisions",
     "build_product_lab_memory_review_queue",
     "build_product_lab_memory_context_pack",
