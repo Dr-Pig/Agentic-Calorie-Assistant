@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.advanced_shadow_lab.product_lab_proactive_delivery import (
+    build_product_lab_proactive_delivery_packet,
+)
+
 
 def run_product_lab_proactive(
     *,
@@ -21,6 +25,10 @@ def run_product_lab_proactive(
         for blocker in _candidate_blockers(candidate)
     ]
     passed = [] if blockers else candidates
+    delivery = build_product_lab_proactive_delivery_packet(
+        candidates=passed,
+        blocked=bool(blockers),
+    )
     return {
         "artifact_type": "advanced_product_lab_proactive_runtime_artifact",
         "artifact_schema_version": "1.0",
@@ -30,6 +38,7 @@ def run_product_lab_proactive(
         "chat_first": True,
         "candidate_count": len(passed),
         "candidates": passed,
+        "delivery_packet": delivery,
         "memory_context_refs": [
             str(item) for item in memory_context_pack.get("selected_record_ids") or []
         ],
