@@ -74,6 +74,15 @@ def _entry(
         ),
         "release_signal": str(event.get("release_signal") or ""),
         "undo_event_id": undo_event_id if action == "undo" else None,
+        "source_packet_id": str(event.get("source_packet_id") or ""),
+        "source_workflow_family": str(event.get("source_workflow_family") or ""),
+        "source_chat_action_event_id": str(
+            event.get("source_chat_action_event_id") or ""
+        ),
+        "source_refs": [str(item) for item in event.get("source_refs") or []],
+        "chat_control_action_bridge_used": (
+            event.get("chat_control_action_bridge_used") is True
+        ),
         "raw_user_text_semantic_inference_performed": False,
         **dict(FALSE_FLAGS),
     }, blockers

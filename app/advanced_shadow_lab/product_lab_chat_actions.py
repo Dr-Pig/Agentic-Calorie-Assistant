@@ -11,6 +11,10 @@ from app.advanced_shadow_lab.product_lab_pending_intake_lifecycle import (
 from app.advanced_shadow_lab.product_lab_rescue_chat_action import (
     rescue_outcome,
 )
+from app.advanced_shadow_lab.product_lab_generic_control_action import (
+    generic_control_outcome,
+    is_generic_control_only,
+)
 
 
 RECOMMENDATION_ACTIONS = {"log_this", "show_backups", "dismiss"}
@@ -22,6 +26,12 @@ def apply_product_lab_chat_action(
     action: str,
 ) -> dict[str, Any]:
     workflow = str(message.get("workflow_family") or "")
+    if is_generic_control_only(workflow=workflow, action=action):
+        return generic_control_outcome(
+            base_outcome=base_outcome,
+            workflow_family=workflow,
+            action=action,
+        )
     if workflow == "recommendation":
         return recommendation_outcome(message=message, action=action)
     if workflow == "rescue":
