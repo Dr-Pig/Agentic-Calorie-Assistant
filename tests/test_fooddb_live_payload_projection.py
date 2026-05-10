@@ -131,6 +131,7 @@ def test_fooddb_live_payload_projection_keeps_tool_results_read_only() -> None:
         "runtime_mutation",
         "creating_fooddb_truth",
         "inventing_source",
+        "inventing_macro",
         "inferring_source_implementation",
     ]
     assert projection["tool_results"] == [

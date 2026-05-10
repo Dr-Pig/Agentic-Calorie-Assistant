@@ -4,6 +4,10 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
+from app.nutrition.application.fooddb_macro_contract import (
+    MACRO_REVIEW_DECISION_REQUIRED,
+    build_macro_review_policy,
+)
 from app.nutrition.application.fooddb_quality_plan import FIRST_BATCH_REVIEW_FAMILIES
 
 
@@ -25,10 +29,12 @@ def build_food_evidence_human_review_pack(
 ) -> dict[str, Any]:
     candidates = _candidate_dicts(food_gap_register)
     review_families = _review_families(quality_plan)
+    macro_review_policy = build_macro_review_policy()
     review_packets = [
         _review_packet(
             family=family,
             candidates=[candidate for candidate in candidates if candidate["gap_family"] == family],
+            macro_review_policy=macro_review_policy,
         )
         for family in review_families
     ]
@@ -51,6 +57,7 @@ def build_food_evidence_human_review_pack(
             "quality_plan_claim_scope": str(quality_plan.get("claim_scope") or "unknown"),
         },
         "inventory_snapshot": _inventory_snapshot(inventory),
+        "macro_review_contract": macro_review_policy,
         "review_policy": {
             "truth_promotion_gate": "item_level_human_approval",
             "generic_anchor_estimate_policy_status": "pending_pr116_policy_manifest",
@@ -99,13 +106,20 @@ def _review_families(quality_plan: dict[str, Any]) -> list[str]:
     return families or list(FIRST_BATCH_REVIEW_FAMILIES)
 
 
-def _review_packet(*, family: str, candidates: list[dict[str, Any]]) -> dict[str, Any]:
+def _review_packet(
+    *,
+    family: str,
+    candidates: list[dict[str, Any]],
+    macro_review_policy: dict[str, Any],
+) -> dict[str, Any]:
     return {
         "gap_family": family,
         "status": "review_packet_only",
         "promotion_allowed": False,
         "candidate_count": len(candidates),
         "review_decision_required": list(_REVIEW_DECISION_REQUIRED),
+        "macro_review_decision_required": list(MACRO_REVIEW_DECISION_REQUIRED),
+        "macro_review_policy": dict(macro_review_policy),
         "classification_source": {
             "input_source": "food_gap_register",
             "raw_user_text_role": "display_only",
@@ -118,6 +132,7 @@ def _review_packet(*, family: str, candidates: list[dict[str, Any]]) -> dict[str
             "can_create_nutrition_seed": False,
             "can_create_exact_card": False,
             "can_create_packet_truth": False,
+            "can_create_macro_truth": False,
             "can_create_eval_oracle": False,
         },
     }
@@ -142,6 +157,12 @@ def _review_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         "human_review_status": "needs_review",
         "promotion_allowed": False,
         "requires_human_review_before_promotion": True,
+        "macro_candidate_review": {
+            "status": "needs_review",
+            "candidate_can_create_macro_truth": False,
+            "values_may_remain_null": True,
+            "missing_macro_blocks_kcal_logging": False,
+        },
         "cannot_update_food_kb_truth": True,
         "cannot_create_nutrition_seed": True,
         "cannot_create_exact_card": True,

@@ -55,6 +55,44 @@ def test_fooddb_quality_plan_defines_acceptance_for_later_truth_promotion_pr() -
     ]
 
 
+def test_fooddb_quality_plan_makes_first_batch_macro_review_only() -> None:
+    plan = build_fooddb_quality_improvement_plan(inventory={}, food_gap_register={})
+
+    macro_policy = plan["first_batch_macro_review_policy"]
+    assert macro_policy["packet_fields"] == [
+        "protein_g",
+        "carbs_g",
+        "fat_g",
+        "macro_visibility_status",
+        "macro_source_basis",
+        "macro_confidence",
+    ]
+    assert macro_policy["missing_macro_policy"] == "preserve_null_do_not_invent"
+    assert macro_policy["missing_macro_blocks_kcal_logging"] is False
+    assert macro_policy["review_candidate_can_create_macro_truth"] is False
+    assert macro_policy["forbidden_macro_sources"] == [
+        "food_name",
+        "kcal_reverse_inference",
+        "llm_hint",
+        "websearch_snippet",
+    ]
+    assert macro_policy["source_class_policy_choices"] == [
+        "exact_brand_item",
+        "generic_common_serving",
+        "listed_component",
+        "basket_family_alias_modifier",
+        "source_evidence_candidate",
+    ]
+    assert all(
+        "macro_review_policy" in packet
+        for packet in plan["first_batch_review_packets"]
+    )
+    assert all(
+        packet["macro_review_policy"]["review_candidate_can_create_macro_truth"] is False
+        for packet in plan["first_batch_review_packets"]
+    )
+
+
 def test_fooddb_quality_plan_builder_writes_review_plan_only(tmp_path: Path) -> None:
     inventory = tmp_path / "inventory.json"
     gap_register = tmp_path / "gap_register.json"
