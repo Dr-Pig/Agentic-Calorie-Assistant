@@ -10,7 +10,19 @@ from app.advanced_shadow_lab.product_lab_memory import (
     ProductLabMemoryStore,
     build_product_lab_memory_context_pack,
 )
+from app.advanced_shadow_lab.product_lab_live_diagnostic import (
+    run_product_lab_live_diagnostic,
+)
 from app.advanced_shadow_lab.product_lab_runtime import run_advanced_product_lab_turn
+from app.advanced_shadow_lab.product_lab_session_replay import (
+    run_advanced_product_lab_dogfood_session,
+)
+from app.advanced_shadow_lab.product_lab_simulated_scenario import (
+    build_product_lab_simulated_turns,
+)
+from app.advanced_shadow_lab.product_lab_simulated_summary import (
+    build_simulated_dogfood_summary,
+)
 from tests.test_advanced_product_lab_runtime import _turn
 
 
@@ -48,6 +60,45 @@ def test_product_lab_e2e_surface_uses_product_outputs_and_controls(
     assert "no_send" not in serialized
 
 
+def test_product_lab_final_loop_closes_with_live_diagnostic_dormant_wall(
+    tmp_path: Path,
+) -> None:
+    session = run_advanced_product_lab_dogfood_session(
+        artifact_root=tmp_path / "final-loop",
+        session_id="product-lab-final-loop",
+        fixture_inputs=build_product_lab_fixture_inputs(),
+        turns=build_product_lab_simulated_turns(),
+    )
+    summary = build_simulated_dogfood_summary(session)
+    live_diagnostic = run_product_lab_live_diagnostic(
+        summary_artifact=summary,
+        provider=_FinalLoopProvider(),
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+    )
+
+    assert summary["status"] == "pass"
+    assert summary["advanced_product_lab_product_loop_closed"] is True
+    assert summary["product_runtime_capabilities_exercised"] == [
+        "long_term_memory",
+        "recommendation",
+        "rescue",
+        "proactive",
+        "chat_surface",
+    ]
+    assert summary["lab_chat_action_outcome_types"] == [
+        "recommendation_intake_draft",
+        "rescue_commit_confirmation",
+    ]
+    assert live_diagnostic["status"] == "pass"
+    assert live_diagnostic["source_product_loop_closed"] is True
+    assert live_diagnostic["live_provider_used"] is False
+    assert live_diagnostic["user_facing_behavior_changed"] is False
+    assert live_diagnostic["mainline_runtime_connected"] is False
+    assert live_diagnostic["canonical_product_mutation_allowed"] is False
+    assert live_diagnostic["durable_product_memory_written"] is False
+
+
 def _memory_pack(tmp_path: Path) -> dict[str, object]:
     store = ProductLabMemoryStore(tmp_path)
     store.write_memory_events(
@@ -74,3 +125,22 @@ def _memory_pack(tmp_path: Path) -> dict[str, object]:
         consumers=["recommendation", "proactive"],
         token_budget=120,
     )
+
+
+class _FinalLoopProvider:
+    def readiness(self) -> dict[str, object]:
+        return {"provider": "final-loop-fake", "configured": True}
+
+    async def complete_with_trace(
+        self,
+        **_: object,
+    ) -> tuple[dict[str, object], dict[str, object]]:
+        return {
+            "diagnostic_notes": "Final lab loop closes inside the isolated lab.",
+            "risk_notes": "Diagnostic only; no outside-lab delivery or mutation.",
+            "claim_scope": "diagnostic_only",
+            "action_request": False,
+            "delivery_request": False,
+            "mutation_request": False,
+            "reason_codes": ["final_loop_contract"],
+        }, {"stage": "advanced_product_lab_live_diagnostic", "provider": "fake"}
