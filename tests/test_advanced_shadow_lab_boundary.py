@@ -342,6 +342,7 @@ def test_advanced_shadow_lab_has_no_route_scheduler_persistence_or_provider_impo
 def test_advanced_shadow_lab_scripts_use_profile_seam_for_live_model_selection() -> None:
     for path in [
         ROOT / "scripts" / "run_advanced_shadow_lab_live_bundle.py",
+        ROOT / "scripts" / "run_advanced_shadow_lab_llm_node_diagnostic.py",
         ROOT / "scripts" / "run_advanced_shadow_lab_recommendation_copy_live_diagnostic.py",
         ROOT / "scripts" / "run_advanced_shadow_lab_rescue_copy_live_diagnostic.py",
     ]:
