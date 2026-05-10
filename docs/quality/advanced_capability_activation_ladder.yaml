@@ -581,15 +581,21 @@ edge_case_coverage_contract:
       existing_shadow_artifacts:
         - rescue_shadow_summary_context_projection
         - rescue_shadow_chain_runner_artifact
+        - rescue_chat_negotiation_lifecycle_shadow_packet
         - advanced_shadow_chat_ux_packet_artifact
       required_trace_fields:
         - current_budget_view
         - rescue_context_projection_used
         - proposal_candidate_output
+        - lifecycle_state
+        - negotiation_intent
+        - explicit_accept_required
+        - dismiss_requested
+        - proposal_committed
         - primary_actions
         - non_claims
       acceptance_status: existing_shadow_chain_mapped
-      next_build_slice: rescue_chat_negotiation_and_lab_proposal_lifecycle
+      next_build_slice: advanced_capability_gap_review
       claim_boundary: non_claim
       mainline_activation_allowed: false
     - journey_id: F2
@@ -613,7 +619,7 @@ edge_case_coverage_contract:
         - budget_mutation_allowed
         - non_claims
       acceptance_status: existing_shadow_chain_mapped
-      next_build_slice: calibration_proposal_shadow_integration
+      next_build_slice: advanced_capability_gap_review
       claim_boundary: non_claim
       mainline_activation_allowed: false
     - journey_id: I
@@ -630,14 +636,23 @@ edge_case_coverage_contract:
       existing_shadow_artifacts:
         - calibration_proposal_boundary_contract
         - body_budget_preview_contract
+        - body_calibration_diagnostic_result
+        - calibration_proposal_policy_packet
+        - calibration_proposal_response_result
       required_trace_fields:
         - calibration_confidence
         - logging_quality_posture
         - proposal_gate_decision
+        - proposal_policy_packet
+        - proposal_result
+        - trace_envelope
         - explicit_accept_required
+        - requires_accept_before_plan_mutation
+        - plan_mutation_authorized
+        - ledger_mutation_authorized
         - downstream_budget_posture
-      acceptance_status: gap_requires_next_slice
-      next_build_slice: calibration_proposal_shadow_integration
+      acceptance_status: existing_shadow_chain_mapped
+      next_build_slice: advanced_capability_gap_review
       claim_boundary: non_claim
       mainline_activation_allowed: false
     - journey_id: L
@@ -666,7 +681,7 @@ edge_case_coverage_contract:
         - intake_commit_requested
         - pending_meal_intent_created
       acceptance_status: existing_shadow_chain_mapped
-      next_build_slice: calibration_proposal_shadow_integration
+      next_build_slice: advanced_capability_gap_review
       claim_boundary: non_claim
       mainline_activation_allowed: false
     - journey_id: M
@@ -727,7 +742,7 @@ edge_case_coverage_contract:
         - next_signal_required
         - pending_intent_mutated
       acceptance_status: existing_shadow_chain_mapped
-      next_build_slice: calibration_proposal_shadow_integration
+      next_build_slice: advanced_capability_gap_review
       claim_boundary: non_claim
       mainline_activation_allowed: false
 
