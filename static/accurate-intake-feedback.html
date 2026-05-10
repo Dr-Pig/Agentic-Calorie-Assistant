@@ -66,7 +66,7 @@
     .subtle { margin: 0; color: var(--muted); }
     .session-strip, .form-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 12px;
     }
     label { display: grid; gap: 6px; font-weight: 650; }
@@ -81,6 +81,25 @@
     }
     textarea { min-height: 136px; resize: vertical; }
     .wide { grid-column: 1 / -1; }
+    .context-note {
+      display: grid;
+      gap: 6px;
+      align-content: center;
+      color: var(--muted);
+      font-weight: 650;
+      overflow-wrap: anywhere;
+    }
+    .context-note strong {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    .context-note span {
+      color: var(--ink);
+      font-weight: 800;
+    }
     .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     button {
       border: 0;
@@ -137,6 +156,13 @@
       <label>Trace ID
         <input id="trace-id" autocomplete="off" />
       </label>
+      <label>Meal ID
+        <input id="meal-id" autocomplete="off" />
+      </label>
+      <div class="context-note" aria-label="Selected meal context">
+        <strong>Meal</strong>
+        <span id="meal-title-context">No meal selected</span>
+      </div>
     </section>
     <form id="feedback-form" class="panel form-grid" aria-busy="false">
       <label>Category
@@ -185,6 +211,8 @@
     el("local-date").value = params.get("local_date") || todayIso();
     el("trace-id").value = params.get("trace_id") || "";
     el("message-id").value = params.get("message_id") || "";
+    el("meal-id").value = params.get("meal_id") || "";
+    el("meal-title-context").textContent = params.get("meal_title") || "No meal selected";
 
     function userId() {
       return el("user-id").value.trim() || "default_user";
@@ -199,6 +227,19 @@
       const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
       if (page === "feedback") {
         query.set("source_page", sourcePage());
+        if (el("trace-id").value.trim()) {
+          query.set("trace_id", el("trace-id").value.trim());
+        }
+        if (el("message-id").value.trim()) {
+          query.set("message_id", el("message-id").value.trim());
+        }
+        if (el("meal-id").value.trim()) {
+          query.set("meal_id", el("meal-id").value.trim());
+        }
+        const mealTitle = params.get("meal_title");
+        if (mealTitle) {
+          query.set("meal_title", mealTitle);
+        }
       }
       return `/static/accurate-intake-${page}.html?${query.toString()}`;
     }
@@ -255,12 +296,13 @@
         user_external_id: userId(),
         trace_id: el("trace-id").value.trim() || null,
         message_id: el("message-id").value.trim() || null,
-        meal_id: null,
+        meal_id: el("meal-id").value.trim() || null,
         ui_event: {
           feedback_route: window.location.pathname,
           route: window.location.pathname,
           source_page: sourcePage(),
-          selected_date: selectedDate()
+          selected_date: selectedDate(),
+          meal_title: params.get("meal_title") || null
         },
         operation_context: {
           submitted_endpoint: endpoints.feedback,

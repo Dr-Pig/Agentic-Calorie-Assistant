@@ -252,13 +252,17 @@
     }
     .meal-list li {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: 1fr auto auto;
       gap: 12px;
       padding: 12px;
       border: 1px solid rgba(23, 33, 29, 0.10);
       border-radius: 8px;
       background: var(--surface);
       overflow-wrap: anywhere;
+    }
+    .meal-actions {
+      display: flex;
+      justify-content: flex-end;
     }
     .meal-title {
       font-weight: 900;
@@ -299,7 +303,7 @@
         min-width: 0;
         grid-template-columns: 1fr;
       }
-      .grid, .kcal-grid, .session-strip, #day-strip {
+      .grid, .kcal-grid, .session-strip, .meal-list li, #day-strip {
         grid-template-columns: 1fr;
       }
       #day-strip {
@@ -442,6 +446,19 @@
       el("today-session-date").textContent = selectedDate();
       el("today-chat-state").textContent = "same user/date";
     }
+    function feedbackUrlForMeal(meal = {}) {
+      if (!meal.meal_thread_id) return null;
+      const query = new URLSearchParams({
+        user_id: userId(),
+        local_date: selectedDate(),
+        source_page: "today_diary"
+      });
+      query.set("meal_id", String(meal.meal_thread_id));
+      if (meal.meal_title) {
+        query.set("meal_title", meal.meal_title);
+      }
+      return `/static/accurate-intake-feedback.html?${query.toString()}`;
+    }
     async function requestJson(url) {
       const response = await fetch(url);
       const text = await response.text();
@@ -498,8 +515,19 @@
         meta.textContent = `${meal.occurred_at || "time unknown"} | ${meal.resolution_status || "recorded"}`;
         const kcal = document.createElement("strong");
         kcal.textContent = `${meal.total_kcal ?? "--"} kcal`;
+        const actions = document.createElement("div");
+        actions.className = "meal-actions";
+        const feedbackUrl = feedbackUrlForMeal(meal);
+        if (feedbackUrl) {
+          const report = document.createElement("a");
+          report.className = "action-link";
+          report.dataset.feedbackAction = "report-meal";
+          report.href = feedbackUrl;
+          report.textContent = "Report";
+          actions.append(report);
+        }
         detail.append(title, meta);
-        row.append(detail, kcal);
+        row.append(detail, kcal, actions);
         list.append(row);
       }
     }

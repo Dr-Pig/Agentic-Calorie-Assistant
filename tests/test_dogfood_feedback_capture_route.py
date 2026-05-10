@@ -48,6 +48,7 @@ def test_local_feedback_route_writes_trace_linked_record_without_promotion(
             "user_external_id": "local-self-use-001",
             "trace_id": "trace-latency-001",
             "message_id": "assistant-1",
+            "meal_id": "42",
             "severity": "high",
             "ui_event": {
                 "route": "/static/accurate-intake-chat.html",
@@ -76,6 +77,7 @@ def test_local_feedback_route_writes_trace_linked_record_without_promotion(
     assert payload["linked_context"]["page"] == "chat"
     assert payload["linked_context"]["trace_id"] == "trace-latency-001"
     assert payload["linked_context"]["message_id"] == "assistant-1"
+    assert payload["linked_context"]["meal_id"] == "42"
     assert payload["ui_event"]["source_page"] == "chat"
     assert payload["operation_context"]["submitted_endpoint"] == "/accurate-intake/feedback"
     assert payload["operation_context"]["http_status"] == 200
@@ -88,6 +90,7 @@ def test_local_feedback_route_writes_trace_linked_record_without_promotion(
     assert rows[0]["feedback_id"] == payload["feedback_id"]
     assert rows[0]["ui_event"]["api_duration_ms"] == 197000
     assert rows[0]["ui_event"]["source_page"] == "chat"
+    assert rows[0]["linked_context"]["meal_id"] == "42"
     assert rows[0]["operation_context"]["submitted_endpoint"] == "/accurate-intake/feedback"
 
 
@@ -235,6 +238,23 @@ def test_feedback_page_collects_operation_context_for_submit_request() -> None:
     assert "page_url: window.location.href" in page
     assert "page_path: window.location.pathname" in page
     assert "referrer: document.referrer" in page
+
+
+def test_feedback_page_prefills_meal_context_from_today_diary_without_semantic_inference() -> None:
+    today = Path("static/accurate-intake-today.html").read_text(encoding="utf-8")
+    feedback = Path("static/accurate-intake-feedback.html").read_text(encoding="utf-8")
+
+    assert "function feedbackUrlForMeal(meal = {})" in today
+    assert "if (!meal.meal_thread_id) return null;" in today
+    assert "query.set(\"meal_id\", String(meal.meal_thread_id));" in today
+    assert "query.set(\"meal_title\", meal.meal_title);" in today
+    assert "meal.meal_title.includes" not in today
+    assert "query.set(\"meal_id\", meal.meal_title" not in today
+
+    assert 'el("meal-id").value = params.get("meal_id") || "";' in feedback
+    assert 'el("meal-title-context").textContent = params.get("meal_title") || "No meal selected";' in feedback
+    assert 'meal_id: el("meal-id").value.trim() || null' in feedback
+    assert "loadLatestTraceContext().catch" in feedback
 
 
 def test_review_page_displays_feedback_operation_context_fields() -> None:
