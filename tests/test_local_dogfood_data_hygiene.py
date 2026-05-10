@@ -103,6 +103,42 @@ def test_backup_sanitizes_label_before_writing_local_copy(tmp_path: Path) -> Non
     assert "before-reset" in backup_path.name
 
 
+def test_backup_and_export_keep_generated_filenames_compact_for_windows_paths(
+    tmp_path: Path,
+) -> None:
+    long_stem = "accurate_intake_product_pages_browser_smoke_with_nested_refresh_chain_state"
+    db_path = tmp_path / "real_dogfood" / f"{long_stem}.sqlite3"
+    db_path.parent.mkdir()
+    db_path.write_bytes(b"sqlite bytes")
+    long_label = "browser-refresh-chain-export-with-long-artifact-stem"
+
+    backup = backup_local_dogfood_db(
+        db_path=db_path,
+        backup_dir=tmp_path / "backups",
+        label=long_label,
+    )
+    export = export_local_dogfood_db(
+        db_path=db_path,
+        export_dir=tmp_path / "exports",
+        label=long_label,
+    )
+
+    backup_path = Path(backup["backup_path"])
+    backup_manifest_path = Path(backup["manifest_path"])
+    export_path = Path(export["export_path"])
+    export_manifest_path = Path(export["manifest_path"])
+    assert len(backup_path.name) <= 96
+    assert len(backup_manifest_path.name) <= 112
+    assert len(export_path.name) <= 96
+    assert len(export_manifest_path.name) <= 112
+    assert "browser-refresh-chain-export" in backup_path.name
+    assert "browser-refresh-chain-export" in export_path.name
+    assert backup_path.exists()
+    assert backup_manifest_path.exists()
+    assert export_path.exists()
+    assert export_manifest_path.exists()
+
+
 def test_export_copies_real_dogfood_sqlite_and_marks_local_personal_logs(tmp_path: Path) -> None:
     db_path = tmp_path / "real_dogfood" / "accurate_intake.sqlite3"
     db_path.parent.mkdir()

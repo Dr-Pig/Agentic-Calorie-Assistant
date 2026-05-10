@@ -119,6 +119,40 @@ def test_local_data_hygiene_backup_and_export_routes_copy_only_local_db(
     assert Path(export["manifest_path"]).exists()
 
 
+def test_local_data_hygiene_routes_keep_browser_artifact_paths_compact(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    client, token = _client_with_db(
+        db_path=tmp_path / "local_dogfood" / "accurate_intake.sqlite3",
+        monkeypatch=monkeypatch,
+        backup_dir=_allowed_generated_dir(tmp_path, "backups"),
+        export_dir=_allowed_generated_dir(tmp_path, "exports"),
+    )
+
+    backup_response = client.post(
+        "/accurate-intake/local-data-hygiene/backup",
+        headers={"X-Local-Debug-Token": token},
+        json={"label": "browser-refresh-chain-export-with-long-artifact-stem"},
+    )
+    export_response = client.post(
+        "/accurate-intake/local-data-hygiene/export",
+        headers={"X-Local-Debug-Token": token},
+        json={"label": "browser-refresh-chain-export-with-long-artifact-stem"},
+    )
+
+    assert backup_response.status_code == 200
+    assert export_response.status_code == 200
+    backup = backup_response.json()
+    export = export_response.json()
+    assert len(Path(backup["backup_path"]).name) <= 96
+    assert len(Path(backup["manifest_path"]).name) <= 112
+    assert len(Path(export["export_path"]).name) <= 96
+    assert len(Path(export["manifest_path"]).name) <= 112
+    assert Path(backup["manifest_path"]).exists()
+    assert Path(export["manifest_path"]).exists()
+
+
 def test_local_data_export_preserves_feedback_and_review_sidecars(
     monkeypatch,
     tmp_path: Path,

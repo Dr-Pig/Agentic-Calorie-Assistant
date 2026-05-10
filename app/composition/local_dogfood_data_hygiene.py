@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import json
-import re
 import shutil
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
+from app.composition.local_dogfood_artifact_paths import (
+    compact_dogfood_copy_name,
+    sanitize_artifact_label,
+    write_json_manifest,
+)
 from app.composition.local_dogfood_export_sidecars import build_export_sidecar_evidence_manifest
 
 DogfoodDataOperation = Literal["inspect", "backup", "reset", "export", "import-preview"]
@@ -64,12 +68,7 @@ def _generated_path_blockers(path: Path, *, kind: str) -> list[str]:
 
 
 def _sanitize_label(label: str) -> str:
-    sanitized = re.sub(r"[^A-Za-z0-9._-]+", "-", label.strip())
-    sanitized = re.sub(r"-+", "-", sanitized)
-    sanitized = sanitized.strip(".-_")
-    while ".." in sanitized:
-        sanitized = sanitized.replace("..", ".")
-    return sanitized or "manual-backup"
+    return sanitize_artifact_label(label, fallback="manual-backup")
 
 
 def _is_disposable_path(db_path: Path) -> bool:
@@ -164,7 +163,7 @@ def backup_local_dogfood_db(
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     safe_label = _sanitize_label(label)
     backup_dir.mkdir(parents=True, exist_ok=True)
-    backup_path = backup_dir / f"{db_path.stem}.{safe_label}.{timestamp}{db_path.suffix}"
+    backup_path = backup_dir / compact_dogfood_copy_name(db_path=db_path, label=safe_label, timestamp=timestamp)
     shutil.copy2(db_path, backup_path)
     manifest = {
         **build_local_dogfood_data_manifest(
@@ -176,7 +175,7 @@ def backup_local_dogfood_db(
         "backup_path": str(backup_path),
     }
     manifest_path = backup_dir / f"{backup_path.stem}.manifest.json"
-    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_json_manifest(manifest_path, manifest)
     return {**manifest, "manifest_path": str(manifest_path)}
 
 
@@ -198,7 +197,7 @@ def export_local_dogfood_db(
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     safe_label = _sanitize_label(label)
     export_dir.mkdir(parents=True, exist_ok=True)
-    export_path = export_dir / f"{db_path.stem}.{safe_label}.{timestamp}{db_path.suffix}"
+    export_path = export_dir / compact_dogfood_copy_name(db_path=db_path, label=safe_label, timestamp=timestamp)
     shutil.copy2(db_path, export_path)
     sidecar_evidence = build_export_sidecar_evidence_manifest(
         export_dir=export_dir,
@@ -218,7 +217,7 @@ def export_local_dogfood_db(
         "sidecar_evidence_can_create_eval_truth": False,
     }
     manifest_path = export_dir / f"{export_path.stem}.manifest.json"
-    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_json_manifest(manifest_path, manifest)
     return {**manifest, "manifest_path": str(manifest_path)}
 
 
