@@ -84,8 +84,8 @@ def run_advanced_product_lab_turn(
         else None
     )
     chain = run_advanced_shadow_e2e_fixture_chain(
-        memory_summary_projection=mapping(runtime_inputs, "memory_summary_projection"),
-        recommendation_payload=mapping(runtime_inputs, "recommendation_payload"),
+        memory_summary_projection=mapping(fixture_inputs, "memory_summary_projection"),
+        recommendation_payload=mapping(fixture_inputs, "recommendation_payload"),
         derived_memory_views=mapping(runtime_inputs, "derived_memory_views"),
         current_budget_view=mapping(runtime_inputs, "current_budget_view"),
         active_body_plan_view=mapping(runtime_inputs, "active_body_plan_view"),

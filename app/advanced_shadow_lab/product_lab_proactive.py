@@ -60,6 +60,7 @@ def run_product_lab_proactive(
     review = review_product_lab_proactive_candidates(
         turn=turn,
         candidates=[] if blockers else prepared_candidates,
+        memory_context_pack=memory_context_pack,
         prior_control_journal=prior_control_journal,
     )
     passed = [] if blockers else [

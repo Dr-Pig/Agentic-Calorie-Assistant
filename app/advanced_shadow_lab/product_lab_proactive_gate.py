@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.product_lab_control_reducer import candidate_states
+from app.advanced_shadow_lab.product_lab_memory_action_projection import (
+    memory_action_projection_from_context,
+    proactive_memory_suppression_reasons,
+)
 from app.advanced_shadow_lab.product_lab_proactive_gate_policy import (
     PERMISSION_POSTURE,
     context_reasons,
@@ -16,9 +20,13 @@ def review_product_lab_proactive_candidates(
     *,
     turn: Mapping[str, Any],
     candidates: list[Mapping[str, Any]],
+    memory_context_pack: Mapping[str, Any] | None = None,
     prior_control_journal: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     context = _mapping(turn.get("proactive_gate_context"))
+    memory_action_projection = memory_action_projection_from_context(
+        memory_context_pack or {}
+    )
     control_states = _control_states(
         turn=turn,
         candidates=candidates,
@@ -30,6 +38,7 @@ def review_product_lab_proactive_candidates(
             context=context,
             candidate=candidate,
             control_state=control_states.get(str(candidate.get("candidate_id") or "")),
+            memory_action_projection=memory_action_projection,
         )
         for candidate in candidates
     ]
@@ -48,6 +57,7 @@ def review_product_lab_proactive_candidates(
         "allowed_candidate_count": len(allowed),
         "allowed_trigger_types": [str(item.get("trigger_type") or "") for item in allowed],
         "omission_traces": omissions,
+        "memory_action_projection": memory_action_projection,
         "summary": {"review_decision_counts": _counts(reviews)},
         "scheduler_delivery_allowed": False,
         "notification_delivery_allowed": False,
@@ -62,12 +72,17 @@ def _review_candidate(
     context: Mapping[str, Any],
     candidate: Mapping[str, Any],
     control_state: Mapping[str, Any] | None,
+    memory_action_projection: Mapping[str, Any],
 ) -> dict[str, Any]:
     trigger = str(candidate.get("trigger_type") or "")
     reasons = [
         *context_reasons(turn=turn, context=context),
         *permission_reasons(trigger=trigger, context=context),
         *_control_reasons(control_state),
+        *proactive_memory_suppression_reasons(
+            trigger_type=trigger,
+            action_projection=memory_action_projection,
+        ),
         *_source_reasons(candidate),
     ]
     status = review_status(reasons)
