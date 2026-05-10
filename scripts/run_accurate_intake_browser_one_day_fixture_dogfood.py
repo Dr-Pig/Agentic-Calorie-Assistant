@@ -23,6 +23,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from app.composition import accurate_intake_debug_routes, local_data_hygiene_routes  # noqa: E402
+from app.composition.dogfood_review_queue import (  # noqa: E402
+    build_dogfood_review_queue_artifact,
+    read_desktop_feedback_records,
+)
 from app.database import get_db  # noqa: E402
 from app.models import Base  # noqa: E402
 from app.routes import router  # noqa: E402
@@ -54,7 +59,21 @@ REQUIRED_FETCH_METHODS = {
     "/body-plan/active": "GET",
     "/accurate-intake/debug": "GET",
     "/accurate-intake/chat-history": "GET",
+    "/accurate-intake/feedback": "POST",
+    "/accurate-intake/review-queue": "GET",
+    "/accurate-intake/local-data-hygiene/export": "POST",
 }
+PAGE_SURFACE_SELECTORS = {
+    "chat": '[data-surface-role="chat"]',
+    "today": '[data-surface-role="today-diary"]',
+    "body": '[data-surface-role="body-plan"]',
+    "feedback": '[data-surface-role="dogfood-feedback"]',
+    "review": '[data-surface-role="dogfood-review-queue"]',
+    "data": '[data-surface-role="local-data-hygiene"]',
+}
+DEFAULT_FEEDBACK_TRACE_ID = "one-day-dogfood-trace"
+DEFAULT_FEEDBACK_MESSAGE_ID = "one-day-dogfood-message"
+DEFAULT_FEEDBACK_TEXT = "One-day desktop dogfood loop smoke feedback."
 
 
 def _session_factory(db_path: Path) -> tuple[Any, sessionmaker[Session]]:
@@ -64,13 +83,17 @@ def _session_factory(db_path: Path) -> tuple[Any, sessionmaker[Session]]:
     return engine, sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
-def _build_app(db: Session) -> FastAPI:
+def _build_app(SessionLocal: sessionmaker[Session]) -> FastAPI:
     app = FastAPI()
     app.include_router(router)
     app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 
     def override_get_db():
-        yield db
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
 
     app.dependency_overrides[get_db] = override_get_db
     return app
@@ -137,6 +160,8 @@ def _run_browser_sequence(
     base_url: str,
     local_debug_token: str,
     expected_today_summary: dict[str, str],
+    feedback_dir: Path,
+    review_queue_artifact_path: Path,
     timeout_ms: int,
     headless: bool,
 ) -> dict[str, Any]:
@@ -147,11 +172,12 @@ def _run_browser_sequence(
         page.add_init_script(
             f"""
             (() => {{
-              const fixtureUserId = {json.dumps(USER_EXTERNAL_ID)};
-              const localDebugToken = {json.dumps(local_debug_token)};
-              const primeUserId = () => {{
-                const input = document.querySelector("#user-id");
-                if (input && input.value !== fixtureUserId) {{
+            const fixtureUserId = {json.dumps(USER_EXTERNAL_ID)};
+            const localDebugToken = {json.dumps(local_debug_token)};
+            window.LOCAL_DEBUG_API_TOKEN = localDebugToken;
+            const primeUserId = () => {{
+              const input = document.querySelector("#user-id");
+              if (input && input.value !== fixtureUserId) {{
                   input.value = fixtureUserId;
                 }}
               }};
@@ -216,6 +242,14 @@ def _run_browser_sequence(
                   sessionStorageKeys: Object.keys(window.sessionStorage || {})
                 })"""
             )
+            desktop_loop = _run_desktop_loop_sequence(
+                page,
+                base_url=base_url,
+                expected_today_summary=expected_today_summary,
+                feedback_dir=feedback_dir,
+                review_queue_artifact_path=review_queue_artifact_path,
+                timeout_ms=timeout_ms,
+            )
             return {
                 "browser_name": "chromium",
                 "page_url": page.url,
@@ -227,12 +261,202 @@ def _run_browser_sequence(
                     and after_reload.get("same_truth_rendered")
                 ),
                 "after_reload_surface": after_reload,
-                "fetch_sequence": fetch_sequence,
+                "fetch_sequence": [
+                    *fetch_sequence,
+                    *list(desktop_loop.get("fetch_sequence") or []),
+                ],
                 "storage": storage,
                 "forbidden_storage_used": bool(storage["localStorageKeys"] or storage["sessionStorageKeys"]),
+                "desktop_loop": desktop_loop,
             }
         finally:
             browser.close()
+
+
+def _page_url(base_url: str, page: str, *, extra: dict[str, str] | None = None) -> str:
+    params = {
+        "user_id": USER_EXTERNAL_ID,
+        "local_date": LOCAL_DATE,
+        **(extra or {}),
+    }
+    query = "&".join(f"{key}={value}" for key, value in params.items())
+    return f"{base_url}/static/accurate-intake-{page}.html?{query}"
+
+
+def _capture_fetches(page: Any) -> list[dict[str, Any]]:
+    return [
+        dict(item)
+        for item in list(page.evaluate("window.__accurateIntakeFetches || []"))
+        if isinstance(item, dict)
+    ]
+
+
+def _write_review_queue_artifact_from_feedback(
+    *,
+    feedback_dir: Path,
+    review_queue_artifact_path: Path,
+) -> dict[str, Any]:
+    records, jsonl_path = read_desktop_feedback_records(feedback_dir=feedback_dir)
+    artifact = build_dogfood_review_queue_artifact(
+        review_candidates=[],
+        desktop_feedback_records=records,
+    )
+    review_queue_artifact_path.parent.mkdir(parents=True, exist_ok=True)
+    review_queue_artifact_path.write_text(
+        json.dumps(artifact, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "feedback_jsonl_path": str(jsonl_path),
+        "feedback_record_count": len(records),
+        "review_queue_artifact_path": str(review_queue_artifact_path),
+        "review_queue_artifact_written": True,
+    }
+
+
+def _run_desktop_loop_sequence(
+    page: Any,
+    *,
+    base_url: str,
+    expected_today_summary: dict[str, str],
+    feedback_dir: Path,
+    review_queue_artifact_path: Path,
+    timeout_ms: int,
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "page_navigation": {page_name: False for page_name in PAGE_SURFACE_SELECTORS},
+        "fetch_sequence": [],
+        "today_same_truth_checked": False,
+        "feedback_submitted": False,
+        "review_queue_ingested_feedback": False,
+        "review_queue_artifact_written": False,
+        "data_export_created": False,
+        "data_export_sidecars_included": False,
+        "feedback_record_count": 0,
+        "review_feedback_count": 0,
+        "export_sidecar_evidence": {},
+        "local_debug_token_in_url": False,
+        "forbidden_storage_used": False,
+    }
+
+    def goto(page_name: str, *, extra: dict[str, str] | None = None) -> None:
+        page.goto(
+            _page_url(base_url, page_name, extra=extra),
+            wait_until="networkidle",
+            timeout=timeout_ms,
+        )
+        page.wait_for_selector(PAGE_SURFACE_SELECTORS[page_name], timeout=timeout_ms)
+        result["page_navigation"][page_name] = True
+        result["local_debug_token_in_url"] = bool(
+            result["local_debug_token_in_url"] or "local_debug_token=" in page.url
+        )
+        result["forbidden_storage_used"] = bool(
+            result["forbidden_storage_used"]
+            or page.evaluate(
+                """() => Boolean(
+                  Object.keys(window.localStorage || {}).length ||
+                  Object.keys(window.sessionStorage || {}).length
+                )"""
+            )
+        )
+
+    goto("chat")
+    result["fetch_sequence"].extend(_capture_fetches(page))
+
+    goto("today")
+    page.wait_for_function(
+        """(expected) => {
+          return document.querySelector("#budget-kcal")?.textContent?.trim() === expected.budget_kcal
+            && document.querySelector("#consumed-kcal")?.textContent?.trim() === expected.consumed_kcal
+            && document.querySelector("#remaining-kcal")?.textContent?.trim() === expected.remaining_kcal;
+        }""",
+        arg=expected_today_summary,
+        timeout=timeout_ms,
+    )
+    result["today_same_truth_checked"] = True
+    result["fetch_sequence"].extend(_capture_fetches(page))
+
+    goto("body")
+    result["fetch_sequence"].extend(_capture_fetches(page))
+
+    goto(
+        "feedback",
+        extra={
+            "source_page": "chat",
+            "trace_id": DEFAULT_FEEDBACK_TRACE_ID,
+            "message_id": DEFAULT_FEEDBACK_MESSAGE_ID,
+        },
+    )
+    page.fill("#trace-id", DEFAULT_FEEDBACK_TRACE_ID)
+    page.fill("#message-id", DEFAULT_FEEDBACK_MESSAGE_ID)
+    page.select_option("#category", "product_feedback")
+    page.select_option("#severity", "low")
+    page.fill("#feedback-text", DEFAULT_FEEDBACK_TEXT)
+    page.click("#submit-feedback")
+    page.wait_for_function(
+        """() => (document.querySelector("#feedback-status")?.textContent || "").includes("Captured feedback-")""",
+        timeout=timeout_ms,
+    )
+    result["feedback_submitted"] = True
+    review_seed = _write_review_queue_artifact_from_feedback(
+        feedback_dir=feedback_dir,
+        review_queue_artifact_path=review_queue_artifact_path,
+    )
+    result["review_queue_artifact_written"] = review_seed["review_queue_artifact_written"]
+    result["feedback_record_count"] = review_seed["feedback_record_count"]
+    result["fetch_sequence"].extend(_capture_fetches(page))
+
+    goto("review")
+    page.wait_for_function(
+        """() => Number(document.querySelector("#feedback-count")?.textContent || "0") >= 1""",
+        timeout=timeout_ms,
+    )
+    result["review_feedback_count"] = int(page.locator("#feedback-count").inner_text(timeout=timeout_ms).strip())
+    result["review_queue_ingested_feedback"] = result["review_feedback_count"] >= 1
+    result["fetch_sequence"].extend(_capture_fetches(page))
+
+    goto("data")
+    page.wait_for_function(
+        """() => document.querySelector("#hygiene-status")?.textContent?.trim()
+          && document.querySelector("#hygiene-status")?.textContent?.trim() !== "--" """,
+        timeout=timeout_ms,
+    )
+    page.click("#export-data")
+    page.wait_for_function(
+        """() => (document.querySelector("#data-status")?.textContent || "").includes("export pass")""",
+        timeout=timeout_ms,
+    )
+    export_payload = json.loads(page.locator("#data-result").inner_text(timeout=timeout_ms))
+    sidecar_evidence = dict(export_payload.get("sidecar_evidence") or {})
+    feedback_sidecar = dict(sidecar_evidence.get("feedback_jsonl") or {})
+    review_sidecar = dict(sidecar_evidence.get("review_queue") or {})
+    result["data_export_created"] = export_payload.get("status") == "pass"
+    result["data_export_sidecars_included"] = bool(
+        export_payload.get("sidecar_evidence_included")
+        and feedback_sidecar.get("copied") is True
+        and int(feedback_sidecar.get("record_count") or 0) >= 1
+        and review_sidecar.get("copied") is True
+        and int(review_sidecar.get("feedback_triage_record_count") or 0) >= 1
+    )
+    result["export_sidecar_evidence"] = {
+        "feedback_jsonl_copied": feedback_sidecar.get("copied"),
+        "feedback_jsonl_record_count": feedback_sidecar.get("record_count"),
+        "review_queue_copied": review_sidecar.get("copied"),
+        "review_queue_feedback_triage_record_count": review_sidecar.get(
+            "feedback_triage_record_count"
+        ),
+        "sidecar_evidence_can_create_product_truth": export_payload.get(
+            "sidecar_evidence_can_create_product_truth"
+        ),
+        "sidecar_evidence_can_create_fooddb_truth": export_payload.get(
+            "sidecar_evidence_can_create_fooddb_truth"
+        ),
+        "sidecar_evidence_can_create_eval_truth": export_payload.get(
+            "sidecar_evidence_can_create_eval_truth"
+        ),
+    }
+    result["fetch_sequence"].extend(_capture_fetches(page))
+    return result
 
 
 def _surface_state(
@@ -305,6 +529,37 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         blockers.append("storage_evidence_missing")
     if browser.get("forbidden_storage_used") is True:
         blockers.append("forbidden_storage_used")
+    desktop_loop = dict(browser.get("desktop_loop") or {})
+    page_navigation = dict(desktop_loop.get("page_navigation") or {})
+    for page_name in PAGE_SURFACE_SELECTORS:
+        if page_navigation.get(page_name) is not True:
+            blockers.append(f"desktop_loop_page_not_loaded:{page_name}")
+    for key, blocker in (
+        ("today_same_truth_checked", "desktop_loop_today_same_truth_not_checked"),
+        ("feedback_submitted", "desktop_loop_feedback_not_submitted"),
+        ("review_queue_artifact_written", "desktop_loop_review_queue_artifact_not_written"),
+        ("review_queue_ingested_feedback", "desktop_loop_review_queue_not_ingested"),
+        ("data_export_created", "desktop_loop_export_not_created"),
+        ("data_export_sidecars_included", "desktop_loop_export_sidecars_not_included"),
+    ):
+        if desktop_loop.get(key) is not True:
+            blockers.append(blocker)
+    if int(desktop_loop.get("feedback_record_count") or 0) < 1:
+        blockers.append("desktop_loop_feedback_record_missing")
+    if int(desktop_loop.get("review_feedback_count") or 0) < 1:
+        blockers.append("desktop_loop_review_feedback_missing")
+    export_sidecar = dict(desktop_loop.get("export_sidecar_evidence") or {})
+    for key in (
+        "sidecar_evidence_can_create_product_truth",
+        "sidecar_evidence_can_create_fooddb_truth",
+        "sidecar_evidence_can_create_eval_truth",
+    ):
+        if export_sidecar.get(key) is not False:
+            blockers.append(f"desktop_loop_export_sidecar_policy_violation:{key}")
+    if desktop_loop.get("local_debug_token_in_url") is True:
+        blockers.append("desktop_loop_local_debug_token_in_url")
+    if desktop_loop.get("forbidden_storage_used") is True:
+        blockers.append("desktop_loop_forbidden_storage_used")
     if report.get("fixture_evidence_used") is not True:
         blockers.append("fixture_evidence_not_declared")
     if report.get("real_fooddb_pass_claimed") is not False or report.get("dogfood_pass") is not False:
@@ -349,6 +604,7 @@ def build_browser_one_day_fixture_dogfood_report(
     timeout_ms: int = 15000,
     headless: bool = True,
 ) -> dict[str, Any]:
+    db_path = db_path.resolve()
     report = _base_report(db_path=db_path, browser_execution_required=require_browser_execution)
     try:
         _load_sync_playwright()
@@ -388,14 +644,30 @@ def build_browser_one_day_fixture_dogfood_report(
     report["scenario_wall_summary"] = manager_summary
     report["scenario_wall_id"] = "one_day_realistic_web_dogfood"
     engine, SessionLocal = _session_factory(db_path)
-    db = SessionLocal()
     local_debug_token = secrets.token_urlsafe(24)
     previous_debug_token = os.environ.get("LOCAL_DEBUG_API_TOKEN")
     os.environ["LOCAL_DEBUG_API_TOKEN"] = local_debug_token
+    feedback_dir = db_path.parent / f"feedback_{secrets.token_hex(4)}"
+    data_hygiene_dir = db_path.parent / f"data_{secrets.token_hex(4)}"
+    review_queue_artifact_path = data_hygiene_dir / "accurate_intake_dogfood_review_queue.json"
+    report["feedback_store_path"] = str(feedback_dir / "accurate_intake_dogfood_feedback.jsonl")
+    report["review_queue_artifact_path"] = str(review_queue_artifact_path)
+    previous_feedback_dir = accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR
+    previous_review_queue_path = accurate_intake_debug_routes.DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH
+    previous_data_feedback_dir = local_data_hygiene_routes.DOGFOOD_FEEDBACK_DIR
+    previous_data_review_queue_path = local_data_hygiene_routes.DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH
+    previous_backup_dir = local_data_hygiene_routes.DOGFOOD_BACKUP_DIR
+    previous_export_dir = local_data_hygiene_routes.DOGFOOD_EXPORT_DIR
+    accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR = feedback_dir
+    accurate_intake_debug_routes.DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH = review_queue_artifact_path
+    local_data_hygiene_routes.DOGFOOD_FEEDBACK_DIR = feedback_dir
+    local_data_hygiene_routes.DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH = review_queue_artifact_path
+    local_data_hygiene_routes.DOGFOOD_BACKUP_DIR = data_hygiene_dir / "backups"
+    local_data_hygiene_routes.DOGFOOD_EXPORT_DIR = data_hygiene_dir / "exports"
     server: uvicorn.Server | None = None
     thread: threading.Thread | None = None
     try:
-        app = _build_app(db)
+        app = _build_app(SessionLocal)
         port = _free_port()
         server, thread = _run_uvicorn_in_thread(app, port=port)
         base_url = f"http://127.0.0.1:{port}"
@@ -405,6 +677,8 @@ def build_browser_one_day_fixture_dogfood_report(
                 base_url=base_url,
                 local_debug_token=local_debug_token,
                 expected_today_summary=expected_today_summary,
+                feedback_dir=feedback_dir,
+                review_queue_artifact_path=review_queue_artifact_path,
                 timeout_ms=timeout_ms,
                 headless=headless,
             )
@@ -423,7 +697,12 @@ def build_browser_one_day_fixture_dogfood_report(
             server.should_exit = True
         if thread is not None:
             thread.join(timeout=5)
-        db.close()
+        accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR = previous_feedback_dir
+        accurate_intake_debug_routes.DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH = previous_review_queue_path
+        local_data_hygiene_routes.DOGFOOD_FEEDBACK_DIR = previous_data_feedback_dir
+        local_data_hygiene_routes.DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH = previous_data_review_queue_path
+        local_data_hygiene_routes.DOGFOOD_BACKUP_DIR = previous_backup_dir
+        local_data_hygiene_routes.DOGFOOD_EXPORT_DIR = previous_export_dir
         engine.dispose()
         if previous_debug_token is None:
             os.environ.pop("LOCAL_DEBUG_API_TOKEN", None)

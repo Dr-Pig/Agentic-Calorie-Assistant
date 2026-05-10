@@ -15,6 +15,43 @@ EXPECTED_MANAGER_DOGFOOD_TODAY = {
 }
 
 
+def _passing_desktop_loop() -> dict[str, object]:
+    return {
+        "page_navigation": {
+            "chat": True,
+            "today": True,
+            "body": True,
+            "feedback": True,
+            "review": True,
+            "data": True,
+        },
+        "today_same_truth_checked": True,
+        "feedback_submitted": True,
+        "review_queue_artifact_written": True,
+        "review_queue_ingested_feedback": True,
+        "data_export_created": True,
+        "data_export_sidecars_included": True,
+        "feedback_record_count": 1,
+        "review_feedback_count": 1,
+        "local_debug_token_in_url": False,
+        "forbidden_storage_used": False,
+        "export_sidecar_evidence": {
+            "feedback_jsonl_copied": True,
+            "feedback_jsonl_record_count": 1,
+            "review_queue_copied": True,
+            "review_queue_feedback_triage_record_count": 1,
+            "sidecar_evidence_can_create_product_truth": False,
+            "sidecar_evidence_can_create_fooddb_truth": False,
+            "sidecar_evidence_can_create_eval_truth": False,
+        },
+        "fetch_sequence": [
+            {"url": "/accurate-intake/feedback", "method": "POST"},
+            {"url": "/accurate-intake/review-queue", "method": "GET"},
+            {"url": "/accurate-intake/local-data-hygiene/export", "method": "POST"},
+        ],
+    }
+
+
 def _passing_browser_result() -> dict[str, object]:
     return {
         "browser_name": "chromium",
@@ -38,10 +75,14 @@ def _passing_browser_result() -> dict[str, object]:
                 "url": "/accurate-intake/chat-history?user_id=dogfood-user-v2-diagnostic&local_date=2026-05-03",
                 "method": "GET",
             },
+            {"url": "/accurate-intake/feedback", "method": "POST"},
+            {"url": "/accurate-intake/review-queue", "method": "GET"},
+            {"url": "/accurate-intake/local-data-hygiene/export", "method": "POST"},
         ],
         "storage": {"localStorageKeys": [], "sessionStorageKeys": []},
         "forbidden_storage_used": False,
         "observed_today_summary": dict(EXPECTED_MANAGER_DOGFOOD_TODAY),
+        "desktop_loop": _passing_desktop_loop(),
     }
 
 
@@ -108,6 +149,21 @@ def test_browser_one_day_fixture_can_require_browser_execution(monkeypatch, tmp_
     assert report["browser_execution_required"] is True
 
 
+def test_browser_one_day_fixture_normalizes_relative_db_path_before_route_export(
+    monkeypatch,
+) -> None:
+    def missing_playwright() -> object:
+        raise module.BrowserSmokeDependencyMissing("playwright_not_installed")
+
+    monkeypatch.setattr(module, "_load_sync_playwright", missing_playwright)
+
+    report = module.build_browser_one_day_fixture_dogfood_report(
+        db_path=Path("artifacts/relative_one_day.sqlite3"),
+    )
+
+    assert Path(report["db_path"]).is_absolute()
+
+
 def test_browser_one_day_fixture_uses_browser_fixture_status_not_dogfood_pass(
     monkeypatch,
     tmp_path: Path,
@@ -128,9 +184,12 @@ def test_browser_one_day_fixture_uses_browser_fixture_status_not_dogfood_pass(
     assert report["manager_runtime_source"] == "one_day_realistic_web_dogfood"
     assert report["expected_today_summary"] == EXPECTED_MANAGER_DOGFOOD_TODAY
     assert report["browser"]["observed_today_summary"] == EXPECTED_MANAGER_DOGFOOD_TODAY
+    assert report["browser"]["desktop_loop"]["data_export_sidecars_included"] is True
+    assert Path(report["review_queue_artifact_path"]).parent.name.startswith("data_")
+    assert Path(report["feedback_store_path"]).parent.name.startswith("feedback_")
 
 
-def test_browser_one_day_fixture_validator_requires_render_reload_and_no_storage() -> None:
+def test_browser_one_day_fixture_validator_requires_render_reload_data_export_and_no_storage() -> None:
     report = module._base_report(db_path=Path("x.sqlite3"), browser_execution_required=True)
     report["browser_executed"] = True
     report["browser"] = {
@@ -140,6 +199,14 @@ def test_browser_one_day_fixture_validator_requires_render_reload_and_no_storage
         "browser_reload_checked": False,
         "forbidden_storage_used": True,
         "storage": {"localStorageKeys": ["bad"], "sessionStorageKeys": []},
+        "desktop_loop": {
+            **_passing_desktop_loop(),
+            "data_export_sidecars_included": False,
+            "export_sidecar_evidence": {
+                **_passing_desktop_loop()["export_sidecar_evidence"],
+                "sidecar_evidence_can_create_eval_truth": True,
+            },
+        },
     }
 
     status, blockers = module._validate(report)
@@ -149,6 +216,43 @@ def test_browser_one_day_fixture_validator_requires_render_reload_and_no_storage
     assert "removed_item_not_rendered" in blockers
     assert "browser_reload_not_checked" in blockers
     assert "forbidden_storage_used" in blockers
+    assert "desktop_loop_export_sidecars_not_included" in blockers
+    assert (
+        "desktop_loop_export_sidecar_policy_violation:sidecar_evidence_can_create_eval_truth"
+        in blockers
+    )
+
+
+def test_browser_one_day_fixture_writes_review_queue_artifact_from_feedback(
+    tmp_path: Path,
+) -> None:
+    feedback_dir = tmp_path / "feedback"
+    feedback_dir.mkdir()
+    feedback_dir.joinpath("accurate_intake_dogfood_feedback.jsonl").write_text(
+        json.dumps(
+            {
+                "artifact_type": "accurate_intake_dogfood_feedback_record",
+                "feedback_id": "feedback-one-day",
+                "category": "product_feedback",
+                "feedback_text": "One-day desktop dogfood loop smoke feedback.",
+                "linked_context": {"trace_id": "one-day-dogfood-trace"},
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = module._write_review_queue_artifact_from_feedback(
+        feedback_dir=feedback_dir,
+        review_queue_artifact_path=tmp_path / "review_queue.json",
+    )
+
+    artifact = json.loads((tmp_path / "review_queue.json").read_text(encoding="utf-8"))
+    assert result["feedback_record_count"] == 1
+    assert result["review_queue_artifact_written"] is True
+    assert artifact["feedback_triage_record_count"] == 1
+    assert artifact["desktop_feedback_records"][0]["linked_context"]["trace_id"] == "one-day-dogfood-trace"
 
 
 def test_browser_one_day_fixture_cli_writes_blocked_artifact_without_optional_failure(
@@ -213,3 +317,14 @@ def test_browser_one_day_fixture_script_stays_out_of_fooddb_and_live_provider_bo
         "grok",
     ):
         assert fragment not in source
+
+
+def test_self_use_runbook_documents_browser_one_day_desktop_loop_closure() -> None:
+    runbook = Path("docs/quality/ACCURATE_INTAKE_MVP_SELF_USE_RUNBOOK.md").read_text(
+        encoding="utf-8-sig"
+    )
+
+    assert "run_accurate_intake_browser_one_day_fixture_dogfood.py" in runbook
+    assert "Chat, Today, Body, Feedback, Review, and Data" in runbook
+    assert "local export sidecars for feedback/review evidence" in runbook
+    assert "real FoodDB truth promotion" in runbook
