@@ -113,7 +113,12 @@ def run_product_lab_proactive(
 def _recommendation_candidate(
     recommendation: Mapping[str, Any],
     fixture_inputs: Mapping[str, Any],
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
+    if (
+        recommendation.get("recommendation_served_to_lab") is not True
+        or recommendation.get("proactive_recommendation_candidate_allowed") is not True
+    ):
+        return None
     primary = _mapping(_mapping(recommendation.get("offer_synthesis")).get("selected_primary"))
     return {
         "trigger_type": "recommendation_prompt",

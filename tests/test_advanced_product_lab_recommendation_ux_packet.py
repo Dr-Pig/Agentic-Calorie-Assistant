@@ -30,6 +30,8 @@ def test_product_lab_recommendation_offer_packet_is_chat_first_and_confirmed(
 
     assert ux_packet["chat_first"] is True
     assert ux_packet["primary_candidate"]["candidate_id"] == "memory-oatmeal"
+    assert ux_packet["backup_candidate_ids"] == ["golden-1"]
+    assert ux_packet["backup_candidates"][0]["candidate_id"] == "golden-1"
     assert ux_packet["actions"] == [
         {
             "action": "log_this",

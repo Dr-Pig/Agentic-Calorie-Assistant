@@ -70,7 +70,7 @@ class FixtureProductLabRecommendationProvider:
     ) -> dict[str, Any]:
         allowed = [
             item
-            for item in retrieval_guard_scoring.get("allowed_candidates") or []
+            for item in retrieval_guard_scoring.get("qualified_candidates") or []
             if isinstance(item, Mapping)
         ]
         if not allowed:
@@ -78,10 +78,29 @@ class FixtureProductLabRecommendationProvider:
                 "node": "offer_synthesis",
                 "owner": "llm_fixture_provider",
                 "model_profile": self.offer_model_profile,
-                "blockers": ["offer_synthesis.allowed_pool_empty"],
+                "status": "omitted",
+                "offer_model_invoked": False,
+                "no_qualified_candidate": True,
+                "ranking_result": {
+                    "pool_decision": "silent_no_qualified_candidate",
+                    "ranked_candidate_ids": [],
+                    "selected_primary": "",
+                    "backup_candidate_ids": [],
+                },
+                "recommendation_response_result": {
+                    "surface": "chat",
+                    "response_packet_owner": "offer_synthesis",
+                    "omission_reason": "no_qualified_candidate",
+                },
+                "blockers": [],
             }
-        primary = dict(allowed[0])
-        backups = [dict(item) for item in allowed[1:3]]
+        selected_id = str(retrieval_guard_scoring.get("primary_candidate_id") or "")
+        primary = _candidate_by_id(allowed, selected_id) or dict(allowed[0])
+        backups = [
+            dict(candidate)
+            for candidate_id in retrieval_guard_scoring.get("backup_candidate_ids") or []
+            if (candidate := _candidate_by_id(allowed, str(candidate_id)))
+        ]
         public_primary = _public_candidate(primary)
         public_backups = [_public_candidate(item) for item in backups]
         explanation = _explanation(primary)
@@ -90,9 +109,13 @@ class FixtureProductLabRecommendationProvider:
             "node": "offer_synthesis",
             "owner": "llm_fixture_provider",
             "model_profile": self.offer_model_profile,
+            "status": "pass",
+            "offer_model_invoked": True,
+            "no_qualified_candidate": False,
             "selected_primary": public_primary,
             "backup_candidates": public_backups,
             "ranking_result": {
+                "pool_decision": str(retrieval_guard_scoring.get("pool_decision") or ""),
                 "ranked_candidate_ids": [
                     str(item.get("candidate_id") or "") for item in allowed
                 ],
@@ -120,6 +143,8 @@ def _public_candidate(candidate: Mapping[str, Any]) -> dict[str, Any]:
         "source_type": str(candidate.get("source_type") or ""),
         "estimated_kcal_range": dict(_mapping(candidate.get("estimated_kcal_range"))),
         "quality_score": int(candidate.get("quality_score") or 0),
+        "quality_tier": str(candidate.get("quality_tier") or ""),
+        "proactive_intensity": str(candidate.get("proactive_intensity") or ""),
         "source_refs": [str(ref) for ref in candidate.get("source_refs") or []],
     }
 
@@ -143,6 +168,16 @@ def _already_logged_kcal(fixture_inputs: Mapping[str, Any]) -> int | None:
 
 def _mapping(value: Any) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
+
+
+def _candidate_by_id(
+    candidates: list[Mapping[str, Any]],
+    candidate_id: str,
+) -> dict[str, Any] | None:
+    for candidate in candidates:
+        if str(candidate.get("candidate_id") or "") == candidate_id:
+            return dict(candidate)
+    return None
 
 
 __all__ = ["FixtureProductLabRecommendationProvider"]

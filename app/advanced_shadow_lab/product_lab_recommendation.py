@@ -90,6 +90,11 @@ def run_product_lab_recommendation(
         *blockers,
         *_blockers("pending_intake_handoff", pending_handoff),
     ]
+    served_to_lab = (
+        not bool(blockers)
+        and bool(primary.get("candidate_id"))
+        and offer_synthesis.get("status") != "omitted"
+    )
     return {
         "artifact_type": "advanced_product_lab_recommendation_runtime_artifact",
         "artifact_schema_version": "1.0",
@@ -103,9 +108,17 @@ def run_product_lab_recommendation(
         "offer_synthesis": offer_synthesis,
         "intake_handoff_packet": _intake_handoff(primary),
         "pending_intake_handoff_packet": pending_handoff,
-        "recommendation_served_to_lab": not bool(blockers),
-        "lab_user_facing_behavior_changed": not bool(blockers),
-        "recommendation_intent_state_created": pending_handoff.get("status") == "pass",
+        "recommendation_served_to_lab": served_to_lab,
+        "proactive_recommendation_candidate_allowed": (
+            served_to_lab
+            and retrieval_guard_scoring.get("pool_decision")
+            in {"primary_plus_backup", "offer"}
+        ),
+        "lab_user_facing_behavior_changed": served_to_lab,
+        "recommendation_intent_state_created": False,
+        "pending_intake_handoff_created": (
+            pending_handoff.get("lab_intake_intent_created") is True
+        ),
         "raw_user_text_semantic_inference_performed": False,
         "mainline_activation_enabled": False,
         "self_use_v1_affected": False,
