@@ -373,6 +373,27 @@ def test_recommendation_ux_acceptance_points_to_offer_shadow_packet() -> None:
     assert recommendation_entry["mainline_activation_allowed"] is False
 
 
+def test_planned_event_rescue_acceptance_points_to_negotiation_shadow_packet() -> None:
+    contract = _contract()
+    entries = {
+        entry["journey_id"]: entry
+        for entry in contract["edge_case_coverage_contract"]["ux_acceptance_entries"]
+    }
+    rescue_entry = entries["F2"]
+
+    assert (
+        "rescue_planned_event_negotiation_shadow_packet"
+        in rescue_entry["existing_shadow_artifacts"]
+    )
+    assert "planned_event_context" in rescue_entry["required_trace_fields"]
+    assert "proposal_candidate" in rescue_entry["required_trace_fields"]
+    assert "explicit_accept_required" in rescue_entry["required_trace_fields"]
+    assert "budget_mutation_allowed" in rescue_entry["required_trace_fields"]
+    assert rescue_entry["acceptance_status"] == "existing_shadow_chain_mapped"
+    assert rescue_entry["claim_boundary"] == "non_claim"
+    assert rescue_entry["mainline_activation_allowed"] is False
+
+
 def test_contract_records_best_practice_and_harness_minimization_boundaries() -> None:
     contract = _contract()
     best_practice = contract["best_practice_evidence"]
