@@ -12,6 +12,8 @@ SIDECAR_MODULES = [
     "app.advanced_shadow_lab.dogfood_replay",
     "app.advanced_shadow_lab.e2e_fixture_chain",
     "app.advanced_shadow_lab.e2e_fixture_chain_policy",
+    "app.advanced_shadow_lab.live_bundle_fixture_inputs",
+    "app.advanced_shadow_lab.live_bundle_inputs",
     "app.advanced_shadow_lab.manifest",
     "app.advanced_shadow_lab.no_send_control_comparison",
     "app.advanced_shadow_lab.recommendation_copy_live_diagnostic",

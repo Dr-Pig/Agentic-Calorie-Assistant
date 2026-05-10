@@ -6,9 +6,7 @@ from pathlib import Path
 from app.advanced_shadow_lab.model_profiles import (
     ADVANCED_LAB_TARGET_REASONING_PROFILE_ID,
 )
-from app.recommendation.application.three_node_shadow_contract import (
-    build_fixture_recommendation_three_node_input,
-)
+from app.advanced_shadow_lab.live_bundle_inputs import write_live_bundle_inputs
 
 
 def test_advanced_shadow_live_bundle_runner_writes_existing_terminal_comparison(
@@ -307,93 +305,10 @@ def test_advanced_shadow_live_bundle_runner_source_stays_manual_diagnostic() -> 
 
 
 def _write_bundle_inputs(tmp_path: Path) -> dict[str, Path]:
-    memory_review = tmp_path / "memory_review.json"
-    chain_payload = tmp_path / "chain_payload.json"
-    memory_review.write_text(
-        json.dumps(_memory_review(), ensure_ascii=False),
-        encoding="utf-8",
-    )
-    chain_payload.write_text(
-        json.dumps(_chain_payload(), ensure_ascii=False),
-        encoding="utf-8",
-    )
-    return {"memory_review": memory_review, "chain_payload": chain_payload}
-
-
-def _memory_review() -> dict[str, object]:
+    result = write_live_bundle_inputs(tmp_path / "inputs")
     return {
-        "artifact_type": "runtime_lab_memory_dogfood_replay_review",
-        "status": "pass",
-        "reviewed_case_count": 1,
-        "runtime_connected": True,
-        "lab_isolated": True,
-        "reviewed_case_proposals": [
-            {
-                "case_id": "dogfood_rt-lab-dogfood-001",
-                "case_type": "explicit_preference",
-                "split": "holdout",
-                "expected_candidate": {
-                    "candidate_type": "preference",
-                    "human_review_required": True,
-                },
-                "trace_fields": {"source_refs": ["message:rt-lab-dogfood-001"]},
-                "review": {"expected_outcome": "candidate"},
-            }
-        ],
-        "durable_product_memory_written": False,
-        "manager_context_packet_changed": False,
-    }
-
-
-def _chain_payload() -> dict[str, object]:
-    return {
-        "memory_summary_projection": _memory_projection(),
-        "recommendation_payload": _recommendation_payload(),
-        "derived_memory_views": _derived_views(),
-        "current_budget_view": {
-            "base_budget_kcal": 1800,
-            "effective_budget_kcal": 1800,
-            "meal_consumption_total_kcal": 2100,
-        },
-        "active_body_plan_view": {
-            "safety_floor_kcal": 1200,
-            "target_days": [
-                {
-                    "local_date": "2026-05-10",
-                    "base_budget_kcal": 1800,
-                    "calibration_adjustment_total_kcal": 0,
-                },
-                {
-                    "local_date": "2026-05-11",
-                    "base_budget_kcal": 1800,
-                    "calibration_adjustment_total_kcal": 0,
-                },
-            ],
-        },
-        "open_proposals_view": {"open_rescue_proposal_count": 0},
-        "proposal_candidate_output": {
-            "proposal_headline": "Fixture headline, not user-facing",
-            "proposal_summary": "Fixture summary, not user-facing",
-            "coaching_frame": "Fixture frame, not user-facing",
-            "recommended_days": 2,
-            "daily_kcal_adjustment": -150,
-            "cap_mode": "standard_15_percent",
-            "special_posture": "standard_spread",
-            "rubric": {
-                "future_oriented": True,
-                "no_shame": True,
-                "not_user_facing": True,
-                "fixture_only": True,
-            },
-        },
-        "user_control_models": {
-            "recommendation_prompt": _controls("new_app_open_with_qualified_pool"),
-            "rescue_nudge": _controls("material_budget_change_or_user_reopens_rescue"),
-        },
-        "interaction_plan": [
-            {"action": "dismiss", "dismiss_reason": "too_frequent"},
-            {"action": "snooze", "snooze_minutes": 120},
-        ],
+        "memory_review": result["memory_review_path"],
+        "chain_payload": result["chain_payload_path"],
     }
 
 
@@ -413,80 +328,4 @@ def _chain_without_stages() -> dict[str, object]:
         "proactive_sent": False,
         "mutation_changed": False,
         "user_facing_behavior_changed": False,
-    }
-
-
-def _memory_projection() -> dict[str, object]:
-    return {
-        "artifact_type": "runtime_lab_memory_consumer_summary_projection",
-        "status": "pass",
-        "preference_profile_summary": {
-            "freshness_posture": "fresh",
-            "accepted_shadow_candidate_ids": ["pref-1"],
-            "negative_preference_blockers": ["neg-1"],
-        },
-        "golden_order_summary": {
-            "orders": [{"candidate_id": "golden-1", "store_name": "FamilyMart"}]
-        },
-        "suppression_summary": {"suppression_blockers": []},
-        "runtime_effect_allowed": False,
-        "durable_product_memory_written": False,
-        "manager_context_packet_changed": False,
-        "recommendation_served": False,
-        "proactive_sent": False,
-        "rescue_proposal_committed": False,
-    }
-
-
-def _derived_views() -> dict[str, object]:
-    return {
-        "rescue_history_summary": {
-            "is_durable_memory_truth": False,
-            "rescue_event_count": 1,
-        },
-        "adherence_summary": {
-            "is_durable_memory_truth": False,
-            "adherence_posture": "mixed",
-        },
-    }
-
-
-def _recommendation_payload() -> dict[str, object]:
-    payload = build_fixture_recommendation_three_node_input()
-    golden = _candidate(payload, "golden-1")
-    golden.update(
-        {
-                "candidate_id": "golden-1",
-                "title": "Chicken salad",
-                "store_name": "FamilyMart",
-                "estimated_kcal": 520,
-                "evidence_posture": "exact",
-                "availability_posture": "available",
-                "realistic_executable": True,
-                "user_accessible": True,
-                "source_refs": ["memory_candidate:pref-1", "memory_candidate:golden-1"],
-                "recommendation_served": False,
-                "intake_handoff_created": False,
-        }
-    )
-    return payload
-
-
-def _candidate(payload: dict[str, object], candidate_id: str) -> dict[str, object]:
-    for item in payload["candidate_source_fixture"]:  # type: ignore[index]
-        if isinstance(item, dict) and item.get("candidate_id") == candidate_id:
-            return item
-    raise AssertionError(f"candidate not found: {candidate_id}")
-
-
-def _controls(next_signal: str) -> dict[str, object]:
-    return {
-        "dismiss_reason_choices": [
-            "not_relevant_now",
-            "already_handled",
-            "too_frequent",
-        ],
-        "snooze_window": {"kind": "duration", "minutes": 180},
-        "undo_scope": "current_no_send_candidate_only",
-        "next_signal_required": next_signal,
     }

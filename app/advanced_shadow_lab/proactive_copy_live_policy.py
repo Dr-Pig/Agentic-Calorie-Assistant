@@ -9,7 +9,10 @@ SUPPORTED_INPUT = "proactive_no_send_review_sink_artifact"
 SYSTEM_PROMPT = (
     "Return JSON for proactive chat-copy diagnostics only. Do not claim the "
     "message was shown, sent, notified, scheduled, saved, committed, or applied. "
-    "Required fields: draft_chat_message, reason_summary, "
+    "draft_chat_message is a hypothetical non-served chat draft for review only, "
+    "not a delivered message. It must be non-empty and must not say it was sent, "
+    "shown, notified, scheduled, saved, committed, or applied. Required fields: "
+    "draft_chat_message, reason_summary, "
     "false_positive_silence_case, next_signal, claim_scope, action_request, "
     "delivery_request, mutation_request, scheduler_request, notification_request, "
     "reason_codes."
@@ -78,6 +81,9 @@ def provider_payload(sink: Mapping[str, Any], records: list[Mapping[str, Any]]) 
             "claim_scope_required": "diagnostic_copy_only",
             "chat_copy_only": True,
             "user_facing_output_allowed": False,
+            "draft_chat_message_required": True,
+            "draft_chat_message_is_non_served_diagnostic_copy": True,
+            "draft_chat_message_must_not_claim_delivery": True,
             "delivery_or_notification_allowed": False,
             "scheduler_allowed": False,
             "mutation_or_commit_allowed": False,
@@ -97,12 +103,13 @@ def output_guard(output: Mapping[str, Any]) -> dict[str, Any]:
     for field in OUTPUT_TEXT_FIELDS:
         if not str(output.get(field) or "").strip():
             blockers.append(f"model_output.{field}_missing")
-    text = " ".join(str(output.get(field) or "") for field in OUTPUT_TEXT_FIELDS).lower()
-    if any(token in text for token in DELIVERY_TOKENS):
+    draft_text = str(output.get("draft_chat_message") or "").lower()
+    all_text = " ".join(str(output.get(field) or "") for field in OUTPUT_TEXT_FIELDS).lower()
+    if any(token in draft_text for token in DELIVERY_TOKENS):
         blockers.append("model_output.delivery_language_present")
-    if any(token in text for token in SCHEDULER_TOKENS):
+    if any(token in all_text for token in SCHEDULER_TOKENS):
         blockers.append("model_output.scheduler_language_present")
-    if any(token in text for token in MUTATION_TOKENS):
+    if any(token in all_text for token in MUTATION_TOKENS):
         blockers.append("model_output.mutation_language_present")
     return {"status": "blocked" if blockers else "pass", "blockers": blockers}
 

@@ -7,6 +7,11 @@ from typing import Any, Mapping
 from app.advanced_shadow_lab.proactive_copy_live_diagnostic import (
     run_proactive_copy_live_diagnostic,
 )
+from app.advanced_shadow_lab.proactive_copy_live_policy import (
+    SYSTEM_PROMPT,
+    output_guard,
+    provider_payload,
+)
 
 
 class FakeProactiveCopyDiagnosticProvider:
@@ -149,6 +154,35 @@ def test_proactive_copy_live_diagnostic_requires_no_send_control_paths() -> None
         "control_path_evidence.undo_not_configured",
         "control_path_evidence.next_signal_missing",
     ]
+
+
+def test_proactive_copy_live_policy_disambiguates_non_served_chat_draft() -> None:
+    payload = provider_payload(_review_sink(), _review_sink()["records"])  # type: ignore[arg-type]
+
+    assert "hypothetical non-served chat draft" in SYSTEM_PROMPT
+    assert payload["constraints"]["draft_chat_message_required"] is True
+    assert payload["constraints"]["draft_chat_message_is_non_served_diagnostic_copy"] is True
+    assert payload["constraints"]["draft_chat_message_must_not_claim_delivery"] is True
+
+
+def test_proactive_copy_live_guard_allows_non_delivery_diagnostic_language() -> None:
+    guard = output_guard(
+        {
+            "draft_chat_message": "A review-only check-in could be useful after app open.",
+            "reason_summary": "Diagnostic only; no notification delivery is allowed.",
+            "false_positive_silence_case": "Stay silent if this would feel like a notification.",
+            "next_signal": "Wait for a new app-open or material budget signal.",
+            "claim_scope": "diagnostic_copy_only",
+            "action_request": False,
+            "delivery_request": False,
+            "mutation_request": False,
+            "scheduler_request": False,
+            "notification_request": False,
+            "reason_codes": ["chat_first", "review_only"],
+        }
+    )
+
+    assert guard == {"status": "pass", "blockers": []}
 
 
 def _review_sink() -> dict[str, object]:
