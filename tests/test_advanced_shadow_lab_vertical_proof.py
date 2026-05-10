@@ -6,21 +6,52 @@ from app.advanced_shadow_lab.vertical_proof import (
 )
 
 
-def test_fixture_vertical_proof_runs_complete_lab_loop_without_mainline_effects() -> None:
+def test_fixture_vertical_proof_runs_complete_lab_loop_without_mainline_effects(
+    tmp_path,
+) -> None:
     payload = build_fixture_vertical_proof_input()
 
-    artifact = run_fixture_vertical_proof(payload)
+    artifact = run_fixture_vertical_proof(payload, artifact_root=tmp_path)
 
     assert artifact["artifact_type"] == "advanced_shadow_lab_vertical_proof_artifact"
     assert artifact["status"] == "pass"
     assert artifact["lab_namespace"] == "advanced_shadow_lab"
     assert artifact["stage_order"] == [
-        "memory_like_input",
-        "recommendation_like_candidate",
-        "rescue_like_candidate",
-        "proactive_like_decision",
-        "lab_delivery_record",
+        "runtime_lab_reviewed_memory_store_write",
+        "shadow_memory_context_pack",
+        "runtime_lab_memory_consumer_summary_projection",
+        "advanced_shadow_e2e_fixture_chain_artifact",
+        "proactive_no_send_review_sink_artifact",
+        "advanced_shadow_chat_ux_packet_artifact",
     ]
+    assert "memory_like_input" not in payload
+    assert "recommendation_like_candidate" not in payload
+    assert [row["artifact_type"] for row in artifact["artifact_lineage"]] == artifact[
+        "stage_order"
+    ]
+    stage_by_type = {
+        stage["artifact_type"]: stage for stage in artifact["stage_artifacts"]
+    }
+    context_pack = stage_by_type["shadow_memory_context_pack"]
+    memory_projection = stage_by_type[
+        "runtime_lab_memory_consumer_summary_projection"
+    ]
+    fixture_chain = stage_by_type["advanced_shadow_e2e_fixture_chain_artifact"]
+    terminal_sink = stage_by_type["proactive_no_send_review_sink_artifact"]
+    chat_packet = stage_by_type["advanced_shadow_chat_ux_packet_artifact"]
+
+    assert context_pack["reviewed_memory_store_used"] is True
+    assert "golden-order-morning-bar-oatmeal-latte" in context_pack[
+        "selected_candidate_ids"
+    ]
+    assert memory_projection["source_context_pack_used"] is True
+    assert memory_projection["reviewed_memory_store_used"] is True
+    assert fixture_chain["status"] == "pass"
+    assert fixture_chain["stage_artifacts"][1]["three_node_lab_bridge_used"] is True
+    assert terminal_sink["status"] == "pass"
+    assert terminal_sink["record_count"] == 2
+    assert chat_packet["status"] == "pass"
+    assert chat_packet["packet_count"] == 2
     assert artifact["scope"] == {
         "user_id": "user-fixture-1",
         "workspace_id": "workspace-fixture-1",
@@ -31,7 +62,8 @@ def test_fixture_vertical_proof_runs_complete_lab_loop_without_mainline_effects(
     assert artifact["lab_delivery_record"] == {
         "sink": "isolated_lab_sink",
         "delivery_mode": "record_only",
-        "candidate_id": "proactive-fixture-1",
+        "source_artifact_type": "proactive_no_send_review_sink_artifact",
+        "record_count": 2,
         "delivered_to_production": False,
     }
     assert artifact["activation_flags"] == _false_activation_flags()
@@ -52,6 +84,8 @@ def test_fixture_vertical_proof_blocks_missing_scope_before_building_outputs() -
     assert artifact["status"] == "blocked"
     assert artifact["blockers"] == ["scope.workspace_id_missing"]
     assert artifact["stage_order"] == []
+    assert artifact["stage_artifacts"] == []
+    assert artifact["artifact_lineage"] == []
     assert artifact["lab_delivery_record"] is None
     assert artifact["activation_flags"] == _false_activation_flags()
 
