@@ -10,9 +10,7 @@ from app.advanced_shadow_lab.product_lab_memory import (
 from app.advanced_shadow_lab import product_lab_rescue_proposal_read_model as rm
 from app.advanced_shadow_lab.product_lab_runtime import run_advanced_product_lab_turn
 from app.advanced_shadow_lab.product_lab_session_controls import (
-    event_ids,
-    post_turn_control_state,
-    post_turn_events,
+    post_turn_control_state_and_event_ids,
     release_completed_controls,
 )
 from app.advanced_shadow_lab.product_lab_session_memory_pipeline import (
@@ -97,14 +95,14 @@ def run_advanced_product_lab_dogfood_session(
             prior_action_state=action_state,
         )
         released_journal = release_completed_controls(journal, turn_artifact)
-        post_control = post_turn_control_state(
+        post_control, control_event_ids = post_turn_control_state_and_event_ids(
             session_id=session_id,
             turn_id=turn_id,
             turn_spec=turn_spec,
             turn_artifact=turn_artifact,
             prior_journal=released_journal,
         )
-        history_event_ids.extend(event_ids(post_turn_events(turn_spec)))
+        history_event_ids.extend(control_event_ids)
         memory_pipeline = run_product_lab_turn_memory_pipeline(
             store=memory_store,
             session_id=session_id,
