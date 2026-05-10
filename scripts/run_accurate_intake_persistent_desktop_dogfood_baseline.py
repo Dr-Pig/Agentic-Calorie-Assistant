@@ -44,6 +44,18 @@ def _expected_today_summary(report: dict[str, object]) -> dict[str, str]:
     }
 
 
+def _expected_today_macro_summary(report: dict[str, object]) -> dict[str, str]:
+    today = dict(dict(report.get("after_restart") or {}).get("today") or {})
+    if today.get("show_macro") is not True:
+        return {}
+    return {
+        "protein_g": str(today["consumed_protein"]),
+        "carbs_g": str(today["consumed_carbs"]),
+        "fat_g": str(today["consumed_fat"]),
+        "macro_guard_reason": str(today["macro_guard_reason"]),
+    }
+
+
 def _browser_blockers(browser: dict[str, object]) -> list[str]:
     blockers: list[str] = []
     entry = dict(browser.get("desktop_entry") or {})
@@ -64,6 +76,7 @@ def _browser_blockers(browser: dict[str, object]) -> list[str]:
             blockers.append(f"desktop_page_not_loaded:{page_name}")
     for key, blocker in (
         ("today_same_truth_checked", "today_same_truth_not_checked"),
+        ("today_macro_panel_checked", "today_macro_panel_not_checked"),
         ("feedback_submitted", "feedback_not_submitted"),
         ("review_queue_ingested_feedback", "review_queue_not_ingested"),
         ("data_export_sidecars_included", "export_sidecars_not_included"),
@@ -130,6 +143,47 @@ def _check_adjacent_date_isolation(
     }
 
 
+def _check_today_macro_panel(
+    page: object,
+    *,
+    base_url: str,
+    user_external_id: str,
+    local_date: str,
+    expected_macro_summary: dict[str, str],
+    timeout_ms: int,
+) -> dict[str, object]:
+    page.goto(
+        f"{base_url}/static/accurate-intake-today.html?user_id={user_external_id}&local_date={local_date}",
+        wait_until="networkidle",
+        timeout=timeout_ms,
+    )
+    page.wait_for_selector('[data-surface-role="today-diary"]', timeout=timeout_ms)
+    if not expected_macro_summary:
+        return {"checked": False, "reason": "expected_macro_summary_missing"}
+    page.wait_for_function(
+        """(expected) => {
+          const panel = document.querySelector("#macro-panel");
+          const grid = document.querySelector("#macro-grid");
+          return panel?.dataset?.macroState === "visible"
+            && grid?.hidden === false
+            && document.querySelector("#protein-g")?.textContent?.trim() === expected.protein_g
+            && document.querySelector("#carbs-g")?.textContent?.trim() === expected.carbs_g
+            && document.querySelector("#fat-g")?.textContent?.trim() === expected.fat_g
+            && document.querySelector("#macro-guard-reason")?.hidden === true;
+        }""",
+        arg=expected_macro_summary,
+        timeout=timeout_ms,
+    )
+    return {
+        "checked": True,
+        "macro_state": page.locator("#macro-panel").get_attribute("data-macro-state", timeout=timeout_ms),
+        "protein_text": page.locator("#protein-g").inner_text(timeout=timeout_ms).strip(),
+        "carbs_text": page.locator("#carbs-g").inner_text(timeout=timeout_ms).strip(),
+        "fat_text": page.locator("#fat-g").inner_text(timeout=timeout_ms).strip(),
+        "macro_guard_reason_hidden": page.locator("#macro-guard-reason").is_hidden(timeout=timeout_ms),
+    }
+
+
 def _run_persistent_browser_sequence(
     *,
     db_path: Path,
@@ -192,6 +246,16 @@ def _run_persistent_browser_sequence(
                         user_external_id=user_external_id,
                         local_date=local_date,
                     )
+                    macro_panel = _check_today_macro_panel(
+                        page,
+                        base_url=base_url,
+                        user_external_id=user_external_id,
+                        local_date=local_date,
+                        expected_macro_summary=_expected_today_macro_summary(report),
+                        timeout_ms=timeout_ms,
+                    )
+                    loop["today_macro_panel"] = macro_panel
+                    loop["today_macro_panel_checked"] = macro_panel.get("checked") is True
                     adjacent_date = _check_adjacent_date_isolation(
                         page,
                         base_url=base_url,
