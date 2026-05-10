@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAGS
+from app.advanced_shadow_lab.model_profiles import advanced_lab_model_profile_policy
 from app.advanced_shadow_lab.product_lab_live_payload import (
     product_lab_live_provider_payload,
 )
@@ -81,6 +82,7 @@ def run_product_lab_live_diagnostic(
         "lab_memory_store_written": bool(summary_artifact.get("lab_memory_store_written")),
         "memory_context_injected": bool(summary_artifact.get("memory_context_injected")),
         "model_input_policy": _model_input_policy(),
+        "model_profile_policy": advanced_lab_model_profile_policy(),
         "provider_mode": str(provider_mode),
         "live_invoked": bool(live_invoked),
         "live_provider_used": bool(live_invoked and provider_invoked),
