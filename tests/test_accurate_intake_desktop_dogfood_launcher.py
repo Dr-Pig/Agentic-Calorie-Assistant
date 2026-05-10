@@ -49,6 +49,15 @@ def test_desktop_dogfood_launch_descriptor_uses_persistent_local_sqlite_and_laun
         "review",
         "data",
     ]
+    assert descriptor["entry_page_urls"] == {
+        "desktop": "http://127.0.0.1:8765/static/accurate-intake-desktop.html?user_id=dogfood-user",
+        "chat": "http://127.0.0.1:8765/static/accurate-intake-chat.html?user_id=dogfood-user",
+        "today": "http://127.0.0.1:8765/static/accurate-intake-today.html?user_id=dogfood-user",
+        "body": "http://127.0.0.1:8765/static/accurate-intake-body.html?user_id=dogfood-user",
+        "feedback": "http://127.0.0.1:8765/static/accurate-intake-feedback.html?user_id=dogfood-user",
+        "review": "http://127.0.0.1:8765/static/accurate-intake-review.html?user_id=dogfood-user",
+        "data": "http://127.0.0.1:8765/static/accurate-intake-data.html?user_id=dogfood-user",
+    }
     assert descriptor["local_debug_token"] == "test-token"
     assert descriptor["local_debug_header"] == "X-Local-Debug-Token"
     assert descriptor["local_debug_token_in_url"] is False

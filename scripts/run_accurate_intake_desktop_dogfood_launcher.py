@@ -62,6 +62,14 @@ def _launch_url(*, host: str, port: int, user_id: str) -> str:
     return f"http://{host}:{port}/static/accurate-intake-desktop.html?{query}"
 
 
+def _entry_page_urls(*, host: str, port: int, user_id: str) -> dict[str, str]:
+    query = urlencode({"user_id": user_id})
+    return {
+        page: f"http://{host}:{port}/static/accurate-intake-{page}.html?{query}"
+        for page in ("desktop", "chat", "today", "body", "feedback", "review", "data")
+    }
+
+
 def _desktop_provider_status() -> dict[str, dict[str, Any]]:
     manager_status = public_provider_readiness(manager_provider.readiness())
     return {
@@ -105,6 +113,7 @@ def build_launch_descriptor(
             "review",
             "data",
         ],
+        "entry_page_urls": _entry_page_urls(host=host, port=port, user_id=user_id),
         "provider_status": provider_status or _desktop_provider_status(),
         "local_debug_token": local_debug_token,
         "local_debug_header": LOCAL_DEBUG_API_TOKEN_HEADER,
