@@ -19,6 +19,7 @@ SIDECAR_MODULES = [
     "app.advanced_shadow_lab.live_bundle_inputs",
     "app.advanced_shadow_lab.manifest",
     "app.advanced_shadow_lab.no_send_control_comparison",
+    "app.advanced_shadow_lab.paired_fixture_cases",
     "app.advanced_shadow_lab.recommendation_copy_live_diagnostic",
     "app.advanced_shadow_lab.rescue_copy_live_diagnostic",
     "app.advanced_shadow_lab.shadow_comparison",

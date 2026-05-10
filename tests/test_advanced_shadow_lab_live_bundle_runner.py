@@ -62,6 +62,7 @@ def test_advanced_shadow_live_bundle_runner_writes_existing_terminal_comparison(
     intermediate_types = {
         path.name: json.loads(path.read_text(encoding="utf-8"))["artifact_type"]
         for path in artifact_dir.glob("*.json")
+        if isinstance(json.loads(path.read_text(encoding="utf-8")), dict)
     }
     assert intermediate_types == {
         "advanced_shadow_e2e_fixture_chain.json": (
@@ -77,6 +78,39 @@ def test_advanced_shadow_live_bundle_runner_writes_existing_terminal_comparison(
         "advanced_shadow_proactive_copy_live_diagnostic.json": (
             "advanced_shadow_proactive_copy_live_diagnostic_artifact"
         ),
+        "advanced_shadow_paired_fixture_cases.json": (
+            "advanced_shadow_paired_fixture_cases"
+        ),
+    }
+    baseline_cases = json.loads(
+        (artifact_dir / "advanced_shadow_baseline_fixture_cases.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    advanced_cases = json.loads(
+        (artifact_dir / "advanced_shadow_advanced_fixture_cases.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert [case["case_id"] for case in baseline_cases] == [
+        "recommendation_prompt_fixture_case",
+        "rescue_nudge_fixture_case",
+        "proactive_no_send_review_fixture_case",
+        "chat_ux_packet_fixture_case",
+    ]
+    assert [case["case_id"] for case in advanced_cases] == [
+        "recommendation_prompt_fixture_case",
+        "rescue_nudge_fixture_case",
+        "proactive_no_send_review_fixture_case",
+        "chat_ux_packet_fixture_case",
+    ]
+    assert terminal["pairing_summary"] == {
+        "status": "pairable",
+        "baseline_case_count": 4,
+        "advanced_case_count": 4,
+        "paired_case_count": 4,
+        "schema_gaps": [],
+        "activation_violations": [],
     }
     fixture_chain = json.loads(
         (artifact_dir / "advanced_shadow_e2e_fixture_chain.json").read_text(

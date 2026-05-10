@@ -42,6 +42,9 @@ from app.advanced_shadow_lab.live_bundle_fake_providers import (  # noqa: E402
     FakeRecommendationCopyDiagnosticProvider,
     FakeRescueCopyDiagnosticProvider,
 )
+from app.advanced_shadow_lab.paired_fixture_cases import (  # noqa: E402
+    build_paired_fixture_case_artifacts,
+)
 
 
 ALLOW_ENV = "ADVANCED_SHADOW_LAB_ALLOW_LIVE_LLM_DIAGNOSTIC"
@@ -52,6 +55,9 @@ RESCUE_OUTPUT = "advanced_shadow_rescue_copy_live_diagnostic.json"
 PROACTIVE_OUTPUT = "advanced_shadow_proactive_copy_live_diagnostic.json"
 DOGFOOD_OUTPUT = "advanced_shadow_dogfood_replay.json"
 FIXTURE_CHAIN_OUTPUT = "advanced_shadow_e2e_fixture_chain.json"
+PAIRED_CASES_OUTPUT = "advanced_shadow_paired_fixture_cases.json"
+BASELINE_CASES_OUTPUT = "advanced_shadow_baseline_fixture_cases.json"
+ADVANCED_CASES_OUTPUT = "advanced_shadow_advanced_fixture_cases.json"
 BLOCKED_RECOMMENDATION_TYPE = "advanced_shadow_recommendation_copy_live_diagnostic_artifact"
 BLOCKED_RESCUE_TYPE = "advanced_shadow_rescue_copy_live_diagnostic_artifact"
 BLOCKED_PROACTIVE_TYPE = "advanced_shadow_proactive_copy_live_diagnostic_artifact"
@@ -116,6 +122,20 @@ def main(argv: list[str] | None = None) -> int:
         ],
     )
     _write_json(artifact_dir / FIXTURE_CHAIN_OUTPUT, fixture_chain)
+    paired_cases = build_paired_fixture_case_artifacts(
+        fixture_chain_artifact=fixture_chain,
+    )
+    _write_json(artifact_dir / PAIRED_CASES_OUTPUT, paired_cases)
+    _write_json(
+        artifact_dir / BASELINE_CASES_OUTPUT,
+        paired_cases["baseline_case_artifacts"],
+    )
+    _write_json(
+        artifact_dir / ADVANCED_CASES_OUTPUT,
+        paired_cases["advanced_case_artifacts"],
+    )
+    baseline_cases = _read_list(args.baseline_cases) or paired_cases["baseline_case_artifacts"]
+    advanced_cases = _read_list(args.advanced_cases) or paired_cases["advanced_case_artifacts"]
 
     terminal = build_advanced_shadow_comparison_artifact(
         fixture_chain_artifact=fixture_chain,
@@ -123,8 +143,8 @@ def main(argv: list[str] | None = None) -> int:
         recommendation_copy_live_diagnostic_artifact=recommendation_live,
         rescue_copy_live_diagnostic_artifact=rescue_live,
         proactive_copy_live_diagnostic_artifact=proactive_live,
-        baseline_case_artifacts=_read_list(args.baseline_cases),
-        advanced_case_artifacts=_read_list(args.advanced_cases),
+        baseline_case_artifacts=baseline_cases,
+        advanced_case_artifacts=advanced_cases,
     )
     output = Path(args.output)
     _write_json(output, terminal)
@@ -342,9 +362,9 @@ def _read_list(path_text: str | None) -> list[dict[str, Any]]:
     return [dict(item) for item in value if isinstance(item, Mapping)] if isinstance(value, list) else []
 
 
-def _write_json(path: Path, artifact: Mapping[str, Any]) -> None:
+def _write_json(path: Path, artifact: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(dict(artifact), ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(json.dumps(artifact, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _print_terminal_summary(
