@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -35,6 +36,14 @@ def _candidate(candidate_id: str, candidate_type: str, **payload: object) -> dic
         "durable_product_memory_written": False,
         "manager_context_packet_changed": False,
     }
+
+
+class _MixedCandidateSource:
+    def __init__(self, records: list[dict]) -> None:
+        self._records = records
+
+    def list_candidates(self, scope_keys: dict[str, str]) -> list[dict]:
+        return self._records
 
 
 def _candidate_trace() -> dict:
@@ -91,6 +100,44 @@ def test_retrieval_pack_selects_exact_scope_and_omits_cross_scope(tmp_path: Path
     assert pack["runtime_effect_allowed"] is False
 
 
+def test_retrieval_pack_rechecks_scope_from_candidate_source() -> None:
+    from app.memory.application.runtime_lab_retrieval import (
+        build_shadow_memory_context_pack,
+    )
+
+    allowed = _candidate("pref-allowed", "preference", summary="prefers rice bowls")
+    wrong_scope = _candidate("pref-cross-scope", "preference", summary="other user data")
+    wrong_scope["scope_keys"] = _scope(user_id="other-user")
+    missing_scope = _candidate(
+        "pref-missing-run",
+        "preference",
+        summary="missing run scope data",
+    )
+    del missing_scope["scope_keys"]["run_id"]
+
+    pack = build_shadow_memory_context_pack(
+        _MixedCandidateSource(
+            [
+                {"candidate": allowed, "scope_keys": allowed["scope_keys"]},
+                {"candidate": wrong_scope, "scope_keys": wrong_scope["scope_keys"]},
+                {"candidate": missing_scope, "scope_keys": missing_scope["scope_keys"]},
+            ]
+        ),
+        _scope(),
+        token_budget=120,
+    )
+    serialized = json.dumps(pack, ensure_ascii=False)
+
+    assert pack["selected_candidate_ids"] == ["pref-allowed"]
+    assert {item["candidate_id"]: item["reason"] for item in pack["omission_trace"]} == {
+        "pref-cross-scope": "scope_mismatch",
+        "pref-missing-run": "scope_mismatch",
+    }
+    assert "other-user" not in serialized
+    assert "other user data" not in serialized
+    assert "missing run scope data" not in serialized
+
+
 def test_retrieval_pack_applies_stale_omission_and_negative_blocker(
     tmp_path: Path,
 ) -> None:
@@ -125,6 +172,105 @@ def test_retrieval_pack_applies_stale_omission_and_negative_blocker(
     assert omissions["pref-1"] == "blocked_by_negative_preference"
     assert omissions["pattern-1"] == "stale_or_expired"
     assert pack["negative_preference_blockers"] == ["neg-1"]
+
+
+def test_retrieval_pack_ignores_stale_negative_preference_as_blocker(
+    tmp_path: Path,
+) -> None:
+    from app.memory.application.runtime_lab_retrieval import (
+        build_shadow_memory_context_pack,
+    )
+    from app.memory.application.runtime_lab_store import RuntimeLabMemoryStore
+
+    store = RuntimeLabMemoryStore(tmp_path)
+    store.write_candidate(
+        _candidate(
+            "neg-stale",
+            "negative_preference",
+            summary="old no rice memory",
+            blocks_candidate_types=["preference"],
+            freshness_posture="stale",
+        )
+    )
+    store.write_candidate(
+        _candidate("pref-fresh", "preference", summary="fresh preference for rice bowls")
+    )
+
+    pack = build_shadow_memory_context_pack(store, _scope(), token_budget=120)
+
+    assert pack["selected_candidate_ids"] == ["pref-fresh"]
+    assert pack["negative_preference_blockers"] == []
+    assert pack["omission_trace"] == [
+        {"candidate_id": "neg-stale", "reason": "stale_or_expired"}
+    ]
+
+
+def test_retrieval_pack_omits_expired_temporary_and_conflict_review_candidates(
+    tmp_path: Path,
+) -> None:
+    from app.memory.application.runtime_lab_retrieval import (
+        build_shadow_memory_context_pack,
+    )
+    from app.memory.application.runtime_lab_store import RuntimeLabMemoryStore
+
+    store = RuntimeLabMemoryStore(tmp_path)
+    store.write_candidate(
+        _candidate(
+            "temp-expired",
+            "temporary_preference",
+            summary="low oil dinner this week",
+            valid_until="2000-01-01",
+        )
+    )
+    store.write_candidate(
+        _candidate(
+            "temp-active",
+            "temporary_preference",
+            summary="low oil dinner for upcoming travel",
+            valid_until="2999-01-01",
+        )
+    )
+    store.write_candidate(
+        _candidate(
+            "conflict-review",
+            "contradiction_review",
+            summary="old sweet drink pattern conflicts with confirmed negative",
+            conflicts_with=["negative-no-sugary-drinks"],
+        )
+    )
+
+    pack = build_shadow_memory_context_pack(store, _scope(), token_budget=120)
+
+    assert pack["selected_candidate_ids"] == ["temp-active"]
+    assert {item["candidate_id"]: item["reason"] for item in pack["omission_trace"]} == {
+        "conflict-review": "conflict_review_required",
+        "temp-expired": "stale_or_expired",
+    }
+
+
+def test_retrieval_pack_keeps_temporary_preference_valid_through_named_date(
+    tmp_path: Path,
+) -> None:
+    from app.memory.application.runtime_lab_retrieval import (
+        build_shadow_memory_context_pack,
+    )
+    from app.memory.application.runtime_lab_store import RuntimeLabMemoryStore
+
+    store = RuntimeLabMemoryStore(tmp_path)
+    today = datetime.now(timezone.utc).date().isoformat()
+    store.write_candidate(
+        _candidate(
+            "temp-valid-today",
+            "temporary_preference",
+            summary="lighter dinner today",
+            valid_until=today,
+        )
+    )
+
+    pack = build_shadow_memory_context_pack(store, _scope(), token_budget=120)
+
+    assert pack["selected_candidate_ids"] == ["temp-valid-today"]
+    assert pack["omission_trace"] == []
 
 
 def test_retrieval_pack_enforces_token_budget_without_retry_expansion(
