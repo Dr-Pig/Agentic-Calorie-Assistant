@@ -120,7 +120,16 @@ def _seed_required_gate_inputs(
             "artifact_type": "accurate_intake_browser_one_day_fixture_dogfood",
             "status": "browser_fixture_pass",
             "fixture_evidence_used": True,
+            "fixture_fooddb_evidence_used": True,
+            "fooddb_evidence_used": False,
+            "fooddb_evidence_used_normalized_for_local_review": True,
             "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "product_readiness_claimed": False,
+            "manager_dogfood_summary": {
+                "macro_present_evidence_seen": True,
+                "macro_missing_evidence_seen": True,
+            },
         },
         "browser_realistic_dogfood": {
             "artifact_schema_version": "1.0",
@@ -133,13 +142,20 @@ def _seed_required_gate_inputs(
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_dogfood_operator_review_surface",
             "status": "browser_diagnostic_review_with_fixture_evidence_gap",
+            "claim_scope": "local_dogfood_operator_review_surface",
             "local_only": True,
+            "do_not_commit": True,
             "food_kb_truth_updated": False,
+            "fooddb_truth_updated": False,
             "real_fooddb_pass_claimed": False,
             "dogfood_pass": False,
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
             "production_readiness_claimed": False,
+            "classification_policy": {
+                "food_kb_truth_update_allowed": False,
+                "frontend_semantic_owner": False,
+            },
         },
     }
     for group_id, payload in product_loop_support.items():
@@ -349,6 +365,18 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
         "approved_packet_ready_evidence_metadata_valid"
     )
     assert product_loop_handoff["ready_for_fdb_integration"] is True
+    assert product_loop_handoff["fooddb_contract_validation"] == {
+        "source": "browser_fixture_dogfood.manager_dogfood_summary",
+        "packet_evidence_consumed": True,
+        "fixture_fooddb_evidence_used": True,
+        "fooddb_evidence_used": False,
+        "fooddb_evidence_used_normalized_for_local_review": True,
+        "macro_present_evidence_seen": True,
+        "macro_missing_evidence_seen": True,
+        "real_fooddb_pass_claimed": False,
+        "dogfood_pass": False,
+        "product_readiness_claimed": False,
+    }
     assert product_loop_handoff["fooddb_evidence_used"] is False
     assert product_loop_handoff["real_fooddb_pass_claimed"] is False
     assert product_loop_handoff["dogfood_pass"] is False
