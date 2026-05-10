@@ -223,6 +223,7 @@
     function feedbackRecord(record) {
       const linked = record.linked_context || {};
       const uiEvent = record.ui_event || {};
+      const operation = record.operation_context || {};
       const node = document.createElement("article");
       node.className = "record";
       node.innerHTML = `
@@ -231,6 +232,7 @@
           <span class="meta"></span>
         </header>
         <p></p>
+        <p class="meta"></p>
         <p class="meta"></p>
         <p class="meta"></p>
         <p class="meta"></p>
@@ -254,6 +256,13 @@
         `source_page ${text(uiEvent.source_page)}`,
         `route ${text(uiEvent.route)}`,
         `feedback_route ${text(uiEvent.feedback_route)}`
+      ].join(" | ");
+      metaRows[4].textContent = [
+        `endpoint ${text(operation.submitted_endpoint)}`,
+        `status ${text(operation.http_status)}`,
+        `duration_ms ${text(operation.duration_ms)}`,
+        `page_path ${text(operation.page_path)}`,
+        `referrer ${text(operation.referrer)}`
       ].join(" | ");
       return node;
     }

@@ -237,6 +237,17 @@ def test_feedback_page_collects_operation_context_for_submit_request() -> None:
     assert "referrer: document.referrer" in page
 
 
+def test_review_page_displays_feedback_operation_context_fields() -> None:
+    page = Path("static/accurate-intake-review.html").read_text(encoding="utf-8")
+
+    assert "record.operation_context" in page
+    assert "submitted_endpoint" in page
+    assert "http_status" in page
+    assert "duration_ms" in page
+    assert "page_path" in page
+    assert "referrer" in page
+
+
 def test_local_review_queue_route_preserves_existing_review_candidates(
     monkeypatch,
     tmp_path,
