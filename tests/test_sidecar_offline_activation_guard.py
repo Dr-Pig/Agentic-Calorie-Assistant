@@ -72,6 +72,7 @@ SIDECAR_MODULES = [
     "app.rescue.application.reviewed_memory_chain_bridge",
     "app.rescue.application.proposal_shaping_fake_runner",
     "app.rescue.application.proposal_shaping_output_validator_shadow",
+    "app.rescue.application.chat_negotiation_lifecycle_shadow",
     "app.rescue.application.planned_event_negotiation_shadow",
     "app.rescue.application.shadow_chain_runner",
     "app.runtime.contracts.pending_meal_intent",

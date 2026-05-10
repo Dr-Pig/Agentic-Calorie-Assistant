@@ -581,15 +581,21 @@ edge_case_coverage_contract:
       existing_shadow_artifacts:
         - rescue_shadow_summary_context_projection
         - rescue_shadow_chain_runner_artifact
+        - rescue_chat_negotiation_lifecycle_shadow_packet
         - advanced_shadow_chat_ux_packet_artifact
       required_trace_fields:
         - current_budget_view
         - rescue_context_projection_used
         - proposal_candidate_output
+        - lifecycle_state
+        - negotiation_intent
+        - explicit_accept_required
+        - dismiss_requested
+        - proposal_committed
         - primary_actions
         - non_claims
       acceptance_status: existing_shadow_chain_mapped
-      next_build_slice: rescue_chat_negotiation_and_lab_proposal_lifecycle
+      next_build_slice: advanced_capability_gap_review
       claim_boundary: non_claim
       mainline_activation_allowed: false
     - journey_id: F2
