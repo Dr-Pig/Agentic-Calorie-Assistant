@@ -29,21 +29,38 @@ def test_fixture_and_smoke_databases_are_disposable_but_not_real_dogfood() -> No
     assert fixture["do_not_commit"] is True
 
 
-def test_real_dogfood_database_requires_backup_before_reset() -> None:
-    db_path = Path("workspace_data/local_dogfood/accurate_intake.sqlite3")
+def test_real_dogfood_database_requires_backup_before_reset_regardless_of_file_presence(
+    tmp_path: Path,
+) -> None:
+    missing_db_path = tmp_path / "local_dogfood" / "missing.sqlite3"
+    existing_db_path = tmp_path / "local_dogfood" / "accurate_intake.sqlite3"
+    existing_db_path.parent.mkdir()
+    existing_db_path.write_bytes(b"sqlite bytes")
 
-    manifest = build_local_dogfood_data_manifest(db_path=db_path, operation="reset")
+    missing_manifest = build_local_dogfood_data_manifest(
+        db_path=missing_db_path,
+        operation="reset",
+    )
+    existing_manifest = build_local_dogfood_data_manifest(
+        db_path=existing_db_path,
+        operation="reset",
+    )
 
-    assert manifest["db_class"] == "real_dogfood_db"
-    assert manifest["operation"] == "reset"
-    assert manifest["allowed"] is False
-    assert manifest["blockers"] == ["backup_required_before_reset"]
-    assert manifest["contains_personal_diet_logs"] is True
-    assert manifest["local_only"] is True
-    assert manifest["do_not_commit"] is True
-    assert manifest["db_exists"] is False
-    assert manifest["db_size_bytes"] is None
-    assert manifest["db_modified_at_utc"] is None
+    for manifest in (missing_manifest, existing_manifest):
+        assert manifest["db_class"] == "real_dogfood_db"
+        assert manifest["operation"] == "reset"
+        assert manifest["allowed"] is False
+        assert manifest["blockers"] == ["backup_required_before_reset"]
+        assert manifest["contains_personal_diet_logs"] is True
+        assert manifest["local_only"] is True
+        assert manifest["do_not_commit"] is True
+
+    assert missing_manifest["db_exists"] is False
+    assert missing_manifest["db_size_bytes"] is None
+    assert missing_manifest["db_modified_at_utc"] is None
+    assert existing_manifest["db_exists"] is True
+    assert existing_manifest["db_size_bytes"] == len(b"sqlite bytes")
+    assert isinstance(existing_manifest["db_modified_at_utc"], str)
 
 
 def test_inspect_reports_existing_source_db_file_metadata(tmp_path: Path) -> None:
