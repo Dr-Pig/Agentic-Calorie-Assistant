@@ -565,6 +565,153 @@ edge_case_coverage_contract:
         - copy_diagnostic_metadata_only
       claim_boundary: non_claim
       raw_keyword_semantic_oracle_allowed: false
+  ux_acceptance_role: acceptance_map_not_product_readiness_authority
+  ux_acceptance_entries:
+    - journey_id: F
+      journey_name: same_day_rescue_after_overshoot
+      capability_domains:
+        - rescue
+        - chat_ux_packet
+      product_contract_refs:
+        - docs/specs/L0_PRODUCT_CAPABILITY_SPEC.md#rescue-and-coaching
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#rescue-and-intake-separation
+        - docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md#overshoot-soft-coaching-hook
+      existing_shadow_artifacts:
+        - rescue_shadow_summary_context_projection
+        - rescue_shadow_chain_runner_artifact
+        - advanced_shadow_chat_ux_packet_artifact
+      required_trace_fields:
+        - current_budget_view
+        - rescue_context_projection_used
+        - proposal_candidate_output
+        - primary_actions
+        - non_claims
+      acceptance_status: existing_shadow_chain_mapped
+      next_build_slice: rescue_chat_negotiation_and_lab_proposal_lifecycle
+      claim_boundary: non_claim
+      mainline_activation_allowed: false
+    - journey_id: F2
+      journey_name: planned_event_rescue_before_large_meal
+      capability_domains:
+        - rescue
+        - recommendation
+        - chat_ux_packet
+      product_contract_refs:
+        - docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md#general-event-guidance-vs-planned-event-rescue
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#proposal-first
+        - docs/specs/L0_PRODUCT_CAPABILITY_SPEC.md#proposal
+      existing_shadow_artifacts:
+        - rescue_proposal_shaping_input_shadow_packet
+        - rescue_proposal_shaping_output_validation_shadow
+      required_trace_fields:
+        - planned_event_context
+        - proposal_candidate
+        - explicit_accept_required
+        - budget_mutation_allowed
+        - non_claims
+      acceptance_status: gap_requires_next_slice
+      next_build_slice: planned_event_rescue_shadow_negotiation
+      claim_boundary: non_claim
+      mainline_activation_allowed: false
+    - journey_id: I
+      journey_name: calibration_proposal_from_body_trend
+      capability_domains:
+        - calibration
+        - rescue
+        - recommendation
+        - chat_ux_packet
+      product_contract_refs:
+        - docs/specs/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md#proposal-eligibility-gate
+        - docs/specs/L0_PRODUCT_CAPABILITY_SPEC.md#body-calibration
+        - docs/specs/L3_5_BODY_OBSERVATION_EXERCISE_WORKFLOW_SPEC.md#body-observation-workflow
+      existing_shadow_artifacts:
+        - calibration_proposal_boundary_contract
+        - body_budget_preview_contract
+      required_trace_fields:
+        - calibration_confidence
+        - logging_quality_posture
+        - proposal_gate_decision
+        - explicit_accept_required
+        - downstream_budget_posture
+      acceptance_status: gap_requires_next_slice
+      next_build_slice: calibration_proposal_shadow_integration
+      claim_boundary: non_claim
+      mainline_activation_allowed: false
+    - journey_id: L
+      journey_name: contextual_recommendation_to_pending_meal_intent
+      capability_domains:
+        - recommendation
+        - long_term_memory
+        - chat_ux_packet
+      product_contract_refs:
+        - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md#canonical-runtime-shape
+        - docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md#pending-meal-intent
+        - docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md#recommendation-retrieval-policy
+      existing_shadow_artifacts:
+        - recommendation_three_node_shadow_artifact
+        - recommendation_shadow_summary_consumer_quality_report
+        - pending_meal_intent
+      required_trace_fields:
+        - recommendation_planning
+        - candidate_retrieval_guard_scoring
+        - offer_synthesis
+        - selected_candidate_id
+        - intake_commit_requested
+      acceptance_status: gap_requires_next_slice
+      next_build_slice: recommendation_pending_intent_handoff_shadow
+      claim_boundary: non_claim
+      mainline_activation_allowed: false
+    - journey_id: M
+      journey_name: preference_memory_affects_recommendation
+      capability_domains:
+        - long_term_memory
+        - recommendation
+        - chat_ux_packet
+      product_contract_refs:
+        - docs/specs/L4A_MEMORY_MODEL_SPEC.md#memory-layers
+        - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#promotion-rules
+        - docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md#memory-signal-strength
+      existing_shadow_artifacts:
+        - runtime_lab_memory_consumer_summary_projection
+        - runtime_lab_manager_memory_injection_comparison
+        - recommendation_three_node_shadow_artifact
+      required_trace_fields:
+        - preference_profile_summary
+        - negative_preference_blockers
+        - memory_summary_projection_used
+        - candidate_guard.filtered_candidates.reason_codes
+        - no_canonical_mutation
+      acceptance_status: existing_shadow_chain_mapped
+      next_build_slice: memory_review_forget_confirmation_shadow
+      claim_boundary: non_claim
+      mainline_activation_allowed: false
+    - journey_id: N
+      journey_name: proactive_chat_first_no_send_intervention
+      capability_domains:
+        - proactive
+        - recommendation
+        - rescue
+        - long_term_memory
+        - chat_ux_packet
+      product_contract_refs:
+        - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#no-send-shadow-gate
+        - docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md#proactive-contract
+        - docs/specs/L0_PRODUCT_CAPABILITY_SPEC.md#proactive-trigger
+      existing_shadow_artifacts:
+        - proactive_no_send_nudge_candidate_bridge
+        - proactive_no_send_review_sink_artifact
+        - advanced_shadow_chat_ux_packet_artifact
+      required_trace_fields:
+        - permission_posture
+        - cooldown
+        - suppression
+        - dismiss_reason_choices
+        - snooze_window
+        - next_signal_required
+      acceptance_status: existing_shadow_chain_mapped
+      next_build_slice: proactive_trigger_family_matrix_and_chat_first_simulation
+      claim_boundary: non_claim
+      mainline_activation_allowed: false
 
 non_claims:
   product_readiness_claimed: false
