@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import date, timedelta
 import json
 import sys
 from pathlib import Path
@@ -69,7 +70,64 @@ def _browser_blockers(browser: dict[str, object]) -> list[str]:
     ):
         if loop.get(key) is not True:
             blockers.append(blocker)
+    adjacent = dict(browser.get("adjacent_date") or {})
+    if not adjacent:
+        blockers.append("adjacent_date_not_checked")
+    elif adjacent.get("today_consumed_kcal") != 0 or adjacent.get("chat_history_message_count") != 0:
+        blockers.append("adjacent_date_not_isolated")
+    elif adjacent.get("token_in_url") is True:
+        blockers.append("adjacent_date_local_debug_token_in_url")
     return blockers
+
+
+def _next_local_date(local_date: str) -> str:
+    return (date.fromisoformat(local_date) + timedelta(days=1)).isoformat()
+
+
+def _check_adjacent_date_isolation(
+    page: object,
+    *,
+    base_url: str,
+    user_external_id: str,
+    local_date: str,
+    timeout_ms: int,
+) -> dict[str, object]:
+    adjacent_date = _next_local_date(local_date)
+    page.goto(
+        f"{base_url}/static/accurate-intake-desktop.html?user_id={user_external_id}&local_date={local_date}",
+        wait_until="networkidle",
+        timeout=timeout_ms,
+    )
+    page.fill("#local-date", adjacent_date)
+    page.dispatch_event("#local-date", "change")
+    page.wait_for_function(
+        """(expected) => window.location.search.includes(`local_date=${expected}`)""",
+        arg=adjacent_date,
+        timeout=timeout_ms,
+    )
+    page.click('[data-nav-target="today"]')
+    page.wait_for_selector('[data-surface-role="today-diary"]', timeout=timeout_ms)
+    page.wait_for_function(
+        """() => document.querySelector("#consumed-kcal")?.textContent?.trim() === "0" """,
+        timeout=timeout_ms,
+    )
+    consumed = int(page.locator("#consumed-kcal").inner_text(timeout=timeout_ms).strip())
+    remaining = int(page.locator("#remaining-kcal").inner_text(timeout=timeout_ms).strip())
+    page.click("#chat-link")
+    page.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
+    page.wait_for_function(
+        """() => (document.querySelector("#chat-history-status")?.textContent || "").includes("loaded 0")""",
+        timeout=timeout_ms,
+    )
+    history_status = page.locator("#chat-history-status").inner_text(timeout=timeout_ms)
+    history_count = int(history_status.removeprefix("Conversation loaded ").removesuffix(".").strip())
+    return {
+        "local_date": adjacent_date,
+        "today_consumed_kcal": consumed,
+        "today_remaining_kcal": remaining,
+        "chat_history_message_count": history_count,
+        "token_in_url": "local_debug_token=" in page.url,
+    }
 
 
 def _run_persistent_browser_sequence(
@@ -134,6 +192,13 @@ def _run_persistent_browser_sequence(
                         user_external_id=user_external_id,
                         local_date=local_date,
                     )
+                    adjacent_date = _check_adjacent_date_isolation(
+                        page,
+                        base_url=base_url,
+                        user_external_id=user_external_id,
+                        local_date=local_date,
+                        timeout_ms=timeout_ms,
+                    )
                     storage = page.evaluate(
                         """() => ({
                           localStorageKeys: Object.keys(window.localStorage || {}),
@@ -144,6 +209,7 @@ def _run_persistent_browser_sequence(
                         "browser_name": "chromium",
                         "desktop_entry": entry,
                         "desktop_loop": loop,
+                        "adjacent_date": adjacent_date,
                         "storage": storage,
                         "forbidden_storage_used": bool(
                             storage["localStorageKeys"] or storage["sessionStorageKeys"]
