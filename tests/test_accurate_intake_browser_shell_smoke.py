@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from scripts import run_accurate_intake_browser_shell_smoke as module
 
 
@@ -52,6 +54,51 @@ def test_browser_shell_smoke_can_require_browser_execution(monkeypatch, tmp_path
     assert report["browser_execution_required"] is True
     assert report["browser_executed"] is False
     assert report["blockers"] == ["playwright_not_installed"]
+
+
+def test_browser_shell_smoke_app_uses_request_scoped_db_sessions() -> None:
+    provider = module.DeterministicSelfUseManagerProvider()
+    created: list[FakeSession] = []
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    def fake_session_factory() -> FakeSession:
+        session = FakeSession()
+        created.append(session)
+        return session
+
+    app = module._build_app(fake_session_factory, provider)  # type: ignore[arg-type]
+    override_get_db = app.dependency_overrides[module.get_db]
+
+    first_dependency = override_get_db()
+    second_dependency = override_get_db()
+    first_session = next(first_dependency)
+    second_session = next(second_dependency)
+
+    assert first_session is created[0]
+    assert second_session is created[1]
+    assert first_session is not second_session
+    with pytest.raises(StopIteration):
+        next(first_dependency)
+    with pytest.raises(StopIteration):
+        next(second_dependency)
+    assert first_session.closed is True
+    assert second_session.closed is True
+
+
+def test_browser_shell_smoke_session_factory_uses_null_pool_for_threaded_browser_teardown(
+    tmp_path: Path,
+) -> None:
+    engine, _SessionLocal = module._session_factory(tmp_path / "browser.sqlite3")
+    try:
+        assert engine.pool.__class__.__name__ == "NullPool"
+    finally:
+        engine.dispose()
 
 
 def test_browser_shell_smoke_validator_requires_fetch_sequence_and_cjk() -> None:

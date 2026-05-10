@@ -9,6 +9,7 @@ import sys
 import threading
 import time
 import urllib.request
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import NullPool
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -64,7 +66,11 @@ def _load_sync_playwright() -> Any:
 
 def _session_factory(db_path: Path) -> tuple[Any, sessionmaker[Session]]:
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    engine = create_engine(f"sqlite:///{db_path.as_posix()}", connect_args={"check_same_thread": False})
+    engine = create_engine(
+        f"sqlite:///{db_path.as_posix()}",
+        connect_args={"check_same_thread": False},
+        poolclass=NullPool,
+    )
     Base.metadata.create_all(bind=engine)
     return engine, sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
@@ -89,13 +95,17 @@ def _seed_body_plan(db: Session, *, user_external_id: str, local_date: str) -> N
     )
 
 
-def _build_app(db: Session, provider: DeterministicSelfUseManagerProvider) -> FastAPI:
+def _build_app(SessionLocal: Callable[[], Session], provider: DeterministicSelfUseManagerProvider) -> FastAPI:
     app = FastAPI()
     app.include_router(router)
     app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 
     def override_get_db():
-        yield db
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
 
     app.dependency_overrides[get_db] = override_get_db
     previous = (intake_routes.manager_provider, intake_routes.search_provider, intake_routes.extract_provider)
@@ -545,7 +555,7 @@ def build_browser_shell_smoke_report(
     local_debug_token = secrets.token_urlsafe(24)
     previous_debug_token = os.environ.get("LOCAL_DEBUG_API_TOKEN")
     os.environ["LOCAL_DEBUG_API_TOKEN"] = local_debug_token
-    app = _build_app(db, provider)
+    app = _build_app(SessionLocal, provider)
     port = _free_port()
     server, thread = _run_uvicorn_in_thread(app, port=port)
     try:

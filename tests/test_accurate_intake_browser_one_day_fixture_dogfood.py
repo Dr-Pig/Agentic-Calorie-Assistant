@@ -179,6 +179,16 @@ def test_browser_one_day_fixture_normalizes_relative_db_path_before_route_export
     assert Path(report["db_path"]).is_absolute()
 
 
+def test_browser_one_day_fixture_session_factory_uses_null_pool_for_threaded_browser_teardown(
+    tmp_path: Path,
+) -> None:
+    engine, _SessionLocal = module._session_factory(tmp_path / "one_day.sqlite3")
+    try:
+        assert engine.pool.__class__.__name__ == "NullPool"
+    finally:
+        engine.dispose()
+
+
 def test_browser_one_day_fixture_uses_browser_fixture_status_not_dogfood_pass(
     monkeypatch,
     tmp_path: Path,

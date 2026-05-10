@@ -7,6 +7,7 @@ from typing import Any
 from sqlalchemy import create_engine
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
+from sqlalchemy.pool import StaticPool
 
 from .exact_item_card_loader import load_exact_item_card_seed_records
 
@@ -31,7 +32,11 @@ def _cards_by_id() -> dict[str, dict[str, Any]]:
 
 @lru_cache(maxsize=1)
 def _local_seed_engine() -> Engine:
-    return create_engine("sqlite:///:memory:")
+    return create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
 
 
 def _card_item_id(card: dict[str, Any]) -> str:

@@ -9,6 +9,7 @@ import sys
 import threading
 import time
 import urllib.request
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import NullPool
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -143,7 +145,11 @@ REQUIRED_RELOAD_SURFACE_FLAGS = (
 
 def _session_factory(db_path: Path) -> tuple[Any, sessionmaker[Session]]:
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    engine = create_engine(f"sqlite:///{db_path.as_posix()}", connect_args={"check_same_thread": False})
+    engine = create_engine(
+        f"sqlite:///{db_path.as_posix()}",
+        connect_args={"check_same_thread": False},
+        poolclass=NullPool,
+    )
     Base.metadata.create_all(bind=engine)
     return engine, sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
@@ -240,13 +246,17 @@ class _BrowserRealisticManagerProvider:
         }
 
 
-def _build_app(db: Session, provider: _BrowserRealisticManagerProvider) -> FastAPI:
+def _build_app(SessionLocal: Callable[[], Session], provider: _BrowserRealisticManagerProvider) -> FastAPI:
     app = FastAPI()
     app.include_router(router)
     app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 
     def override_get_db():
-        yield db
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
 
     app.dependency_overrides[get_db] = override_get_db
     previous = (intake_routes.manager_provider, intake_routes.search_provider, intake_routes.extract_provider)
@@ -643,7 +653,7 @@ def build_browser_realistic_web_dogfood_v2_report(
     server: uvicorn.Server | None = None
     thread: threading.Thread | None = None
     try:
-        app = _build_app(db, provider)
+        app = _build_app(SessionLocal, provider)
         port = _free_port()
         server, thread = _run_uvicorn_in_thread(app, port=port)
         base_url = f"http://127.0.0.1:{port}"

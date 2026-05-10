@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -788,7 +789,7 @@ def _manager_gap_breakdown(turns: list[dict[str, Any]]) -> dict[str, Any]:
     return breakdown
 
 
-def _build_test_client(db: Session, provider: Any) -> TestClient:
+def _build_test_client(SessionLocal: Callable[[], Session], provider: Any) -> TestClient:
     old_manager = intake_routes.manager_provider
     old_search = intake_routes.search_provider
     old_extract = intake_routes.extract_provider
@@ -804,7 +805,11 @@ def _build_test_client(db: Session, provider: Any) -> TestClient:
     app.include_router(router)
 
     def override_get_db():
-        yield db
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
 
     app.dependency_overrides[get_db] = override_get_db
     client = TestClient(app)
@@ -858,7 +863,7 @@ def _build_report(
     db = SessionLocal()
 
     provider = _ChineseOneDayManagerProvider()
-    client = _build_test_client(db, provider)
+    client = _build_test_client(SessionLocal, provider)
     evidence_tool = client.dogfood_evidence_tool
 
     user_id = DOGFOOD_USER_EXTERNAL_ID

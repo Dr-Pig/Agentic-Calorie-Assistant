@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 
 from scripts.run_accurate_intake_local_web_shell_smoke import (
+    _build_test_client,
+    _close_test_client,
     build_local_web_shell_bridge_report,
     main,
 )
@@ -67,6 +69,48 @@ def test_local_web_shell_bridge_preserves_non_claims(tmp_path: Path) -> None:
     } <= set(report["not_claiming"])
     assert report["chat_history"]["long_term_memory_used"] is False
     assert report["chat_history"]["proactive_or_rescue_used"] is False
+
+
+def test_local_web_shell_bridge_client_uses_request_scoped_db_sessions() -> None:
+    from app.database import get_db
+    from scripts.run_accurate_intake_mvp_manager_style_smoke import DeterministicSelfUseManagerProvider
+
+    created: list[FakeSession] = []
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    def fake_session_factory() -> FakeSession:
+        session = FakeSession()
+        created.append(session)
+        return session
+
+    client = _build_test_client(fake_session_factory, DeterministicSelfUseManagerProvider())  # type: ignore[arg-type]
+    try:
+        override_get_db = client.app.dependency_overrides[get_db]
+        first_dependency = override_get_db()
+        second_dependency = override_get_db()
+        first_session = next(first_dependency)
+        second_session = next(second_dependency)
+
+        assert first_session is created[0]
+        assert second_session is created[1]
+        assert first_session is not second_session
+        for dependency in (first_dependency, second_dependency):
+            try:
+                next(dependency)
+            except StopIteration:
+                pass
+            else:
+                raise AssertionError("dependency generator should stop after yielding one session")
+        assert first_session.closed is True
+        assert second_session.closed is True
+    finally:
+        _close_test_client(client)
 
 
 def test_local_web_shell_bridge_cli_writes_artifact(tmp_path: Path, capsys) -> None:
