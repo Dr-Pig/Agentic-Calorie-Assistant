@@ -97,7 +97,7 @@ def run_advanced_product_lab_turn(
     chain_blockers = [f"e2e_chain.{blocker}" for blocker in chain.get("blockers") or []]
     product_recommendation = run_product_lab_recommendation(
         turn=turn,
-        fixture_inputs=runtime_inputs,
+        fixture_inputs=fixture_inputs,
         memory_context_pack=memory_context_pack,
     )
     product_rescue = run_product_lab_rescue(fixture_inputs=runtime_inputs)

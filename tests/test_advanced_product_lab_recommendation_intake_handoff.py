@@ -29,7 +29,8 @@ def test_recommendation_creates_pending_intake_handoff_without_commit(
         "recommendation_offer"
     ]
 
-    assert recommendation["recommendation_intent_state_created"] is True
+    assert recommendation["recommendation_intent_state_created"] is False
+    assert recommendation["pending_intake_handoff_created"] is True
     assert handoff["artifact_type"] == "advanced_product_lab_pending_intake_handoff"
     assert handoff["handoff_state"] == "pending_user_intake_confirmation"
     assert handoff["candidate_id"] == "memory-oatmeal"

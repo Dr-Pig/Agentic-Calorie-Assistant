@@ -111,8 +111,68 @@ def test_product_lab_proactive_gate_consumes_chat_control_journal(
     assert trace["active_control_event_id"] == "dismiss-rec-chat"
 
 
+def test_product_lab_proactive_skips_unqualified_recommendation_before_chat() -> None:
+    from app.advanced_shadow_lab.product_lab_proactive import run_product_lab_proactive
+    from app.advanced_shadow_lab.product_lab_recommendation import (
+        run_product_lab_recommendation,
+    )
+    from app.advanced_shadow_lab.product_lab_rescue import run_product_lab_rescue
+
+    fixture_inputs = _generic_only_fixture_inputs()
+    recommendation = run_product_lab_recommendation(
+        turn=_turn("lab-turn-unqualified-recommendation"),
+        fixture_inputs=fixture_inputs,
+        memory_context_pack={},
+    )
+    artifact = run_product_lab_proactive(
+        turn=_turn("lab-turn-unqualified-recommendation"),
+        fixture_inputs=fixture_inputs,
+        memory_context_pack={},
+        recommendation_artifact=recommendation,
+        rescue_artifact=run_product_lab_rescue(fixture_inputs=fixture_inputs),
+    )
+
+    assert artifact["status"] == "pass"
+    assert recommendation["recommendation_served_to_lab"] is False
+    assert recommendation["retrieval_guard_scoring"]["pool_decision"] == (
+        "silent_no_qualified_candidate"
+    )
+    assert [candidate["trigger_type"] for candidate in artifact["candidates"]] == [
+        "rescue_nudge"
+    ]
+    assert [
+        review["trigger_type"]
+        for review in artifact["pre_delivery_review"]["candidate_reviews"]
+    ] == ["rescue_nudge"]
+    assert artifact["delivery_packet"]["candidate_ids"] == ["rescue_nudge"]
+
+
 def _visible_by_turn(artifact: dict[str, object]) -> dict[str, list[str]]:
     return {
         row["turn_id"]: row["visible_candidate_ids"]
         for row in artifact["turn_summaries"]  # type: ignore[index]
     }
+
+
+def _generic_only_fixture_inputs() -> dict[str, object]:
+    fixture_inputs = _fixture_inputs()
+    payload = fixture_inputs["recommendation_payload"]  # type: ignore[index]
+    payload["candidate_source_fixture"] = [  # type: ignore[index]
+        {
+            "candidate_id": "generic-1",
+            "title": "Something light nearby",
+            "source_type": "safe_fallback",
+            "estimated_kcal": 350,
+            "estimated_kcal_range": {"min": 280, "max": 350},
+            "item_patterns": ["light_meal"],
+            "hard_avoid_flags": [],
+            "source_refs": ["fixture:generic-1"],
+            "evidence_posture": "generic",
+            "availability_posture": "likely",
+            "realistic_executable": True,
+            "user_accessible": True,
+        }
+    ]
+    payload["negative_preference_summary"] = {"items": []}  # type: ignore[index]
+    payload["open_rescue_context"] = {"accepted_conflict_patterns": []}  # type: ignore[index]
+    return fixture_inputs
