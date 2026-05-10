@@ -4,7 +4,13 @@ import json
 from pathlib import Path
 
 from app.advanced_shadow_lab.model_profiles import (
+    ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
     ADVANCED_LAB_TARGET_REASONING_PROFILE_ID,
+)
+from app.advanced_shadow_lab.live_bundle_fake_providers import (
+    FakeProactiveCopyDiagnosticProvider,
+    FakeRecommendationCopyDiagnosticProvider,
+    FakeRescueCopyDiagnosticProvider,
 )
 from app.advanced_shadow_lab.live_bundle_inputs import write_live_bundle_inputs
 
@@ -61,6 +67,28 @@ def test_advanced_shadow_live_bundle_runner_writes_existing_terminal_comparison(
     assert terminal["mutation_changed"] is False
     assert terminal["user_facing_behavior_changed"] is False
     assert terminal["product_readiness_claimed"] is False
+    assert terminal["live_seam_proof_summary"]["status"] == "fake_contract_path"
+    assert terminal["live_seam_proof_summary"]["preflight_status"] == "pass"
+    assert terminal["live_seam_proof_summary"]["provider_mode"] == "fake"
+    assert terminal["live_seam_proof_summary"]["diagnostic_surface_ids"] == [
+        "recommendation_copy_live_diagnostic",
+        "rescue_copy_live_diagnostic",
+        "proactive_copy_live_diagnostic",
+    ]
+    assert terminal["live_seam_proof_summary"]["live_provider_used_by_surface"] == {
+        "recommendation_copy_live_diagnostic": False,
+        "rescue_copy_live_diagnostic": False,
+        "proactive_copy_live_diagnostic": False,
+    }
+    assert terminal["live_seam_proof_summary"]["output_guard_status_by_surface"] == {
+        "recommendation_copy_live_diagnostic": "pass",
+        "rescue_copy_live_diagnostic": "pass",
+        "proactive_copy_live_diagnostic": "pass",
+    }
+    assert terminal["live_seam_proof_summary"]["trace_metadata_redacted"] is True
+    assert terminal["live_seam_proof_summary"]["per_journey_ux_grader_created"] is False
+    assert terminal["live_seam_proof_summary"]["calibration_live_diagnostic_created"] is False
+    assert terminal["live_seam_proof_summary"]["new_report_family_created"] is False
 
     intermediate_types = {
         path.name: json.loads(path.read_text(encoding="utf-8"))["artifact_type"]
@@ -83,6 +111,9 @@ def test_advanced_shadow_live_bundle_runner_writes_existing_terminal_comparison(
         ),
         "advanced_shadow_paired_fixture_cases.json": (
             "advanced_shadow_paired_fixture_cases"
+        ),
+        "live_bundle_input_preflight.json": (
+            "advanced_shadow_live_bundle_input_preflight"
         ),
     }
     baseline_cases = json.loads(
@@ -185,6 +216,83 @@ def test_advanced_shadow_live_bundle_runner_blocks_live_without_env(
     assert rows["proactive_chat_copy_posture"]["finding"] == "live_diagnostic_not_run"
     assert terminal["product_readiness_claimed"] is False
     assert terminal["user_facing_behavior_changed"] is False
+    preflight = json.loads(
+        (tmp_path / "intermediate" / "live_bundle_input_preflight.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert preflight["status"] == "blocked"
+    assert preflight["blockers"] == ["live_gate_not_enabled"]
+    assert preflight["live_provider_used"] is False
+    assert terminal["live_seam_proof_summary"]["status"] == "blocked_not_invoked"
+    assert terminal["live_seam_proof_summary"]["preflight_status"] == "blocked"
+    assert terminal["live_seam_proof_summary"]["preflight_blockers"] == [
+        "live_gate_not_enabled"
+    ]
+    assert terminal["live_seam_proof_summary"]["live_provider_used_by_surface"] == {
+        "recommendation_copy_live_diagnostic": False,
+        "rescue_copy_live_diagnostic": False,
+        "proactive_copy_live_diagnostic": False,
+    }
+
+
+def test_advanced_shadow_live_bundle_live_gate_uses_profile_seam_without_activation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from scripts import run_advanced_shadow_lab_live_bundle as runner
+
+    monkeypatch.setenv("ADVANCED_SHADOW_LAB_ALLOW_LIVE_LLM_DIAGNOSTIC", "1")
+    monkeypatch.setenv("AI_BUILDER_TOKEN", "test-secret-that-must-not-leak")
+    monkeypatch.setattr(runner, "_live_provider", _fake_live_provider)
+    inputs = _write_bundle_inputs(tmp_path)
+    output = tmp_path / "advanced_shadow_comparison.json"
+
+    exit_code = runner.main(
+        [
+            "--memory-dogfood-replay-review",
+            str(inputs["memory_review"]),
+            "--chain-payload",
+            str(inputs["chain_payload"]),
+            "--provider-mode",
+            "live",
+            "--allow-live-provider",
+            "--output",
+            str(output),
+            "--artifact-dir",
+            str(tmp_path / "intermediate"),
+        ]
+    )
+    terminal = json.loads(output.read_text(encoding="utf-8"))
+    serialized = json.dumps(terminal, ensure_ascii=False)
+
+    assert exit_code == 0
+    assert terminal["status"] == "pass"
+    assert terminal["live_seam_proof_summary"]["status"] == "live_diagnostic_guarded"
+    assert terminal["live_seam_proof_summary"]["provider_profile_id"] == (
+        ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID
+    )
+    assert terminal["live_seam_proof_summary"]["live_provider_used_by_surface"] == {
+        "recommendation_copy_live_diagnostic": True,
+        "rescue_copy_live_diagnostic": True,
+        "proactive_copy_live_diagnostic": True,
+    }
+    assert terminal["live_seam_proof_summary"]["provider_mode_by_surface"] == {
+        "recommendation_copy_live_diagnostic": ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
+        "rescue_copy_live_diagnostic": ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
+        "proactive_copy_live_diagnostic": ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
+    }
+    assert terminal["live_seam_proof_summary"]["output_guard_status_by_surface"] == {
+        "recommendation_copy_live_diagnostic": "pass",
+        "rescue_copy_live_diagnostic": "pass",
+        "proactive_copy_live_diagnostic": "pass",
+    }
+    assert terminal["live_seam_proof_summary"]["trace_metadata_redacted"] is True
+    assert terminal["recommendation_served"] is False
+    assert terminal["proactive_sent"] is False
+    assert terminal["mutation_changed"] is False
+    assert terminal["user_facing_behavior_changed"] is False
+    assert "test-secret-that-must-not-leak" not in serialized
 
 
 def test_advanced_shadow_live_bundle_rejects_unknown_profile_before_reading_inputs(
@@ -368,3 +476,11 @@ def _chain_without_stages() -> dict[str, object]:
         "mutation_changed": False,
         "user_facing_behavior_changed": False,
     }
+
+
+def _fake_live_provider(profile: dict[str, object], role_suffix: str) -> object:
+    if role_suffix == "recommendation_copy":
+        return FakeRecommendationCopyDiagnosticProvider()
+    if role_suffix == "rescue_copy":
+        return FakeRescueCopyDiagnosticProvider()
+    return FakeProactiveCopyDiagnosticProvider()
