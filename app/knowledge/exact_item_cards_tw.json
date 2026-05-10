@@ -122,6 +122,78 @@
       "reviewed_date": "2026-05-11",
       "source_record_id": "7-11_product_204904",
       "source_note": "7-ELEVEN i\u9810\u8cfc official nutrition label; per serving 60g; values copied from label."
+    },
+    {
+      "item_id": "exact_7eleven_jiucai_he_135g",
+      "title": "\u97ed\u83dc\u76d2(135g)",
+      "aliases": [
+        "\u97ed\u83dc\u76d2135\u516c\u514b",
+        "\u97ed\u83dc\u76d2 135g",
+        "\u97ed\u83dc\u76d2"
+      ],
+      "brand": "7-ELEVEN i\u9810\u8cfc",
+      "serving_basis": "\u6bcf\u4efd135\u516c\u514b",
+      "kcal": 284.0,
+      "protein_g": 8.2,
+      "carb_g": 39.8,
+      "fat_g": 10.1,
+      "macro_basis": "per_serving",
+      "macro_confidence": "high",
+      "macro_source_strength": "official_label",
+      "kcal_band": "per_serving",
+      "source_class": "official_brand_chain_page",
+      "source_url": "https://711go.7-11.com.tw/Product/240066",
+      "reviewed_date": "2026-05-11",
+      "source_record_id": "7-11_product_240066",
+      "source_note": "7-ELEVEN i\u9810\u8cfc official nutrition label; per serving 135g; values copied from label."
+    },
+    {
+      "item_id": "exact_shaka_shrimp_cracker_original_30g",
+      "title": "\u8766\u5580\u9bae\u8766\u9905-\u539f\u5473(30g)",
+      "aliases": [
+        "\u8766\u5580\u9bae\u8766\u9905\u539f\u547330\u516c\u514b",
+        "\u8766\u5580\u9bae\u8766\u9905 \u539f\u5473 30g",
+        "\u8766\u5580\u9bae\u8766\u9905"
+      ],
+      "brand": "\u8766\u5580",
+      "serving_basis": "\u6bcf\u4efd30\u516c\u514b",
+      "kcal": 148.0,
+      "protein_g": 1.0,
+      "carb_g": 19.9,
+      "fat_g": 7.1,
+      "macro_basis": "per_serving",
+      "macro_confidence": "high",
+      "macro_source_strength": "official_label",
+      "kcal_band": "per_serving",
+      "source_class": "official_brand_chain_page",
+      "source_url": "https://711go.7-11.com.tw/product/200128",
+      "reviewed_date": "2026-05-11",
+      "source_record_id": "7-11_product_200128",
+      "source_note": "7-ELEVEN i\u9810\u8cfc official nutrition label; per serving 30g; values copied from label."
+    },
+    {
+      "item_id": "exact_regent_braised_beef_noodle_pack",
+      "title": "\u6676\u83ef\u7d05\u71d2\u725b\u8089\u9eb51\u5165",
+      "aliases": [
+        "\u6676\u83ef\u7d05\u71d2\u725b\u8089\u9eb51\u5165",
+        "\u6676\u83ef\u7d05\u71d2\u725b\u8089\u9eb5",
+        "\u6676\u83ef \u7d05\u71d2\u725b\u8089\u9eb5"
+      ],
+      "brand": "\u6676\u83ef",
+      "serving_basis": "\u6bcf\u7d441\u4efd(\u725b\u8089\u6599\u7406\u5305480\u516c\u514b+\u751f\u9eb5\u689d80\u516c\u514b)",
+      "kcal": 860.3,
+      "protein_g": 36.0,
+      "carb_g": 68.4,
+      "fat_g": 49.2,
+      "macro_basis": "per_package",
+      "macro_confidence": "high",
+      "macro_source_strength": "official_label",
+      "kcal_band": "per_package",
+      "source_class": "official_brand_chain_page",
+      "source_url": "https://711go.7-11.com.tw/Product/222530",
+      "reviewed_date": "2026-05-11",
+      "source_record_id": "7-11_product_222530",
+      "source_note": "7-ELEVEN i\u9810\u8cfc official nutrition labels; whole item sums beef pack 480g and noodle pack 80g."
     }
   ]
 }

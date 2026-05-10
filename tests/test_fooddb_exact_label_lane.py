@@ -21,12 +21,15 @@ def test_exact_label_lane_adds_official_label_macro_cards() -> None:
         "exact_chungabern_mini_scallion_pancake_90g",
         "exact_wangsteak_braised_lion_head_100g",
         "exact_yuhofang_sweet_potato_crisps_60g",
+        "exact_7eleven_jiucai_he_135g",
+        "exact_shaka_shrimp_cracker_original_30g",
+        "exact_regent_braised_beef_noodle_pack",
     }:
         card = by_id[item_id]
         assert card["source_class"] == "official_brand_chain_page"
         assert str(card["source_url"]).startswith("https://711go.7-11.com.tw/")
         assert card["reviewed_date"] == "2026-05-11"
-        assert card["macro_basis"] == "per_serving"
+        assert card["macro_basis"] in {"per_serving", "per_package"}
         assert card["macro_confidence"] == "high"
         assert card["macro_source_strength"] == "official_label"
 
@@ -50,6 +53,24 @@ def test_exact_label_lane_cards_resolve_with_visible_macros() -> None:
             "exact_yuhofang_sweet_potato_crisps_60g",
             281.4,
             {"protein_g": 1.0, "carb_g": 44.4, "fat_g": 11.2},
+        ),
+        (
+            "\u97ed\u83dc\u76d2135\u516c\u514b",
+            "exact_7eleven_jiucai_he_135g",
+            284.0,
+            {"protein_g": 8.2, "carb_g": 39.8, "fat_g": 10.1},
+        ),
+        (
+            "\u8766\u5580\u9bae\u8766\u9905\u539f\u547330\u516c\u514b",
+            "exact_shaka_shrimp_cracker_original_30g",
+            148.0,
+            {"protein_g": 1.0, "carb_g": 19.9, "fat_g": 7.1},
+        ),
+        (
+            "\u6676\u83ef\u7d05\u71d2\u725b\u8089\u9eb51\u5165",
+            "exact_regent_braised_beef_noodle_pack",
+            860.3,
+            {"protein_g": 36.0, "carb_g": 68.4, "fat_g": 49.2},
         ),
     ]
 
