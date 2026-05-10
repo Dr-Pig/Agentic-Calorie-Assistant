@@ -43,6 +43,7 @@ SIDECAR_MODULES = [
     "app.recommendation.application.five_node_shadow_runner",
     "app.recommendation.application.five_node_summary_bridge",
     "app.recommendation.application.intake_hint_shadow",
+    "app.recommendation.application.reviewed_memory_candidate_bridge",
     "app.recommendation.application.summary_pool_posture",
     "app.recommendation.application.three_node_shadow_contract",
     "app.recommendation.application.three_node_shadow_policy",
