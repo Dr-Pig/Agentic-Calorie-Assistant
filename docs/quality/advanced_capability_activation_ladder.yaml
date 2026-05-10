@@ -258,12 +258,26 @@ capabilities:
       cross_session_personalization_allowed: false
   recommendation:
     owner_module: app/recommendation
-    current_stage: shadow
-    next_allowed_stage: read_only_runtime
+    current_stage: read_only_runtime
+    next_allowed_stage: canary
     depends_on:
       - long_term_memory.read_only_runtime
+    stage_transition_evidence:
+      artifact_type: recommendation_read_only_runtime_stage_decision
+      status: approved
+      stage_change_recorded: true
+      manual_promotion_approved: true
+      current_stage_in_decision_artifact: shadow
+      target_stage_in_decision_artifact: read_only_runtime
+      activation_stage_after_decision: read_only_runtime
+      dependency_satisfied: long_term_memory.read_only_runtime
+      required_preflight_artifact: recommendation_read_only_runtime_preflight
+      required_human_review_artifact: recommendation_read_only_runtime_stage_review_decision
     current_allowed_outputs:
+      - recommendation_read_only_runtime_preflight
+      - recommendation_read_only_runtime_stage_decision
       - recommendation_shadow_summary_consumer_quality_report
+      - recommendation_three_node_shadow_artifact
       - recommendation_offer_silent_shadow_contract
     stage_specific_no_go:
       recommendation_served: false

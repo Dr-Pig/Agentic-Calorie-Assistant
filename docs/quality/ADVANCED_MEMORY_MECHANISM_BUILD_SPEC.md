@@ -41,6 +41,14 @@ The stage decision artifact still records `current_stage: shadow` as the from-st
 
 This closure does not promote recommendation, rescue, proactive, user-facing behavior, durable memory, scheduler delivery, production DB migration, or ManagerContextPacket injection.
 
+### Recommendation Stage Closure
+
+The activation ladder records recommendation as `read_only_runtime` only when the manual `recommendation_read_only_runtime_stage_decision` artifact proves the transition from `shadow` to `read_only_runtime`.
+
+The recommendation stage decision artifact still records `current_stage: shadow` as the from-state. Do not rewrite that producer constant unless the transition schema itself is redesigned.
+
+This closure does not serve recommendations, run live search or ranking LLMs, create intake handoffs, activate routes, send proactive messages, mutate canonical state, or promote rescue/proactive stages.
+
 ## Direction And Dependency Classification
 
 ```yaml
