@@ -21,12 +21,20 @@ def turn_product_summary(turn_artifact: Mapping[str, Any]) -> dict[str, Any]:
     intake = _mapping(recommendation.get("pending_intake_handoff_packet"))
     rescue_commit = _mapping(rescue.get("pending_rescue_commit_packet"))
     proactive_delivery = _mapping(proactive.get("delivery_packet"))
+    proactive_review = _mapping(proactive.get("pre_delivery_review"))
     return {
         "product_recommendation_selected_candidate_id": str(
             selected.get("candidate_id") or ""
         ),
         "product_rescue_presented_to_lab": rescue.get("proposal_presented_to_lab") is True,
-        "product_proactive_candidate_count": int(proactive.get("candidate_count") or 0),
+        "product_proactive_candidate_count": int(
+            proactive_review.get("candidate_review_count")
+            or proactive.get("candidate_count")
+            or 0
+        ),
+        "product_proactive_delivered_candidate_count": int(
+            proactive.get("candidate_count") or 0
+        ),
         "product_outputs_applied_to_chat_surface": (
             packet.get("product_outputs_applied") is True
         ),

@@ -31,10 +31,13 @@ def lab_chat_response_packet(
         str(item) for item in memory_pack.get("selected_record_ids") or []
     ]
     chat_packets = _packets_with_memory_refs(
-        [
-            *list(packet.get("chat_packets") or []),
-            *pending_intake_chat_packets(product_proactive=product_proactive or {}),
-        ],
+        _packets_allowed_by_proactive(
+            [
+                *list(packet.get("chat_packets") or []),
+                *pending_intake_chat_packets(product_proactive=product_proactive or {}),
+            ],
+            product_proactive or {},
+        ),
         selected_record_ids,
         product_recommendation=product_recommendation or {},
         product_rescue=product_rescue or {},
@@ -126,6 +129,25 @@ def _packets_with_memory_refs(
             ),
         }
         for packet in packets
+    ]
+
+
+def _packets_allowed_by_proactive(
+    packets: list[Mapping[str, Any]],
+    product_proactive: Mapping[str, Any],
+) -> list[Mapping[str, Any]]:
+    if product_proactive.get("artifact_type") != "advanced_product_lab_proactive_runtime_artifact":
+        return packets
+    allowed = {
+        str(candidate.get("trigger_type") or "")
+        for candidate in product_proactive.get("candidates") or []
+        if isinstance(candidate, Mapping)
+    }
+    return [
+        packet
+        for packet in packets
+        if str(packet.get("trigger_type") or "") in allowed
+        or str(packet.get("workflow_family") or "") == "general_chat"
     ]
 
 

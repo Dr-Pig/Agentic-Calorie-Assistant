@@ -18,7 +18,7 @@ def pending_intake_chat_packets(
 def _packet(index: int, candidate: Mapping[str, Any]) -> dict[str, Any]:
     draft_ids = _draft_ids(candidate)
     return {
-        "packet_id": f"pending_intake_followup:{index + 2}",
+        "packet_id": str(candidate.get("candidate_id") or f"pending_intake_followup:{index + 2}"),
         "surface": "chat",
         "chat_first": True,
         "packet_kind": "pending_intake_confirmation_followup",
