@@ -3,9 +3,14 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 from typing import Any
 
-from app.composition.current_shell_compatibility_ids import (
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from app.composition.current_shell_compatibility_ids import (  # noqa: E402
     CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
     CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
     CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG,
@@ -15,7 +20,7 @@ from app.composition.current_shell_compatibility_ids import (
     first_group_payload,
     matches_alias,
 )
-from scripts.accurate_intake_non_fooddb_manager_tool_contract_gate_checks import (
+from scripts.accurate_intake_non_fooddb_manager_tool_contract_gate_checks import (  # noqa: E402
     candidate_contract_blockers,
 )
 
