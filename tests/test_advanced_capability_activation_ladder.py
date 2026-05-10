@@ -394,6 +394,47 @@ def test_planned_event_rescue_acceptance_points_to_negotiation_shadow_packet() -
     assert rescue_entry["mainline_activation_allowed"] is False
 
 
+def test_calibration_acceptance_points_to_existing_diagnostic_shadow_chain() -> None:
+    contract = _contract()
+    entries = {
+        entry["journey_id"]: entry
+        for entry in contract["edge_case_coverage_contract"]["ux_acceptance_entries"]
+    }
+    calibration_entry = entries["I"]
+
+    assert "body_calibration_diagnostic_result" in calibration_entry[
+        "existing_shadow_artifacts"
+    ]
+    assert "calibration_proposal_policy_packet" in calibration_entry[
+        "existing_shadow_artifacts"
+    ]
+    assert "calibration_proposal_response_result" in calibration_entry[
+        "existing_shadow_artifacts"
+    ]
+    assert "proposal_policy_packet" in calibration_entry["required_trace_fields"]
+    assert "proposal_result" in calibration_entry["required_trace_fields"]
+    assert "trace_envelope" in calibration_entry["required_trace_fields"]
+    assert "requires_accept_before_plan_mutation" in calibration_entry[
+        "required_trace_fields"
+    ]
+    assert "plan_mutation_authorized" in calibration_entry["required_trace_fields"]
+    assert "ledger_mutation_authorized" in calibration_entry["required_trace_fields"]
+    assert calibration_entry["acceptance_status"] == "existing_shadow_chain_mapped"
+    assert calibration_entry["claim_boundary"] == "non_claim"
+    assert calibration_entry["mainline_activation_allowed"] is False
+
+
+def test_activation_ladder_has_no_remaining_calibration_gap_pointer() -> None:
+    contract = _contract()
+    entries = contract["edge_case_coverage_contract"]["ux_acceptance_entries"]
+
+    assert all(entry["acceptance_status"] != "gap_requires_next_slice" for entry in entries)
+    assert all(
+        entry.get("next_build_slice") != "calibration_proposal_shadow_integration"
+        for entry in entries
+    )
+
+
 def test_proactive_acceptance_points_to_pending_meal_followup_shadow() -> None:
     contract = _contract()
     entries = {
@@ -411,7 +452,7 @@ def test_proactive_acceptance_points_to_pending_meal_followup_shadow() -> None:
     assert "no_send_candidate" in proactive_entry["required_trace_fields"]
     assert "simulation_input" in proactive_entry["required_trace_fields"]
     assert "pending_intent_mutated" in proactive_entry["required_trace_fields"]
-    assert proactive_entry["next_build_slice"] == "calibration_proposal_shadow_integration"
+    assert proactive_entry["next_build_slice"] == "advanced_capability_gap_review"
     assert proactive_entry["claim_boundary"] == "non_claim"
     assert proactive_entry["mainline_activation_allowed"] is False
 
