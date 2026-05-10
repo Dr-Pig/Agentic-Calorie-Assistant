@@ -20,6 +20,7 @@ from app.advanced_shadow_lab.product_lab_session_controls import (
 from app.advanced_shadow_lab.product_lab_session_memory_pipeline import (
     run_product_lab_turn_memory_pipeline,
 )
+from app.advanced_shadow_lab.product_lab_session_manager_loop import turn_manager_script
 from app.advanced_shadow_lab.product_lab_session_policy import (
     LAB_MODE,
     session_blockers,
@@ -87,6 +88,8 @@ def run_advanced_product_lab_dogfood_session(
             fixture_inputs=fixture_inputs,
             lab_memory_context_pack=memory_context_pack,
             prior_control_journal=journal,
+            manager_script=turn_manager_script(turn_spec),
+            manager_tool_store=memory_store,
         )
         released_journal = release_completed_controls(journal, turn_artifact)
         post_control = post_turn_control_state(

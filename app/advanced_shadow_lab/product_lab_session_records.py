@@ -8,6 +8,10 @@ from app.advanced_shadow_lab.product_lab_session_action_summary import (
     turn_chat_action_summary,
 )
 from app.advanced_shadow_lab.product_lab_session_controls import event_ids
+from app.advanced_shadow_lab.product_lab_session_manager_loop import (
+    session_manager_tool_summary,
+    turn_manager_tool_summary,
+)
 from app.advanced_shadow_lab.product_lab_session_product_summary import (
     session_product_summary,
     turn_product_summary,
@@ -52,6 +56,7 @@ def session_artifact(
         "control_event_history_ids": list(history_event_ids),
         "final_control_journal_event_ids": event_ids(journal),
         **session_chat_action_summary(turn_summaries),
+        **session_manager_tool_summary(turn_summaries),
         "lab_session_store_written": not blockers,
         "lab_memory_store_written": not blockers and has_memory,
         "lab_memory_record_ids": list(memory_record_ids or []),
@@ -144,6 +149,7 @@ def turn_summary(
             memory_write.get("written_record_ids") or []
         ),
         **turn_chat_action_summary(action_outcomes),
+        **turn_manager_tool_summary(turn_artifact),
         **turn_product_summary(turn_artifact),
     }
 
