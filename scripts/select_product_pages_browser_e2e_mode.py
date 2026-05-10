@@ -43,13 +43,17 @@ BROWSER_DIFF_TOKENS = (
 )
 FAST_PASS_PREFIXES = (
     "docs/",
+    "app/advanced_shadow_lab/",
     "app/memory/application/runtime_lab_",
     "app/recommendation/application/summary_consumer_",
     "app/rescue/application/shadow_",
     "app/nutrition/",
+    "scripts/run_advanced_shadow_lab_",
+    "scripts/build_advanced_shadow_lab_",
     "scripts/run_runtime_lab_",
     "scripts/build_runtime_lab_",
     "scripts/build_accurate_intake_approved_packet_ready_fooddb_artifact.py",
+    "tests/test_advanced_shadow_lab_",
     "tests/test_runtime_lab_memory_",
     "tests/test_recommendation_shadow_summary_consumer.py",
     "tests/test_rescue_shadow_summary_context.py",

@@ -45,6 +45,28 @@ def test_proactive_no_send_summary_consumer_fast_passes_browser_e2e() -> None:
     assert decision["mode"] == "fast_pass"
 
 
+def test_advanced_shadow_lab_sidecar_change_fast_passes_browser_e2e() -> None:
+    decision = selector.select_mode(
+        changed_files=[
+            "app/advanced_shadow_lab/chat_ux_copy_alignment.py",
+            "app/advanced_shadow_lab/chat_ux_packet.py",
+            "app/advanced_shadow_lab/shadow_comparison.py",
+            "app/advanced_shadow_lab/shadow_comparison_live_rows.py",
+            "scripts/run_advanced_shadow_lab_live_bundle.py",
+            "tests/test_advanced_shadow_lab_chat_ux_packet.py",
+            "tests/test_advanced_shadow_lab_comparison_runner.py",
+            "tests/test_advanced_shadow_lab_live_bundle_runner.py",
+            "tests/test_advanced_shadow_lab_shadow_comparison.py",
+            "tests/test_sidecar_offline_activation_guard.py",
+        ],
+        diff_text="",
+        event_name="pull_request",
+    )
+
+    assert decision["mode"] == "fast_pass"
+    assert decision["reason"] == "changed files are browser-unrelated"
+
+
 def test_product_page_static_change_requires_full_browser_e2e() -> None:
     decision = selector.select_mode(
         changed_files=["static/accurate-intake-today.html"],
