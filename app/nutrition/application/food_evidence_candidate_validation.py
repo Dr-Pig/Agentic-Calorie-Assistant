@@ -3,6 +3,10 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+from app.nutrition.application.food_evidence_candidate_macro_validation import (
+    macro_projection,
+    macro_validation_reasons,
+)
 from app.nutrition.application.food_evidence_candidate_normalization import NO_TRUTH_FLAGS
 
 
@@ -28,8 +32,6 @@ PR110_GAP_REQUIREMENTS = {
     "bubble_tea_sugar_size_modifier": ["珍珠奶茶"],
     "luwei_listed_components": ["豆干", "海帶", "貢丸", "青菜"],
 }
-
-
 def build_food_evidence_candidate_validation_artifact(
     *,
     candidate_artifact: dict[str, Any],
@@ -106,6 +108,7 @@ def _validate_candidate(
         "canonical_label": str(candidate.get("canonical_label") or ""),
         "aliases": list(candidate.get("aliases") or []),
         "kcal_point": candidate.get("kcal_point"),
+        **macro_projection(candidate),
         "validation_status": status,
         "validation_reasons": reasons,
         "runtime_truth_allowed": False,
@@ -124,6 +127,8 @@ def _validation_reasons(candidate: dict[str, Any]) -> list[str]:
         reasons.append("invalid_serving_basis")
     if not _valid_provenance(candidate.get("source_provenance")):
         reasons.append("missing_source_provenance")
+    if candidate.get("runtime_truth_allowed") is not False:
+        reasons.append("runtime_truth_allowed_not_false")
 
     source_class = str(candidate.get("source_class") or "")
     evidence_role = str(candidate.get("evidence_role") or "")
@@ -132,6 +137,7 @@ def _validation_reasons(candidate: dict[str, Any]) -> list[str]:
     elif evidence_role not in SOURCE_CLASS_COMPATIBILITY.get(source_class, set()):
         reasons.append("source_class_role_mismatch")
 
+    reasons.extend(macro_validation_reasons(candidate))
     return reasons
 
 
