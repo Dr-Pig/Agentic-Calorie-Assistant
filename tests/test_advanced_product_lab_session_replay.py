@@ -168,6 +168,62 @@ def test_product_lab_session_replay_records_post_turn_chat_action_outcomes(
     )
 
 
+def test_product_lab_session_replay_records_manager_tool_loop_trace(
+    tmp_path: Path,
+) -> None:
+    artifact = run_advanced_product_lab_dogfood_session(
+        artifact_root=tmp_path,
+        session_id="lab-session-manager-loop-1",
+        fixture_inputs=_fixture_inputs(),
+        turns=[
+            {
+                "turn_id": "t1-memory-write",
+                "post_turn_memory_events": [
+                    {
+                        "memory_id": "golden-bento-1",
+                        "memory_type": "golden_order",
+                        "summary": "Often chooses a FamilyMart chicken bento for lunch.",
+                        "review_status": "accepted_lab",
+                        "source_object_refs": ["meal_thread:seed-1"],
+                        "intended_consumers": ["recommendation", "proactive"],
+                        "store_name": "FamilyMart",
+                        "item_names": ["chicken bento"],
+                        "estimated_kcal": 520,
+                    }
+                ],
+            },
+            {
+                "turn_id": "t2-manager-loop",
+                "manager_script": _manager_script(),
+            },
+        ],
+    )
+
+    assert artifact["status"] == "pass"
+    assert artifact["manager_tool_loop_turn_count"] == 1
+    assert artifact["manager_tool_loop_source_refs"] == [
+        "manager_tool_call:memory-search-1:memory.search",
+        "manager_tool_call:recommendation-1:recommendation.run",
+        "manager_tool_call:rescue-1:rescue.run",
+        "manager_tool_call:proactive-1:proactive.run",
+    ]
+    assert artifact["manager_tool_loop_blockers"] == []
+    assert artifact["turn_summaries"][0]["manager_tool_loop_status"] == "not_run"
+    assert artifact["turn_summaries"][1]["manager_tool_loop_status"] == "pass"
+    assert artifact["turn_summaries"][1]["manager_tool_loop_enabled"] is True
+    assert artifact["turn_summaries"][1]["manager_tool_loop_source_refs"] == (
+        artifact["manager_tool_loop_source_refs"]
+    )
+
+    turn_path = Path(artifact["turn_artifact_paths"][1])
+    turn_record = read_json_artifact(turn_path)
+    manager_artifact = turn_record["turn_artifact"]["manager_tool_loop_artifact"]
+    memory_result = manager_artifact["tool_result_trace"][0]["result_artifact"]
+    assert memory_result["context_pack"]["selected_record_ids"] == ["golden-bento-1"]
+    assert turn_record["turn_artifact"]["user_facing_behavior_changed"] is False
+    assert turn_record["turn_artifact"]["canonical_product_mutation_allowed"] is False
+
+
 def test_product_lab_session_replay_blocks_invisible_chat_action_target(
     tmp_path: Path,
 ) -> None:
@@ -236,3 +292,66 @@ def test_product_lab_session_replay_blocks_path_traversal_session_id(
     assert artifact["blockers"] == ["session_id.unsafe_path_segment"]
     assert artifact["lab_session_store_written"] is False
     assert artifact["user_facing_behavior_changed"] is False
+
+
+def _manager_script() -> list[dict[str, object]]:
+    return [
+        {
+            "pass_id": "manager-pass-1",
+            "action": "call_tools",
+            "tool_calls": [
+                {
+                    "call_id": "memory-search-1",
+                    "tool_name": "memory.search",
+                    "arguments": {
+                        "consumers": ["recommendation", "proactive"],
+                        "token_budget": 200,
+                    },
+                }
+            ],
+        },
+        {
+            "pass_id": "manager-pass-2",
+            "action": "call_tools",
+            "tool_calls": [
+                {
+                    "call_id": "recommendation-1",
+                    "tool_name": "recommendation.run",
+                    "arguments": {"memory_context_call_id": "memory-search-1"},
+                },
+                {
+                    "call_id": "rescue-1",
+                    "tool_name": "rescue.run",
+                    "arguments": {},
+                },
+            ],
+        },
+        {
+            "pass_id": "manager-pass-3",
+            "action": "call_tools",
+            "tool_calls": [
+                {
+                    "call_id": "proactive-1",
+                    "tool_name": "proactive.run",
+                    "arguments": {
+                        "memory_context_call_id": "memory-search-1",
+                        "recommendation_call_id": "recommendation-1",
+                        "rescue_call_id": "rescue-1",
+                    },
+                }
+            ],
+        },
+        {
+            "pass_id": "manager-pass-4",
+            "action": "final",
+            "final_response": {
+                "copy": "Fixture manager synthesis from returned tool results.",
+                "source_tool_call_ids": [
+                    "memory-search-1",
+                    "recommendation-1",
+                    "rescue-1",
+                    "proactive-1",
+                ],
+            },
+        },
+    ]
