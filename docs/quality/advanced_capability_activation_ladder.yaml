@@ -709,7 +709,7 @@ edge_case_coverage_contract:
         - candidate_guard.filtered_candidates.reason_codes
         - no_canonical_mutation
       acceptance_status: existing_shadow_chain_mapped
-      next_build_slice: memory_review_forget_confirmation_shadow
+      next_build_slice: advanced_capability_gap_review
       claim_boundary: non_claim
       mainline_activation_allowed: false
     - journey_id: N

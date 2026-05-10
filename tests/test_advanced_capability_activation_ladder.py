@@ -457,6 +457,20 @@ def test_activation_ladder_has_no_remaining_calibration_gap_pointer() -> None:
     )
 
 
+def test_existing_shadow_chain_mapped_journeys_return_to_gap_review() -> None:
+    contract = _contract()
+    entries = contract["edge_case_coverage_contract"]["ux_acceptance_entries"]
+
+    stale_next_slices = {
+        entry["journey_id"]: entry.get("next_build_slice")
+        for entry in entries
+        if entry["acceptance_status"] == "existing_shadow_chain_mapped"
+        and entry.get("next_build_slice") != "advanced_capability_gap_review"
+    }
+
+    assert stale_next_slices == {}
+
+
 def test_proactive_acceptance_points_to_pending_meal_followup_shadow() -> None:
     contract = _contract()
     entries = {
