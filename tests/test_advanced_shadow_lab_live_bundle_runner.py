@@ -49,6 +49,12 @@ def test_advanced_shadow_live_bundle_runner_writes_existing_terminal_comparison(
         "provider_mode": "fake_provider_contract_test",
         "output_guard_status": "pass",
     }
+    assert terminal["live_diagnostic_signals"]["proactive_copy_live_diagnostic"] == {
+        "live_invoked": False,
+        "live_provider_used": False,
+        "provider_mode": "fake_provider_contract_test",
+        "output_guard_status": "pass",
+    }
     assert terminal["recommendation_served"] is False
     assert terminal["proactive_sent"] is False
     assert terminal["mutation_changed"] is False
@@ -69,6 +75,9 @@ def test_advanced_shadow_live_bundle_runner_writes_existing_terminal_comparison(
         ),
         "advanced_shadow_rescue_copy_live_diagnostic.json": (
             "advanced_shadow_rescue_copy_live_diagnostic_artifact"
+        ),
+        "advanced_shadow_proactive_copy_live_diagnostic.json": (
+            "advanced_shadow_proactive_copy_live_diagnostic_artifact"
         ),
     }
     fixture_chain = json.loads(
@@ -128,8 +137,15 @@ def test_advanced_shadow_live_bundle_runner_blocks_live_without_env(
         "provider_mode": "not_run",
         "output_guard_status": "not_run",
     }
+    assert terminal["live_diagnostic_signals"]["proactive_copy_live_diagnostic"] == {
+        "live_invoked": False,
+        "live_provider_used": False,
+        "provider_mode": "not_run",
+        "output_guard_status": "not_run",
+    }
     assert terminal["surface_status_rows"][2]["finding"] == "live_diagnostic_not_run"
     assert terminal["surface_status_rows"][3]["finding"] == "live_diagnostic_not_run"
+    assert terminal["surface_status_rows"][4]["finding"] == "live_diagnostic_not_run"
     assert terminal["product_readiness_claimed"] is False
     assert terminal["user_facing_behavior_changed"] is False
 

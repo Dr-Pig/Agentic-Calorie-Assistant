@@ -21,6 +21,9 @@ from app.advanced_shadow_lab.recommendation_copy_live_diagnostic import (  # noq
 from app.advanced_shadow_lab.rescue_copy_live_diagnostic import (  # noqa: E402
     run_rescue_copy_live_diagnostic,
 )
+from app.advanced_shadow_lab.proactive_copy_live_diagnostic import (  # noqa: E402
+    run_proactive_copy_live_diagnostic,
+)
 from app.advanced_shadow_lab.shadow_comparison import (  # noqa: E402
     build_advanced_shadow_comparison_artifact,
 )
@@ -31,6 +34,11 @@ from app.advanced_shadow_lab.live_bundle_profile_gate import (  # noqa: E402
     ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
     resolve_live_bundle_profile_gate,
 )
+from app.advanced_shadow_lab.live_bundle_fake_providers import (  # noqa: E402
+    FakeProactiveCopyDiagnosticProvider,
+    FakeRecommendationCopyDiagnosticProvider,
+    FakeRescueCopyDiagnosticProvider,
+)
 
 
 ALLOW_ENV = "ADVANCED_SHADOW_LAB_ALLOW_LIVE_LLM_DIAGNOSTIC"
@@ -38,54 +46,12 @@ DEFAULT_OUTPUT = ROOT / "artifacts" / "advanced_shadow_comparison.json"
 DEFAULT_ARTIFACT_DIR = ROOT / "artifacts" / "advanced_shadow_lab_live_bundle"
 RECOMMENDATION_OUTPUT = "advanced_shadow_recommendation_copy_live_diagnostic.json"
 RESCUE_OUTPUT = "advanced_shadow_rescue_copy_live_diagnostic.json"
+PROACTIVE_OUTPUT = "advanced_shadow_proactive_copy_live_diagnostic.json"
 DOGFOOD_OUTPUT = "advanced_shadow_dogfood_replay.json"
 FIXTURE_CHAIN_OUTPUT = "advanced_shadow_e2e_fixture_chain.json"
 BLOCKED_RECOMMENDATION_TYPE = "advanced_shadow_recommendation_copy_live_diagnostic_artifact"
 BLOCKED_RESCUE_TYPE = "advanced_shadow_rescue_copy_live_diagnostic_artifact"
-
-
-class FakeRecommendationCopyDiagnosticProvider:
-    def readiness(self) -> dict[str, Any]:
-        return {"provider": "fake-recommendation-copy", "configured": True}
-
-    async def complete_with_trace(self, **_: Any) -> tuple[dict[str, Any], dict[str, Any]]:
-        return (
-            {
-                "candidate_id": "golden-1",
-                "draft_prompt": "Consider the selected option as a low-friction choice.",
-                "reason_summary": "It matches the shadow candidate signals and remains review-only.",
-                "claim_scope": "diagnostic_copy_only",
-                "action_request": False,
-                "delivery_request": False,
-                "mutation_request": False,
-                "reason_codes": ["review_only"],
-            },
-            {"stage": "advanced_shadow_recommendation_copy_live_diagnostic", "provider": "fake"},
-        )
-
-
-class FakeRescueCopyDiagnosticProvider:
-    def readiness(self) -> dict[str, Any]:
-        return {"provider": "fake-rescue-copy", "configured": True}
-
-    async def complete_with_trace(self, **_: Any) -> tuple[dict[str, Any], dict[str, Any]]:
-        return (
-            {
-                "proposal_headline": "Recover the rest of the week with a small adjustment.",
-                "proposal_summary": "Use a review-only offset and keep the tone neutral.",
-                "coaching_frame": "Frame this as planning, not punishment.",
-                "recommended_days": 2,
-                "daily_kcal_adjustment": -150,
-                "cap_mode": "standard_15_percent",
-                "special_posture": "standard_spread",
-                "claim_scope": "diagnostic_copy_only",
-                "action_request": False,
-                "delivery_request": False,
-                "mutation_request": False,
-                "reason_codes": ["review_only"],
-            },
-            {"stage": "advanced_shadow_rescue_copy_live_diagnostic", "provider": "fake"},
-        )
+BLOCKED_PROACTIVE_TYPE = "advanced_shadow_proactive_copy_live_diagnostic_artifact"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -128,9 +94,11 @@ def main(argv: list[str] | None = None) -> int:
         fixture_chain, "recommendation_shadow_summary_consumer_quality_report"
     )
     rescue_input = _rescue_shaping_input(chain_payload)
-    recommendation_live, rescue_live = _run_copy_diagnostics(
+    proactive_input = _mapping(fixture_chain.get("terminal_review_sink"))
+    recommendation_live, rescue_live, proactive_live = _run_copy_diagnostics(
         recommendation_report=recommendation_report,
         rescue_input=rescue_input,
+        proactive_input=proactive_input,
         provider_mode=str(args.provider_mode),
         allow_live_provider=bool(args.allow_live_provider),
         live_profile=live_profile,
@@ -142,6 +110,7 @@ def main(argv: list[str] | None = None) -> int:
         dogfood_replay_artifact=dogfood_replay,
         recommendation_copy_live_diagnostic_artifact=recommendation_live,
         rescue_copy_live_diagnostic_artifact=rescue_live,
+        proactive_copy_live_diagnostic_artifact=proactive_live,
         baseline_case_artifacts=_read_list(args.baseline_cases),
         advanced_case_artifacts=_read_list(args.advanced_cases),
     )
@@ -155,13 +124,15 @@ def _run_copy_diagnostics(
     *,
     recommendation_report: Mapping[str, Any],
     rescue_input: Mapping[str, Any],
+    proactive_input: Mapping[str, Any],
     provider_mode: str,
     allow_live_provider: bool,
     live_profile: Mapping[str, object] | None,
     artifact_dir: Path,
-) -> tuple[dict[str, Any], dict[str, Any]]:
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     recommendation_path = artifact_dir / RECOMMENDATION_OUTPUT
     rescue_path = artifact_dir / RESCUE_OUTPUT
+    proactive_path = artifact_dir / PROACTIVE_OUTPUT
     if provider_mode == "live":
         if not allow_live_provider or os.getenv(ALLOW_ENV) != "1":
             recommendation = _blocked_not_invoked(
@@ -174,10 +145,16 @@ def _run_copy_diagnostics(
                 output=rescue_path,
                 reason="live_gate_not_enabled",
             )
-            return recommendation, rescue
+            proactive = _blocked_not_invoked(
+                artifact_type=BLOCKED_PROACTIVE_TYPE,
+                output=proactive_path,
+                reason="live_gate_not_enabled",
+            )
+            return recommendation, rescue, proactive
         profile = _mapping(live_profile)
         recommendation_provider = _live_provider(profile, "recommendation_copy")
         rescue_provider = _live_provider(profile, "rescue_copy")
+        proactive_provider = _live_provider(profile, "proactive_copy")
         return (
             run_recommendation_copy_live_diagnostic(
                 recommendation_summary_report=recommendation_report,
@@ -192,6 +169,13 @@ def _run_copy_diagnostics(
                 provider_mode=str(profile.get("provider_profile_id") or ""),
                 live_invoked=True,
                 output_path=rescue_path,
+            ),
+            run_proactive_copy_live_diagnostic(
+                no_send_review_sink=proactive_input,
+                provider=proactive_provider,
+                provider_mode=str(profile.get("provider_profile_id") or ""),
+                live_invoked=True,
+                output_path=proactive_path,
             ),
         )
     return (
@@ -208,6 +192,13 @@ def _run_copy_diagnostics(
             provider_mode="fake_provider_contract_test",
             live_invoked=False,
             output_path=rescue_path,
+        ),
+        run_proactive_copy_live_diagnostic(
+            no_send_review_sink=proactive_input,
+            provider=FakeProactiveCopyDiagnosticProvider(),
+            provider_mode="fake_provider_contract_test",
+            live_invoked=False,
+            output_path=proactive_path,
         ),
     )
 
