@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response
@@ -10,9 +11,9 @@ from app.body.application.active_body_plan_read_model import build_active_body_p
 from app.budget.interface.today_surface import resolve_today_local_date
 from app.composition.accurate_intake_debug_read_model import build_accurate_intake_debug_read_model
 from app.composition.current_budget_read_model import build_current_budget_view
+from app.composition.dogfood_feedback_capture import build_feedback_record_from_route_payload
 from app.composition.dogfood_review_queue import (
     append_desktop_feedback_record,
-    build_feedback_record_from_desktop_capture,
 )
 from app.composition.dogfood_review_queue_surface import (
     DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH,
@@ -284,18 +285,12 @@ async def accurate_intake_feedback(
     payload: dict[str, Any] = Body(...),
     _local_debug_access: None = Depends(require_local_debug_access),
 ) -> dict[str, Any]:
+    started_at = perf_counter()
     try:
-        record = build_feedback_record_from_desktop_capture(
-            category=str(payload.get("category") or ""),
-            feedback_text=str(payload.get("feedback_text") or ""),
-            page=str(payload.get("page") or ""),
-            selected_date=str(payload.get("selected_date") or ""),
-            user_external_id=str(payload.get("user_external_id") or ""),
-            trace_id=payload.get("trace_id"),
-            message_id=payload.get("message_id"),
-            meal_id=payload.get("meal_id"),
-            severity=str(payload.get("severity") or "medium"),
-            ui_event=payload.get("ui_event") if isinstance(payload.get("ui_event"), dict) else {},
+        record = build_feedback_record_from_route_payload(
+            payload,
+            submitted_endpoint="/accurate-intake/feedback",
+            duration_ms=round((perf_counter() - started_at) * 1000),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

@@ -294,6 +294,12 @@ def test_browser_one_day_fixture_writes_review_queue_artifact_from_feedback(
                 "category": "product_feedback",
                 "feedback_text": "One-day desktop dogfood loop smoke feedback.",
                 "linked_context": {"trace_id": "one-day-dogfood-trace"},
+                "operation_context": {
+                    "submitted_endpoint": "/accurate-intake/feedback",
+                    "http_status": 200,
+                    "duration_ms": 42,
+                    "page_path": "/static/accurate-intake-feedback.html",
+                },
             },
             ensure_ascii=False,
         )
@@ -311,6 +317,7 @@ def test_browser_one_day_fixture_writes_review_queue_artifact_from_feedback(
     assert result["review_queue_artifact_written"] is True
     assert artifact["feedback_triage_record_count"] == 1
     assert artifact["desktop_feedback_records"][0]["linked_context"]["trace_id"] == "one-day-dogfood-trace"
+    assert artifact["desktop_feedback_records"][0]["operation_context"]["duration_ms"] == 42
 
 
 def test_browser_one_day_fixture_cli_writes_blocked_artifact_without_optional_failure(
