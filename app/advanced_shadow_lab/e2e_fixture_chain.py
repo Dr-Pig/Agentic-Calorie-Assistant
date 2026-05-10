@@ -21,6 +21,9 @@ from app.advanced_shadow_lab.e2e_fixture_chain_policy import (
     stage_trace,
 )
 from app.advanced_shadow_lab.chat_ux_packet import build_advanced_shadow_chat_ux_packet
+from app.advanced_shadow_lab.journey_terminal_evidence import (
+    build_journey_terminal_evidence,
+)
 from app.runtime.application.proactive_no_send_nudge_bridge import build_no_send_nudge_candidate_bridge
 from app.runtime.application.proactive_no_send_review_sink import build_no_send_review_sink
 from app.runtime.application.proactive_recommendation_prompt_bridge import build_recommendation_prompt_no_send_review
@@ -111,6 +114,9 @@ def run_advanced_shadow_e2e_fixture_chain(
     }
     artifact["chat_ux_packet"] = build_advanced_shadow_chat_ux_packet(
         fixture_chain_artifact=artifact
+    )
+    artifact["journey_terminal_evidence"] = build_journey_terminal_evidence(
+        artifact
     )
     return artifact
 

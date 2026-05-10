@@ -18,6 +18,11 @@ from app.advanced_shadow_lab.edge_case_coverage import (
     edge_case_coverage_summary,
     load_edge_case_coverage_contract,
 )
+from app.advanced_shadow_lab.journey_terminal_evidence import (
+    journey_terminal_evidence_blockers,
+    journey_terminal_evidence_row,
+    journey_terminal_evidence_summary,
+)
 from app.advanced_shadow_lab.shadow_comparison_live_rows import (
     live_copy_row,
     live_diagnostic_signal,
@@ -74,6 +79,7 @@ def build_advanced_shadow_comparison_artifact(
     source_statuses = {name: str(artifact.get("status") or "missing") for name, artifact in sources.items()}
     invariant = _activation_invariant_summary(sources.values())
     edge_coverage = load_edge_case_coverage_contract()
+    journey_evidence = journey_terminal_evidence_summary(sources["fixture_chain"])
     control_comparison, control_row, control_blockers = compare_no_send_control_paths(
         fixture_sink=_mapping(sources["fixture_chain"].get("terminal_review_sink")),
         dogfood_sink=_mapping(sources["dogfood_replay"].get("terminal_review_sink_summary")))
@@ -85,6 +91,10 @@ def build_advanced_shadow_comparison_artifact(
         *_source_status_blockers(sources),
         *chat_packet_copy_alignment_blockers(sources["fixture_chain"]),
         *edge_case_coverage_blockers(edge_coverage),
+        *_journey_evidence_blockers_if_comparable(
+            source_statuses=source_statuses,
+            summary=journey_evidence,
+        ),
         *[f"{row['source']}.{row['flag']}" for row in invariant["observed_true_flags"]],
         *control_blockers_if_comparable(source_statuses=source_statuses, blockers=control_blockers),
         *pairing_summary["schema_gaps"],
@@ -103,11 +113,13 @@ def build_advanced_shadow_comparison_artifact(
             control_row,
             chat_packet_copy_alignment_row(sources["fixture_chain"]),
             edge_case_coverage_row(edge_coverage),
+            journey_terminal_evidence_row(journey_evidence),
             live_copy_row("recommendation_prompt_reason_copy", sources["recommendation_copy_live_diagnostic"]),
             live_copy_row("rescue_proposal_copy_posture", sources["rescue_copy_live_diagnostic"]),
             live_copy_row("proactive_chat_copy_posture", sources["proactive_copy_live_diagnostic"]),
         ],
         "edge_case_coverage_summary": edge_case_coverage_summary(edge_coverage),
+        "journey_terminal_evidence_summary": journey_evidence,
         "no_send_control_path_comparison": control_comparison,
         "activation_invariant_summary": invariant,
         "pairing_summary": pairing_summary,
@@ -166,6 +178,14 @@ def _activation_invariant_summary(artifacts: list[Mapping[str, Any]] | Any) -> d
         "expected_false_flags": list(FALSE_FLAG_NAMES),
         "observed_true_flags": observed,
     }
+
+
+def _journey_evidence_blockers_if_comparable(
+    *,
+    source_statuses: Mapping[str, str],
+    summary: Mapping[str, Any],
+) -> list[str]:
+    return [] if source_statuses.get("fixture_chain") != "pass" else journey_terminal_evidence_blockers(summary)
 
 
 def _not_run(artifact_type: str) -> dict[str, str]:

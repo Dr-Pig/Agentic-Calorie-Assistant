@@ -10,6 +10,9 @@ from app.recommendation.application.three_node_shadow_contract import (
 )
 
 
+EXPECTED_UX_JOURNEY_IDS = ["F", "F2", "I", "L", "M", "N"]
+
+
 def test_fixture_chain_terminates_in_no_send_review_sink() -> None:
     artifact = run_advanced_shadow_e2e_fixture_chain(
         memory_summary_projection=_memory_projection(),
@@ -96,6 +99,56 @@ def test_fixture_chain_terminates_in_no_send_review_sink() -> None:
     assert artifact["durable_product_memory_written"] is False
     assert "hidden-food-candidate" not in serialized
     assert "Fixture headline, not user-facing" not in serialized
+
+
+def test_fixture_chain_emits_terminal_evidence_for_each_mapped_ux_journey() -> None:
+    artifact = run_advanced_shadow_e2e_fixture_chain(
+        memory_summary_projection=_memory_projection(),
+        recommendation_payload=_recommendation_payload(),
+        derived_memory_views=_derived_views(),
+        current_budget_view=_budget_view(),
+        active_body_plan_view=_body_plan_view(),
+        open_proposals_view={"open_rescue_proposal_count": 0},
+        proposal_candidate_output=_proposal_candidate_output(),
+        user_control_models={
+            "recommendation_prompt": _controls("new_app_open_with_qualified_pool"),
+            "rescue_nudge": _controls(
+                "material_budget_change_or_user_reopens_rescue"
+            ),
+        },
+        interaction_plan=[
+            {"action": "dismiss", "dismiss_reason": "too_frequent"},
+            {"action": "snooze", "snooze_minutes": 120},
+        ],
+    )
+
+    evidence = artifact["journey_terminal_evidence"]
+
+    assert [row["journey_id"] for row in evidence] == EXPECTED_UX_JOURNEY_IDS
+    for row in evidence:
+        assert row["status"] == "pass"
+        assert row["comparison_scope"] == "ux_journey_terminal_lab_only_evidence"
+        assert row["source_artifact_refs"]
+        assert row["required_trace_fields"]
+        assert row["terminal_artifact_refs"] == [
+            "advanced_shadow_e2e_fixture_chain_artifact",
+            "proactive_no_send_review_sink_artifact",
+            "advanced_shadow_chat_ux_packet_artifact",
+        ]
+        assert row["no_send_control_evidence"] == {
+            "status": "pass",
+            "configured_paths": {"dismiss": True, "snooze": True, "undo": True},
+            "next_signal_required_present": True,
+        }
+        assert row["semantic_decision_inferred_by_runner"] is False
+        assert row["mainline_runtime_connected"] is False
+        assert row["delivery_attempted"] is False
+        assert row["recommendation_served"] is False
+        assert row["rescue_committed"] is False
+        assert row["proposal_committed"] is False
+        assert row["mutation_changed"] is False
+        assert row["user_facing_behavior_changed"] is False
+        assert row["product_readiness_claimed"] is False
 
 
 def test_fixture_chain_blocks_activation_drift_before_review_sink() -> None:

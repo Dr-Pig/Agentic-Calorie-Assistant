@@ -7,6 +7,9 @@ from app.advanced_shadow_lab.shadow_comparison import (
 )
 
 
+EXPECTED_UX_JOURNEY_IDS = ["F", "F2", "I", "L", "M", "N"]
+
+
 def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> None:
     artifact = build_advanced_shadow_comparison_artifact(
         fixture_chain_artifact=_fixture_chain(),
@@ -56,6 +59,13 @@ def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> N
             "finding": "edge_case_contract_linkage_passed",
         },
         {
+            "surface": "ux_journey_terminal_evidence",
+            "fixture_status": "pass",
+            "dogfood_status": "not_applicable",
+            "live_status": "not_required",
+            "finding": "all_required_journeys_have_terminal_lab_evidence",
+        },
+        {
             "surface": "recommendation_prompt_reason_copy",
             "fixture_status": "not_applicable",
             "dogfood_status": "not_applicable",
@@ -78,6 +88,16 @@ def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> N
         },
     ]
     assert artifact["activation_invariant_summary"]["observed_true_flags"] == []
+    assert artifact["journey_terminal_evidence_summary"] == {
+        "status": "pass",
+        "required_journey_ids": EXPECTED_UX_JOURNEY_IDS,
+        "observed_journey_ids": EXPECTED_UX_JOURNEY_IDS,
+        "evidence_count": 6,
+        "missing_journey_ids": [],
+        "blocked_journey_ids": [],
+        "activation_violations": [],
+        "new_report_family_created": False,
+    }
     assert artifact["live_diagnostic_signals"] == {
         "recommendation_copy_live_diagnostic": {
             "live_invoked": True,
@@ -115,6 +135,38 @@ def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> N
     assert "private dogfood wording" not in serialized
     assert "Consider the FamilyMart" not in serialized
     assert "Recover the rest of the week" not in serialized
+
+
+def test_shadow_comparison_blocks_missing_journey_terminal_evidence() -> None:
+    fixture = _fixture_chain()
+    fixture["journey_terminal_evidence"] = [
+        row
+        for row in fixture["journey_terminal_evidence"]  # type: ignore[index]
+        if row["journey_id"] != "N"
+    ]
+
+    artifact = build_advanced_shadow_comparison_artifact(
+        fixture_chain_artifact=fixture,
+        dogfood_replay_artifact=_dogfood_replay(),
+        recommendation_copy_live_diagnostic_artifact=_live_diagnostic(),
+        rescue_copy_live_diagnostic_artifact=_rescue_live_diagnostic(),
+        proactive_copy_live_diagnostic_artifact=_proactive_live_diagnostic(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["surface_status_rows"][4] == {
+        "surface": "ux_journey_terminal_evidence",
+        "fixture_status": "blocked",
+        "dogfood_status": "not_applicable",
+        "live_status": "not_required",
+        "finding": "journey_terminal_evidence_blocked",
+    }
+    assert artifact["journey_terminal_evidence_summary"]["missing_journey_ids"] == [
+        "N"
+    ]
+    assert artifact["blockers"] == ["journey_terminal_evidence.missing_journey:N"]
+    assert artifact["product_readiness_claimed"] is False
+    assert artifact["user_facing_behavior_changed"] is False
 
 
 def test_shadow_comparison_blocks_activation_claim_drift() -> None:
@@ -169,7 +221,7 @@ def test_shadow_comparison_treats_live_guard_block_as_quality_finding() -> None:
 
     assert artifact["status"] == "blocked"
     assert artifact["source_statuses"]["recommendation_copy_live_diagnostic"] == "blocked"
-    assert artifact["surface_status_rows"][4] == {
+    assert artifact["surface_status_rows"][5] == {
         "surface": "recommendation_prompt_reason_copy",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",
@@ -193,7 +245,7 @@ def test_shadow_comparison_treats_rescue_live_guard_block_as_quality_finding() -
 
     assert artifact["status"] == "blocked"
     assert artifact["source_statuses"]["rescue_copy_live_diagnostic"] == "blocked"
-    assert artifact["surface_status_rows"][5] == {
+    assert artifact["surface_status_rows"][6] == {
         "surface": "rescue_proposal_copy_posture",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",
@@ -216,7 +268,7 @@ def test_shadow_comparison_treats_proactive_live_guard_block_as_quality_finding(
 
     assert artifact["status"] == "blocked"
     assert artifact["source_statuses"]["proactive_copy_live_diagnostic"] == "blocked"
-    assert artifact["surface_status_rows"][6] == {
+    assert artifact["surface_status_rows"][7] == {
         "surface": "proactive_chat_copy_posture",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",
@@ -305,7 +357,7 @@ def test_shadow_comparison_allows_rescue_live_diagnostic_to_be_absent() -> None:
 
     assert artifact["status"] == "pass"
     assert artifact["source_statuses"]["rescue_copy_live_diagnostic"] == "not_run"
-    assert artifact["surface_status_rows"][5] == {
+    assert artifact["surface_status_rows"][6] == {
         "surface": "rescue_proposal_copy_posture",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",
@@ -420,6 +472,10 @@ def _fixture_chain() -> dict[str, object]:
             "record_count": 2,
             "control_path_evidence": _control_evidence(),
         },
+        "journey_terminal_evidence": [
+            _journey_terminal_evidence(journey_id)
+            for journey_id in EXPECTED_UX_JOURNEY_IDS
+        ],
         "mainline_runtime_connected": False,
         "delivery_attempted": False,
         "scheduler_enabled": False,
@@ -427,6 +483,36 @@ def _fixture_chain() -> dict[str, object]:
         "proactive_sent": False,
         "mutation_changed": False,
         "user_facing_behavior_changed": False,
+    }
+
+
+def _journey_terminal_evidence(journey_id: str) -> dict[str, object]:
+    return {
+        "journey_id": journey_id,
+        "journey_name": f"fixture_{journey_id}",
+        "status": "pass",
+        "comparison_scope": "ux_journey_terminal_lab_only_evidence",
+        "source_artifact_refs": ["fixture_source"],
+        "required_trace_fields": ["fixture_trace_field"],
+        "terminal_artifact_refs": [
+            "advanced_shadow_e2e_fixture_chain_artifact",
+            "proactive_no_send_review_sink_artifact",
+            "advanced_shadow_chat_ux_packet_artifact",
+        ],
+        "no_send_control_evidence": {
+            "status": "pass",
+            "configured_paths": {"dismiss": True, "snooze": True, "undo": True},
+            "next_signal_required_present": True,
+        },
+        "semantic_decision_inferred_by_runner": False,
+        "mainline_runtime_connected": False,
+        "delivery_attempted": False,
+        "recommendation_served": False,
+        "rescue_committed": False,
+        "proposal_committed": False,
+        "mutation_changed": False,
+        "user_facing_behavior_changed": False,
+        "product_readiness_claimed": False,
     }
 
 
