@@ -118,12 +118,12 @@ def test_three_node_live_diagnostic_script_writes_fake_artifact(tmp_path: Path) 
     assert artifact["recommendation_served"] is False
 
 
-def test_three_node_live_diagnostic_source_stays_manual_and_provider_free() -> None:
+def test_three_node_live_diagnostic_application_source_stays_provider_free() -> None:
     paths = [
         ROOT / "app" / "recommendation" / "application" / "three_node_diagnostic_fake_provider.py",
         ROOT / "app" / "recommendation" / "application" / "three_node_diagnostic_policy.py",
         ROOT / "app" / "recommendation" / "application" / "three_node_live_diagnostic.py",
-        ROOT / "scripts" / "run_recommendation_three_node_live_diagnostic.py",
+        ROOT / "app" / "recommendation" / "application" / "three_node_live_provider_gate.py",
     ]
     forbidden_imports = (
         "app.providers",

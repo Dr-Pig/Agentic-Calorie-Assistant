@@ -45,12 +45,15 @@ def run_recommendation_three_node_live_diagnostic(
     provider: Any | None = None,
     provider_mode: str = "fake_provider_contract_test",
     live_invoked: bool = False,
+    live_requested: bool | None = None,
+    pre_run_blockers: list[str] | None = None,
+    provider_gate: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     preflight_artifact = dict(preflight or build_recommendation_three_node_live_preflight())
     blocked_preflight = preflight_blockers(preflight_artifact)
     active_provider = provider or FakeRecommendationThreeNodeDiagnosticProvider()
     node_outputs: list[dict[str, Any]] = []
-    blockers = list(blocked_preflight)
+    blockers = [*blocked_preflight, *(pre_run_blockers or [])]
 
     if not blockers:
         node_outputs = [
@@ -74,9 +77,11 @@ def run_recommendation_three_node_live_diagnostic(
         "semantic_quality_claimed": False,
         "provider_mode": provider_mode,
         "provider_profile_id": str(preflight_artifact.get("provider_profile_id") or ""),
+        "live_requested": bool(live_invoked if live_requested is None else live_requested),
         "live_invoked": bool(live_invoked),
         "live_provider_invoked": bool(live_invoked and node_outputs),
         "live_llm_invoked": bool(live_invoked and node_outputs),
+        "provider_gate": dict(provider_gate or {}),
         "node_outputs": node_outputs,
         "node_status_by_physical_node": field_by_node(node_outputs, "status"),
         "node_provider_used_by_physical_node": {
@@ -95,15 +100,19 @@ def run_recommendation_three_node_live_diagnostic(
 
 
 def _run_node(provider: Any, node_input: Mapping[str, Any], provider_mode: str, live_invoked: bool) -> dict[str, Any]:
-    output, trace = asyncio.run(
-        provider.complete_with_trace(
-            system_prompt="Return the requested recommendation diagnostic JSON only.",
-            user_payload=dict(node_input),
-            stage=f"recommendation_three_node_{node_input.get('physical_node')}",
-            max_tokens=700,
-        )
-    )
     node = str(node_input.get("physical_node") or "")
+    stage = f"recommendation_three_node_{node}"
+    try:
+        output, trace = asyncio.run(
+            provider.complete_with_trace(
+                system_prompt="Return the requested recommendation diagnostic JSON only.",
+                user_payload=dict(node_input),
+                stage=stage,
+                max_tokens=700,
+            )
+        )
+    except Exception as exc:
+        return _provider_error_node(node, stage, provider_mode, live_invoked, exc)
     blockers = output_blockers(node, mapping(output))
     return {
         "physical_node": node,
@@ -113,6 +122,27 @@ def _run_node(provider: Any, node_input: Mapping[str, Any], provider_mode: str, 
         "provider_trace_summary": trace_summary(trace),
         "output": mapping(output),
         "blockers": blockers,
+    }
+
+
+def _provider_error_node(
+    node: str,
+    stage: str,
+    provider_mode: str,
+    live_invoked: bool,
+    exc: Exception,
+) -> dict[str, Any]:
+    trace = getattr(exc, "trace", None)
+    summary = trace_summary(trace if isinstance(trace, Mapping) else {"stage": stage})
+    summary["error_type"] = type(exc).__name__
+    return {
+        "physical_node": node,
+        "status": "blocked",
+        "provider_mode": provider_mode,
+        "live_provider_used": bool(live_invoked),
+        "provider_trace_summary": summary,
+        "output": {},
+        "blockers": [f"{node}.provider_runtime_error:{type(exc).__name__}"],
     }
 
 
