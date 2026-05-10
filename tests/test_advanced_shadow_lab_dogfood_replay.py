@@ -8,8 +8,8 @@ from app.advanced_shadow_lab.dogfood_replay import (
 from app.memory.application.runtime_lab_dogfood_replay import (
     build_memory_dogfood_replay_review_artifact,
 )
-from app.recommendation.application.five_node_shadow_fixture import (
-    build_fixture_recommendation_five_node_input,
+from app.recommendation.application.three_node_shadow_contract import (
+    build_fixture_recommendation_three_node_input,
 )
 
 
@@ -194,7 +194,7 @@ def _chain_payload() -> dict[str, object]:
 
 
 def _recommendation_payload() -> dict[str, object]:
-    payload = build_fixture_recommendation_five_node_input()
+    payload = build_fixture_recommendation_three_node_input()
     golden = _candidate(payload, "golden-1")
     golden.update(
         {

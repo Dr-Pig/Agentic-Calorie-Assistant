@@ -12,7 +12,7 @@ SIDECAR_ACTIVATION_CONTRACT = offline_sidecar_contract(
 SUMMARY_REPORT = "recommendation_shadow_summary_consumer_quality_report"
 MEMORY_STAGE_DECISION = "runtime_lab_memory_stage_promotion_decision"
 MEMORY_DEPENDENCY = "long_term_memory.read_only_runtime"
-RECOMMENDATION_SOURCE_ARTIFACT = "recommendation_five_node_lab_runner_artifact"
+RECOMMENDATION_SOURCE_ARTIFACT = "recommendation_three_node_shadow_artifact"
 REQUIRED_SCOPE_KEYS = ("user_id", "workspace_id", "project_id", "surface", "run_id")
 MEMORY_STAGE_NO_GO_FLAGS = (
     "mainline_runtime_connected",
@@ -145,6 +145,12 @@ def _recommendation_report_blockers(report: Mapping[str, Any]) -> list[str]:
         blockers.append("recommendation_summary_report.memory_summary_not_used")
     if report.get("source_recommendation_artifact_type") != RECOMMENDATION_SOURCE_ARTIFACT:
         blockers.append("recommendation_summary_report.source_recommendation_missing")
+    if report.get("canonical_recommendation_graph") != "three_node":
+        blockers.append("recommendation_summary_report.three_node_graph_not_canonical")
+    if report.get("three_node_lab_bridge_used") is not True:
+        blockers.append("recommendation_summary_report.three_node_bridge_not_used")
+    if report.get("five_node_lab_bridge_used") is True:
+        blockers.append("recommendation_summary_report.five_node_bridge_used")
     if int(report.get("candidate_count") or 0) <= 0:
         blockers.append("recommendation_summary_report.no_candidate_evidence")
     for blocker in _string_list(report.get("blockers")):

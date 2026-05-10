@@ -5,8 +5,8 @@ import json
 from app.advanced_shadow_lab.e2e_fixture_chain import (
     run_advanced_shadow_e2e_fixture_chain,
 )
-from app.recommendation.application.five_node_shadow_fixture import (
-    build_fixture_recommendation_five_node_input,
+from app.recommendation.application.three_node_shadow_contract import (
+    build_fixture_recommendation_three_node_input,
 )
 
 
@@ -35,7 +35,7 @@ def test_fixture_chain_terminates_in_no_send_review_sink() -> None:
     assert artifact["artifact_type"] == "advanced_shadow_e2e_fixture_chain_artifact"
     assert artifact["status"] == "pass"
     assert artifact["stage_order"] == [
-        "recommendation_five_node_lab_runner_artifact",
+        "recommendation_three_node_shadow_artifact",
         "recommendation_shadow_summary_consumer_quality_report",
         "recommendation_prompt_no_send_review",
         "rescue_shadow_summary_context_projection",
@@ -60,7 +60,8 @@ def test_fixture_chain_terminates_in_no_send_review_sink() -> None:
     assert artifact["stage_artifacts"][1]["artifact_type"] == (
         "recommendation_shadow_summary_consumer_quality_report"
     )
-    assert artifact["stage_artifacts"][1]["five_node_lab_bridge_used"] is True
+    assert artifact["stage_artifacts"][1]["three_node_lab_bridge_used"] is True
+    assert artifact["stage_artifacts"][1]["five_node_lab_bridge_used"] is False
     assert artifact["terminal_review_sink"]["status"] == "pass"
     assert artifact["terminal_review_sink"]["record_count"] == 2
     assert artifact["terminal_review_sink"]["control_path_evidence"] == {
@@ -94,7 +95,7 @@ def test_fixture_chain_terminates_in_no_send_review_sink() -> None:
 
 def test_fixture_chain_blocks_activation_drift_before_review_sink() -> None:
     recommendation = _recommendation_payload()
-    recommendation["response_offer_fixture"]["recommendation_served"] = True
+    recommendation["shadow_offer_packet_fixture"]["recommendation_served"] = True
 
     artifact = run_advanced_shadow_e2e_fixture_chain(
         memory_summary_projection=_memory_projection(),
@@ -114,7 +115,7 @@ def test_fixture_chain_blocks_activation_drift_before_review_sink() -> None:
     )
 
     assert artifact["status"] == "blocked"
-    assert "recommendation_five_node_lab_runner_artifact.status_blocked" in artifact[
+    assert "recommendation_three_node_shadow_artifact.status_blocked" in artifact[
         "blockers"
     ]
     assert artifact["terminal_review_sink"]["status"] == "not_run"
@@ -125,7 +126,7 @@ def test_fixture_chain_blocks_activation_drift_before_review_sink() -> None:
 
 
 def _recommendation_payload() -> dict[str, object]:
-    payload = build_fixture_recommendation_five_node_input()
+    payload = build_fixture_recommendation_three_node_input()
     golden = _candidate(payload, "golden-1")
     golden.update(
         {

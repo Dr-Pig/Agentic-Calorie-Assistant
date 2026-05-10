@@ -18,6 +18,22 @@ def test_three_node_contract_allows_llm_decision_after_deterministic_guard() -> 
         "deterministic_candidate_guard",
         "shadow_offer_packet_fixture",
     ]
+    assert artifact["physical_graph_profile"] == (
+        "three_node_recommendation_planning_guard_offer"
+    )
+    assert artifact["physical_node_order"] == [
+        "recommendation_planning",
+        "candidate_retrieval_guard_scoring",
+        "offer_synthesis",
+    ]
+    assert [row["logical_stage"] for row in artifact["logical_stage_trace"]] == [
+        "recommendation_context_result",
+        "candidate_spec",
+        "candidate_retrieval_guard_scoring",
+        "ranking_result",
+        "recommendation_response_result",
+    ]
+    assert artifact["legacy_five_node_artifact_source"] is False
     assert artifact["llm_owned_nodes"] == [
         "manager_recommendation_decision_fixture",
         "shadow_offer_packet_fixture",
