@@ -394,6 +394,28 @@ def test_planned_event_rescue_acceptance_points_to_negotiation_shadow_packet() -
     assert rescue_entry["mainline_activation_allowed"] is False
 
 
+def test_proactive_acceptance_points_to_pending_meal_followup_shadow() -> None:
+    contract = _contract()
+    entries = {
+        entry["journey_id"]: entry
+        for entry in contract["edge_case_coverage_contract"]["ux_acceptance_entries"]
+    }
+    proactive_entry = entries["N"]
+
+    assert (
+        "proactive_pending_meal_followup_shadow"
+        in proactive_entry["existing_shadow_artifacts"]
+    )
+    assert "pending_meal_intent_trace" in proactive_entry["required_trace_fields"]
+    assert "followup_source_review" in proactive_entry["required_trace_fields"]
+    assert "no_send_candidate" in proactive_entry["required_trace_fields"]
+    assert "simulation_input" in proactive_entry["required_trace_fields"]
+    assert "pending_intent_mutated" in proactive_entry["required_trace_fields"]
+    assert proactive_entry["next_build_slice"] == "calibration_proposal_shadow_integration"
+    assert proactive_entry["claim_boundary"] == "non_claim"
+    assert proactive_entry["mainline_activation_allowed"] is False
+
+
 def test_contract_records_best_practice_and_harness_minimization_boundaries() -> None:
     contract = _contract()
     best_practice = contract["best_practice_evidence"]

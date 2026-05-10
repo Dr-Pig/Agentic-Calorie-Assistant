@@ -613,7 +613,7 @@ edge_case_coverage_contract:
         - budget_mutation_allowed
         - non_claims
       acceptance_status: existing_shadow_chain_mapped
-      next_build_slice: proactive_pending_meal_followup_shadow_or_calibration_direction_challenge
+      next_build_slice: calibration_proposal_shadow_integration
       claim_boundary: non_claim
       mainline_activation_allowed: false
     - journey_id: I
@@ -666,7 +666,7 @@ edge_case_coverage_contract:
         - intake_commit_requested
         - pending_meal_intent_created
       acceptance_status: existing_shadow_chain_mapped
-      next_build_slice: proactive_pending_meal_followup_shadow_or_f2_rescue_direction_challenge
+      next_build_slice: calibration_proposal_shadow_integration
       claim_boundary: non_claim
       mainline_activation_allowed: false
     - journey_id: M
@@ -711,17 +711,23 @@ edge_case_coverage_contract:
         - docs/specs/L0_PRODUCT_CAPABILITY_SPEC.md#proactive-trigger
       existing_shadow_artifacts:
         - proactive_no_send_nudge_candidate_bridge
+        - proactive_pending_meal_followup_shadow
         - proactive_no_send_review_sink_artifact
         - advanced_shadow_chat_ux_packet_artifact
       required_trace_fields:
+        - pending_meal_intent_trace
+        - followup_source_review
+        - no_send_candidate
+        - simulation_input
         - permission_posture
         - cooldown
         - suppression
         - dismiss_reason_choices
         - snooze_window
         - next_signal_required
+        - pending_intent_mutated
       acceptance_status: existing_shadow_chain_mapped
-      next_build_slice: proactive_trigger_family_matrix_and_chat_first_simulation
+      next_build_slice: calibration_proposal_shadow_integration
       claim_boundary: non_claim
       mainline_activation_allowed: false
 
