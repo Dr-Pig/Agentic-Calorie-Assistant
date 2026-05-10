@@ -650,13 +650,16 @@ edge_case_coverage_contract:
       existing_shadow_artifacts:
         - recommendation_three_node_shadow_artifact
         - recommendation_shadow_summary_consumer_quality_report
+        - recommendation_offer_shadow_packet
         - pending_meal_intent
       required_trace_fields:
         - recommendation_planning
         - candidate_retrieval_guard_scoring
         - offer_synthesis
+        - offer_synthesis_trace
         - selected_candidate_id
         - intake_commit_requested
+        - pending_meal_intent_created
       acceptance_status: gap_requires_next_slice
       next_build_slice: recommendation_pending_intent_handoff_shadow
       claim_boundary: non_claim

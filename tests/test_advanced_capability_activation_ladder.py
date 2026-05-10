@@ -349,6 +349,24 @@ def test_memory_ux_acceptance_points_to_review_forget_confirmation_controls() ->
     assert memory_entry["mainline_activation_allowed"] is False
 
 
+def test_recommendation_ux_acceptance_points_to_offer_shadow_packet() -> None:
+    contract = _contract()
+    entries = {
+        entry["journey_id"]: entry
+        for entry in contract["edge_case_coverage_contract"]["ux_acceptance_entries"]
+    }
+    recommendation_entry = entries["L"]
+
+    assert (
+        "recommendation_offer_shadow_packet"
+        in recommendation_entry["existing_shadow_artifacts"]
+    )
+    assert "offer_synthesis_trace" in recommendation_entry["required_trace_fields"]
+    assert "pending_meal_intent_created" in recommendation_entry["required_trace_fields"]
+    assert recommendation_entry["claim_boundary"] == "non_claim"
+    assert recommendation_entry["mainline_activation_allowed"] is False
+
+
 def test_contract_records_best_practice_and_harness_minimization_boundaries() -> None:
     contract = _contract()
     best_practice = contract["best_practice_evidence"]

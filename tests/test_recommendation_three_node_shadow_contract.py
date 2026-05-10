@@ -52,6 +52,8 @@ def test_three_node_contract_allows_llm_decision_after_deterministic_guard() -> 
     assert artifact["selected_candidate_id"] == "golden-1"
     assert artifact["shadow_offer_packet"] == {
         "candidate_id": "golden-1",
+        "backup_candidate_ids": [],
+        "explanation": "Fixture LLM selected the reviewed budget-fitting option.",
         "is_canonical_truth": False,
         "recommendation_served": False,
         "intake_commit_requested": False,
