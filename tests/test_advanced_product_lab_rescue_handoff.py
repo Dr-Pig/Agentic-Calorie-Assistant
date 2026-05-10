@@ -39,5 +39,9 @@ def test_product_lab_rescue_proposal_is_mirrored_on_chat_message() -> None:
         "request_gentler_plan",
         "ask_why_this_plan",
     ]
+    assert proposal["proposal_card"]["card_kind"] == "same_day_rescue_lab"
+    assert proposal["source_pending_rescue_commit_artifact_type"] == (
+        "advanced_product_lab_pending_rescue_commit"
+    )
     assert proposal["canonical_commit_requested"] is False
     assert rescue_message["canonical_mutation_requested"] is False
