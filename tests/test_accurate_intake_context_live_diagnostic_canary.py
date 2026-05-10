@@ -60,7 +60,11 @@ class _FakeResponse:
     def json(self) -> dict[str, Any]:
         return {
             "choices": [{"message": {"content": json.dumps(self._payload, ensure_ascii=False)}}],
-            "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+            "usage": {
+                "prompt_tokens": 10,
+                "completion_tokens": 5,
+                "prompt_tokens_details": {"cached_tokens": 4},
+            },
         }
 
 
@@ -153,6 +157,14 @@ async def test_context_live_canary_runs_fake_async_client_as_live_contract_probe
     assert report["response_contract_status"] == "pass"
     assert report["summary"]["provider_output_count"] == len(preflight["provider_inputs"])
     assert report["summary"]["blocked_response_count"] == 0
+    assert report["summary"]["cache_metrics_available_count"] == len(preflight["provider_inputs"])
+    assert report["summary"]["cached_tokens_total"] == 4 * len(preflight["provider_inputs"])
+    assert report["provider_traces"][0]["cache_metrics"] == {
+        "cache_metrics_available": True,
+        "cached_tokens": 4,
+        "cache_read_input_tokens": None,
+        "cache_creation_input_tokens": None,
+    }
     assert len(_FakeAsyncClient.requests) == len(preflight["provider_inputs"])
     assert all(
         request["request_payload"]["tool_policy"]["tools_available"] == []
