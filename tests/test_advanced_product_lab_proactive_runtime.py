@@ -55,6 +55,7 @@ def test_product_lab_proactive_reads_outputs_and_builds_chat_candidates(
         "proposal:same_day_rescue_lab",
     ]
     assert artifact["memory_context_refs"] == ["memory-oatmeal"]
+    assert artifact["omission_traces"] == []
     assert artifact["chat_first"] is True
     assert artifact["lab_chat_delivery_allowed"] is True
     assert artifact["scheduler_delivery_allowed"] is False
@@ -93,6 +94,87 @@ def test_product_lab_proactive_blocks_candidates_without_control_path(
     assert artifact["status"] == "blocked"
     assert "rescue_nudge.snooze_window_missing" in artifact["blockers"]
     assert artifact["lab_chat_delivery_allowed"] is False
+
+
+def test_product_lab_proactive_uses_action_state_for_pending_intake_followup(
+    tmp_path: Path,
+) -> None:
+    from app.advanced_shadow_lab.product_lab_proactive import run_product_lab_proactive
+
+    fixture_inputs = build_product_lab_fixture_inputs()
+    memory_pack = _memory_pack(tmp_path)
+    artifact = run_product_lab_proactive(
+        turn=_turn(),
+        fixture_inputs=fixture_inputs,
+        memory_context_pack=memory_pack,
+        recommendation_artifact=run_product_lab_recommendation(
+            turn=_turn(),
+            fixture_inputs=fixture_inputs,
+            memory_context_pack=memory_pack,
+        ),
+        rescue_artifact=run_product_lab_rescue(fixture_inputs=fixture_inputs),
+        action_state={
+            "artifact_type": "advanced_product_lab_action_state",
+            "active_pending_intake_draft_ids": ["memory-oatmeal"],
+            "active_pending_intake_source_refs": ["pending:memory-oatmeal"],
+        },
+    )
+
+    assert artifact["status"] == "pass"
+    assert [candidate["trigger_type"] for candidate in artifact["candidates"]] == [
+        "recommendation_prompt",
+        "pending_intake_followup",
+        "rescue_nudge",
+    ]
+    followup = artifact["candidates"][1]
+    assert followup["candidate_kind"] == "pending_intake_confirmation_followup"
+    assert followup["next_signal_required"] == (
+        "user_confirms_or_cancels_pending_intake"
+    )
+    assert artifact["action_state_refs"] == ["pending:memory-oatmeal"]
+    assert artifact["scheduler_delivery_allowed"] is False
+
+
+def test_product_lab_proactive_omits_dismissed_rescue_nudge(
+    tmp_path: Path,
+) -> None:
+    from app.advanced_shadow_lab.product_lab_proactive import run_product_lab_proactive
+
+    fixture_inputs = build_product_lab_fixture_inputs()
+    memory_pack = _memory_pack(tmp_path)
+    artifact = run_product_lab_proactive(
+        turn=_turn(),
+        fixture_inputs=fixture_inputs,
+        memory_context_pack=memory_pack,
+        recommendation_artifact=run_product_lab_recommendation(
+            turn=_turn(),
+            fixture_inputs=fixture_inputs,
+            memory_context_pack=memory_pack,
+        ),
+        rescue_artifact=run_product_lab_rescue(fixture_inputs=fixture_inputs),
+        action_state={
+            "artifact_type": "advanced_product_lab_action_state",
+            "dismissed_rescue_instance_count": 1,
+            "dismissed_rescue_source_refs": ["rescue:source"],
+        },
+    )
+
+    assert artifact["status"] == "pass"
+    assert [candidate["trigger_type"] for candidate in artifact["candidates"]] == [
+        "recommendation_prompt"
+    ]
+    assert artifact["omission_traces"] == [
+        {
+            "trigger_type": "rescue_nudge",
+            "omission_reason": "dismissed_rescue_instance_active",
+            "source_refs": ["rescue:source"],
+            "user_facing_behavior_changed": False,
+            "scheduler_delivery_allowed": False,
+            "canonical_product_mutation_allowed": False,
+        }
+    ]
+    assert artifact["lab_chat_delivery_allowed"] is True
+    assert artifact["notification_delivery_allowed"] is False
 
 
 def test_product_lab_turn_exposes_product_proactive_artifact(tmp_path: Path) -> None:

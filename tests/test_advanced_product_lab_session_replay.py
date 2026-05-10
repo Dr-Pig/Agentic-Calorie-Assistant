@@ -322,6 +322,47 @@ def test_product_lab_session_replay_action_state_is_cross_turn_projection(
     assert second["post_turn_action_state"]["active_pending_intake_draft_ids"] == [
         "golden-1"
     ]
+    second_proactive = second["turn_artifact"]["product_lab_proactive_artifact"]
+    assert [candidate["trigger_type"] for candidate in second_proactive["candidates"]] == [
+        "recommendation_prompt",
+        "pending_intake_followup",
+        "rescue_nudge",
+    ]
+    assert second_proactive["action_state_refs"]
+
+
+def test_product_lab_session_replay_proactive_omits_prior_dismissed_rescue(
+    tmp_path: Path,
+) -> None:
+    artifact = run_advanced_product_lab_dogfood_session(
+        artifact_root=tmp_path,
+        session_id="lab-session-proactive-dismiss-1",
+        fixture_inputs=_fixture_inputs(),
+        turns=[
+            {
+                "turn_id": "t1-dismiss",
+                "post_turn_chat_actions": [
+                    {
+                        "event_id": "dismiss-rescue",
+                        "target_candidate_id": "rescue_nudge:1",
+                        "action": "dismiss_rescue_plan",
+                    }
+                ],
+            },
+            {"turn_id": "t2-after-dismiss"},
+        ],
+    )
+
+    assert artifact["status"] == "pass"
+    second = read_json_artifact(Path(artifact["turn_artifact_paths"][1]))
+    proactive = second["turn_artifact"]["product_lab_proactive_artifact"]
+    assert [candidate["trigger_type"] for candidate in proactive["candidates"]] == [
+        "recommendation_prompt"
+    ]
+    assert proactive["omission_traces"][0]["omission_reason"] == (
+        "dismissed_rescue_instance_active"
+    )
+    assert proactive["scheduler_delivery_allowed"] is False
 
 
 def test_product_lab_session_replay_records_manager_tool_loop_trace(

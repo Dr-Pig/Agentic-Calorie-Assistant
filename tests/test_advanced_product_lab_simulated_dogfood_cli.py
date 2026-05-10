@@ -74,7 +74,7 @@ def test_simulated_dogfood_cli_writes_operator_review_artifacts(
         "golden-breakfast-oatmeal",
         "golden-breakfast-oatmeal",
     ]
-    assert file_summary["product_proactive_candidate_counts"] == [2, 2, 2, 2]
+    assert file_summary["product_proactive_candidate_counts"] == [2, 3, 3, 3]
     assert file_summary["product_outputs_applied_to_chat_surface"] is True
     assert file_summary["product_recommendation_intake_handoff_created"] is True
     assert file_summary["product_rescue_commit_handoff_created"] is True

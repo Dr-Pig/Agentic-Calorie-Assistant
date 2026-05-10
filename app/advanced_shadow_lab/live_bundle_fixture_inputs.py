@@ -51,6 +51,7 @@ def build_live_bundle_chain_payload() -> dict[str, Any]:
         "proposal_candidate_output": _proposal_candidate_output(),
         "user_control_models": {
             "recommendation_prompt": _controls("new_app_open_with_qualified_pool"),
+            "pending_intake_followup": _controls("user_confirms_or_cancels_pending_intake"),
             "rescue_nudge": _controls("material_budget_change_or_user_reopens_rescue"),
         },
         "interaction_plan": [
