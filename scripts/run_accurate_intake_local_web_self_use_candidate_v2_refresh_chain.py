@@ -358,6 +358,17 @@ def _read_or_generate_json_artifact(path: Path, builder: Any) -> dict[str, Any]:
     return payload
 
 
+def _read_or_generate_product_page_artifact(
+    artifacts_dir: Path,
+    group_id: str,
+    builder: Any,
+) -> dict[str, Any]:
+    return _read_or_generate_json_artifact(
+        _group_path(artifacts_dir, PRODUCT_PAGES_FLOW_ARTIFACT_PATHS[group_id]),
+        builder,
+    )
+
+
 def _object_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
@@ -1326,7 +1337,10 @@ def build_local_web_self_use_candidate_refresh_chain(
             ),
         ]
     )
-    mvp_gate_summary = _generate_accurate_intake_mvp_gate_summary()
+    mvp_gate_summary = _read_or_generate_json_artifact(
+        _artifact_path(artifacts_dir, REFRESHED_ARTIFACT_FILENAMES["accurate_intake_mvp_gate"]),
+        _generate_accurate_intake_mvp_gate_summary,
+    )
     _restore_json_artifact_snapshot(caller_supplied_closeout_inputs)
     route_backed_macro_closeout = build_route_backed_macro_closeout(
         artifacts_dir=artifacts_dir
@@ -1345,20 +1359,34 @@ def build_local_web_self_use_candidate_refresh_chain(
     refreshed_artifacts.update(
         _generate_static_product_page_inputs(artifacts_dir=artifacts_dir)
     )
-    refreshed_artifacts["product_pages_browser_smoke"] = _generate_product_pages_browser_smoke(
-        artifacts_dir=artifacts_dir
+    refreshed_artifacts["product_pages_browser_smoke"] = _read_or_generate_product_page_artifact(
+        artifacts_dir,
+        "product_pages_browser_smoke",
+        lambda: _generate_product_pages_browser_smoke(artifacts_dir=artifacts_dir),
     )
     refreshed_artifacts["product_pages_seven_day_diary_smoke"] = (
-        _generate_product_pages_seven_day_diary_smoke(artifacts_dir=artifacts_dir)
+        _read_or_generate_product_page_artifact(
+            artifacts_dir,
+            "product_pages_seven_day_diary_smoke",
+            lambda: _generate_product_pages_seven_day_diary_smoke(artifacts_dir=artifacts_dir),
+        )
     )
     refreshed_artifacts["product_pages_body_noplan_degraded_smoke"] = (
-        _generate_product_pages_body_noplan_degraded_smoke(artifacts_dir=artifacts_dir)
+        _read_or_generate_product_page_artifact(
+            artifacts_dir,
+            "product_pages_body_noplan_degraded_smoke",
+            lambda: _generate_product_pages_body_noplan_degraded_smoke(artifacts_dir=artifacts_dir),
+        )
     )
     refreshed_artifacts["product_pages_short_term_context_smoke"] = (
         _generate_product_pages_short_term_context_smoke(artifacts_dir=artifacts_dir)
     )
     refreshed_artifacts["product_pages_target_candidate_ui_smoke"] = (
-        _generate_product_pages_target_candidate_ui_smoke(artifacts_dir=artifacts_dir)
+        _read_or_generate_product_page_artifact(
+            artifacts_dir,
+            "product_pages_target_candidate_ui_smoke",
+            lambda: _generate_product_pages_target_candidate_ui_smoke(artifacts_dir=artifacts_dir),
+        )
     )
     refreshed_artifacts["product_pages_context_target_browser_closure"] = (
         _generate_context_target_browser_closure(
@@ -1366,11 +1394,17 @@ def build_local_web_self_use_candidate_refresh_chain(
             target_candidate_report=refreshed_artifacts["product_pages_target_candidate_ui_smoke"],
         )
     )
-    refreshed_artifacts["product_pages_visual_qa"] = _generate_product_pages_visual_qa(
-        artifacts_dir=artifacts_dir
+    refreshed_artifacts["product_pages_visual_qa"] = _read_or_generate_product_page_artifact(
+        artifacts_dir,
+        "product_pages_visual_qa",
+        lambda: _generate_product_pages_visual_qa(artifacts_dir=artifacts_dir),
     )
     refreshed_artifacts["fixture_full_product_loop_e2e"] = (
-        _generate_fixture_full_product_loop_e2e(artifacts_dir=artifacts_dir)
+        _read_or_generate_product_page_artifact(
+            artifacts_dir,
+            "fixture_full_product_loop_e2e",
+            lambda: _generate_fixture_full_product_loop_e2e(artifacts_dir=artifacts_dir),
+        )
     )
     for group_id, artifact in refreshed_artifacts.items():
         write_json_artifact(
