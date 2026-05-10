@@ -2700,6 +2700,557 @@
     },
     {
       "record_kind": "generic_anchor",
+      "anchor_id": "breakfast_staple_scallion_pancake",
+      "canonical_name": "\u8525\u6cb9\u9905",
+      "aliases": [
+        "\u8525\u6cb9\u9905",
+        "\u8525\u6293\u9905"
+      ],
+      "dish_type": "breakfast_staple",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "taiwan_breakfast_staple"
+      ],
+      "followup_hints": [
+        "ask_add_ons",
+        "ask_oil_level"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        240,
+        380
+      ],
+      "baseline_likely_kcal": 300,
+      "major_modifiers": [
+        {
+          "name": "add_ons",
+          "values": [
+            "none",
+            "egg",
+            "cheese"
+          ]
+        },
+        {
+          "name": "oil_level",
+          "values": [
+            "light",
+            "regular"
+          ]
+        }
+      ],
+      "composition_hints": [
+        "scallion_pancake",
+        "pan_fried_dough"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "breakfast_serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one Taiwan breakfast scallion pancake",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "breakfast_common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 300,
+      "kcal_range": [
+        240,
+        380
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_68e3a7ad1d93",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 299.8871,
+          "canonical_name": "\u8525\u6cb9\u9905"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_68e3a7ad1d93",
+        "raw_row_hash": "6b9088d4efd715d8946d1d1bd9a4789d9be4ca8df0cbb5b0918d3eeec582a69b"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus breakfast common-serving portion policy",
+      "reviewed_date": "2026-05-11",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "breakfast_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_breakfast_common_serving_batch",
+        "policy_version": "fooddb_tfda_breakfast_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_breakfast_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_breakfast_staple_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_breakfast_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "breakfast_staple_radish_cake",
+      "canonical_name": "\u863f\u8514\u7cd5",
+      "aliases": [
+        "\u863f\u8514\u7cd5",
+        "\u83dc\u982d\u7cbf"
+      ],
+      "dish_type": "breakfast_staple",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "taiwan_breakfast_staple"
+      ],
+      "followup_hints": [
+        "ask_cooking_style",
+        "ask_sauce"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        140,
+        260
+      ],
+      "baseline_likely_kcal": 200,
+      "major_modifiers": [
+        {
+          "name": "cooking_style",
+          "values": [
+            "steamed",
+            "pan_fried"
+          ]
+        },
+        {
+          "name": "sauce",
+          "values": [
+            "none",
+            "light",
+            "regular"
+          ]
+        }
+      ],
+      "composition_hints": [
+        "radish_cake",
+        "pan_fried_breakfast_item"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "breakfast_serving",
+        "portion_quantity": 1,
+        "portion_grams": 150,
+        "label": "one Taiwan breakfast radish cake serving",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "breakfast_common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 200,
+      "kcal_range": [
+        140,
+        260
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_b63602e4e0bd",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 109.1234,
+          "canonical_name": "\u51b7\u85cf\u5ee3\u5f0f\u863f\u8514\u7cd5"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_b63602e4e0bd",
+        "raw_row_hash": "b39d2a540f0dc4c3809043a79c1840d36ff58d0250133221ca255964430de9d9"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus breakfast common-serving portion policy",
+      "reviewed_date": "2026-05-11",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "breakfast_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_breakfast_common_serving_batch",
+        "policy_version": "fooddb_tfda_breakfast_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_breakfast_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_breakfast_staple_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_breakfast_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "breakfast_staple_steamed_bun",
+      "canonical_name": "\u9945\u982d",
+      "aliases": [
+        "\u9945\u982d",
+        "\u767d\u9945\u982d"
+      ],
+      "dish_type": "breakfast_staple",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "taiwan_breakfast_staple"
+      ],
+      "followup_hints": [
+        "ask_size",
+        "ask_filling"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        210,
+        320
+      ],
+      "baseline_likely_kcal": 246,
+      "major_modifiers": [
+        {
+          "name": "size",
+          "values": [
+            "small",
+            "regular",
+            "large"
+          ]
+        },
+        {
+          "name": "filling",
+          "values": [
+            "none",
+            "sweet",
+            "savory"
+          ]
+        }
+      ],
+      "composition_hints": [
+        "steamed_bun",
+        "wheat_staple"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "breakfast_serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one white steamed bun",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "breakfast_common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 246,
+      "kcal_range": [
+        210,
+        320
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_2119c1306a8a",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 246.2,
+          "canonical_name": "\u767d\u9945\u982d"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_2119c1306a8a",
+        "raw_row_hash": "a0e8e54d692a624c9f4717b9c67b713d326b8e37664d9faa36290a2ff586d11f"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus breakfast common-serving portion policy",
+      "reviewed_date": "2026-05-11",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "breakfast_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_breakfast_common_serving_batch",
+        "policy_version": "fooddb_tfda_breakfast_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_breakfast_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_breakfast_staple_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_breakfast_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "breakfast_staple_xiaolongbao",
+      "canonical_name": "\u5c0f\u7c60\u5305",
+      "aliases": [
+        "\u5c0f\u7c60\u5305"
+      ],
+      "dish_type": "breakfast_staple",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "taiwan_breakfast_staple"
+      ],
+      "followup_hints": [
+        "ask_piece_count"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        300,
+        470
+      ],
+      "baseline_likely_kcal": 360,
+      "major_modifiers": [
+        {
+          "name": "piece_count",
+          "values": [
+            "four",
+            "six",
+            "eight"
+          ]
+        },
+        {
+          "name": "filling",
+          "values": [
+            "pork",
+            "mixed"
+          ]
+        }
+      ],
+      "composition_hints": [
+        "xiaolongbao",
+        "dumpling",
+        "pork_filling"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "breakfast_serving",
+        "portion_quantity": 1,
+        "portion_grams": 150,
+        "label": "one six-piece xiaolongbao serving",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "breakfast_common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 360,
+      "kcal_range": [
+        300,
+        470
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_89f569018027",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 239.1,
+          "canonical_name": "\u5c0f\u7c60\u5305"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_89f569018027",
+        "raw_row_hash": "916bd1fb0a4298156793cb42a218c46613b33d70240bdfc5275145c8b1281461"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus breakfast common-serving portion policy",
+      "reviewed_date": "2026-05-11",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "breakfast_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_breakfast_common_serving_batch",
+        "policy_version": "fooddb_tfda_breakfast_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_breakfast_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_breakfast_staple_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_breakfast_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "breakfast_staple_ham_egg_sandwich",
+      "canonical_name": "\u706b\u817f\u86cb\u4e09\u660e\u6cbb",
+      "aliases": [
+        "\u706b\u817f\u86cb\u4e09\u660e\u6cbb",
+        "\u65e9\u9910\u5e97\u706b\u817f\u86cb\u4e09\u660e\u6cbb"
+      ],
+      "dish_type": "breakfast_staple",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "taiwan_breakfast_staple"
+      ],
+      "followup_hints": [
+        "ask_sauce"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        320,
+        500
+      ],
+      "baseline_likely_kcal": 380,
+      "major_modifiers": [
+        {
+          "name": "sauce",
+          "values": [
+            "none",
+            "light",
+            "regular"
+          ]
+        },
+        {
+          "name": "bread_type",
+          "values": [
+            "white",
+            "whole_wheat"
+          ]
+        }
+      ],
+      "composition_hints": [
+        "sandwich",
+        "ham",
+        "egg",
+        "breakfast_filling"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "breakfast_serving",
+        "portion_quantity": 1,
+        "portion_grams": 140,
+        "label": "one ham and egg sandwich",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "breakfast_common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 380,
+      "kcal_range": [
+        320,
+        500
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_429c0a2090ea",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 272.4061,
+          "canonical_name": "\u706b\u817f\u86cb\u4e09\u660e\u6cbb"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_429c0a2090ea",
+        "raw_row_hash": "cc2140d451fcc331619bfe5fe8a63e0b28655cf4b0504d408ad44cb9098c0333"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus breakfast common-serving portion policy",
+      "reviewed_date": "2026-05-11",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "breakfast_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_breakfast_common_serving_batch",
+        "policy_version": "fooddb_tfda_breakfast_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_breakfast_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_breakfast_staple_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_breakfast_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
       "anchor_id": "rice_bowl_luroufan",
       "canonical_name": "\u6ef7\u8089\u98ef",
       "aliases": [

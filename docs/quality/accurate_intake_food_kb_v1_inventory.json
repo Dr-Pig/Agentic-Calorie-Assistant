@@ -1,7 +1,7 @@
 {
   "artifact_type": "accurate_intake_food_kb_v1_inventory",
   "artifact_schema_version": "1.0",
-  "generated_at_utc": "2026-05-10T20:14:11.418233Z",
+  "generated_at_utc": "2026-05-10T21:31:04.586466Z",
   "scope": "local_evidence_support_inventory",
   "truth_owner": "none",
   "mutation_authority": "none",
@@ -10,8 +10,8 @@
   "web_tavily_required": false,
   "production_db_required": false,
   "repo_contained_seed_counts": {
-    "small_anchor_total": 63,
-    "generic_anchor": 59,
+    "small_anchor_total": 68,
+    "generic_anchor": 64,
     "generic_semantic_only": 4,
     "exact_item_cards": 8,
     "basket_components": 34
@@ -155,8 +155,8 @@
     "private_self_use_approved": false
   },
   "source_class_breakdown": {
-    "existing_repo_seed": 71,
-    "taiwan_tfda_open_data": 15,
+    "existing_repo_seed": 76,
+    "taiwan_tfda_open_data": 20,
     "official_brand_chain_page": 3,
     "open_food_facts": 0,
     "usda_fallback": 0,
