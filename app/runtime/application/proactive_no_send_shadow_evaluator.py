@@ -8,6 +8,12 @@ from pydantic import BaseModel, Field
 from app.runtime.application.proactive_deterministic_gate import (
     evaluate_proactive_deterministic_gate,
 )
+from app.runtime.application.proactive_no_send_control_feedback import (
+    evaluate_no_send_control_feedback,
+)
+from app.runtime.application.proactive_no_send_trigger_boundaries import (
+    add_trigger_boundaries,
+)
 from app.runtime.contracts.proactive_gate import ProactiveGateInput
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
@@ -89,6 +95,8 @@ class ProactiveNoSendShadowInput(BaseModel):
     harm_if_wrong: RiskLevel = "low"
     recommendation_prompt_review: dict[str, Any] | None = None
     rescue_nudge_review: dict[str, Any] | None = None
+    prior_no_send_interactions: list[dict[str, Any]] = Field(default_factory=list)
+    observed_control_signals: list[str] = Field(default_factory=list)
 
 
 def build_proactive_no_send_simulation(
@@ -134,6 +142,13 @@ def _evaluate_trigger(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
     suppression_reasons.extend(_reason_suppression_reasons(item))
     suppression_reasons.extend(_recommendation_prompt_suppression_reasons(item))
     suppression_reasons.extend(_copy_suppression_reasons(item))
+    control_feedback = evaluate_no_send_control_feedback(
+        trigger_type=item.trigger_type,
+        prior_interactions=item.prior_no_send_interactions,
+        observed_signals=item.observed_control_signals,
+        explicit_trigger_opt_out=item.explicit_trigger_opt_out,
+    )
+    suppression_reasons.extend(control_feedback["suppression_reasons"])
     if _deferred_later_only(item) and "later_only_trigger_not_live_eligible" not in suppression_reasons:
         suppression_reasons.append("later_only_trigger_not_live_eligible")
 
@@ -166,6 +181,7 @@ def _evaluate_trigger(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
         "permission_posture": _permission_posture(item.trigger_type),
         "interrupt_cost": _interrupt_cost(item.delivery_surface),
         "interaction_feedback": _interaction_feedback(item),
+        "control_feedback": control_feedback,
         "copy_review": _copy_review(item),
         "user_callable_when_suppressed": True,
         "stay_silent_until_signal": _stay_silent_until_signal(item),
@@ -177,7 +193,7 @@ def _evaluate_trigger(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
         row["recommendation_prompt_review"] = _recommendation_prompt_review(item)
     if item.trigger_type == "rescue_nudge":
         row["rescue_nudge_review"] = _rescue_nudge_review(item)
-    _add_trigger_boundaries(row, item.trigger_type)
+    add_trigger_boundaries(row, item.trigger_type)
     return row
 
 
@@ -429,6 +445,7 @@ def _review_decision(*, suppression_status: str, suppression_reasons: list[str])
         }
     if any(
         reason.startswith("interaction_feedback_") or reason == "explicit_trigger_opt_out"
+        or reason == "recent_dismiss_without_next_signal"
         for reason in suppression_reasons
     ):
         return {
@@ -445,23 +462,6 @@ def _review_decision(*, suppression_status: str, suppression_reasons: list[str])
         "reviewer_next_step": "review_copy_context_and_permission_before_live_plan",
     }
 
-
-def _add_trigger_boundaries(row: dict[str, Any], trigger_type: str) -> None:
-    if trigger_type == "recommendation_prompt":
-        row["recommendation_prompt_boundary"] = {
-            "allowed": ["candidate_invitation_only"],
-            "forbidden": ["output_actual_ranked_food_candidates", "query_live_menu_or_search", "create_intake_hint_packet", "serve_recommendation_result"],
-        }
-        row["recommendation_served"] = False
-        row["intake_hint_packet_created"] = False
-    if trigger_type == "calibration_insight":
-        row["allowed_output"] = ["offer_calibration_preview"]
-        row["forbidden_output"] = ["tell_user_should_change_target", "output_specific_new_kcal_target", "mutate_body_plan"]
-        row["body_plan_mutated"] = False
-    if trigger_type == "rescue_nudge":
-        row["allowed_output"] = ["invite_future_rescue_review"]
-        row["forbidden_output"] = ["output_specific_future_deficit", "create_rescue_proposal", "mutate_day_budget_ledger"]
-        row["rescue_committed"] = False
 
 def _ux_intent(trigger_type: str) -> str:
     return f"shadow_evaluate_{trigger_type}_without_delivery"

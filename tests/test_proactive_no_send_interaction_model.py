@@ -18,6 +18,8 @@ def test_dismiss_uses_allowed_reason_without_durable_suppression() -> None:
     assert result["artifact_type"] == "proactive_no_send_interaction_model_artifact"
     assert result["status"] == "pass"
     assert result["action"] == "dismiss"
+    assert result["trigger_type"] == "recommendation_prompt"
+    assert result["dismiss_reason"] == "too_frequent"
     assert result["interaction_state"] == {
         "candidate_visible": False,
         "dismissed": True,
