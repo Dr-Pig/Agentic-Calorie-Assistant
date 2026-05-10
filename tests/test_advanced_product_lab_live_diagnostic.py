@@ -184,6 +184,32 @@ def test_product_lab_live_diagnostic_payload_includes_product_runtime_summary(
         "rescue_commit_handoff_created": True,
         "proactive_delivery_packet_ready": True,
     }
+    assert provider.user_payload["chat_action_summary"] == {
+        "action_outcome_count": 2,
+        "action_outcome_types": [
+            "recommendation_intake_draft",
+            "rescue_commit_confirmation",
+        ],
+        "canonical_mutation_allowed": False,
+        "blockers": [],
+    }
+    assert provider.user_payload["product_loop_closure"] == {
+        "closed": True,
+        "missing": [],
+        "criteria": {
+            "session_passed": True,
+            "memory_store_written": True,
+            "memory_context_injected": True,
+            "recommendation_selected": True,
+            "recommendation_intake_action_replayed": True,
+            "rescue_commit_action_replayed": True,
+            "proactive_chat_delivery_ready": True,
+            "chat_surface_outputs_applied": True,
+            "activation_wall_intact": True,
+            "no_chat_action_blockers": True,
+        },
+    }
+    assert artifact["source_product_loop_closed"] is True
     policy = artifact["model_profile_policy"]
     assert policy["diagnostic_live_model"] == "grok-4-fast"
     assert policy["target_reasoning_model"] == "kimi-k2.5"
