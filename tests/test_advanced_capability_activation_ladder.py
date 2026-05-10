@@ -136,6 +136,28 @@ def test_shadow_lab_can_build_complete_product_capability_without_mainline_activ
     assert lab_scope["manager_context_packet_production_change_allowed"] is False
 
 
+def test_advanced_lab_execution_policy_locks_provider_surface_and_fooddb_decisions() -> None:
+    contract = _contract()
+    policy = contract["advanced_lab_execution_policy"]
+
+    assert policy["current_first_slice"] == "advanced_runtime_lab_dormancy_contract"
+    assert policy["current_first_slice_live_provider_calls_allowed"] is False
+    assert policy["later_lab_live_diagnostics_allowed_after_dormancy_gate"] is True
+    assert policy["provider_dependency_inversion_required"] is True
+    assert policy["provider_family"] == "builderspace"
+    assert policy["diagnostic_live_model"] == "grok-4-fast"
+    assert policy["target_reasoning_model"] == "kimi-k2.5"
+    assert policy["kimi_live_calls_allowed_in_this_train"] is False
+    assert policy["proactive_surface"] == "chat_only"
+    assert policy["inbox_mirror_allowed"] is False
+    assert policy["push_line_or_os_notification_allowed"] is False
+    assert policy["fooddb_expansion_allowed"] is False
+    assert policy["fooddb_expansion_requires_real_self_use"] is True
+    assert policy["simulated_dogfood_allowed_until_real_traces_exist"] is True
+    assert policy["mainline_activation_requires_separate_pr"] is True
+    assert all(value is False for value in policy["required_dormant_merge_flags"].values())
+
+
 def test_lab_complete_capability_requires_explicit_isolation_markers() -> None:
     contract = _contract()
     isolation = contract["shadow_lab_scope"]["required_isolation_markers"]

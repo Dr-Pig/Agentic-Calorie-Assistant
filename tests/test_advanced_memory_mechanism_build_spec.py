@@ -79,6 +79,12 @@ def test_memory_layers_and_promotion_rules_follow_canonical_specs() -> None:
     }
     assert layers["typed_history"]["truth_owner"] == "canonical_product_objects"
     assert layers["semantic_pattern"]["llm_live_extraction_allowed_now"] is False
+    assert (
+        layers["semantic_pattern"][
+            "isolated_lab_live_candidate_generation_allowed_after_dormancy_gate"
+        ]
+        is True
+    )
     assert layers["confirmed_memory"]["durable_write_allowed_now"] is False
     assert layers["golden_order"]["truth_owner"] == "canonical_history_materialized_view"
     assert layers["golden_order"]["promotion_result"] is False
@@ -118,6 +124,26 @@ def test_consumer_dependency_order_keeps_memory_first_and_proactive_no_send_last
     assert boundaries["proactive_no_send_shadow"]["trigger_persistence_allowed"] is False
 
 
+def test_advanced_lab_memory_policy_records_latest_model_and_trace_decisions() -> None:
+    contract = _contract()
+    policy = contract["advanced_lab_execution_policy"]
+
+    assert policy["current_first_slice"] == "advanced_runtime_lab_dormancy_contract"
+    assert policy["current_first_slice_live_provider_calls_allowed"] is False
+    assert policy["isolated_lab_semantic_candidate_generation_allowed_after_dormancy_gate"] is True
+    assert policy["mainline_live_provider_semantic_extraction_allowed"] is False
+    assert policy["provider_family"] == "builderspace"
+    assert policy["diagnostic_live_model"] == "grok-4-fast"
+    assert policy["target_reasoning_model"] == "kimi-k2.5"
+    assert policy["kimi_live_calls_allowed_in_this_train"] is False
+    assert policy["simulated_dogfood_allowed_until_real_traces_exist"] is True
+    assert policy["real_dogfood_trace_required_for_promotion_claim"] is True
+    assert policy["fooddb_expansion_allowed"] is False
+    assert policy["fooddb_expansion_requires_real_self_use"] is True
+    assert policy["proactive_surface"] == "chat_only"
+    assert policy["mainline_activation_requires_separate_pr"] is True
+
+
 def test_spec_forbids_runtime_first_overengineering() -> None:
     contract = _contract()
     spec = SPEC_PATH.read_text(encoding="utf-8-sig")
@@ -128,6 +154,11 @@ def test_spec_forbids_runtime_first_overengineering() -> None:
     assert "database migrations for memory tables" in spec
     assert "ManagerContextPacket memory injection" in spec
     assert "scheduler activation" in spec
+    assert "Advanced Runtime Lab Addendum" in spec
+    assert "BuilderSpace `grok-4-fast` only" in spec
+    assert "`kimi-k2.5` is the target reasoning-model profile" in spec
+    assert "Proactive output is chat-only" in spec
+    assert "FoodDB expansion waits for real self-use" in spec
 
     assert contract["forbidden_before_activation"] == [
         "durable_memory_service",
