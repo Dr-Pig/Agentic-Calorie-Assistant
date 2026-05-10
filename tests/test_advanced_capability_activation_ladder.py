@@ -65,6 +65,8 @@ def test_all_advanced_capabilities_have_explicit_current_stage_and_dependencies(
     }
     assert capabilities["long_term_memory"]["current_stage"] == "read_only_runtime"
     assert capabilities["long_term_memory"]["next_allowed_stage"] == "canary"
+    assert capabilities["recommendation"]["current_stage"] == "read_only_runtime"
+    assert capabilities["recommendation"]["next_allowed_stage"] == "canary"
     assert capabilities["recommendation"]["depends_on"] == [
         "long_term_memory.read_only_runtime"
     ]
@@ -107,6 +109,41 @@ def test_ltm_read_only_runtime_stage_is_backed_by_manual_transition_artifact() -
         "durable_product_memory_written": False,
         "manager_context_packet_changed": False,
         "cross_session_personalization_allowed": False,
+    }
+
+
+def test_recommendation_read_only_runtime_stage_is_backed_by_manual_transition_artifact() -> None:
+    contract = _contract()
+    recommendation = contract["capabilities"]["recommendation"]
+    evidence = recommendation["stage_transition_evidence"]
+
+    assert evidence == {
+        "artifact_type": "recommendation_read_only_runtime_stage_decision",
+        "status": "approved",
+        "stage_change_recorded": True,
+        "manual_promotion_approved": True,
+        "current_stage_in_decision_artifact": "shadow",
+        "target_stage_in_decision_artifact": "read_only_runtime",
+        "activation_stage_after_decision": "read_only_runtime",
+        "dependency_satisfied": "long_term_memory.read_only_runtime",
+        "required_preflight_artifact": "recommendation_read_only_runtime_preflight",
+        "required_human_review_artifact": (
+            "recommendation_read_only_runtime_stage_review_decision"
+        ),
+    }
+    assert "recommendation_read_only_runtime_stage_decision" in recommendation[
+        "current_allowed_outputs"
+    ]
+    assert "recommendation_read_only_runtime_preflight" in recommendation[
+        "current_allowed_outputs"
+    ]
+    assert "recommendation_three_node_shadow_artifact" in recommendation[
+        "current_allowed_outputs"
+    ]
+    assert recommendation["stage_specific_no_go"] == {
+        "recommendation_served": False,
+        "live_search_allowed": False,
+        "app_open_recommendation_serving": False,
     }
 
 
