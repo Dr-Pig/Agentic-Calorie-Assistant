@@ -76,6 +76,9 @@ def test_simulated_dogfood_cli_writes_operator_review_artifacts(
     ]
     assert file_summary["product_proactive_candidate_counts"] == [2, 2, 2, 2]
     assert file_summary["product_outputs_applied_to_chat_surface"] is True
+    assert file_summary["product_recommendation_intake_handoff_created"] is True
+    assert file_summary["product_rescue_commit_handoff_created"] is True
+    assert file_summary["product_proactive_delivery_packet_ready"] is True
 
     session_artifact = read_json_artifact(Path(file_summary["session_artifact_path"]))
     assert session_artifact["artifact_type"] == (
@@ -89,6 +92,13 @@ def test_simulated_dogfood_cli_writes_operator_review_artifacts(
         output_root.resolve(strict=False)
     )
     assert len(file_summary["turn_artifact_paths"]) == 4
+    first_turn = read_json_artifact(Path(file_summary["turn_artifact_paths"][0]))
+    memory_pipeline = first_turn["memory_pipeline_artifact"]
+    assert memory_pipeline["pipeline_path"] == "candidate_review_promotion"
+    assert memory_pipeline["promotion_artifact"]["promoted_record_ids"] == [
+        "golden-breakfast-oatmeal",
+        "negative-cilantro",
+    ]
     assert all(
         Path(path).is_relative_to(output_root.resolve(strict=False))
         for path in file_summary["turn_artifact_paths"]

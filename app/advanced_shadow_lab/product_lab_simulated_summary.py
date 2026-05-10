@@ -34,6 +34,15 @@ def build_simulated_dogfood_summary(
         "product_outputs_applied_to_chat_surface": bool(
             session_artifact.get("product_outputs_applied_to_chat_surface")
         ),
+        "product_recommendation_intake_handoff_created": bool(
+            session_artifact.get("product_recommendation_intake_handoff_created")
+        ),
+        "product_rescue_commit_handoff_created": bool(
+            session_artifact.get("product_rescue_commit_handoff_created")
+        ),
+        "product_proactive_delivery_packet_ready": bool(
+            session_artifact.get("product_proactive_delivery_packet_ready")
+        ),
         "session_artifact_path": str(session_artifact.get("session_artifact_path") or ""),
         "turn_artifact_paths": list(session_artifact.get("turn_artifact_paths") or []),
         "lab_session_store_written": bool(

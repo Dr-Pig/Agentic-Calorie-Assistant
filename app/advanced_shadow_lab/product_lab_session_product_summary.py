@@ -18,6 +18,9 @@ def turn_product_summary(turn_artifact: Mapping[str, Any]) -> dict[str, Any]:
     proactive = _mapping(turn_artifact.get("product_lab_proactive_artifact"))
     packet = _mapping(turn_artifact.get("lab_chat_response_packet"))
     selected = _mapping(_mapping(recommendation.get("offer_synthesis")).get("selected_primary"))
+    intake = _mapping(recommendation.get("pending_intake_handoff_packet"))
+    rescue_commit = _mapping(rescue.get("pending_rescue_commit_packet"))
+    proactive_delivery = _mapping(proactive.get("delivery_packet"))
     return {
         "product_recommendation_selected_candidate_id": str(
             selected.get("candidate_id") or ""
@@ -26,6 +29,15 @@ def turn_product_summary(turn_artifact: Mapping[str, Any]) -> dict[str, Any]:
         "product_proactive_candidate_count": int(proactive.get("candidate_count") or 0),
         "product_outputs_applied_to_chat_surface": (
             packet.get("product_outputs_applied") is True
+        ),
+        "product_recommendation_intake_handoff_created": (
+            intake.get("lab_intake_intent_created") is True
+        ),
+        "product_rescue_commit_handoff_created": (
+            rescue_commit.get("lab_rescue_intent_created") is True
+        ),
+        "product_proactive_delivery_packet_ready": (
+            proactive_delivery.get("chat_delivery_allowed") is True
         ),
     }
 
@@ -49,6 +61,18 @@ def session_product_summary(
         ],
         "product_outputs_applied_to_chat_surface": bool(outputs_applied)
         and all(outputs_applied),
+        "product_recommendation_intake_handoff_created": all(
+            item.get("product_recommendation_intake_handoff_created") is True
+            for item in turn_summaries
+        ),
+        "product_rescue_commit_handoff_created": all(
+            item.get("product_rescue_commit_handoff_created") is True
+            for item in turn_summaries
+        ),
+        "product_proactive_delivery_packet_ready": all(
+            item.get("product_proactive_delivery_packet_ready") is True
+            for item in turn_summaries
+        ),
     }
 
 
