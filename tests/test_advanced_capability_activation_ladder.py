@@ -394,6 +394,28 @@ def test_planned_event_rescue_acceptance_points_to_negotiation_shadow_packet() -
     assert rescue_entry["mainline_activation_allowed"] is False
 
 
+def test_same_day_rescue_acceptance_points_to_chat_negotiation_lifecycle() -> None:
+    contract = _contract()
+    entries = {
+        entry["journey_id"]: entry
+        for entry in contract["edge_case_coverage_contract"]["ux_acceptance_entries"]
+    }
+    rescue_entry = entries["F"]
+
+    assert (
+        "rescue_chat_negotiation_lifecycle_shadow_packet"
+        in rescue_entry["existing_shadow_artifacts"]
+    )
+    assert "lifecycle_state" in rescue_entry["required_trace_fields"]
+    assert "negotiation_intent" in rescue_entry["required_trace_fields"]
+    assert "explicit_accept_required" in rescue_entry["required_trace_fields"]
+    assert "dismiss_requested" in rescue_entry["required_trace_fields"]
+    assert "proposal_committed" in rescue_entry["required_trace_fields"]
+    assert rescue_entry["next_build_slice"] == "advanced_capability_gap_review"
+    assert rescue_entry["claim_boundary"] == "non_claim"
+    assert rescue_entry["mainline_activation_allowed"] is False
+
+
 def test_calibration_acceptance_points_to_existing_diagnostic_shadow_chain() -> None:
     contract = _contract()
     entries = {
