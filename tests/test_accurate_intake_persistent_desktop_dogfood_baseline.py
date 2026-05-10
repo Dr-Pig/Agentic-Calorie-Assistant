@@ -145,6 +145,107 @@ def test_persistent_desktop_dogfood_cli_reports_required_browser_dependency_gap(
     assert '"product_readiness_claimed": false' in artifact
 
 
+def test_persistent_browser_execution_checks_arbitrary_next_day_is_empty(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_browser_sequence(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {
+            "browser_name": "chromium",
+            "desktop_entry": {
+                "surface_loaded": True,
+                "session_connected": True,
+                "token_in_url": False,
+                "storage_used": False,
+            },
+            "desktop_loop": {
+                "page_navigation": {
+                    "chat": True,
+                    "today": True,
+                    "body": True,
+                    "feedback": True,
+                    "review": True,
+                    "data": True,
+                },
+                "today_same_truth_checked": True,
+                "feedback_submitted": True,
+                "review_queue_ingested_feedback": True,
+                "data_export_sidecars_included": True,
+                "local_debug_token_in_url": False,
+                "forbidden_storage_used": False,
+            },
+            "adjacent_date": {
+                "local_date": "2026-05-11",
+                "today_consumed_kcal": 0,
+                "chat_history_message_count": 0,
+            },
+            "forbidden_storage_used": False,
+        }
+
+    monkeypatch.setattr(module, "_run_persistent_browser_sequence", fake_browser_sequence)
+    report = persistent_baseline_main(
+        [
+            "--db-path",
+            str(tmp_path / "fixture-dogfood.sqlite3"),
+            "--local-date",
+            "2026-05-10",
+            "--user-id",
+            "persistent-dogfood-user",
+            "--local-debug-token",
+            "persistent-token",
+            "--reset-db",
+            "--require-browser-execution",
+            "--feedback-dir",
+            str(tmp_path / "feedback"),
+            "--backup-dir",
+            str(tmp_path / "backups"),
+            "--export-dir",
+            str(tmp_path / "exports"),
+            "--review-queue-artifact-path",
+            str(tmp_path / "review" / "queue.json"),
+            "--output",
+            str(tmp_path / "artifact.json"),
+        ]
+    )
+
+    assert report == 0
+    assert captured["local_date"] == "2026-05-10"
+
+
+def test_persistent_browser_execution_requires_adjacent_date_isolation() -> None:
+    blockers = module._browser_blockers(
+        {
+            "desktop_entry": {
+                "surface_loaded": True,
+                "session_connected": True,
+                "token_in_url": False,
+            },
+            "desktop_loop": {
+                "page_navigation": {
+                    "chat": True,
+                    "today": True,
+                    "body": True,
+                    "feedback": True,
+                    "review": True,
+                    "data": True,
+                },
+                "today_same_truth_checked": True,
+                "feedback_submitted": True,
+                "review_queue_ingested_feedback": True,
+                "data_export_sidecars_included": True,
+                "local_debug_token_in_url": False,
+                "forbidden_storage_used": False,
+            },
+            "forbidden_storage_used": False,
+        }
+    )
+
+    assert "adjacent_date_not_checked" in blockers
+
+
 def test_self_use_runbook_documents_persistent_desktop_baseline() -> None:
     runbook = Path("docs/quality/ACCURATE_INTAKE_MVP_SELF_USE_RUNBOOK.md").read_text(
         encoding="utf-8-sig"
@@ -153,4 +254,5 @@ def test_self_use_runbook_documents_persistent_desktop_baseline() -> None:
     assert "run_accurate_intake_persistent_desktop_dogfood_baseline.py" in runbook
     assert "approved FoodDB packet commit plus ambiguous no-commit" in runbook
     assert "Add `--require-browser-execution`" in runbook
+    assert "adjacent-date isolation" in runbook
     assert "backup_required_before_reset" in runbook
