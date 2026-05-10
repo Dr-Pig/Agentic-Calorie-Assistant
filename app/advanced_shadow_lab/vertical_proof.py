@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any, Mapping
 
+from app.advanced_shadow_lab.vertical_proof_lineage import (
+    REAL_STAGE_ORDER,
+    build_real_artifact_lineage,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -17,13 +23,7 @@ REQUIRED_SCOPE_KEYS = (
     "run_id",
 )
 
-STAGE_ORDER = [
-    "memory_like_input",
-    "recommendation_like_candidate",
-    "rescue_like_candidate",
-    "proactive_like_decision",
-    "lab_delivery_record",
-]
+STAGE_ORDER = REAL_STAGE_ORDER
 
 FALSE_ACTIVATION_FLAGS = {
     "mainline_runtime_connected": False,
@@ -48,29 +48,15 @@ def build_fixture_vertical_proof_input() -> dict[str, Any]:
             "surface": "fixture_lab",
             "run_id": "vertical-proof-run-1",
         },
-        "memory_like_input": {
-            "candidate_id": "memory-fixture-1",
-            "summary": "fixture preference signal",
-            "source_ref": "fixture:memory-fixture-1",
-        },
-        "recommendation_like_candidate": {
-            "candidate_id": "recommendation-fixture-1",
-            "source_ref": "fixture:recommendation-fixture-1",
-        },
-        "rescue_like_candidate": {
-            "candidate_id": "rescue-fixture-1",
-            "source_ref": "fixture:rescue-fixture-1",
-        },
-        "proactive_like_decision": {
-            "candidate_id": "proactive-fixture-1",
-            "autonomy_tier": "record_only",
-            "source_ref": "fixture:proactive-fixture-1",
-        },
         "requested_effects": dict(FALSE_ACTIVATION_FLAGS),
     }
 
 
-def run_fixture_vertical_proof(payload: Mapping[str, Any]) -> dict[str, Any]:
+def run_fixture_vertical_proof(
+    payload: Mapping[str, Any],
+    *,
+    artifact_root: Path | str | None = None,
+) -> dict[str, Any]:
     blockers = _scope_blockers(payload) + _effect_blockers(payload)
     if blockers:
         return _artifact(
@@ -78,21 +64,25 @@ def run_fixture_vertical_proof(payload: Mapping[str, Any]) -> dict[str, Any]:
             blockers=blockers,
             scope=_scope(payload),
             stage_order=[],
+            stage_artifacts=[],
+            artifact_lineage=[],
             lab_delivery_record=None,
         )
 
-    proactive = _mapping(payload.get("proactive_like_decision"))
+    if artifact_root is None:
+        with TemporaryDirectory() as directory:
+            lineage = _lineage(payload, directory)
+    else:
+        lineage = _lineage(payload, artifact_root)
+    blockers = list(lineage["blockers"])
     return _artifact(
-        status="pass",
-        blockers=[],
+        status="blocked" if blockers else "pass",
+        blockers=blockers,
         scope=_scope(payload),
         stage_order=STAGE_ORDER,
-        lab_delivery_record={
-            "sink": "isolated_lab_sink",
-            "delivery_mode": "record_only",
-            "candidate_id": str(proactive.get("candidate_id", "")),
-            "delivered_to_production": False,
-        },
+        stage_artifacts=lineage["stage_artifacts"],
+        artifact_lineage=lineage["artifact_lineage"],
+        lab_delivery_record=lineage["lab_delivery_record"],
     )
 
 
@@ -102,6 +92,8 @@ def _artifact(
     blockers: list[str],
     scope: dict[str, str],
     stage_order: list[str],
+    stage_artifacts: list[dict[str, Any]],
+    artifact_lineage: list[dict[str, str]],
     lab_delivery_record: dict[str, Any] | None,
 ) -> dict[str, Any]:
     return {
@@ -111,6 +103,8 @@ def _artifact(
         "lab_namespace": "advanced_shadow_lab",
         "scope": scope,
         "stage_order": stage_order,
+        "stage_artifacts": stage_artifacts,
+        "artifact_lineage": artifact_lineage,
         "lab_delivery_record": lab_delivery_record,
         "activation_flags": dict(FALSE_ACTIVATION_FLAGS),
         "non_claims": {
@@ -120,6 +114,13 @@ def _artifact(
             "not_canonical_mutation_authority": True,
         },
     }
+
+
+def _lineage(payload: Mapping[str, Any], artifact_root: Path | str) -> dict[str, Any]:
+    return build_real_artifact_lineage(
+        scope=_scope(payload),
+        artifact_root=artifact_root,
+    )
 
 
 def _scope_blockers(payload: Mapping[str, Any]) -> list[str]:
