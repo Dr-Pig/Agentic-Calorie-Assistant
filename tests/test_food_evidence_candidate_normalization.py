@@ -55,6 +55,14 @@ def test_candidate_normalization_maps_staging_json_without_truth_promotion(
     assert candidate["canonical_label"] == "大麥仁"
     assert candidate["aliases"] == ["小薏仁"]
     assert candidate["kcal_point"] == 346.7
+    assert candidate["protein_g_point"] is None
+    assert candidate["carbs_g_point"] is None
+    assert candidate["fat_g_point"] is None
+    assert candidate["macro_basis"] == "unknown"
+    assert candidate["macro_confidence"] == "unknown"
+    assert candidate["macro_source_strength"] == "unavailable"
+    assert candidate["macro_visibility_candidate"] == "hidden_missing_source"
+    assert candidate["macro_null_reason"] == "missing_source_macro"
     assert candidate["serving_basis"]["amount"] == 100
     assert "C:\\Users\\User" not in json.dumps(artifact, ensure_ascii=False)
     assert str(tmp_path) not in json.dumps(artifact, ensure_ascii=False)
@@ -204,8 +212,8 @@ def test_candidate_normalization_maps_local_extracted_csv_packaged_rows(tmp_path
     source.write_text(
         "\n".join(
             [
-                "company_name,product_name,package_size,serving_size,kcal_per_serving,kcal_per_100g,kcal_per_100ml,image_url",
-                "Tea Co,Brown Sugar Milk Tea,500 ml,250 ml,150,,60,https://example.test/milk-tea.jpg",
+                "company_name,product_name,package_size,serving_size,kcal_per_serving,kcal_per_100g,kcal_per_100ml,protein_g,carbs_g,fat_g,image_url",
+                "Tea Co,Brown Sugar Milk Tea,500 ml,250 ml,150,,60,6,38,4,https://example.test/milk-tea.jpg",
                 "Snack Co,Crispy Seaweed,36 g,18 g,,520,,https://example.test/seaweed.jpg",
                 "Juice Co,Lemon Juice,900 ml,,,,44,https://example.test/lemon-juice.jpg",
             ]
@@ -235,6 +243,14 @@ def test_candidate_normalization_maps_local_extracted_csv_packaged_rows(tmp_path
         "per_serving": 150.0,
         "per_100ml": 60.0,
     }
+    assert milk_tea["protein_g_point"] == 6
+    assert milk_tea["carbs_g_point"] == 38
+    assert milk_tea["fat_g_point"] == 4
+    assert milk_tea["macro_basis"] == "per_serving"
+    assert milk_tea["macro_confidence"] == "candidate"
+    assert milk_tea["macro_source_strength"] == "source_declared_candidate"
+    assert milk_tea["macro_visibility_candidate"] == "hidden_until_approval"
+    assert milk_tea["macro_null_reason"] is None
 
     seaweed = by_label["Crispy Seaweed"]
     assert seaweed["serving_basis"] == {
@@ -244,6 +260,8 @@ def test_candidate_normalization_maps_local_extracted_csv_packaged_rows(tmp_path
     }
     assert seaweed["kcal_point"] == 520
     assert seaweed["source_provenance"]["nutrition_basis"] == "per_100g"
+    assert seaweed["macro_visibility_candidate"] == "hidden_missing_source"
+    assert seaweed["macro_null_reason"] == "missing_source_macro"
 
     lemon_juice = by_label["Lemon Juice"]
     assert lemon_juice["serving_basis"] == {
