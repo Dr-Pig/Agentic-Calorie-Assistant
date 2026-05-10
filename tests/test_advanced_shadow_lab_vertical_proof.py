@@ -23,6 +23,7 @@ def test_fixture_vertical_proof_runs_complete_lab_loop_without_mainline_effects(
         "advanced_shadow_e2e_fixture_chain_artifact",
         "proactive_no_send_review_sink_artifact",
         "advanced_shadow_chat_ux_packet_artifact",
+        "advanced_shadow_chat_first_journey_proof_artifact",
     ]
     assert "memory_like_input" not in payload
     assert "recommendation_like_candidate" not in payload
@@ -39,6 +40,7 @@ def test_fixture_vertical_proof_runs_complete_lab_loop_without_mainline_effects(
     fixture_chain = stage_by_type["advanced_shadow_e2e_fixture_chain_artifact"]
     terminal_sink = stage_by_type["proactive_no_send_review_sink_artifact"]
     chat_packet = stage_by_type["advanced_shadow_chat_ux_packet_artifact"]
+    journey_proof = stage_by_type["advanced_shadow_chat_first_journey_proof_artifact"]
 
     assert context_pack["reviewed_memory_store_used"] is True
     assert "golden-order-morning-bar-oatmeal-latte" in context_pack[
@@ -52,6 +54,72 @@ def test_fixture_vertical_proof_runs_complete_lab_loop_without_mainline_effects(
     assert terminal_sink["record_count"] == 2
     assert chat_packet["status"] == "pass"
     assert chat_packet["packet_count"] == 2
+    assert journey_proof["status"] == "pass"
+    assert journey_proof["scenario_ids"] == [
+        "memory_guided_recommendation_chat_offer",
+        "rescue_proactive_no_send_chat_candidate",
+        "dismiss_snooze_undo_shadow_controls",
+    ]
+    scenario_by_id = {
+        row["scenario_id"]: row for row in journey_proof["scenario_rows"]
+    }
+    memory_scenario = scenario_by_id["memory_guided_recommendation_chat_offer"]
+    assert memory_scenario["lineage_candidate_ids"] == [
+        "golden-order-morning-bar-oatmeal-latte"
+    ]
+    assert memory_scenario["recommendation_source_refs"] == [
+        "memory_candidate:golden-order-morning-bar-oatmeal-latte"
+    ]
+    assert memory_scenario["terminal_packet_refs"] == [
+        "journey:L:recommendation_offer_pending_intent_packet",
+        "journey:M:memory_review_adjusted_recommendation_packet",
+    ]
+
+    rescue_scenario = scenario_by_id["rescue_proactive_no_send_chat_candidate"]
+    assert rescue_scenario["terminal_record_refs"] == [
+        "recommendation_prompt:dismiss",
+        "rescue_nudge:snooze",
+    ]
+    assert rescue_scenario["source_domains_by_packet"] == {
+        "recommendation_prompt:0": ["memory", "recommendation", "proactive"],
+        "rescue_nudge:1": ["memory", "rescue", "proactive"],
+    }
+
+    controls = scenario_by_id["dismiss_snooze_undo_shadow_controls"][
+        "control_semantics"
+    ]
+    assert controls == {
+        "dismiss": {
+            "observed": True,
+            "durable_suppression_written": False,
+            "semantic_effect": "hide_current_shadow_candidate_only",
+        },
+        "snooze": {
+            "observed": True,
+            "durable_snooze_written": False,
+            "semantic_effect": "wait_for_next_signal_without_scheduler_delivery",
+        },
+        "undo": {
+            "configured": True,
+            "canonical_rollback_requested": False,
+            "semantic_effect": "current_no_send_candidate_only",
+        },
+    }
+    for row in journey_proof["scenario_rows"]:
+        assert row["surface"] == "chat"
+        assert row["chat_first"] is True
+        assert row["served_to_user"] is False
+        assert row["delivery_attempted"] is False
+        assert row["scheduler_enqueued"] is False
+        assert row["canonical_mutation_requested"] is False
+        assert row["semantic_decision_inferred_by_runner"] is False
+    assert journey_proof["lineage_status"] == "pass"
+    assert journey_proof["new_report_family_created"] is False
+    assert journey_proof["runtime_connected"] is False
+    assert journey_proof["live_provider_used"] is False
+    assert journey_proof["durable_product_memory_written"] is False
+    assert journey_proof["manager_context_packet_changed"] is False
+    assert journey_proof["user_facing_behavior_changed"] is False
     assert artifact["scope"] == {
         "user_id": "user-fixture-1",
         "workspace_id": "workspace-fixture-1",

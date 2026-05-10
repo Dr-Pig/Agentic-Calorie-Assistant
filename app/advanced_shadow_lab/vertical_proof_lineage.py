@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
+from app.advanced_shadow_lab.chat_first_journey_proof import build_chat_first_journey_proof
 from app.advanced_shadow_lab.e2e_fixture_chain import run_advanced_shadow_e2e_fixture_chain
 from app.memory.application.runtime_lab_reviewed_memory_consumer_bridge import build_consumer_summary_projection_from_shadow_memory_context_pack
 from app.memory.application.runtime_lab_reviewed_memory_retrieval import build_shadow_memory_context_pack_from_reviewed_store
@@ -19,20 +20,13 @@ REAL_STAGE_ORDER = [
     "advanced_shadow_e2e_fixture_chain_artifact",
     "proactive_no_send_review_sink_artifact",
     "advanced_shadow_chat_ux_packet_artifact",
+    "advanced_shadow_chat_first_journey_proof_artifact",
 ]
 
 
 REVIEWED_MEMORY_ROWS = (
-    (
-        "golden-order-morning-bar-oatmeal-latte",
-        "golden_order",
-        "User often chooses FamilyMart salad chicken and sweet potato.",
-    ),
-    (
-        "negative-preference-ingredient-cilantro",
-        "negative_preference",
-        "User explicitly avoids cilantro.",
-    ),
+    ("golden-order-morning-bar-oatmeal-latte", "golden_order", "User often chooses FamilyMart salad chicken and sweet potato."),
+    ("negative-preference-ingredient-cilantro", "negative_preference", "User explicitly avoids cilantro."),
 )
 
 
@@ -58,6 +52,13 @@ def build_real_artifact_lineage(*, scope: Mapping[str, Any], artifact_root: Path
             {"action": "snooze", "snooze_minutes": 120},
         ],
     )
+    journey_proof = build_chat_first_journey_proof(
+        context_pack=context_pack,
+        memory_projection=memory_projection,
+        fixture_chain=fixture_chain,
+        terminal_sink=fixture_chain["terminal_review_sink"],
+        chat_packet=fixture_chain["chat_ux_packet"],
+    )
     stages = [
         memory_write,
         context_pack,
@@ -65,6 +66,7 @@ def build_real_artifact_lineage(*, scope: Mapping[str, Any], artifact_root: Path
         fixture_chain,
         fixture_chain["terminal_review_sink"],
         fixture_chain["chat_ux_packet"],
+        journey_proof,
     ]
     return {
         "stage_artifacts": stages,
@@ -190,8 +192,4 @@ def _stage_status_blockers(stages: list[Mapping[str, Any]]) -> list[str]:
     ]
 
 
-__all__ = [
-    "REAL_STAGE_ORDER",
-    "SIDECAR_ACTIVATION_CONTRACT",
-    "build_real_artifact_lineage",
-]
+__all__ = ["REAL_STAGE_ORDER", "SIDECAR_ACTIVATION_CONTRACT", "build_real_artifact_lineage"]
