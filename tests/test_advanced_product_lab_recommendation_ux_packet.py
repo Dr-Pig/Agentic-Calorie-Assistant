@@ -46,6 +46,12 @@ def test_product_lab_recommendation_offer_packet_is_chat_first_and_confirmed(
     }
     assert message["recommendation_offer"]["primary_candidate_id"] == "memory-oatmeal"
     assert message["recommendation_offer"]["offer_actions"] == ux_packet["actions"]
+    assert message["recommendation_offer"]["candidate_snapshot"]["candidate_id"] == (
+        "memory-oatmeal"
+    )
+    assert message["recommendation_offer"][
+        "source_pending_intake_handoff_artifact_type"
+    ] == "advanced_product_lab_pending_intake_handoff"
     assert message["canonical_mutation_requested"] is False
 
 
