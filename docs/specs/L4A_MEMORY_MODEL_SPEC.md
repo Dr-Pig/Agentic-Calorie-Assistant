@@ -799,3 +799,41 @@ rescue 主要讀：
     - Golden Order 建立時需進行實體正規化
     - 先嘗試 deterministic 匹配（alias table），失敗則用 LLM fallback
     - 詳細規則見 L4D Section 5
+
+---
+
+## 13. V1 Memory Substrate And Reference Adoption
+
+本產品的 long-term memory 不採用單一外部 framework 作為 canonical runtime。Hermes、OpenClaw、Mem0、Hindsight、Graphiti、Letta、memU，以及本地 reference corpus `C:\Users\User\Desktop\agent runtime\memory`，只能作為機制參考，不是產品 truth owner、runtime dependency、或自動 activation 授權。
+
+V1 memory substrate 應採最小可審計形狀：
+
+| Surface | 角色 | 內容 | 不是什麼 |
+|---|---|---|---|
+| `user.md` | human-readable user profile | 使用者如何使用 app、溝通風格、主動訊息偏好、穩定飲食偏好摘要 | raw transcript、MealThread truth、FoodDB truth |
+| `memory.md` | human-readable promoted memory summary | 已確認或通過 promotion gate 的產品記憶，如穩定禁忌、常用餐序、救援模式 | 未審核候選、一次性偏好、推測性 reasoning |
+| `sources.jsonl` / `source.md` | provenance and audit surface | 每條記憶的 source refs、scope、confidence、created/updated、validity window、supersession chain | 可直接注入 prompt 的長篇原文 |
+| `daily/YYYY-MM-DD.md` | short-term evidence summary | 當日 session summary、候選線索、短期觀察 | durable memory、confirmed preference |
+| `review.md` | promotion/rejection queue | stale、contradiction、delete、correction、promotion review items | 自動通過的 approval surface |
+| `conversation_archive` | recall source | 對話留存與 searchable summaries | long-term memory 本身 |
+
+Reference adoption rule:
+
+- 採用 Hermes / Letta 的 bounded, human-readable memory surfaces：`user.md` 類 user profile、core memory blocks、read-only block guard。
+- 採用 memU 的 scope-first record discipline：`user_id`、`workspace_id`、`project_id`、`surface`、`session_id/run_id` 必須在 record 層存在，不可靠 LLM 推斷。
+- 採用 Hindsight 的 retain / recall / reflect 語義，但 retain 只建立 candidate，reflect 只能輔助判斷，不能完成 promotion。
+- 採用 Graphiti 的 temporal provenance 壓力：memory 應能表示 validity window、superseded facts、source episode refs。
+- 採用 Mem0 / OpenClaw 的 tool vocabulary：search、get、add/propose、update/review、delete/forget，但產品實作必須套用本 spec 的 promotion guardrails。
+- 採用 OpenClaw 的 daily notes、review lane、backfill 概念，但不直接採用 auto flush 或 dreaming 來寫 durable product memory。
+
+Explicit non-adoption:
+
+- 不在 V1 直接啟動外部 memory framework server。
+- 不因 reference 支援 graph/vector/provider plugin，就引入 Neo4j/Falkor/Kuzu、provider matrix、或 generic memory daemon。
+- 不允許 raw conversation 自動成為 durable memory。
+- 不允許 agent tool call 直接覆蓋 MealThread、FoodDB、BodyBudget、ledger、或 proposal canonical truth。
+
+Branch boundary:
+
+- 在 `codex/advanced-product-lab` 內，memory substrate、tool calls、retrieval、context injection、recommendation/rescue/proactive 使用可以完整啟用，以完成產品閉環和 E2E。
+- 合回 main/self-use V1 時，仍需 activation wall；lab-enabled evidence 不能等同 mainline runtime activation。

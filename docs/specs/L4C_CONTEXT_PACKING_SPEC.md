@@ -285,3 +285,41 @@ v1 預設採以下 threshold：
 - `context_window_target` 不應在 L4C 層寫死為具體數字，而應由 provider adapter 在 runtime 注入
 - L4C 的 threshold policy（60% / 80% / 90%）是相對比例，乘以 `context_window_target` 得到絕對 token 數
 - 若 provider adapter 未提供 `context_window_target`，L4C 應使用保守 fallback：`32000`
+
+---
+
+## 12. Lab-Enabled Memory Context Injection Boundary
+
+Advanced product lab 的目標是完整產品閉環，因此 lab runtime 可以真的把 memory context pack 注入 lab Manager / lab user-facing response surface。這個能力必須和 mainline activation 分開記錄。
+
+每個 lab memory context pack trace 必須至少標記：
+
+- `lab_enabled=true`
+- `memory_tools_enabled=true|false`
+- `memory_context_injected=true|false`
+- `mainline_activation_enabled=false`
+- `self_use_v1_affected=false`
+- `canonical_mutation_allowed=false`，除非該 lab run 明確是 mutation-bearing lab scenario
+
+Memory context block ordering:
+
+1. current canonical state summary（MealThread、FoodDB、BodyBudget、ledger、ProposalContainer）
+2. current turn / active task object
+3. `user.md` compact profile block
+4. `memory.md` promoted memory summary
+5. selected negative preferences and suppression blockers
+6. selected `daily` / `review` / conversation recall summaries
+7. source refs and omission trace
+
+Packing rules:
+
+- `user.md` 和 `memory.md` 應是 compact, bounded, human-readable blocks；不可成為大型 prompt dump。
+- `sources.jsonl` / `source.md` 預設只提供 refs、freshness、validity、confidence、supersession，不直接整段注入。
+- `conversation_recall.search` 的結果必須 summary-first；raw transcript 只允許在明確 evidence drill-down / review tool 中讀取，且不得進一般 Manager prompt。
+- 同一 model pass 內的 memory write 不應 retroactively 改變已組好的 context pack；更新後的 memory 可在下一 turn 或下一 lab run 生效。
+- 若 memory context 超過 token budget，先裁切 conversation recall，再裁切 stale pattern，再裁切 low-confidence candidate；confirmed negative preference、current explicit user override、active rescue/proposal atomic block 不得優先裁掉。
+
+Mainline merge rule:
+
+- lab evidence 可證明完整產品能力，但不得宣稱 main/self-use V1 已啟用 memory injection。
+- 合回 main 時，activation wall 必須保留 route/scheduler/default runtime attachment off，直到獨立 activation PR 核准。

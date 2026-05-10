@@ -411,6 +411,49 @@ L4A Memory Model Spec 的以下章節應引用本文檔：
 
 ---
 
+## 8A. Framework-Informed Promotion Guardrails
+
+Hermes、OpenClaw、Mem0、Hindsight、Graphiti、Letta、memU 的 memory 機制可以作為 promotion design pressure，但不能取代本文件的 promotion/demotion truth。
+
+採用的 guardrail translation：
+
+- Hindsight 的 `retain / recall / reflect`：
+  - `retain` 在本產品只代表建立 candidate 或 typed history observation。
+  - `recall` 只能回傳 read-only context。
+  - `reflect` 可以生成 review recommendation，但不能完成 promotion。
+- OpenClaw 的 dreaming / backfill：
+  - 可作為 lab review job 或 historical replay。
+  - replay output 必須進 `review.md` / candidate queue，不可直接寫 `memory.md`。
+- Hermes / Letta 的 core memory update：
+  - 可參考 bounded profile/core block 與 read-only block guard。
+  - agent 不可因一次 tool call 直接改 confirmed product memory，除非符合 Path 1 使用者明確聲明或 review gate。
+- Graphiti 的 temporal facts：
+  - 每個 promoted memory 應能帶 validity window、superseded_by、source refs。
+  - conflicting memory 不應覆蓋舊資料，而應產生 contradiction review 或 supersession。
+- memU 的 scope model：
+  - promotion candidate、confirmed memory、review decision 必須保存 scope fields。
+  - 缺少 scope keys 時，promotion 必須拒絕。
+- Mem0 的 CRUD vocabulary：
+  - `add/update/delete` 在本產品對應 propose/review/forget，不代表直接 durable write。
+
+Lab branch execution:
+
+- isolated advanced product lab 可以完整執行 candidate extraction、review decision、promotion/demotion、forget/delete、backfill、memory tool call、context injection。
+- lab 中的 promotion 可以寫入 lab-only memory substrate，用於完整 E2E。
+- 任何合回 main/self-use V1 的 PR，若未包含獨立 activation gate，必須保持 production durable memory activation off。
+
+Required promotion evidence:
+
+- source refs exist
+- scope keys exist
+- candidate type is legal
+- no canonical truth override
+- stale/conflict posture is represented
+- user/human confirmation requirement is satisfied when required
+- trace distinguishes `lab_promotion_executed=true` from `mainline_promotion_enabled=false`
+
+---
+
 ## 9. 參考文獻
 
 - L4A_MEMORY_MODEL_SPEC.md

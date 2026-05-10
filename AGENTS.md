@@ -6,6 +6,24 @@ Use it as a map, not a handbook. Load the minimum path first, then retrieve deep
 
 Before any plan or edit, first classify whether this is a capability-order trap, architecture-boundary trap, both, or neither; if either may apply, pause and use the relevant skill before choosing files, tests, classes, eval fixes, or local next steps.
 
+## Advanced Product Lab Branch Bootstrap
+
+This branch may be `codex/advanced-product-lab`, a long-lived isolated product-lab branch for the complete advanced product.
+
+Two-layer strategy:
+
+1. Inside the isolated product branch, treat the advanced product as a complete product build. Build and test full runtime lab integration, complete UX, full E2E, live Grokfast diagnostics, control state loop, recommendation/rescue/proactive loop, long-term memory integration, and simulated dogfood traces; do not reduce lab behavior to no-send/dormant-only constraints.
+2. When planning merge back to main, self-use V1 remains isolated. Use an activation wall so main/self-use V1 does not receive production route mounting, scheduler delivery, production DB migration, canonical mutation, durable product memory activation, or default runtime connection without a separate explicit activation PR.
+
+In this branch, product-lab behavior may be user-facing inside the lab runtime surface, but it must not be confused with mainline user-facing activation. Keep branch-local lab capability, merge-back dormancy, and self-use V1 protection as separate claims in tests and reports.
+
+Hard branch-local rules:
+
+- Lab runtime capability flags may be `true` inside this branch when they are scoped to the isolated advanced product lab. Do not keep memory tools, context injection, recommendation, rescue, proactive messaging, scheduler simulation, or user-facing lab responses disabled merely because mainline activation must remain walled off.
+- `codex/advanced-product-lab` is a long-lived product-lab branch. After merge-back work, do not delete this branch unless the user explicitly asks for archival or replacement.
+- Long-term memory must include auditable human-readable memory surfaces for how this person uses the app, such as `user.md` for stable user preferences/interaction style and `source.md` or equivalent source-reference files for provenance. These files are not raw transcript dumps and must stay scoped, reviewable, and connected to source refs.
+- Lab reports must distinguish `lab_enabled=true` from `mainline_activation_enabled=false` whenever a capability is fully exercised in the lab but intentionally dormant after merge to main/self-use V1.
+
 ## Truth Hierarchy
 
 Default truth families are:
