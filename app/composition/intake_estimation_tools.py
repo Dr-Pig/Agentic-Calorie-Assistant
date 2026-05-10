@@ -16,9 +16,18 @@ from app.nutrition.application.estimate_artifacts import (
 from app.nutrition.application.evidence_eligibility import classify_query_family, is_high_variance_family
 from app.nutrition.application.exact_brand_web_canary import LANE_ID as WEB_CANARY_LANE_ID
 from app.nutrition.application.exact_brand_web_canary import run_exact_brand_web_canary
+from app.nutrition.application.fooddb_retrieval_policy import (
+    build_runtime_retrieval_records_from_small_anchor_payload,
+    retrieve_fooddb_candidates,
+)
+from app.nutrition.application.fooddb_retrieval_estimate_artifacts import (
+    build_fooddb_retrieval_artifact,
+)
+from app.nutrition.application.retrieval_intent import build_raw_text_retrieval_hint
 from app.nutrition.application.retrieval_semantic_decision import B2ManagerSemanticDecision
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
+from app.nutrition.infrastructure.small_anchor_store_loader import load_small_anchor_seed_records
 from app.shared.contracts.intake import EstimatePayload
 from app.shared.time_labels import resolve_local_attribution
 
@@ -86,14 +95,26 @@ async def estimate_nutrition_tool(
         )
         return artifact
 
+    canary_decision = manager_semantic_decision or _raw_text_exact_brand_decision(raw_user_input)
     canary_outcome = await run_exact_brand_web_canary(
         raw_user_input=raw_user_input,
-        manager_decision=manager_semantic_decision,
+        manager_decision=canary_decision,
         search_port=search_port,
         extract_port=extract_port,
         allow_search=allow_search,
         contextualized_query=contextualized_query,
     )
+    if canary_outcome.trace.get("attempted") is not True:
+        fooddb_artifact = _approved_fooddb_retrieval_artifact(
+            db,
+            user_external_id=user_external_id,
+            raw_user_input=raw_user_input,
+            local_date=local_date or datetime.now().date().isoformat(),
+        )
+        if fooddb_artifact is not None:
+            normalize_live_payload(fooddb_artifact.payload, raw_user_input=raw_user_input)
+            _attach_web_runtime_trace(fooddb_artifact.payload, canary_outcome.trace)
+            return fooddb_artifact
 
     if shadow_stub_estimate_enabled(provider=active_provider):
         artifact = build_shadow_stub_artifact(
@@ -129,6 +150,48 @@ async def estimate_nutrition_tool(
     )
     _attach_web_runtime_trace(artifact.payload, canary_outcome.trace)
     return artifact
+
+
+def _raw_text_exact_brand_decision(raw_user_input: str) -> B2ManagerSemanticDecision | None:
+    """Support legacy web canary diagnostics without granting mutation authority."""
+    hint = build_raw_text_retrieval_hint(raw_user_input)
+    if hint.retrieval_goal != "exact_brand_lookup":
+        return None
+    return B2ManagerSemanticDecision(
+        base_dish=hint.base_dish,
+        aliases=hint.aliases,
+        brand_hint=hint.brand_hint,
+        size_hint=hint.size_hint,
+        modifier_hints=hint.modifier_hints,
+        listed_items=hint.listed_items,
+        retrieval_goal="exact_brand_lookup",
+        semantic_authority_source="synthetic_manager_structured_fixture",
+    )
+
+
+def _approved_fooddb_retrieval_artifact(
+    db: Session,
+    *,
+    user_external_id: str,
+    raw_user_input: str,
+    local_date: str,
+) -> EstimatedNutritionArtifact | None:
+    anchors = load_small_anchor_seed_records()
+    if not anchors:
+        return None
+    retrieval_records = build_runtime_retrieval_records_from_small_anchor_payload({"anchors": anchors})
+    retrieval_result = retrieve_fooddb_candidates(
+        raw_user_input,
+        retrieval_records=retrieval_records,
+        limit=8,
+    )
+    return build_fooddb_retrieval_artifact(
+        db,
+        user_external_id=user_external_id,
+        raw_user_input=raw_user_input,
+        local_date=local_date,
+        retrieval_result=retrieval_result,
+    )
 
 
 def _default_web_runtime_trace() -> dict[str, Any]:
