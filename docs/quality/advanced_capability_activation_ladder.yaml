@@ -233,12 +233,25 @@ stage_requirements:
 capabilities:
   long_term_memory:
     owner_module: app/memory
-    current_stage: shadow
-    next_allowed_stage: read_only_runtime
+    current_stage: read_only_runtime
+    next_allowed_stage: canary
     depends_on: []
+    stage_transition_evidence:
+      artifact_type: runtime_lab_memory_stage_promotion_decision
+      status: approved
+      stage_change_recorded: true
+      manual_promotion_approved: true
+      current_stage_in_decision_artifact: shadow
+      target_stage_in_decision_artifact: read_only_runtime
+      activation_stage_after_decision: read_only_runtime
+      required_source_pack: runtime_lab_memory_read_only_runtime_lab_pack
+      required_human_review_artifact: runtime_lab_memory_stage_promotion_review_decision
     current_allowed_outputs:
-      - runtime_lab_memory_shadow_quality_report
+      - runtime_lab_memory_read_only_runtime_lab_pack
+      - shadow_memory_context_pack
+      - runtime_lab_manager_memory_injection_comparison
       - runtime_lab_memory_consumer_summary_projection
+      - runtime_lab_memory_stage_promotion_decision
     stage_specific_no_go:
       durable_product_memory_written: false
       manager_context_packet_changed: false

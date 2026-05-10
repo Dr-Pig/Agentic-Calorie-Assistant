@@ -33,6 +33,14 @@ Locked execution decisions:
 - FoodDB expansion waits for real self-use. Until then, lab tests may use simulated traces, fixtures, and approved packets only.
 - Isolated lab semantic memory candidate generation may be introduced after the dormancy contract is green, but mainline live semantic extraction and durable product memory writes remain forbidden until a separate activation PR.
 
+### Long-Term Memory Stage Closure
+
+The activation ladder now records long-term memory as `read_only_runtime` only because the manual `runtime_lab_memory_stage_promotion_decision` artifact proves the transition from `shadow` to `read_only_runtime`.
+
+The stage decision artifact still records `current_stage: shadow` as the from-state. Do not rewrite that producer constant unless the transition schema itself is redesigned.
+
+This closure does not promote recommendation, rescue, proactive, user-facing behavior, durable memory, scheduler delivery, production DB migration, or ManagerContextPacket injection.
+
 ## Direction And Dependency Classification
 
 ```yaml
