@@ -30,6 +30,10 @@ def test_runtime_lab_memory_edd_suite_loads_required_cases_and_splits() -> None:
 
     assert artifact["artifact_type"] == "runtime_lab_memory_edd_golden_set"
     assert artifact["status"] == "pass"
+    assert artifact["owner"] == "MemoryRuntimeArchitecture"
+    assert artifact["consumer"] == "runtime_lab_memory_slices"
+    assert artifact["artifact_classification"] == "merge_safe"
+    assert artifact["retirement_trigger"] == "approved_durable_memory_activation_plan"
     assert artifact["runtime_connected"] is False
     assert artifact["lab_isolated"] is True
     assert artifact["manager_context_packet_changed"] is False
@@ -41,6 +45,21 @@ def test_runtime_lab_memory_edd_suite_loads_required_cases_and_splits() -> None:
         "holdout": 2,
         "negative": 2,
     }
+    assert artifact["suite_contract"]["required_scope_keys"] == [
+        "user_id",
+        "workspace_id",
+        "project_id",
+        "surface",
+        "run_id",
+    ]
+    assert artifact["suite_contract"]["forbidden_capabilities"] == [
+        "provider_call",
+        "memory_store_write",
+        "extraction_pipeline_activation",
+        "manager_context_packet_injection",
+        "scheduler_delivery",
+        "canonical_mutation",
+    ]
 
 
 def test_runtime_lab_memory_edd_rubric_is_decision_complete_without_live_claims() -> None:
@@ -63,6 +82,11 @@ def test_runtime_lab_memory_edd_rubric_is_decision_complete_without_live_claims(
     assert rubric["promotion_legality"]["truth_owner"] == "deterministic_validator"
     assert rubric["retrieval_precision"]["grader_type"] == "hybrid_trace_plus_human_calibrated"
     assert rubric["no_canonical_mutation"]["blocking"] is True
+    for item in rubric.values():
+        assert item["grader_type"]
+        assert item["truth_owner"]
+        assert isinstance(item["blocking"], bool)
+        assert item["pass_rule"]
     assert artifact["live_tests"] == {
         "stage_a_synthetic_runtime_traces": "deferred_to_PR3",
         "stage_b_dogfood_replay_traces": "deferred_to_PR4",
@@ -91,6 +115,7 @@ def test_runtime_lab_memory_edd_cases_do_not_encode_raw_keyword_semantic_oracles
             "durable_product_memory_written": False,
             "manager_context_packet_changed": False,
         }
+        assert case["trace_fields"]["source_refs"]
 
 
 def test_runtime_lab_memory_edd_indexed_as_conditional_guidance_only() -> None:
@@ -166,6 +191,56 @@ def test_runtime_lab_memory_edd_projection_blocks_missing_truth_refs() -> None:
     assert projection["case_count"] == 10
     assert "missing_product_truth_source_refs" in projection["blockers"]
     assert projection["canonical_golden_set_mutated"] is False
+
+
+def test_runtime_lab_memory_edd_blocks_missing_contract_ownership() -> None:
+    from app.memory.application.runtime_lab_memory_edd import (
+        load_runtime_lab_memory_edd_suite,
+    )
+
+    suite_path = ROOT / "docs" / "quality" / "runtime_lab_memory_edd_golden_set.yaml"
+    text = suite_path.read_text(encoding="utf-8")
+    mutated = text.replace(
+        "artifact_classification: merge_safe",
+        "artifact_classification: diagnostic_only",
+    ).replace(
+        "retirement_trigger: approved_durable_memory_activation_plan",
+        "retirement_trigger: ''",
+    )
+    temp_path = ROOT / ".pytest_tmp_local" / "bad_memory_edd_contract.yaml"
+    temp_path.parent.mkdir(exist_ok=True)
+    temp_path.write_text(mutated, encoding="utf-8")
+
+    artifact = load_runtime_lab_memory_edd_suite(temp_path)
+
+    assert artifact["status"] == "fail"
+    assert "artifact_classification_not_merge_safe" in artifact["blockers"]
+    assert "retirement_trigger_missing_or_unexpected" in artifact["blockers"]
+
+
+def test_runtime_lab_memory_edd_blocks_missing_case_source_refs() -> None:
+    from app.memory.application.runtime_lab_memory_edd import (
+        load_runtime_lab_memory_edd_suite,
+    )
+
+    suite_path = ROOT / "docs" / "quality" / "runtime_lab_memory_edd_golden_set.yaml"
+    text = suite_path.read_text(encoding="utf-8")
+    mutated = text.replace(
+        "source_refs:\n        - message:event-explicit-preference-001",
+        "source_refs: []",
+        1,
+    )
+    temp_path = ROOT / ".pytest_tmp_local" / "bad_memory_edd_refs.yaml"
+    temp_path.parent.mkdir(exist_ok=True)
+    temp_path.write_text(mutated, encoding="utf-8")
+
+    artifact = load_runtime_lab_memory_edd_suite(temp_path)
+
+    assert artifact["status"] == "fail"
+    assert (
+        "explicit_preference_confirm_candidate.missing_source_refs"
+        in artifact["blockers"]
+    )
 
 
 def test_runtime_lab_memory_edd_projection_blocks_unpassed_dogfood_review() -> None:
