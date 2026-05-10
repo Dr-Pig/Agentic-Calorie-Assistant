@@ -188,6 +188,9 @@ from scripts.run_accurate_intake_browser_one_day_fixture_dogfood import (  # noq
 from scripts.run_accurate_intake_browser_realistic_web_dogfood_v2 import (  # noqa: E402
     build_browser_realistic_web_dogfood_v2_report,
 )
+from scripts.run_accurate_intake_one_day_realistic_web_dogfood import (  # noqa: E402
+    build_report as build_one_day_realistic_web_dogfood_report,
+)
 from scripts.run_accurate_intake_product_pages_browser_smoke import (  # noqa: E402
     build_product_pages_browser_smoke_report,
 )
@@ -286,6 +289,7 @@ REFRESHED_ARTIFACT_FILENAMES = {
 PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES = {
     "browser_fixture_dogfood": "accurate_intake_browser_one_day_fixture_dogfood.json",
     "browser_realistic_dogfood": "accurate_intake_browser_realistic_web_dogfood_v2.json",
+    "one_day_realistic_dogfood": "accurate_intake_one_day_realistic_web_dogfood.json",
     "operator_review": "accurate_intake_dogfood_operator_review_v2.json",
 }
 CLOSEOUT_NON_CLAIMS = {
@@ -1155,6 +1159,16 @@ def _generate_current_shell_local_review_inputs(
             headless=True,
         ),
     )
+    _read_or_generate_json_artifact(
+        _artifact_path(
+            artifacts_dir,
+            PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["one_day_realistic_dogfood"],
+        ),
+        lambda: build_one_day_realistic_web_dogfood_report(
+            db_path=artifacts_dir / "accurate_intake_one_day_realistic_web_dogfood.sqlite3",
+            reset_db=True,
+        ),
+    )
     context_target_candidate_eval = _read_or_generate_json_artifact(
         _group_path(artifacts_dir, LOCAL_REVIEW_EVIDENCE_PATHS["context_target_candidate_eval"]),
         build_context_target_candidate_eval_artifact,
@@ -1269,6 +1283,12 @@ def _product_loop_handoff_evidence(
                 PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["browser_realistic_dogfood"],
             )
         ),
+        "one_day_realistic_dogfood": _read_payload(
+            _artifact_path(
+                artifacts_dir,
+                PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["one_day_realistic_dogfood"],
+            )
+        ),
         "operator_review": _read_payload(
             _artifact_path(
                 artifacts_dir,
@@ -1284,6 +1304,16 @@ def _product_loop_handoff_evidence(
 def _dogfood_review_candidates_from_closeout_diagnostics(
     artifacts_dir: Path,
 ) -> list[dict[str, Any]]:
+    one_day_realistic = _read_payload(
+        _artifact_path(
+            artifacts_dir,
+            PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["one_day_realistic_dogfood"],
+        )
+    )
+    one_day_scenario = _object_dict(one_day_realistic.get("one_day_realistic_web_dogfood"))
+    if one_day_scenario.get("status") == "pass":
+        return []
+
     browser_realistic = _read_payload(
         _artifact_path(
             artifacts_dir,
@@ -1306,6 +1336,18 @@ def _generate_product_loop_operator_review(artifacts_dir: Path) -> dict[str, Any
     )
     if artifact_path_exists(operator_review_path):
         return read_json_artifact(operator_review_path)
+
+    one_day_realistic = _read_payload(
+        _artifact_path(
+            artifacts_dir,
+            PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["one_day_realistic_dogfood"],
+        )
+    )
+    one_day_scenario = _object_dict(one_day_realistic.get("one_day_realistic_web_dogfood"))
+    if one_day_scenario:
+        operator_review = build_dogfood_operator_review_surface(one_day_realistic)
+        write_json_artifact(operator_review_path, operator_review)
+        return operator_review
 
     browser_realistic = _read_payload(
         _artifact_path(

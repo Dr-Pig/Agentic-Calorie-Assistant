@@ -193,6 +193,29 @@ def test_operator_review_keeps_pr110_diagnostic_gap_from_becoming_pass() -> None
     ]
 
 
+def test_operator_review_accepts_one_day_pass_as_approved_evidence_diagnostic() -> None:
+    report = _one_day_report_with_unrelated_display_text()
+    scenario = report["one_day_realistic_web_dogfood"]
+    scenario["status"] = "pass"
+    scenario["blockers"] = []
+    scenario["evidence"]["evidence_gap_observed"] = False
+    scenario["evidence"]["food_logs_created"] = True
+    scenario["evidence"]["approved_fooddb_evidence_fixture_used"] = True
+    scenario["evidence"]["macro_present_evidence_seen"] = True
+    scenario["evidence"]["macro_missing_evidence_seen"] = True
+
+    artifact = build_dogfood_operator_review_surface(report)
+
+    assert artifact["source_artifact"] == "accurate_intake_one_day_realistic_web_dogfood"
+    assert artifact["source_status"] == "pass"
+    assert artifact["status"] == "diagnostic_review_with_approved_evidence"
+    assert artifact["local_only"] is True
+    assert artifact["real_fooddb_pass_claimed"] is False
+    assert artifact["dogfood_pass"] is False
+    assert artifact["product_readiness_claimed"] is False
+    assert artifact["private_self_use_approved"] is False
+
+
 def test_operator_review_classifies_turns_from_structured_fields_not_raw_text() -> None:
     artifact = build_dogfood_operator_review_surface(_one_day_report_with_unrelated_display_text())
     classifications = {

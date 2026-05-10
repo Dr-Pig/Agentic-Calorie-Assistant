@@ -9,12 +9,9 @@ _NOT_CHECKED_SURFACE_MAP = {
     "dogfood_review_queue_compatible": "dogfood_review_queue",
     "local_data_hygiene_respected": "local_data_hygiene",
 }
-_ALLOWED_MANAGER_CONTEXT_STATUSES = {
-    "not_available",
-    "not_checked",
-    "missing_context_snapshot",
-}
+_ALLOWED_MANAGER_CONTEXT_STATUSES = {"not_available", "not_checked", "missing_context_snapshot"}
 _SOURCE_STATUS_TO_REVIEW_STATUS = {
+    "pass": "diagnostic_review_with_approved_evidence",
     "diagnostic_pass_with_evidence_gap": "diagnostic_review_with_evidence_gap",
     "browser_diagnostic_pass_with_fixture_evidence_gap": (
         "browser_diagnostic_review_with_fixture_evidence_gap"
