@@ -32,7 +32,7 @@ def test_truth_audit_reports_current_fooddb_boundaries_without_runtime_change() 
     assert audit["artifact_type"] == "accurate_intake_fooddb_guarded_afk_truth_audit"
     assert audit["runtime_truth_changed"] is False
     assert audit["stop_gate_status"] == "pass"
-    assert audit["summary"]["runtime_common_serving_anchor_count"] == 51
+    assert audit["summary"]["runtime_common_serving_anchor_count"] == 55
     assert audit["summary"]["tfda_source_evidence_only_count"] == 848
     assert audit["summary"]["semantic_only_basket_count"] == 4
     assert audit["summary"]["exact_card_count"] == 5
@@ -155,7 +155,7 @@ def test_truth_audit_manager_evidence_catalog_is_compact_and_runtime_only() -> N
     assert catalog["claim_scope"] == "compact_runtime_evidence_catalog_not_raw_source"
     assert catalog["raw_source_rows_included"] is False
     assert catalog["candidate_only_records_included"] is False
-    assert len(catalog["runtime_common_serving_anchors"]) == 51
+    assert len(catalog["runtime_common_serving_anchors"]) == 55
     for anchor in catalog["runtime_common_serving_anchors"]:
         assert set(anchor) == {
             "anchor_id",
@@ -220,4 +220,4 @@ def test_truth_audit_cli_writes_roundtrippable_artifact(tmp_path: Path) -> None:
 
     artifact = read_json_artifact(output)
     assert artifact["stop_gate_status"] == "pass"
-    assert artifact["summary"]["runtime_common_serving_anchor_count"] == 51
+    assert artifact["summary"]["runtime_common_serving_anchor_count"] == 55

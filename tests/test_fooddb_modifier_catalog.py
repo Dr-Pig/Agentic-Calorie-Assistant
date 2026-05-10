@@ -23,8 +23,8 @@ def test_modifier_catalog_reports_runtime_modifier_coverage_without_schema_chang
     assert catalog["runtime_truth_changed"] is False
     assert catalog["manager_context_changed"] is False
     assert catalog["packetizer_format_changed"] is False
-    assert catalog["summary"]["runtime_common_serving_anchor_count"] == 51
-    assert catalog["summary"]["modifier_aware_anchor_count"] == 20
+    assert catalog["summary"]["runtime_common_serving_anchor_count"] == 55
+    assert catalog["summary"]["modifier_aware_anchor_count"] == 24
     assert catalog["summary"]["modifier_name_count"] >= 10
 
 
@@ -35,7 +35,7 @@ def test_modifier_catalog_groups_known_modifier_names() -> None:
     assert groups["sugar_level"]["anchor_count"] == 3
     assert groups["cup_size"]["anchor_count"] == 6
     assert groups["piece_count"]["anchor_count"] == 2
-    assert groups["rice_portion"]["anchor_count"] == 2
+    assert groups["rice_portion"]["anchor_count"] == 5
     assert "custom_drink_boba_milk_tea" in groups["sugar_level"]["anchor_ids"]
     assert "staple_dumplings" in groups["piece_count"]["anchor_ids"]
 
@@ -44,14 +44,14 @@ def test_modifier_catalog_surfaces_p0_priority_groups_and_support_matrix() -> No
     catalog = build_fooddb_modifier_catalog(small_anchor_payload=_small_anchor_payload())
 
     assert catalog["summary"]["p0_modifier_count"] == len(P0_MODIFIERS)
-    assert catalog["summary"]["p0_supported_anchor_count"] == 8
+    assert catalog["summary"]["p0_supported_anchor_count"] == 11
     priority_groups = catalog["modifier_priority_groups"]
     assert priority_groups["P0"] == list(P0_MODIFIERS)
     assert priority_groups["unsupported_or_not_yet_covered"] == []
     assert {"piece_count", "size", "milk_type"} <= set(
         priority_groups["observed_runtime_non_p0_modifier_names"]
     )
-    assert len(priority_groups["observed_runtime_non_p0_modifier_names"]) == 14
+    assert len(priority_groups["observed_runtime_non_p0_modifier_names"]) == 15
     assert priority_groups["policy_staged_modifier_labels"] == build_staged_policy_modifier_labels()
 
     matrix = catalog["p0_support_matrix"]
@@ -74,16 +74,26 @@ def test_modifier_catalog_surfaces_p0_priority_groups_and_support_matrix() -> No
     assert matrix["cup_size"]["supported_values"] == ["large", "medium", "small"]
     assert set(matrix["rice_portion"]["anchor_ids"]) == {
         "generic_meal_chicken_bento",
+        "generic_meal_pork_rib_bento",
         "rice_bowl_luroufan",
+        "rice_bowl_salmon_don",
+        "stable_base_curry_rice",
     }
-    assert matrix["rice_portion"]["supported_values"] == ["full", "half", "large", "regular", "small"]
+    assert matrix["rice_portion"]["supported_values"] == [
+        "extra",
+        "full",
+        "half",
+        "large",
+        "regular",
+        "small",
+    ]
 
 
 def test_modifier_catalog_surfaces_compact_p0_anchor_coverage_and_staged_non_p0_posture() -> None:
     catalog = build_fooddb_modifier_catalog(small_anchor_payload=_small_anchor_payload())
 
     p0_coverage = catalog["p0_anchor_coverage"]
-    assert len(p0_coverage) == 8
+    assert len(p0_coverage) == 11
     by_anchor_id = {item["anchor_id"]: item for item in p0_coverage}
     assert by_anchor_id["custom_drink_americano"]["p0_modifiers"] == ["cup_size"]
     assert by_anchor_id["custom_drink_americano"]["followup_hints"] == ["ask_cup_size"]
@@ -96,7 +106,7 @@ def test_modifier_catalog_surfaces_compact_p0_anchor_coverage_and_staged_non_p0_
     assert non_p0_posture["posture"] == NON_P0_STAGED_POSTURE
     assert non_p0_posture["runtime_truth_promoted"] is False
     assert {"add_ons", "piece_count", "size"} <= set(non_p0_posture["observed_runtime_modifier_names"])
-    assert len(non_p0_posture["observed_runtime_modifier_names"]) == 14
+    assert len(non_p0_posture["observed_runtime_modifier_names"]) == 15
     assert non_p0_posture["policy_staged_modifier_labels"] == build_staged_policy_modifier_labels()
 
 
@@ -106,7 +116,7 @@ def test_modifier_catalog_manager_payload_is_compact_runtime_only() -> None:
 
     assert manager_catalog["raw_source_rows_included"] is False
     assert manager_catalog["candidate_only_records_included"] is False
-    assert len(manager_catalog["anchors"]) == 20
+    assert len(manager_catalog["anchors"]) == 24
     for item in manager_catalog["anchors"]:
         assert set(item) == {"anchor_id", "canonical_name", "modifiers", "followup_hints"}
         assert item["modifiers"]
@@ -138,5 +148,5 @@ def test_modifier_catalog_cli_writes_roundtrippable_artifact(tmp_path: Path) -> 
     assert main(["--output", str(output)]) == 0
 
     artifact = read_json_artifact(output)
-    assert artifact["summary"]["modifier_aware_anchor_count"] == 20
+    assert artifact["summary"]["modifier_aware_anchor_count"] == 24
     assert artifact["product_loop_integration_claimed"] is False

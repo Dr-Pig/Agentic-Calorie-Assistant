@@ -1,7 +1,7 @@
 {
   "artifact_type": "accurate_intake_food_kb_v1_inventory",
   "artifact_schema_version": "1.0",
-  "generated_at_utc": "2026-05-04T22:55:08.492787Z",
+  "generated_at_utc": "2026-05-10T19:47:08.723780Z",
   "scope": "local_evidence_support_inventory",
   "truth_owner": "none",
   "mutation_authority": "none",
@@ -10,8 +10,8 @@
   "web_tavily_required": false,
   "production_db_required": false,
   "repo_contained_seed_counts": {
-    "small_anchor_total": 55,
-    "generic_anchor": 51,
+    "small_anchor_total": 59,
+    "generic_anchor": 55,
     "generic_semantic_only": 4,
     "exact_item_cards": 5,
     "basket_components": 30
@@ -155,15 +155,15 @@
     "private_self_use_approved": false
   },
   "source_class_breakdown": {
-    "existing_repo_seed": 60,
+    "existing_repo_seed": 64,
     "taiwan_tfda_open_data": 11,
     "official_brand_chain_page": 0,
     "open_food_facts": 0,
     "usda_fallback": 0,
     "dogfood_user_correction": 0,
-    "missing_source_metadata": 49
+    "missing_source_metadata": 53
   },
-  "missing_source_metadata_count": 49,
+  "missing_source_metadata_count": 53,
   "food_gap_register_input": {
     "present": false,
     "pr112_gap_candidate_count": 0,

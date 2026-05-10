@@ -30,6 +30,17 @@ def _candidate(
         "category": "\u98f2\u6599\u985e",
         "serving_basis": {"unit_type": "g", "amount": 100, "label": "per_100g_edible_portion"},
         "kcal_point": kcal,
+        "protein_g_point": None,
+        "protein_g_range": None,
+        "carbs_g_point": None,
+        "carbs_g_range": None,
+        "fat_g_point": None,
+        "fat_g_range": None,
+        "macro_basis": "unknown",
+        "macro_confidence": "unknown",
+        "macro_source_strength": "unavailable",
+        "macro_visibility_candidate": "hidden_missing_source",
+        "macro_null_reason": "missing_source_macro",
         "source_provenance": {
             "source_id": source_id,
             "source_file": "FDA_food_nutrition_2024.xlsx",
@@ -93,6 +104,45 @@ def test_tfda_promotion_keeps_per_100g_evidence_out_of_runtime_estimates() -> No
     assert evidence["serving_basis"]["label"] == "per_100g_edible_portion"
     assert evidence["runtime_estimate_allowed"] is False
     assert evidence["packetizer_common_serving_allowed"] is False
+    assert evidence["macro_truth_allowed"] is False
+    assert evidence["protein_g_per_100g"] is None
+    assert evidence["macro_visibility_candidate"] == "hidden_missing_source"
+    assert evidence["macro_null_reason"] == "missing_source_macro"
+
+
+def test_tfda_source_evidence_preserves_macro_candidates_without_runtime_truth() -> None:
+    macro_candidate = _candidate(
+        "soy_milk",
+        "\u8c46\u6f3f",
+        kcal=54.2,
+    )
+    macro_candidate.update(
+        {
+            "protein_g_point": 3.3,
+            "carbs_g_point": 5.6,
+            "fat_g_point": 1.8,
+            "macro_basis": "per_100g_edible_portion",
+            "macro_confidence": "candidate",
+            "macro_source_strength": "source_declared_candidate",
+            "macro_visibility_candidate": "hidden_until_approval",
+            "macro_null_reason": None,
+        }
+    )
+    artifact = build_tfda_batch_promotion_artifact(
+        candidate_artifact=_candidate_artifact([macro_candidate]),
+        auto_eligible_artifact=_auto_batch(["soy_milk"]),
+    )
+
+    evidence = artifact["source_evidence_records"][0]
+    assert evidence["runtime_role"] == "source_evidence_only"
+    assert evidence["runtime_estimate_allowed"] is False
+    assert evidence["packetizer_common_serving_allowed"] is False
+    assert evidence["macro_truth_allowed"] is False
+    assert evidence["source_denominator"] == "per_100g_edible_portion"
+    assert evidence["protein_g_per_100g"] == 3.3
+    assert evidence["carbs_g_per_100g"] == 5.6
+    assert evidence["fat_g_per_100g"] == 1.8
+    assert evidence["macro_visibility_candidate"] == "hidden_until_approval"
 
 
 def test_tfda_promotion_creates_only_selected_common_serving_anchors_with_approval_metadata() -> None:
@@ -140,7 +190,26 @@ def test_tracked_tfda_source_evidence_is_not_loaded_as_small_anchor_runtime() ->
     source_artifact = json.loads(source_path.read_text(encoding="utf-8-sig"))
     assert source_artifact["runtime_estimate_allowed"] is False
     assert source_artifact["packetizer_common_serving_allowed"] is False
+    assert source_artifact["macro_contract"] == {
+        "fields": [
+            "protein_g_per_100g",
+            "carbs_g_per_100g",
+            "fat_g_per_100g",
+            "source_denominator",
+            "macro_basis",
+            "macro_confidence",
+            "macro_source_strength",
+            "macro_visibility_candidate",
+            "macro_null_reason",
+            "macro_truth_allowed",
+        ],
+        "source_denominator": "per_100g_edible_portion",
+        "runtime_truth_allowed": False,
+        "missing_macro_policy": "preserve_null_do_not_invent",
+    }
     assert source_artifact["records"]
+    assert all("macro_truth_allowed" in record for record in source_artifact["records"])
+    assert all(record["macro_truth_allowed"] is False for record in source_artifact["records"])
     assert all(
         record["runtime_role"] == "source_evidence_only"
         and record["runtime_estimate_allowed"] is False
