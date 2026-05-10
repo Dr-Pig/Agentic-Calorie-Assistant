@@ -6,6 +6,9 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from app.nutrition.application.food_evidence_candidate_record_values import stable_hash
+from app.nutrition.application.food_evidence_candidate_macro_fields import (
+    macro_fields_for_candidate,
+)
 from app.nutrition.application.food_evidence_candidate_source_mapping import (
     candidate_from_csv_record,
     candidate_from_json_record,
@@ -183,6 +186,10 @@ def _candidate(
         "serving_basis": serving_basis,
         "kcal_point": kcal,
         "kcal_range": None,
+        **macro_fields_for_candidate(
+            raw_record=raw_record,
+            serving_basis=serving_basis,
+        ),
         "source_provenance": {
             "source_id": definition.source_id,
             "source_file": definition.filename,
