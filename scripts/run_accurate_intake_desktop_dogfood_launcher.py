@@ -16,6 +16,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import NullPool
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -104,16 +105,21 @@ def build_launch_descriptor(
 
 def _session_factory(db_path: Path) -> tuple[Any, sessionmaker[Session]]:
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    engine = create_engine(f"sqlite:///{db_path.as_posix()}", connect_args={"check_same_thread": False})
+    engine = create_engine(
+        f"sqlite:///{db_path.as_posix()}",
+        connect_args={"check_same_thread": False},
+        poolclass=NullPool,
+    )
     Base.metadata.create_all(bind=engine)
     return engine, sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
 def build_app_for_desktop_dogfood(db_path: Path) -> FastAPI:
-    _engine, SessionLocal = _session_factory(db_path)
+    engine, SessionLocal = _session_factory(db_path)
     app = FastAPI()
     app.include_router(router)
     app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
+    app.state.accurate_intake_desktop_engine = engine
 
     def override_get_db():
         db = SessionLocal()
@@ -124,6 +130,13 @@ def build_app_for_desktop_dogfood(db_path: Path) -> FastAPI:
 
     app.dependency_overrides[get_db] = override_get_db
     return app
+
+
+def close_desktop_dogfood_app(app: FastAPI) -> None:
+    state = getattr(app, "state", None)
+    engine = getattr(state, "accurate_intake_desktop_engine", None)
+    if engine is not None:
+        engine.dispose()
 
 
 def _write_descriptor(path: Path, descriptor: dict[str, Any]) -> None:
