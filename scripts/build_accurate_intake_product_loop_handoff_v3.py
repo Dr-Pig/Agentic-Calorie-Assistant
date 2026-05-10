@@ -16,6 +16,9 @@ from app.nutrition.application.fooddb_macro_contract import (  # noqa: E402
     MACRO_SHADOW_SCHEMA,
     MACRO_SOURCE_CLASS_POLICY,
 )
+from app.nutrition.application.approved_packet_ready_validation import (  # noqa: E402
+    validate_approved_packet_ready_items,
+)
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
 
 REQUIRED_PRODUCT_LOOP_EVIDENCE = (
@@ -345,12 +348,24 @@ def _fooddb_validation(fooddb_artifact: dict[str, Any] | None) -> dict[str, Any]
             "metadata": _json_safe(metadata),
         }
 
+    packet_validation = validate_approved_packet_ready_items(_object_dict(fooddb_artifact))
+    if packet_validation["blockers"]:
+        return {
+            "present": True,
+            "status": "blocked_invalid_fooddb_packet_ready_items",
+            "ready_for_fdb_integration": False,
+            "blockers": list(packet_validation["blockers"]),
+            "metadata": _json_safe(metadata),
+            "packet_ready_validation": packet_validation,
+        }
+
     return {
         "present": True,
         "status": "approved_packet_ready_evidence_metadata_valid",
         "ready_for_fdb_integration": True,
         "blockers": [],
         "metadata": _json_safe(metadata),
+        "packet_ready_validation": packet_validation,
     }
 
 
@@ -481,6 +496,7 @@ def build_product_loop_handoff_v3(
     if fooddb["status"] in {
         "blocked_invalid_fooddb_metadata",
         "blocked_invalid_fooddb_macro_contract",
+        "blocked_invalid_fooddb_packet_ready_items",
     }:
         blockers.extend(fooddb["blockers"])
 
@@ -490,6 +506,7 @@ def build_product_loop_handoff_v3(
     elif fooddb["status"] in {
         "blocked_invalid_fooddb_metadata",
         "blocked_invalid_fooddb_macro_contract",
+        "blocked_invalid_fooddb_packet_ready_items",
     }:
         status = "blocked"
         selected_next_step = "wait_for_valid_fdb_metadata"

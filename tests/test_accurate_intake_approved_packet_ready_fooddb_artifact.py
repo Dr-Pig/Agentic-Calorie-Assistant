@@ -116,6 +116,13 @@ def _product_loop_evidence() -> dict[str, object]:
         "browser_fixture_dogfood": {
             "status": "browser_fixture_pass",
             "fixture_evidence_used": True,
+            "fixture_fooddb_evidence_used": True,
+            "fooddb_evidence_used": False,
+            "fooddb_evidence_used_normalized_for_local_review": True,
+            "manager_dogfood_summary": {
+                "macro_present_evidence_seen": True,
+                "macro_missing_evidence_seen": True,
+            },
             "real_fooddb_pass_claimed": False,
         },
         "local_dogfood_hygiene": {"status": "pass"},
