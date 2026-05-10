@@ -31,7 +31,7 @@ def test_real_fooddb_manager_e2e_consumes_full_packet_ready_records() -> None:
     assert artifact["summary"]["pass_count"] == 5
     assert artifact["summary"]["source_lane_counts"] == {
         "exact_item_card": 4,
-        "generic_common_serving": 30,
+        "generic_common_serving": 34,
         "listed_component": 34,
         "basket_family_semantic_only": 4,
     }

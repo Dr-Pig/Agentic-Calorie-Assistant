@@ -19,7 +19,7 @@ def _packet_ready_artifact() -> dict:
 def test_packet_ready_artifact_builds_role_aware_retrieval_records() -> None:
     records = build_runtime_retrieval_records_from_packet_ready_artifact(_packet_ready_artifact())
 
-    assert len(records) == 68
+    assert len(records) == 72
     lane_counts = {
         "exact_item_card": 0,
         "generic_common_serving": 0,
@@ -30,7 +30,7 @@ def test_packet_ready_artifact_builds_role_aware_retrieval_records() -> None:
 
     assert lane_counts == {
         "exact_item_card": 4,
-        "generic_common_serving": 30,
+        "generic_common_serving": 34,
         "listed_component": 34,
     }
 

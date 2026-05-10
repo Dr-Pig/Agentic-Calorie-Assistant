@@ -26,10 +26,10 @@ def test_tfda_runtime_anchor_integrity_preserves_source_and_macro_boundaries() -
     assert report["status"] == "pass"
     assert report["runtime_truth_changed"] is False
     assert report["summary"] == {
-        "tfda_runtime_anchor_count": 20,
-        "source_ref_match_count": 20,
-        "macro_hidden_count": 20,
-        "cjk_name_valid_count": 20,
+        "tfda_runtime_anchor_count": 24,
+        "source_ref_match_count": 24,
+        "macro_hidden_count": 24,
+        "cjk_name_valid_count": 24,
         "blocker_count": 0,
     }
     assert report["blockers"] == []

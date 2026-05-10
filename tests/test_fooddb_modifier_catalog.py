@@ -23,8 +23,8 @@ def test_modifier_catalog_reports_runtime_modifier_coverage_without_schema_chang
     assert catalog["runtime_truth_changed"] is False
     assert catalog["manager_context_changed"] is False
     assert catalog["packetizer_format_changed"] is False
-    assert catalog["summary"]["runtime_common_serving_anchor_count"] == 64
-    assert catalog["summary"]["modifier_aware_anchor_count"] == 29
+    assert catalog["summary"]["runtime_common_serving_anchor_count"] == 68
+    assert catalog["summary"]["modifier_aware_anchor_count"] == 33
     assert catalog["summary"]["modifier_name_count"] >= 10
 
 
@@ -34,7 +34,7 @@ def test_modifier_catalog_groups_known_modifier_names() -> None:
 
     assert groups["sugar_level"]["anchor_count"] == 3
     assert groups["cup_size"]["anchor_count"] == 6
-    assert groups["piece_count"]["anchor_count"] == 3
+    assert groups["piece_count"]["anchor_count"] == 4
     assert groups["rice_portion"]["anchor_count"] == 5
     assert "custom_drink_boba_milk_tea" in groups["sugar_level"]["anchor_ids"]
     assert "staple_dumplings" in groups["piece_count"]["anchor_ids"]
@@ -116,7 +116,7 @@ def test_modifier_catalog_manager_payload_is_compact_runtime_only() -> None:
 
     assert manager_catalog["raw_source_rows_included"] is False
     assert manager_catalog["candidate_only_records_included"] is False
-    assert len(manager_catalog["anchors"]) == 29
+    assert len(manager_catalog["anchors"]) == 33
     for item in manager_catalog["anchors"]:
         assert set(item) == {"anchor_id", "canonical_name", "modifiers", "followup_hints"}
         assert item["modifiers"]
@@ -148,5 +148,5 @@ def test_modifier_catalog_cli_writes_roundtrippable_artifact(tmp_path: Path) -> 
     assert main(["--output", str(output)]) == 0
 
     artifact = read_json_artifact(output)
-    assert artifact["summary"]["modifier_aware_anchor_count"] == 29
+    assert artifact["summary"]["modifier_aware_anchor_count"] == 33
     assert artifact["product_loop_integration_claimed"] is False
