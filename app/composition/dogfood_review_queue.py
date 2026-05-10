@@ -6,10 +6,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from app.composition.dogfood_trace_policy import (
-    build_dogfood_review_record,
-    validate_canonical_eval_promotion,
-)
+from app.composition.dogfood_feedback_source_refs import build_feedback_source_refs
+from app.composition.dogfood_trace_policy import build_dogfood_review_record, validate_canonical_eval_promotion
 
 REVIEW_QUEUE_TAXONOMY = [
     "unsupported_intent",
@@ -23,10 +21,7 @@ REVIEW_QUEUE_TAXONOMY = [
     "frontend_display_bug",
 ]
 
-DESKTOP_FEEDBACK_CATEGORIES = [
-    "manager_behavior", "nutrition_estimate", "macro_gap", "fooddb_gap",
-    "ui_ux", "bug", "latency", "product_feedback",
-]
+DESKTOP_FEEDBACK_CATEGORIES = ["manager_behavior", "nutrition_estimate", "macro_gap", "fooddb_gap", "ui_ux", "bug", "latency", "product_feedback"]
 
 DESKTOP_FEEDBACK_ROUTING_TARGETS = {
     "manager_behavior": "ManagerRuntime", "nutrition_estimate": "ManagerRuntime",
@@ -75,6 +70,7 @@ def build_feedback_record_from_desktop_capture(
     page: str,
     selected_date: str,
     user_external_id: str,
+    request_id: str | None = None,
     trace_id: str | None = None,
     message_id: str | None = None,
     meal_id: str | None = None,
@@ -105,10 +101,12 @@ def build_feedback_record_from_desktop_capture(
                 "page": _required_text(page, field="page"),
                 "selected_date": _required_text(selected_date, field="selected_date"),
                 "user_external_id": _required_text(user_external_id, field="user_external_id"),
+                "request_id": _clean_optional_text(request_id) or _clean_optional_text(trace_id),
                 "trace_id": _clean_optional_text(trace_id),
                 "message_id": _clean_optional_text(message_id),
                 "meal_id": _clean_optional_text(meal_id),
             },
+            "source_refs": build_feedback_source_refs(request_id=request_id or trace_id, trace_id=trace_id, message_id=message_id, meal_id=meal_id),
             "ui_event": _object_dict(ui_event),
             "operation_context": _object_dict(operation_context),
             "feedback_owner": "human_operator",

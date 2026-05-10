@@ -250,6 +250,7 @@
         `user ${text(linked.user_external_id)}`
       ].join(" | ");
       metaRows[2].textContent = [
+        `request_id ${text(linked.request_id)}`,
         `trace ${text(linked.trace_id)}`,
         `message ${text(linked.message_id)}`,
         `meal_id ${text(linked.meal_id)}`,
@@ -260,6 +261,7 @@
         `meal_title ${text(uiEvent.meal_title)} (display only meal title)`
       ].join(" | ");
       metaRows[4].textContent = [
+        `source_refs ${Array.isArray(record.source_refs) ? record.source_refs.join(", ") : "--"}`,
         `source_page ${text(uiEvent.source_page)}`,
         `route ${text(uiEvent.route)}`,
         `feedback_route ${text(uiEvent.feedback_route)}`

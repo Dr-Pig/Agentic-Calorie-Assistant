@@ -35,6 +35,7 @@ def build_feedback_record_from_route_payload(
         page=str(payload.get("page") or ""),
         selected_date=str(payload.get("selected_date") or ""),
         user_external_id=str(payload.get("user_external_id") or ""),
+        request_id=payload.get("request_id"),
         trace_id=payload.get("trace_id"),
         message_id=payload.get("message_id"),
         meal_id=payload.get("meal_id"),
