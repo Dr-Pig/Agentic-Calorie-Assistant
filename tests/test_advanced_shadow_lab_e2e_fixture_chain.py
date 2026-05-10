@@ -63,6 +63,11 @@ def test_fixture_chain_terminates_in_no_send_review_sink() -> None:
     assert artifact["stage_artifacts"][1]["three_node_lab_bridge_used"] is True
     assert artifact["stage_artifacts"][1]["five_node_lab_bridge_used"] is False
     assert artifact["terminal_review_sink"]["status"] == "pass"
+    assert artifact["chat_ux_packet"]["artifact_type"] == (
+        "advanced_shadow_chat_ux_packet_artifact"
+    )
+    assert artifact["chat_ux_packet"]["status"] == "pass"
+    assert artifact["chat_ux_packet"]["packet_count"] == 2
     assert artifact["terminal_review_sink"]["record_count"] == 2
     assert artifact["terminal_review_sink"]["control_path_evidence"] == {
         "status": "pass",

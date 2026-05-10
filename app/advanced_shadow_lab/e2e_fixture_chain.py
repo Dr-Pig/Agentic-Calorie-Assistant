@@ -20,6 +20,7 @@ from app.advanced_shadow_lab.e2e_fixture_chain_policy import (
     stage_blockers,
     stage_trace,
 )
+from app.advanced_shadow_lab.chat_ux_packet import build_advanced_shadow_chat_ux_packet
 from app.runtime.application.proactive_no_send_nudge_bridge import build_no_send_nudge_candidate_bridge
 from app.runtime.application.proactive_no_send_review_sink import build_no_send_review_sink
 from app.runtime.application.proactive_recommendation_prompt_bridge import build_recommendation_prompt_no_send_review
@@ -93,7 +94,7 @@ def run_advanced_shadow_e2e_fixture_chain(
     )
     all_stages = [*stages, sink]
     all_blockers = [*blockers, *stage_blockers([sink])]
-    return {
+    artifact = {
         "artifact_type": "advanced_shadow_e2e_fixture_chain_artifact",
         "artifact_schema_version": "1.0",
         "status": "blocked" if all_blockers else "pass",
@@ -108,6 +109,10 @@ def run_advanced_shadow_e2e_fixture_chain(
         "non_claims": list(NON_CLAIMS),
         **dict(FALSE_FLAGS),
     }
+    artifact["chat_ux_packet"] = build_advanced_shadow_chat_ux_packet(
+        fixture_chain_artifact=artifact
+    )
+    return artifact
 
 
 __all__ = ["SIDECAR_ACTIVATION_CONTRACT", "run_advanced_shadow_e2e_fixture_chain"]
