@@ -307,6 +307,7 @@ capabilities:
       - rescue_shadow_summary_context_projection
       - rescue_no_commit_viability_shadow_packet
       - rescue_proposal_shaping_input_shadow_packet
+      - rescue_planned_event_negotiation_shadow_packet
     stage_specific_no_go:
       rescue_proposal_committed: false
       budget_mutation_allowed: false
@@ -604,14 +605,15 @@ edge_case_coverage_contract:
       existing_shadow_artifacts:
         - rescue_proposal_shaping_input_shadow_packet
         - rescue_proposal_shaping_output_validation_shadow
+        - rescue_planned_event_negotiation_shadow_packet
       required_trace_fields:
         - planned_event_context
         - proposal_candidate
         - explicit_accept_required
         - budget_mutation_allowed
         - non_claims
-      acceptance_status: gap_requires_next_slice
-      next_build_slice: planned_event_rescue_shadow_negotiation
+      acceptance_status: existing_shadow_chain_mapped
+      next_build_slice: proactive_pending_meal_followup_shadow_or_calibration_direction_challenge
       claim_boundary: non_claim
       mainline_activation_allowed: false
     - journey_id: I
