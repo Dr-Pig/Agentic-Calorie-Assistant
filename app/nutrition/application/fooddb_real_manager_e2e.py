@@ -47,6 +47,24 @@ FOODDB_REAL_MANAGER_E2E_CASES: tuple[FoodDBPacketSmokeCase, ...] = tuple(
             "generic_range_estimate_with_followup_hints",
             "common_commercial_meal_macro_missing",
         ),
+        (
+            "exact_macro_visible_jiucai_he",
+            "\u97ed\u83dc\u76d2135\u516c\u514b",
+            "use_exact_packet_macro_visible_without_mutation",
+            "exact_item_macro_present",
+        ),
+        (
+            "generic_fried_rice_macro_hidden",
+            "\u7092\u98ef",
+            "estimate_range_with_macro_hidden",
+            "common_commercial_meal_macro_missing",
+        ),
+        (
+            "generic_cantonese_congee_macro_hidden",
+            "\u5ee3\u6771\u7ca5",
+            "estimate_range_with_macro_hidden",
+            "common_commercial_meal_macro_missing",
+        ),
     )
 )
 

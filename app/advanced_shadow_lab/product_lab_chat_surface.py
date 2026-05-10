@@ -89,6 +89,9 @@ def _message(
         ],
         "recommendation_offer": _recommendation_offer(packet),
         "rescue_proposal": _rescue_proposal(packet),
+        "pending_intake_draft_ids": [
+            str(item) for item in packet.get("pending_intake_draft_ids") or []
+        ],
         "controls_visible": True,
         "actions": [
             _action(session_id, turn_id, candidate_id, "dismiss"),

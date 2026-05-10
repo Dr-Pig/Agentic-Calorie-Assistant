@@ -60,7 +60,7 @@ def test_simulated_dogfood_cli_writes_operator_review_artifacts(
     assert file_summary["production_db_migration_allowed"] is False
     assert file_summary["durable_product_memory_written"] is False
     assert file_summary["canonical_product_mutation_allowed"] is False
-    assert file_summary["visible_candidate_counts"] == [2, 1, 2, 1]
+    assert file_summary["visible_candidate_counts"] == [2, 2, 2, 1]
     assert file_summary["product_runtime_capabilities_exercised"] == [
         "long_term_memory",
         "recommendation",
@@ -74,15 +74,16 @@ def test_simulated_dogfood_cli_writes_operator_review_artifacts(
         "golden-breakfast-oatmeal",
         "golden-breakfast-oatmeal",
     ]
-    assert file_summary["product_proactive_candidate_counts"] == [2, 3, 3, 3]
+    assert file_summary["product_proactive_candidate_counts"] == [2, 3, 2, 2]
     assert file_summary["product_outputs_applied_to_chat_surface"] is True
     assert file_summary["product_recommendation_intake_handoff_created"] is True
     assert file_summary["product_rescue_commit_handoff_created"] is True
     assert file_summary["product_proactive_delivery_packet_ready"] is True
-    assert file_summary["lab_chat_action_outcome_count"] == 2
+    assert file_summary["lab_chat_action_outcome_count"] == 3
     assert file_summary["lab_chat_action_outcome_types"] == [
         "recommendation_intake_draft",
         "rescue_commit_confirmation",
+        "pending_intake_confirmed_lab",
     ]
     assert file_summary["lab_chat_action_canonical_mutation_allowed"] is False
     assert file_summary["lab_chat_action_blockers"] == []
