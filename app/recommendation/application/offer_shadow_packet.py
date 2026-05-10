@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from app.recommendation.application.offer_shadow_packet_support import (
+from app.recommendation.application.offer_shadow_packet_parts import (
     backup_blockers,
     backup_candidate_ids,
     build_offer_packet_artifact,
