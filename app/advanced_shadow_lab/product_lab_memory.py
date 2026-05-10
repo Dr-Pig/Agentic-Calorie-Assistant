@@ -11,6 +11,9 @@ from app.advanced_shadow_lab.product_lab_memory_projection import (
     fixture_inputs_with_lab_memory_context,
     memory_projection_from_lab_context_pack,
 )
+from app.advanced_shadow_lab.product_lab_memory_promotion import (
+    apply_product_lab_memory_review_decisions,
+)
 from app.advanced_shadow_lab.product_lab_memory_recall import conversation_recall_search
 from app.advanced_shadow_lab.product_lab_memory_review_queue import (
     build_product_lab_memory_review_queue,
@@ -23,6 +26,7 @@ from app.advanced_shadow_lab.product_lab_memory_tools import (
 
 __all__ = [
     "ProductLabMemoryStore",
+    "apply_product_lab_memory_review_decisions",
     "build_product_lab_memory_review_queue",
     "build_product_lab_memory_context_pack",
     "conversation_recall_search",
