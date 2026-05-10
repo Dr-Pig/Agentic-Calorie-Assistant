@@ -79,24 +79,53 @@ def stale_next_slice_journey_ids(entries: list[Mapping[str, Any]]) -> list[str]:
 
 
 def _entry_blockers(entry: Mapping[str, Any]) -> list[str]:
-    blockers: list[str] = []
     journey_id = str(entry.get("journey_id") or "unknown_journey")
     prefix = f"ux_acceptance[{journey_id}]"
     status = str(entry.get("acceptance_status") or "")
     next_build_slice = str(entry.get("next_build_slice") or "").strip()
+    blockers: list[str] = []
     if journey_id not in REQUIRED_UX_JOURNEY_IDS:
         blockers.append(f"{prefix}.unsupported_journey_id")
+    blockers.extend(_required_list_field_blockers(prefix, entry))
+    blockers.extend(_next_slice_blockers(prefix, next_build_slice))
+    blockers.extend(_claim_boundary_blockers(prefix, entry))
+    blockers.extend(_status_blockers(prefix, status))
+    return blockers
+
+
+def _required_list_field_blockers(
+    prefix: str,
+    entry: Mapping[str, Any],
+) -> list[str]:
+    blockers: list[str] = []
     for field in REQUIRED_UX_LIST_FIELDS:
         if not entry.get(field):
             blockers.append(f"{prefix}.{field}_missing")
+    return blockers
+
+
+def _next_slice_blockers(prefix: str, next_build_slice: str) -> list[str]:
     if not next_build_slice:
-        blockers.append(f"{prefix}.next_build_slice_missing")
-    elif next_build_slice != ADVANCED_CAPABILITY_GAP_REVIEW_SLICE:
-        blockers.append(f"{prefix}.stale_next_build_slice:{next_build_slice}")
+        return [f"{prefix}.next_build_slice_missing"]
+    if next_build_slice != ADVANCED_CAPABILITY_GAP_REVIEW_SLICE:
+        return [f"{prefix}.stale_next_build_slice:{next_build_slice}"]
+    return []
+
+
+def _claim_boundary_blockers(
+    prefix: str,
+    entry: Mapping[str, Any],
+) -> list[str]:
+    blockers: list[str] = []
     if entry.get("claim_boundary") != "non_claim":
         blockers.append(f"{prefix}.claim_boundary_not_non_claim")
     if entry.get("mainline_activation_allowed") is not False:
         blockers.append(f"{prefix}.mainline_activation_allowed")
+    return blockers
+
+
+def _status_blockers(prefix: str, status: str) -> list[str]:
+    blockers: list[str] = []
     if status not in ALLOWED_UX_ACCEPTANCE_STATUSES:
         blockers.append(f"{prefix}.unsupported_acceptance_status")
     if status == "gap_requires_next_slice":
