@@ -22,10 +22,67 @@ CASE_FALSE_FLAGS = (
     "product_readiness_claimed",
 )
 CASE_DEFINITIONS = [
-    ("recommendation_prompt_fixture_case", "recommendation_prompt", "recommendation_prompt_no_send_review"),
-    ("rescue_nudge_fixture_case", "rescue_nudge", "rescue_nudge_no_send_review"),
-    ("proactive_no_send_review_fixture_case", "proactive_no_send", "proactive_no_send_review_sink_artifact"),
-    ("chat_ux_packet_fixture_case", "chat_ux_packet", "advanced_shadow_chat_ux_packet_artifact"),
+    (
+        "F",
+        "same_day_rescue_after_overshoot",
+        "rescue_same_day",
+        (
+            "rescue_shadow_chain_runner_artifact",
+            "rescue_chat_negotiation_lifecycle_shadow_packet",
+            "advanced_shadow_chat_ux_packet_artifact",
+        ),
+    ),
+    (
+        "F2",
+        "planned_event_rescue_before_large_meal",
+        "rescue_planned_event",
+        (
+            "rescue_proposal_shaping_input_shadow_packet",
+            "rescue_planned_event_negotiation_shadow_packet",
+        ),
+    ),
+    (
+        "I",
+        "calibration_proposal_from_body_trend",
+        "calibration_proposal",
+        (
+            "body_calibration_diagnostic_result",
+            "calibration_proposal_policy_packet",
+            "calibration_proposal_response_result",
+        ),
+    ),
+    (
+        "L",
+        "contextual_recommendation_to_pending_meal_intent",
+        "recommendation_pending_meal_intent",
+        (
+            "recommendation_three_node_shadow_artifact",
+            "recommendation_offer_shadow_packet",
+            "recommendation_pending_meal_intent_shadow_packet",
+        ),
+    ),
+    (
+        "M",
+        "preference_memory_affects_recommendation",
+        "memory_affects_recommendation",
+        (
+            "runtime_lab_memory_consumer_summary_projection",
+            "memory_lab_review_loop_state",
+            "chat_first_memory_review_correction_surface",
+            "recommendation_three_node_shadow_artifact",
+        ),
+    ),
+    (
+        "N",
+        "proactive_chat_first_no_send_intervention",
+        "proactive_no_send",
+        (
+            "proactive_no_send_nudge_candidate_bridge",
+            "proactive_pending_meal_followup_shadow",
+            "proactive_no_send_review_sink_artifact",
+            "advanced_shadow_chat_ux_packet_artifact",
+        ),
+    ),
 ]
 
 
@@ -49,7 +106,7 @@ def build_paired_fixture_case_artifacts(
         "new_report_family_created": False,
         "semantic_truth_owner": "source_artifacts_not_pairing_generator",
         "claim_boundary": "non_claim",
-        "case_ids": [case_id for case_id, _, _ in CASE_DEFINITIONS],
+        "case_ids": [case_id for case_id, _, _, _ in CASE_DEFINITIONS],
         "baseline_case_artifacts": baseline,
         "advanced_case_artifacts": advanced,
         "blockers": blockers,
@@ -59,32 +116,57 @@ def build_paired_fixture_case_artifacts(
 
 
 def _source_blockers(source: Mapping[str, Any]) -> list[str]:
+    return [
+        *_source_type_status_blockers(source),
+        *_terminal_artifact_blockers(source),
+        *_activation_flag_blockers(source),
+    ]
+
+
+def _source_type_status_blockers(source: Mapping[str, Any]) -> list[str]:
     blockers: list[str] = []
     if source.get("artifact_type") != FIXTURE_TYPE:
         blockers.append(f"fixture_chain.unsupported_artifact_type:{source.get('artifact_type') or 'missing'}")
     if source.get("status") != "pass":
         blockers.append(f"fixture_chain.status_{source.get('status') or 'missing'}")
+    return blockers
+
+
+def _terminal_artifact_blockers(source: Mapping[str, Any]) -> list[str]:
+    blockers: list[str] = []
     sink = _mapping(source.get("terminal_review_sink"))
     if sink.get("status") != "pass":
         blockers.append(f"terminal_review_sink.status_{sink.get('status') or 'missing'}")
     chat = _mapping(source.get("chat_ux_packet"))
     if chat.get("status") != "pass":
         blockers.append(f"chat_ux_packet.status_{chat.get('status') or 'missing'}")
-    blockers.extend(f"fixture_chain.{flag}" for flag in FALSE_FLAG_NAMES if source.get(flag) is True)
     return blockers
 
 
-def _case(case: tuple[str, str, str], artifact_type: str) -> dict[str, Any]:
-    case_id, surface, source_ref = case
+def _activation_flag_blockers(source: Mapping[str, Any]) -> list[str]:
+    return [
+        f"fixture_chain.{flag}"
+        for flag in FALSE_FLAG_NAMES
+        if source.get(flag) is True
+    ]
+
+
+def _case(
+    case: tuple[str, str, str, tuple[str, ...]],
+    artifact_type: str,
+) -> dict[str, Any]:
+    journey_id, journey_name, surface, source_refs = case
     return {
-        "case_id": case_id,
+        "case_id": journey_id,
+        "journey_id": journey_id,
+        "journey_name": journey_name,
         "artifact_type": artifact_type,
         "status": "pass",
         "technical_surface": surface,
-        "source_artifact_refs": [source_ref],
+        "source_artifact_refs": list(source_refs),
         "observable_output_summary": {
             "status": "pass",
-            "comparison_scope": "fixture_shape_only",
+            "comparison_scope": "ux_journey_fixture_shape_only",
         },
         "semantic_truth_owner": "source_artifacts_not_pairing_generator",
         "semantic_decision_inferred_by_runner": False,

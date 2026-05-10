@@ -9,6 +9,9 @@ from app.advanced_shadow_lab.model_profiles import (
 from app.advanced_shadow_lab.live_bundle_inputs import write_live_bundle_inputs
 
 
+EXPECTED_UX_JOURNEY_CASE_IDS = ["F", "F2", "I", "L", "M", "N"]
+
+
 def test_advanced_shadow_live_bundle_runner_writes_existing_terminal_comparison(
     tmp_path: Path,
 ) -> None:
@@ -92,23 +95,13 @@ def test_advanced_shadow_live_bundle_runner_writes_existing_terminal_comparison(
             encoding="utf-8"
         )
     )
-    assert [case["case_id"] for case in baseline_cases] == [
-        "recommendation_prompt_fixture_case",
-        "rescue_nudge_fixture_case",
-        "proactive_no_send_review_fixture_case",
-        "chat_ux_packet_fixture_case",
-    ]
-    assert [case["case_id"] for case in advanced_cases] == [
-        "recommendation_prompt_fixture_case",
-        "rescue_nudge_fixture_case",
-        "proactive_no_send_review_fixture_case",
-        "chat_ux_packet_fixture_case",
-    ]
+    assert [case["case_id"] for case in baseline_cases] == EXPECTED_UX_JOURNEY_CASE_IDS
+    assert [case["case_id"] for case in advanced_cases] == EXPECTED_UX_JOURNEY_CASE_IDS
     assert terminal["pairing_summary"] == {
         "status": "pairable",
-        "baseline_case_count": 4,
-        "advanced_case_count": 4,
-        "paired_case_count": 4,
+        "baseline_case_count": 6,
+        "advanced_case_count": 6,
+        "paired_case_count": 6,
         "schema_gaps": [],
         "activation_violations": [],
     }
