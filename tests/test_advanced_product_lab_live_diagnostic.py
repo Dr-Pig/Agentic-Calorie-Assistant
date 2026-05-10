@@ -217,6 +217,31 @@ def test_product_lab_live_diagnostic_payload_includes_product_runtime_summary(
     assert policy["kimi_live_calls_allowed"] is False
 
 
+def test_product_lab_live_diagnostic_blocks_unclosed_product_loop(
+    tmp_path: Path,
+) -> None:
+    summary = read_json_artifact(_write_simulated_pack(tmp_path))
+    summary["advanced_product_lab_product_loop_closed"] = False
+    summary["advanced_product_lab_closure_missing"] = [
+        "rescue_commit_action_replayed"
+    ]
+    provider = _CapturingProvider()
+
+    artifact = run_product_lab_live_diagnostic(
+        summary_artifact=summary,
+        provider=provider,
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["provider_invoked"] is False
+    assert artifact["blockers"] == [
+        "summary.product_loop_not_closed:rescue_commit_action_replayed"
+    ]
+    assert provider.user_payload == {}
+
+
 def test_product_lab_live_diagnostic_output_guard_allows_negated_claim_words(
     tmp_path: Path,
 ) -> None:

@@ -138,6 +138,14 @@ def _summary_blockers(summary: Mapping[str, Any]) -> list[str]:
         blockers.append("summary.unsupported_artifact_type")
     if summary.get("status") != "pass":
         blockers.append("summary.status_not_pass")
+    if summary.get("advanced_product_lab_product_loop_closed") is not True:
+        missing = ",".join(
+            str(item)
+            for item in summary.get("advanced_product_lab_closure_missing") or []
+        )
+        blockers.append(f"summary.product_loop_not_closed:{missing or 'unknown'}")
+    for blocker in summary.get("lab_chat_action_blockers") or []:
+        blockers.append(f"summary.chat_action_blocker:{blocker}")
     for flag in (
         "live_provider_invoked",
         "user_facing_behavior_changed",
