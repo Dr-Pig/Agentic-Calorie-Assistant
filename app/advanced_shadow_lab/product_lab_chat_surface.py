@@ -137,6 +137,14 @@ def _recommendation_offer(packet: Mapping[str, Any]) -> dict[str, Any]:
         "primary_candidate_id": str(ux.get("primary_candidate_id") or ""),
         "backup_candidate_ids": [str(item) for item in ux.get("backup_candidate_ids") or []],
         "offer_actions": [dict(item) for item in ux.get("actions") or [] if isinstance(item, Mapping)],
+        "intake_handoff_state": str(
+            _mapping(packet.get("pending_intake_handoff_packet")).get("handoff_state")
+            or ""
+        ),
+        "canonical_commit_requested": _mapping(
+            packet.get("pending_intake_handoff_packet")
+        ).get("canonical_commit_requested")
+        is True,
         "requires_explicit_user_intake_action": any(
             item.get("requires_explicit_user_intake_action") is True
             for item in ux.get("actions") or []
@@ -151,6 +159,10 @@ def _visible_packets(packet: Mapping[str, Any]) -> list[Mapping[str, Any]]:
         for item in packet.get("visible_chat_packets") or []
         if isinstance(item, Mapping)
     ]
+
+
+def _mapping(value: Any) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
 
 
 __all__ = [

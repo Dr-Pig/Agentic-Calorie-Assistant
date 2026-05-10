@@ -135,6 +135,9 @@ def _product_fields(
         return {
             "product_lab_copy": str(ux.get("explanation") or ""),
             "recommendation_ux_packet": dict(ux),
+            "pending_intake_handoff_packet": dict(
+                product_recommendation.get("pending_intake_handoff_packet") or {}
+            ),
             "product_runtime_output_refs": [
                 str(product_recommendation.get("artifact_type") or ""),
                 str(product_proactive.get("artifact_type") or ""),
