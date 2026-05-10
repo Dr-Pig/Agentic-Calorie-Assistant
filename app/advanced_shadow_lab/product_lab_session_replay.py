@@ -3,9 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from app.advanced_shadow_lab.product_lab_chat_actions import (
-    apply_product_lab_chat_actions,
-)
 from app.advanced_shadow_lab.product_lab_memory import (
     ProductLabMemoryStore,
     build_product_lab_memory_context_pack,
@@ -21,6 +18,10 @@ from app.advanced_shadow_lab.product_lab_session_memory_pipeline import (
     run_product_lab_turn_memory_pipeline,
 )
 from app.advanced_shadow_lab.product_lab_session_manager_loop import turn_manager_script
+from app.advanced_shadow_lab.product_lab_session_action_state import (
+    initial_session_action_state,
+    post_turn_chat_actions_and_state,
+)
 from app.advanced_shadow_lab.product_lab_session_policy import (
     LAB_MODE,
     session_blockers,
@@ -63,6 +64,7 @@ def run_advanced_product_lab_dogfood_session(
     memory_tool_calls: list[dict[str, Any]] = []
     memory_surface_paths: dict[str, str] = {}
     memory_context_injected = False
+    action_state = initial_session_action_state()
     turn_summaries: list[dict[str, Any]] = []
     turn_paths: list[str] = []
     run_blockers: list[str] = []
@@ -117,19 +119,25 @@ def run_advanced_product_lab_dogfood_session(
         run_blockers.extend(turn_blockers(turn_id, turn_artifact, post_control))
         if memory_pipeline.get("status") != "pass":
             run_blockers.append(f"{turn_id}.memory_pipeline_blocked")
-        chat_action_outcomes = apply_product_lab_chat_actions(
-            messages=_chat_messages(turn_artifact),
-            action_specs=_post_turn_chat_actions(turn_spec),
+        (
+            chat_action_outcomes,
+            action_state,
+            action_state_delta,
+            chat_action_blockers,
+        ) = post_turn_chat_actions_and_state(
+            turn_spec=turn_spec,
+            turn_artifact=turn_artifact,
+            prior_state=action_state,
         )
         run_blockers.extend(
-            f"{turn_id}.chat_action.{blocker}"
-            for outcome in chat_action_outcomes
-            for blocker in outcome.get("blockers") or []
+            f"{turn_id}.chat_action.{blocker}" for blocker in chat_action_blockers
         )
         record = turn_record(
             turn_artifact,
             post_control,
             chat_action_outcomes=chat_action_outcomes,
+            action_state_delta=action_state_delta,
+            action_state=action_state,
         )
         record["memory_pipeline_artifact"] = memory_pipeline
         path = write_turn_record(
@@ -147,6 +155,7 @@ def run_advanced_product_lab_dogfood_session(
                 memory_context_pack=memory_context_pack,
                 memory_write_artifact=memory_write,
                 chat_action_outcomes=chat_action_outcomes,
+                action_state_delta=action_state_delta,
             )
         )
 
@@ -161,6 +170,7 @@ def run_advanced_product_lab_dogfood_session(
         memory_tool_calls=memory_tool_calls,
         memory_surface_paths=memory_surface_paths,
         memory_context_injected=memory_context_injected,
+        action_state=action_state,
     )
     session_path = write_session_record(
         artifact_root=artifact_root,
@@ -174,23 +184,6 @@ def run_advanced_product_lab_dogfood_session(
         artifact=artifact,
     )
     return artifact
-
-
-def _post_turn_chat_actions(turn_spec: Mapping[str, Any]) -> list[Mapping[str, Any]]:
-    return [
-        item
-        for item in turn_spec.get("post_turn_chat_actions") or []
-        if isinstance(item, Mapping)
-    ]
-
-
-def _chat_messages(turn_artifact: Mapping[str, Any]) -> list[Mapping[str, Any]]:
-    surface = turn_artifact.get("lab_chat_surface")
-    if not isinstance(surface, Mapping):
-        return []
-    return [
-        item for item in surface.get("messages") or [] if isinstance(item, Mapping)
-    ]
 
 
 __all__ = [

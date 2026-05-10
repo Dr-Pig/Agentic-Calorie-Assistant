@@ -39,8 +39,10 @@ def session_artifact(
     memory_tool_calls: list[Mapping[str, Any]] | None = None,
     memory_surface_paths: Mapping[str, str] | None = None,
     memory_context_injected: bool = False,
+    action_state: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     has_memory = bool(memory_record_ids)
+    lab_action_state = dict(action_state or {})
     return {
         "artifact_type": "advanced_product_lab_dogfood_session_artifact",
         "artifact_schema_version": "1.0",
@@ -56,6 +58,10 @@ def session_artifact(
         "control_event_history_ids": list(history_event_ids),
         "final_control_journal_event_ids": event_ids(journal),
         **session_chat_action_summary(turn_summaries),
+        "lab_action_state": lab_action_state,
+        "lab_action_state_artifact_type": str(
+            lab_action_state.get("artifact_type") or ""
+        ),
         **session_manager_tool_summary(turn_summaries),
         "lab_session_store_written": not blockers,
         "lab_memory_store_written": not blockers and has_memory,
@@ -108,6 +114,8 @@ def turn_record(
     post_control: Mapping[str, Any],
     *,
     chat_action_outcomes: list[Mapping[str, Any]] | None = None,
+    action_state_delta: Mapping[str, Any] | None = None,
+    action_state: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "artifact_type": "advanced_product_lab_dogfood_turn_record",
@@ -116,6 +124,8 @@ def turn_record(
         "post_turn_chat_action_outcomes": [
             dict(item) for item in chat_action_outcomes or []
         ],
+        "post_turn_action_state_delta": dict(action_state_delta or {}),
+        "post_turn_action_state": dict(action_state or {}),
     }
 
 
@@ -127,6 +137,7 @@ def turn_summary(
     memory_context_pack: Mapping[str, Any] | None = None,
     memory_write_artifact: Mapping[str, Any] | None = None,
     chat_action_outcomes: list[Mapping[str, Any]] | None = None,
+    action_state_delta: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     context_pack = memory_context_pack or {}
     memory_write = memory_write_artifact or {}
@@ -149,6 +160,7 @@ def turn_summary(
             memory_write.get("written_record_ids") or []
         ),
         **turn_chat_action_summary(action_outcomes),
+        "lab_action_state_delta": dict(action_state_delta or {}),
         **turn_manager_tool_summary(turn_artifact),
         **turn_product_summary(turn_artifact),
     }
