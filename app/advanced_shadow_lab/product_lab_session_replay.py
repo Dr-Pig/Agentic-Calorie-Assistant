@@ -108,6 +108,7 @@ def run_advanced_product_lab_dogfood_session(
             session_id=session_id,
             turn_id=turn_id,
             turn_spec=turn_spec,
+            turn_artifact=turn_artifact,
         )
         memory_write = dict(memory_pipeline.get("memory_write_artifact") or {})
         memory_record_ids = list(memory_write.get("all_record_ids") or memory_record_ids)
