@@ -59,6 +59,7 @@ SIDECAR_MODULES = [
     "app.recommendation.application.summary_pool_posture",
     "app.recommendation.application.three_node_diagnostic_fake_provider",
     "app.recommendation.application.three_node_diagnostic_policy",
+    "app.recommendation.application.three_node_live_provider_gate",
     "app.recommendation.application.three_node_offer_policy",
     "app.recommendation.application.three_node_live_diagnostic",
     "app.recommendation.application.three_node_live_preflight",
