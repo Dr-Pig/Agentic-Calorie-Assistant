@@ -7,6 +7,7 @@ from app.advanced_shadow_lab.product_lab_memory import (
     ProductLabMemoryStore,
     build_product_lab_memory_context_pack,
 )
+from app.advanced_shadow_lab import product_lab_rescue_proposal_read_model as rm
 from app.advanced_shadow_lab.product_lab_runtime import run_advanced_product_lab_turn
 from app.advanced_shadow_lab.product_lab_session_controls import (
     event_ids,
@@ -65,6 +66,7 @@ def run_advanced_product_lab_dogfood_session(
     memory_surface_paths: dict[str, str] = {}
     memory_context_injected = False
     action_state = initial_session_action_state()
+    rescue_proposal_read_model = rm.empty()
     turn_summaries: list[dict[str, Any]] = []
     turn_paths: list[str] = []
     run_blockers: list[str] = []
@@ -134,6 +136,9 @@ def run_advanced_product_lab_dogfood_session(
         run_blockers.extend(
             f"{turn_id}.chat_action.{blocker}" for blocker in chat_action_blockers
         )
+        rescue_proposal_read_model = rm.update(
+            rescue_proposal_read_model, turn_id, turn_artifact, chat_action_outcomes
+        )
         record = turn_record(
             turn_artifact,
             post_control,
@@ -174,6 +179,7 @@ def run_advanced_product_lab_dogfood_session(
         memory_context_injected=memory_context_injected,
         action_state=action_state,
     )
+    artifact = rm.attach(artifact, rescue_proposal_read_model)
     session_path = write_session_record(
         artifact_root=artifact_root,
         session_id=session_id,
