@@ -27,6 +27,10 @@ from app.advanced_shadow_lab.shadow_comparison import (  # noqa: E402
 from app.advanced_shadow_lab.e2e_fixture_chain import (  # noqa: E402
     run_advanced_shadow_e2e_fixture_chain,
 )
+from app.advanced_shadow_lab.live_bundle_profile_gate import (  # noqa: E402
+    ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
+    resolve_live_bundle_profile_gate,
+)
 
 
 ALLOW_ENV = "ADVANCED_SHADOW_LAB_ALLOW_LIVE_LLM_DIAGNOSTIC"
@@ -94,14 +98,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--advanced-cases")
     parser.add_argument("--provider-mode", choices=("fake", "live"), default="fake")
     parser.add_argument("--allow-live-provider", action="store_true")
-    parser.add_argument("--model", default=os.getenv("BUILDERSPACE_MANAGER_MODEL", "grok-4-fast"))
+    parser.add_argument("--provider-profile-id", default=ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID)
     parser.add_argument("--artifact-dir", default=str(DEFAULT_ARTIFACT_DIR))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
+    live_profile, profile_blocked = resolve_live_bundle_profile_gate(
+        provider_mode=str(args.provider_mode),
+        provider_profile_id=str(args.provider_profile_id),
+    )
+    if profile_blocked is not None:
+        _write_json(Path(args.output), profile_blocked)
+        _print_terminal_summary(Path(args.output), profile_blocked, str(args.provider_mode))
+        return 0
+
     artifact_dir = Path(args.artifact_dir)
     artifact_dir.mkdir(parents=True, exist_ok=True)
-
     memory_review = _read_json(Path(args.memory_dogfood_replay_review))
     chain_payload = _read_json(Path(args.chain_payload))
     fixture_chain = _build_fixture_chain(chain_payload)
@@ -121,7 +133,7 @@ def main(argv: list[str] | None = None) -> int:
         rescue_input=rescue_input,
         provider_mode=str(args.provider_mode),
         allow_live_provider=bool(args.allow_live_provider),
-        model=str(args.model),
+        live_profile=live_profile,
         artifact_dir=artifact_dir,
     )
 
@@ -135,17 +147,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     output = Path(args.output)
     _write_json(output, terminal)
-    print(
-        json.dumps(
-            {
-                "artifact": str(output),
-                "artifact_type": str(terminal.get("artifact_type") or ""),
-                "status": terminal.get("status"),
-                "provider_mode": args.provider_mode,
-            },
-            ensure_ascii=False,
-        )
-    )
+    _print_terminal_summary(output, terminal, str(args.provider_mode))
     return 0
 
 
@@ -155,7 +157,7 @@ def _run_copy_diagnostics(
     rescue_input: Mapping[str, Any],
     provider_mode: str,
     allow_live_provider: bool,
-    model: str,
+    live_profile: Mapping[str, object] | None,
     artifact_dir: Path,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     recommendation_path = artifact_dir / RECOMMENDATION_OUTPUT
@@ -173,22 +175,21 @@ def _run_copy_diagnostics(
                 reason="live_gate_not_enabled",
             )
             return recommendation, rescue
-        recommendation_provider = _live_provider(
-            model, "advanced_shadow_lab_recommendation_copy_live_diagnostic"
-        )
-        rescue_provider = _live_provider(model, "advanced_shadow_lab_rescue_copy_live_diagnostic")
+        profile = _mapping(live_profile)
+        recommendation_provider = _live_provider(profile, "recommendation_copy")
+        rescue_provider = _live_provider(profile, "rescue_copy")
         return (
             run_recommendation_copy_live_diagnostic(
                 recommendation_summary_report=recommendation_report,
                 provider=recommendation_provider,
-                provider_mode="builderspace_live_diagnostic",
+                provider_mode=str(profile.get("provider_profile_id") or ""),
                 live_invoked=True,
                 output_path=recommendation_path,
             ),
             run_rescue_copy_live_diagnostic(
                 rescue_shaping_input_packet=rescue_input,
                 provider=rescue_provider,
-                provider_mode="builderspace_live_diagnostic",
+                provider_mode=str(profile.get("provider_profile_id") or ""),
                 live_invoked=True,
                 output_path=rescue_path,
             ),
@@ -286,10 +287,13 @@ def _rescue_shaping_input(chain_payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _live_provider(model: str, role_label: str) -> Any:
+def _live_provider(profile: Mapping[str, object], role_suffix: str) -> Any:
     from app.providers.builderspace_adapter import BuilderSpaceAdapter
 
-    return BuilderSpaceAdapter(manager_model_override=model, role_label=role_label)
+    return BuilderSpaceAdapter(
+        manager_model_override=str(profile["model_id"]),
+        role_label=f"{profile['role_label']}_{role_suffix}",
+    )
 
 
 def _blocked_not_invoked(*, artifact_type: str, output: Path, reason: str) -> dict[str, Any]:
@@ -338,6 +342,23 @@ def _read_list(path_text: str | None) -> list[dict[str, Any]]:
 def _write_json(path: Path, artifact: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(dict(artifact), ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _print_terminal_summary(
+    output: Path, terminal: Mapping[str, Any], provider_mode: str
+) -> None:
+    print(
+        json.dumps(
+            {
+                "artifact": str(output),
+                "artifact_type": str(terminal.get("artifact_type") or ""),
+                "status": terminal.get("status"),
+                "provider_mode": provider_mode,
+                "blockers": terminal.get("blockers"),
+            },
+            ensure_ascii=False,
+        )
+    )
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:

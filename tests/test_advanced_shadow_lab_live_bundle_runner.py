@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.advanced_shadow_lab.model_profiles import (
+    ADVANCED_LAB_TARGET_REASONING_PROFILE_ID,
+)
 from app.recommendation.application.three_node_shadow_contract import (
     build_fixture_recommendation_three_node_input,
 )
@@ -131,6 +134,88 @@ def test_advanced_shadow_live_bundle_runner_blocks_live_without_env(
     assert terminal["user_facing_behavior_changed"] is False
 
 
+def test_advanced_shadow_live_bundle_rejects_unknown_profile_before_reading_inputs(
+    tmp_path: Path,
+) -> None:
+    from scripts import run_advanced_shadow_lab_live_bundle as runner
+
+    output = tmp_path / "blocked_unknown_profile.json"
+    artifact_dir = tmp_path / "intermediate"
+
+    exit_code = runner.main(
+        [
+            "--memory-dogfood-replay-review",
+            str(tmp_path / "missing_memory_review.json"),
+            "--chain-payload",
+            str(tmp_path / "missing_chain_payload.json"),
+            "--provider-mode",
+            "live",
+            "--allow-live-provider",
+            "--provider-profile-id",
+            "builderspace-unknown-model",
+            "--output",
+            str(output),
+            "--artifact-dir",
+            str(artifact_dir),
+        ]
+    )
+    terminal = json.loads(output.read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert terminal["artifact_type"] == "advanced_shadow_comparison_artifact"
+    assert terminal["status"] == "blocked"
+    assert terminal["provider_mode"] == "not_invoked"
+    assert terminal["blockers"] == [
+        "unsupported_advanced_lab_provider_profile:builderspace-unknown-model"
+    ]
+    assert terminal["live_provider_used"] is False
+    assert terminal["manager_context_packet_changed"] is False
+    assert terminal["user_facing_behavior_changed"] is False
+    assert not artifact_dir.exists()
+
+
+def test_advanced_shadow_live_bundle_rejects_kimi_profile_before_reading_inputs(
+    tmp_path: Path,
+) -> None:
+    from scripts import run_advanced_shadow_lab_live_bundle as runner
+
+    output = tmp_path / "blocked_kimi_profile.json"
+    artifact_dir = tmp_path / "intermediate"
+
+    exit_code = runner.main(
+        [
+            "--memory-dogfood-replay-review",
+            str(tmp_path / "missing_memory_review.json"),
+            "--chain-payload",
+            str(tmp_path / "missing_chain_payload.json"),
+            "--provider-mode",
+            "live",
+            "--allow-live-provider",
+            "--provider-profile-id",
+            ADVANCED_LAB_TARGET_REASONING_PROFILE_ID,
+            "--output",
+            str(output),
+            "--artifact-dir",
+            str(artifact_dir),
+        ]
+    )
+    terminal = json.loads(output.read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert terminal["artifact_type"] == "advanced_shadow_comparison_artifact"
+    assert terminal["status"] == "blocked"
+    assert terminal["provider_mode"] == "not_invoked"
+    assert terminal["blockers"] == [
+        "profile_not_live_diagnostic_allowed;kimi_live_calls_forbidden"
+    ]
+    assert "not_kimi_activation" in terminal["non_claims"]
+    assert terminal["live_provider_used"] is False
+    assert terminal["recommendation_served"] is False
+    assert terminal["proactive_sent"] is False
+    assert terminal["mutation_changed"] is False
+    assert not artifact_dir.exists()
+
+
 def test_advanced_shadow_live_bundle_blocks_synthetic_chain_summary_fallback(
     tmp_path: Path,
     monkeypatch,
@@ -183,16 +268,24 @@ def test_advanced_shadow_live_bundle_runner_source_stays_manual_diagnostic() -> 
         "app.runtime.interface.provider_runtime",
         "FastAPI",
         "APIRouter",
-        "scheduler",
+        "Scheduler(",
+        "schedule_job",
         "send_notification",
         "create_engine",
         "alembic",
+        "scheduler_enabled=True",
+        "production_scheduler_delivery_allowed=True",
         "recommendation_served=True",
         "user_facing_behavior_changed=True",
+        "BUILDERSPACE_MANAGER_MODEL",
     ]
     for token in forbidden_tokens:
         assert token not in source
     assert "ADVANCED_SHADOW_LAB_ALLOW_LIVE_LLM_DIAGNOSTIC" in source
+    assert "--model" not in source
+    assert "--provider-profile-id" in source
+    assert "resolve_live_bundle_profile_gate" in source
+    assert "manager_model_override=str(profile[\"model_id\"])" in source
     assert "advanced_shadow_live_bundle_artifact" not in source
     assert "advanced_shadow_bundle_fixture" not in source
 

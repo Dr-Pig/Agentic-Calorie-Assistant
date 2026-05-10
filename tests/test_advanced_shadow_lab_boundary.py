@@ -341,6 +341,7 @@ def test_advanced_shadow_lab_has_no_route_scheduler_persistence_or_provider_impo
 
 def test_advanced_shadow_lab_scripts_use_profile_seam_for_live_model_selection() -> None:
     for path in [
+        ROOT / "scripts" / "run_advanced_shadow_lab_live_bundle.py",
         ROOT / "scripts" / "run_advanced_shadow_lab_recommendation_copy_live_diagnostic.py",
         ROOT / "scripts" / "run_advanced_shadow_lab_rescue_copy_live_diagnostic.py",
     ]:
@@ -348,7 +349,10 @@ def test_advanced_shadow_lab_scripts_use_profile_seam_for_live_model_selection()
         assert "--provider-profile-id" in text
         assert "--model" not in text
         assert "BUILDERSPACE_MANAGER_MODEL" not in text
-        assert "resolve_live_diagnostic_profile" in text
+        if path.name == "run_advanced_shadow_lab_live_bundle.py":
+            assert "resolve_live_bundle_profile_gate" in text
+        else:
+            assert "resolve_live_diagnostic_profile" in text
         assert "manager_model_override=str(profile[\"model_id\"])" in text
 
 
