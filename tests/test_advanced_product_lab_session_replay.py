@@ -109,6 +109,65 @@ def test_product_lab_session_replay_persists_controls_across_turns(
     assert "production_db_path" not in serialized.lower()
 
 
+def test_product_lab_session_replay_records_post_turn_chat_action_outcomes(
+    tmp_path: Path,
+) -> None:
+    artifact = run_advanced_product_lab_dogfood_session(
+        artifact_root=tmp_path,
+        session_id="lab-session-actions-1",
+        fixture_inputs=_fixture_inputs(),
+        turns=[
+            {
+                "turn_id": "t1-action",
+                "post_turn_chat_actions": [
+                    {
+                        "event_id": "log-recommendation",
+                        "target_candidate_id": "recommendation_prompt:0",
+                        "action": "log_this",
+                    },
+                    {
+                        "event_id": "accept-rescue",
+                        "target_candidate_id": "rescue_nudge:1",
+                        "action": "accept_rescue_plan",
+                    },
+                ],
+            }
+        ],
+    )
+
+    assert artifact["status"] == "pass"
+    assert artifact["lab_chat_action_outcome_count"] == 2
+    assert artifact["lab_chat_action_outcome_types"] == [
+        "recommendation_intake_draft",
+        "rescue_commit_confirmation",
+    ]
+    assert artifact["lab_chat_action_canonical_mutation_allowed"] is False
+    assert artifact["lab_chat_action_blockers"] == []
+    assert artifact["canonical_product_mutation_allowed"] is False
+
+    [turn_summary] = artifact["turn_summaries"]
+    assert turn_summary["lab_chat_action_outcome_count"] == 2
+    assert turn_summary["lab_chat_action_event_ids"] == [
+        "log-recommendation",
+        "accept-rescue",
+    ]
+    assert turn_summary["lab_chat_action_outcome_types"] == [
+        "recommendation_intake_draft",
+        "rescue_commit_confirmation",
+    ]
+
+    [turn_path] = [Path(path) for path in artifact["turn_artifact_paths"]]
+    turn_record = read_json_artifact(turn_path)
+    outcomes = turn_record["post_turn_chat_action_outcomes"]
+    assert [item["target_candidate_id"] for item in outcomes] == [
+        "recommendation_prompt:0",
+        "rescue_nudge:1",
+    ]
+    assert all(
+        item["canonical_product_mutation_allowed"] is False for item in outcomes
+    )
+
+
 def test_product_lab_session_replay_blocks_path_traversal_session_id(
     tmp_path: Path,
 ) -> None:

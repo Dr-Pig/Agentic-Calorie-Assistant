@@ -31,6 +31,40 @@ def apply_product_lab_chat_action(
     )
 
 
+def apply_product_lab_chat_actions(
+    *,
+    messages: list[Mapping[str, Any]],
+    action_specs: list[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    by_candidate_id = {
+        str(message.get("candidate_id") or ""): message for message in messages
+    }
+    outcomes: list[dict[str, Any]] = []
+    for action_spec in action_specs:
+        target_candidate_id = str(action_spec.get("target_candidate_id") or "")
+        action = str(action_spec.get("action") or "")
+        event_id = str(action_spec.get("event_id") or "")
+        message = by_candidate_id.get(target_candidate_id)
+        if message is None:
+            outcome = base_outcome(
+                status="blocked",
+                workflow_family="",
+                action=action,
+                outcome_type="target_candidate_not_visible",
+                blockers=[f"chat_action.target_not_visible:{target_candidate_id}"],
+            )
+        else:
+            outcome = apply_product_lab_chat_action(message=message, action=action)
+        outcomes.append(
+            {
+                **outcome,
+                "event_id": event_id,
+                "target_candidate_id": target_candidate_id,
+            }
+        )
+    return outcomes
+
+
 def recommendation_outcome(
     *,
     message: Mapping[str, Any],
@@ -135,4 +169,7 @@ def mapping(value: Any) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
-__all__ = ["apply_product_lab_chat_action"]
+__all__ = [
+    "apply_product_lab_chat_action",
+    "apply_product_lab_chat_actions",
+]
