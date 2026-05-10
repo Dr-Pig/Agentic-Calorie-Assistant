@@ -178,17 +178,18 @@ def test_product_lab_live_diagnostic_payload_includes_product_runtime_summary(
             "golden-breakfast-oatmeal",
             "golden-breakfast-oatmeal",
         ],
-        "proactive_candidate_counts": [2, 3, 3, 3],
+        "proactive_candidate_counts": [2, 3, 2, 2],
         "outputs_applied_to_chat_surface": True,
         "recommendation_intake_handoff_created": True,
         "rescue_commit_handoff_created": True,
         "proactive_delivery_packet_ready": True,
     }
     assert provider.user_payload["chat_action_summary"] == {
-        "action_outcome_count": 2,
+        "action_outcome_count": 3,
         "action_outcome_types": [
             "recommendation_intake_draft",
             "rescue_commit_confirmation",
+            "pending_intake_confirmed_lab",
         ],
         "canonical_mutation_allowed": False,
         "blockers": [],

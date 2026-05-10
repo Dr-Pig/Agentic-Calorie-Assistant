@@ -72,7 +72,17 @@ def build_product_lab_simulated_turns() -> list[dict[str, Any]]:
                 },
             ],
         },
-        {"turn_id": "t2-after-dismiss", "lab_now_minute": 20},
+        {
+            "turn_id": "t2-after-dismiss",
+            "lab_now_minute": 20,
+            "post_turn_chat_actions": [
+                {
+                    "event_id": "confirm-pending-intake",
+                    "target_candidate_id": "pending_intake_followup:3",
+                    "action": "confirm_pending_intake",
+                }
+            ],
+        },
         {
             "turn_id": "t3-material-signal",
             "lab_now_minute": 30,

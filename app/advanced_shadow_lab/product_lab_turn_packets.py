@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.advanced_shadow_lab.product_lab_pending_intake_surface import (
+    pending_intake_chat_packets,
+)
+
 
 def lab_chat_response_packet(
     chain: Mapping[str, Any],
@@ -27,7 +31,10 @@ def lab_chat_response_packet(
         str(item) for item in memory_pack.get("selected_record_ids") or []
     ]
     chat_packets = _packets_with_memory_refs(
-        list(packet.get("chat_packets") or []),
+        [
+            *list(packet.get("chat_packets") or []),
+            *pending_intake_chat_packets(product_proactive=product_proactive or {}),
+        ],
         selected_record_ids,
         product_recommendation=product_recommendation or {},
         product_rescue=product_rescue or {},

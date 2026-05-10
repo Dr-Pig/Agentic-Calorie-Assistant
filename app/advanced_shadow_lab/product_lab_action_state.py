@@ -54,6 +54,9 @@ def turn_action_state_delta(
         "pending_intake_draft_ids_added": [
             str(item.get("primary_candidate_id") or "") for item in intake
         ],
+        "pending_intake_draft_ids_closed": [
+            str(item.get("target_draft_id") or "") for item in _pending_terminal_packets(action_outcomes)
+        ],
         "pending_intake_source_refs_added": _refs(intake),
         "rescue_commit_pending_added": sum(
             1 for item in rescue if item.get("lab_rescue_commit_pending") is True
@@ -93,13 +96,17 @@ def _merge_state(
     prior_state: Mapping[str, Any],
     delta: Mapping[str, Any],
 ) -> dict[str, Any]:
+    active_draft_ids = _append_unique(
+        prior_state.get("active_pending_intake_draft_ids"),
+        delta.get("pending_intake_draft_ids_added"),
+        remove=delta.get("pending_intake_draft_ids_closed"),
+    )
     return {
         **empty_product_lab_action_state(),
-        "active_pending_intake_draft_ids": _append_unique(
-            prior_state.get("active_pending_intake_draft_ids"),
-            delta.get("pending_intake_draft_ids_added"),
-        ),
-        "active_pending_intake_source_refs": _append_unique(
+        "active_pending_intake_draft_ids": active_draft_ids,
+        "active_pending_intake_source_refs": []
+        if not active_draft_ids
+        else _append_unique(
             prior_state.get("active_pending_intake_source_refs"),
             delta.get("pending_intake_source_refs_added"),
         ),
@@ -130,6 +137,10 @@ def _pending_intake_packets(items: list[Mapping[str, Any]]) -> list[Mapping[str,
     return _packets(items, "pending_intake_draft_packet")
 
 
+def _pending_terminal_packets(items: list[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    return _packets(items, "pending_intake_lifecycle_packet")
+
+
 def _rescue_decision_packets(items: list[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
     return _packets(items, "rescue_action_decision_packet")
 
@@ -147,11 +158,12 @@ def _refs(items: list[Mapping[str, Any]]) -> list[str]:
     return [str(ref) for item in items for ref in item.get("source_refs") or []]
 
 
-def _append_unique(existing: Any, added: Any) -> list[str]:
+def _append_unique(existing: Any, added: Any, *, remove: Any = None) -> list[str]:
+    removed = {str(value) for value in remove or []}
     result: list[str] = []
     for value in [*(existing or []), *(added or [])]:
         text = str(value)
-        if text and text not in result:
+        if text and text not in removed and text not in result:
             result.append(text)
     return result
 
