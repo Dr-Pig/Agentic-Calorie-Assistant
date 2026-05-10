@@ -10,6 +10,13 @@ from app.advanced_shadow_lab.product_lab_proactive_action_state import (
     pending_intake_followup_candidate,
     rescue_omission_trace,
 )
+from app.advanced_shadow_lab.product_lab_proactive_candidate import (
+    product_lab_proactive_candidate,
+    product_lab_proactive_candidate_blockers,
+)
+from app.advanced_shadow_lab.product_lab_proactive_gate import (
+    review_product_lab_proactive_candidates,
+)
 
 
 def run_product_lab_proactive(
@@ -20,6 +27,7 @@ def run_product_lab_proactive(
     recommendation_artifact: Mapping[str, Any],
     rescue_artifact: Mapping[str, Any],
     action_state: Mapping[str, Any] | None = None,
+    prior_control_journal: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     current_action_state = action_state or {}
     rescue_omission = rescue_omission_trace(current_action_state)
@@ -32,8 +40,8 @@ def run_product_lab_proactive(
     ]
     if rescue_omission is None:
         specs.append(_rescue_candidate(rescue_artifact, fixture_inputs))
-    candidates = [
-        _candidate(
+    prepared_candidates = [
+        product_lab_proactive_candidate(
             trigger_type=str(spec.get("trigger_type") or ""),
             candidate_kind=str(spec.get("candidate_kind") or ""),
             source_output_refs=[str(item) for item in spec.get("source_output_refs") or []],
@@ -46,10 +54,19 @@ def run_product_lab_proactive(
     ]
     blockers = [
         blocker
-        for candidate in candidates
-        for blocker in _candidate_blockers(candidate)
+        for candidate in prepared_candidates
+        for blocker in product_lab_proactive_candidate_blockers(candidate)
     ]
-    passed = [] if blockers else candidates
+    review = review_product_lab_proactive_candidates(
+        turn=turn,
+        candidates=[] if blockers else prepared_candidates,
+        prior_control_journal=prior_control_journal,
+    )
+    passed = [] if blockers else [
+        candidate
+        for candidate in prepared_candidates
+        if str(candidate.get("trigger_type") or "") in review["allowed_trigger_types"]
+    ]
     delivery = build_product_lab_proactive_delivery_packet(
         candidates=passed,
         blocked=bool(blockers),
@@ -64,11 +81,16 @@ def run_product_lab_proactive(
         "candidate_count": len(passed),
         "candidates": passed,
         "delivery_packet": delivery,
+        "pre_delivery_review": review,
+        "pre_delivery_review_summary": dict(review.get("summary") or {}),
         "memory_context_refs": [
             str(item) for item in memory_context_pack.get("selected_record_ids") or []
         ],
         "action_state_refs": action_state_source_refs(current_action_state),
-        "omission_traces": [] if rescue_omission is None else [rescue_omission],
+        "omission_traces": [
+            *([] if rescue_omission is None else [rescue_omission]),
+            *list(review.get("omission_traces") or []),
+        ],
         "source_outputs_read": [
             str(recommendation_artifact.get("artifact_type") or ""),
             str(rescue_artifact.get("artifact_type") or ""),
@@ -122,53 +144,6 @@ def _rescue_candidate(
         "control_model": _control_model(fixture_inputs, "rescue_nudge"),
         "next_signal_fallback": "material_budget_change_or_user_reopens_rescue",
     }
-
-
-def _candidate(
-    *,
-    trigger_type: str,
-    candidate_kind: str,
-    source_output_refs: list[str],
-    source_status: str,
-    control_model: Mapping[str, Any],
-    next_signal_fallback: str,
-) -> dict[str, Any]:
-    return {
-        "artifact_type": "advanced_product_lab_proactive_candidate",
-        "status": "pass" if source_status == "pass" else "blocked",
-        "trigger_type": trigger_type,
-        "candidate_kind": candidate_kind,
-        "surface": "chat",
-        "source_output_refs": source_output_refs,
-        "dismiss_reason_choices": [
-            str(item) for item in control_model.get("dismiss_reason_choices") or []
-        ],
-        "snooze_window": dict(_mapping(control_model.get("snooze_window"))),
-        "undo_scope": "candidate_instance",
-        "next_signal_required": str(
-            control_model.get("next_signal_required") or next_signal_fallback
-        ),
-        "served_to_lab_chat": source_status == "pass",
-        "served_to_mainline_user": False,
-        "scheduler_delivery_allowed": False,
-        "notification_delivery_allowed": False,
-        "canonical_product_mutation_allowed": False,
-    }
-
-
-def _candidate_blockers(candidate: Mapping[str, Any]) -> list[str]:
-    trigger = str(candidate.get("trigger_type") or "unknown")
-    blockers: list[str] = []
-    if candidate.get("status") != "pass":
-        blockers.append(f"{trigger}.source_status_not_pass")
-    if not candidate.get("dismiss_reason_choices"):
-        blockers.append(f"{trigger}.dismiss_reason_choices_missing")
-    snooze = _mapping(candidate.get("snooze_window"))
-    if not isinstance(snooze.get("minutes"), int) or snooze.get("minutes", 0) <= 0:
-        blockers.append(f"{trigger}.snooze_window_missing")
-    if not str(candidate.get("next_signal_required") or ""):
-        blockers.append(f"{trigger}.next_signal_required_missing")
-    return blockers
 
 
 def _control_model(
