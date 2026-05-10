@@ -142,6 +142,56 @@ recommendation 必須支援：
 - Node 4 `ranking_and_synthesis` → `strict_reasoner_model`
 - Node 5 `recommendation_response` → `response_writer_model`
 
+### 4.0A Final Product Graph Decision
+
+本節定義的是 final product 的 semantic runtime contract，不是 shadow lab 的限制，也不是
+fixture pass-chain 的數量偏好。
+
+正式產品應保留 **5 個 logical stage boundaries**：
+
+1. context understanding
+2. candidate spec generation
+3. candidate retrieval / hard guard
+4. ranking and synthesis
+5. response / surface presentation
+
+這五層是產品語義邊界：
+
+- Node 1 和 Node 2 分開，是因為「理解使用者現在想要什麼」和「把自然語言需求轉成可檢索
+  candidate blueprint」是不同的 LLM-owned artifact。
+- Node 2 和 Node 3 分開，是因為 LLM 只產生 retrieval spec，deterministic retrieval / guard 才
+  擁有候選來源、預算、已知不吃、availability、rescue conflict 等 hard constraint authority。
+- Node 3 和 Node 4 分開，是因為合法候選集合不是最終推薦；soft tradeoff ranking 仍需要
+  LLM synthesis。
+- Node 4 和 Node 5 分開，是因為 ranking truth 需要可被 chat、UI、proactive、rescue 等 surface
+  消費，而 response 只是呈現層，不應回寫或改寫 ranking。
+
+因此，3-node 或 4-node 只能是 **physical implementation compaction profile**，不是 canonical
+product contract 的替代品。
+
+允許的 compaction 條件：
+
+- implementation 可把 Node 1 + Node 2 放在同一次 LLM call，只要仍輸出獨立的
+  `recommendation_context_result` 與 `candidate_spec`。
+- implementation 可把 Node 4 + Node 5 放在同一次 LLM call，只要仍輸出獨立的
+  `ranking_result` 與 `recommendation_response_result`。
+- implementation 可用 3-node 或 4-node runner 做 lab / cost / latency / eval 對照，但 trace
+  必須映射回上述 5 個 logical stages。
+
+不允許的 compaction：
+
+- 不得省略 `candidate_spec_generation`，讓 deterministic retrieval 直接從 raw text 或 fixture
+  keyword 推論 candidate semantics。
+- 不得省略 deterministic retrieval / guard，讓 LLM 直接決定 hard constraint legality。
+- 不得讓 response node 改寫 ranking result、candidate legality、budget truth、intake handoff
+  legality，或建立 recommendation intent state。
+- 不得把 3-node / 4-node runner 的 fixture convenience 寫成 final product architecture。
+
+4-node graph 不是禁用，但它必須說明哪一對 adjacent logical stages 被合併、為什麼合併後仍能
+保留獨立 artifacts、以及哪個 eval / latency / cost 證據支持這個合併。若沒有這些證據，
+4-node 只是介於 3-node 與 5-node 之間的 implementation compromise，不是新的 canonical
+architecture。
+
 ### 4.1 Canonical Path Walkthrough
 
 1. `recommendation_context`（LLM）
