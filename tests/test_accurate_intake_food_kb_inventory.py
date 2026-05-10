@@ -40,11 +40,12 @@ def test_food_kb_inventory_matches_repo_contained_seed_counts() -> None:
         "small_anchor_total": 59,
         "generic_anchor": 55,
         "generic_semantic_only": 4,
-        "exact_item_cards": 5,
+        "exact_item_cards": 8,
         "basket_components": 30,
     }
-    assert inventory["source_class_breakdown"]["existing_repo_seed"] == 64
+    assert inventory["source_class_breakdown"]["existing_repo_seed"] == 67
     assert inventory["source_class_breakdown"]["taiwan_tfda_open_data"] == 11
+    assert inventory["source_class_breakdown"]["official_brand_chain_page"] == 3
     assert inventory["source_class_breakdown"]["missing_source_metadata"] == 53
     assert inventory["missing_source_metadata_count"] == 53
     assert inventory["tfda_base_pipeline"]["base_nutrition_db_present"] is False
