@@ -12,6 +12,7 @@ SIDECAR_MODULES = [
     "app.advanced_shadow_lab.case_pairing",
     "app.advanced_shadow_lab.chat_ux_packet",
     "app.advanced_shadow_lab.dogfood_replay",
+    "app.advanced_shadow_lab.edge_case_coverage",
     "app.advanced_shadow_lab.e2e_fixture_chain",
     "app.advanced_shadow_lab.e2e_fixture_chain_policy",
     "app.advanced_shadow_lab.live_bundle_fixture_inputs",

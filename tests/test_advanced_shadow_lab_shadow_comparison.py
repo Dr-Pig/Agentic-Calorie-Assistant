@@ -49,6 +49,13 @@ def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> N
             "finding": "copy_alignment_passed",
         },
         {
+            "surface": "cross_domain_edge_case_coverage",
+            "fixture_status": "pass",
+            "dogfood_status": "not_applicable",
+            "live_status": "not_required",
+            "finding": "edge_case_contract_linkage_passed",
+        },
+        {
             "surface": "recommendation_prompt_reason_copy",
             "fixture_status": "not_applicable",
             "dogfood_status": "not_applicable",
@@ -162,7 +169,7 @@ def test_shadow_comparison_treats_live_guard_block_as_quality_finding() -> None:
 
     assert artifact["status"] == "blocked"
     assert artifact["source_statuses"]["recommendation_copy_live_diagnostic"] == "blocked"
-    assert artifact["surface_status_rows"][3] == {
+    assert artifact["surface_status_rows"][4] == {
         "surface": "recommendation_prompt_reason_copy",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",
@@ -186,7 +193,7 @@ def test_shadow_comparison_treats_rescue_live_guard_block_as_quality_finding() -
 
     assert artifact["status"] == "blocked"
     assert artifact["source_statuses"]["rescue_copy_live_diagnostic"] == "blocked"
-    assert artifact["surface_status_rows"][4] == {
+    assert artifact["surface_status_rows"][5] == {
         "surface": "rescue_proposal_copy_posture",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",
@@ -209,7 +216,7 @@ def test_shadow_comparison_treats_proactive_live_guard_block_as_quality_finding(
 
     assert artifact["status"] == "blocked"
     assert artifact["source_statuses"]["proactive_copy_live_diagnostic"] == "blocked"
-    assert artifact["surface_status_rows"][5] == {
+    assert artifact["surface_status_rows"][6] == {
         "surface": "proactive_chat_copy_posture",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",
@@ -298,7 +305,7 @@ def test_shadow_comparison_allows_rescue_live_diagnostic_to_be_absent() -> None:
 
     assert artifact["status"] == "pass"
     assert artifact["source_statuses"]["rescue_copy_live_diagnostic"] == "not_run"
-    assert artifact["surface_status_rows"][4] == {
+    assert artifact["surface_status_rows"][5] == {
         "surface": "rescue_proposal_copy_posture",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",

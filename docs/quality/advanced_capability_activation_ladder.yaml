@@ -397,6 +397,175 @@ harness_minimization:
   retirement_trigger: approved_product_runtime_activation_ledger_entries
   new_report_family_created: false
 
+edge_case_coverage_contract:
+  artifact_classification: merge_safe
+  owner: AdvancedShadowLabCapabilityArchitecture
+  consumer: advanced_shadow_comparison_artifact
+  retirement_trigger: approved_advanced_runtime_activation_plan
+  coverage_role: evidence_index_not_product_semantic_authority
+  new_report_family_created: false
+  live_diagnostics_required: false
+  raw_keyword_semantic_oracle_allowed: false
+  required_domains:
+    - long_term_memory
+    - recommendation
+    - rescue
+    - proactive
+    - chat_ux_packet
+  required_entry_fields:
+    - edge_case_id
+    - capability_domain
+    - product_contract_refs
+    - trace_fields
+    - guard_or_rubric_refs
+    - evidence_split
+    - claim_boundary
+    - raw_keyword_semantic_oracle_allowed
+  coverage_entries:
+    - edge_case_id: memory_scope_leak_rejected
+      capability_domain: long_term_memory
+      evidence_split: negative
+      product_contract_refs:
+        - docs/quality/runtime_lab_memory_edd_golden_set.yaml#missing_scope_rejects_memory_use
+        - docs/quality/advanced_memory_mechanism_contract.yaml#scope_keys
+      trace_fields:
+        - memory_lab_scope
+        - trace_fields.source_refs
+        - expected_runtime_effects
+      guard_or_rubric_refs:
+        - scope_isolation
+        - omission
+        - no_canonical_mutation
+      claim_boundary: non_claim
+      raw_keyword_semantic_oracle_allowed: false
+    - edge_case_id: memory_prompt_injection_rejected
+      capability_domain: long_term_memory
+      evidence_split: negative
+      product_contract_refs:
+        - docs/quality/runtime_lab_memory_edd_golden_set.yaml#prompt_injection_cannot_create_memory
+        - docs/quality/advanced_memory_mechanism_contract.yaml#guardrails
+      trace_fields:
+        - trace_fields.manager_decision_field
+        - trace_fields.source_refs
+      guard_or_rubric_refs:
+        - extraction
+        - promotion_legality
+        - secret_redaction
+      claim_boundary: non_claim
+      raw_keyword_semantic_oracle_allowed: false
+    - edge_case_id: recommendation_negative_preference_filter
+      capability_domain: recommendation
+      evidence_split: fixture
+      product_contract_refs:
+        - docs/quality/runtime_lab_memory_edd_golden_set.yaml#negative_preference_blocks_recommendation_candidate
+        - app/recommendation/application/three_node_shadow_policy.py#filter_reason_codes
+      trace_fields:
+        - negative_preference_summary.items
+        - candidate_guard.filtered_candidates.reason_codes
+      guard_or_rubric_refs:
+        - deterministic_candidate_guard
+        - confirmed_negative_preference
+      claim_boundary: non_claim
+      raw_keyword_semantic_oracle_allowed: false
+    - edge_case_id: recommendation_budget_and_availability_filter
+      capability_domain: recommendation
+      evidence_split: fixture
+      product_contract_refs:
+        - app/recommendation/application/three_node_shadow_policy.py#candidate_guard
+        - app/recommendation/application/three_node_shadow_contract.py#candidate_retrieval_guard_scoring
+      trace_fields:
+        - current_budget_view.remaining_kcal
+        - candidate_source_fixture.estimated_kcal_range
+        - candidate_source_fixture.hard_avoid_flags
+      guard_or_rubric_refs:
+        - over_budget
+        - unavailable
+        - deterministic_candidate_guard
+      claim_boundary: non_claim
+      raw_keyword_semantic_oracle_allowed: false
+    - edge_case_id: rescue_no_commit_safety_floor
+      capability_domain: rescue
+      evidence_split: fixture
+      product_contract_refs:
+        - app/rescue/application/no_commit_viability.py#build_rescue_no_commit_viability_shadow_packet
+        - app/rescue/application/shadow_chain_runner.py#run_rescue_shadow_chain
+      trace_fields:
+        - current_budget_view
+        - active_body_plan_view.target_days
+        - target_day_checks.safety_floor_passed
+      guard_or_rubric_refs:
+        - below_safety_floor
+        - daily_compression_above_15_percent
+        - no_commit_viability
+      claim_boundary: non_claim
+      raw_keyword_semantic_oracle_allowed: false
+    - edge_case_id: rescue_duplicate_open_proposal_blocked
+      capability_domain: rescue
+      evidence_split: negative
+      product_contract_refs:
+        - app/rescue/application/no_commit_viability.py#_input_blockers
+        - app/rescue/application/shadow_chain_runner.py#FORBIDDEN_TRUE_FLAGS
+      trace_fields:
+        - open_proposals_view.open_rescue_proposal_count
+        - blockers
+      guard_or_rubric_refs:
+        - open_rescue_proposal
+        - rescue_committed
+        - proposal_committed
+      claim_boundary: non_claim
+      raw_keyword_semantic_oracle_allowed: false
+    - edge_case_id: proactive_no_send_controls_required
+      capability_domain: proactive
+      evidence_split: fixture
+      product_contract_refs:
+        - app/runtime/application/proactive_no_send_nudge_candidate.py#build_no_send_nudge_candidate
+        - app/runtime/application/proactive_no_send_interaction_model.py#apply_no_send_candidate_interaction
+      trace_fields:
+        - dismiss_reason_choices
+        - snooze_window
+        - undo_scope
+        - next_signal_required
+      guard_or_rubric_refs:
+        - dismiss_reason_choices_missing
+        - snooze_window_missing
+        - undo_scope_missing
+      claim_boundary: non_claim
+      raw_keyword_semantic_oracle_allowed: false
+    - edge_case_id: proactive_delivery_and_scheduler_blocked
+      capability_domain: proactive
+      evidence_split: negative
+      product_contract_refs:
+        - app/runtime/application/proactive_no_send_review_sink.py#CLAIM_FLAGS
+        - app/advanced_shadow_lab/e2e_fixture_chain_policy.py#FALSE_FLAG_NAMES
+      trace_fields:
+        - delivery_attempted
+        - scheduler_enqueued
+        - proactive_sent
+        - live_delivery_allowed
+      guard_or_rubric_refs:
+        - not_notification
+        - not_scheduler_queue
+        - not_live_delivery
+      claim_boundary: non_claim
+      raw_keyword_semantic_oracle_allowed: false
+    - edge_case_id: chat_packet_no_generated_copy_or_delivery
+      capability_domain: chat_ux_packet
+      evidence_split: fixture
+      product_contract_refs:
+        - app/advanced_shadow_lab/chat_ux_packet.py#build_advanced_shadow_chat_ux_packet
+        - app/advanced_shadow_lab/chat_ux_copy_alignment.py#public_copy_metadata
+      trace_fields:
+        - copy_alignment_summary
+        - copy_source_metadata
+        - controls
+        - served_to_user
+      guard_or_rubric_refs:
+        - not_chat_delivery
+        - not_notification_delivery
+        - copy_diagnostic_metadata_only
+      claim_boundary: non_claim
+      raw_keyword_semantic_oracle_allowed: false
+
 non_claims:
   product_readiness_claimed: false
   private_self_use_approved: false
