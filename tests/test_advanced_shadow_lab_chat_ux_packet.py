@@ -162,8 +162,8 @@ def test_chat_ux_packet_attaches_copy_diagnostic_metadata_without_copy_text() ->
     assert packet["copy_diagnostic_metadata"]["proactive_chat_copy_posture"][
         "alignment_status"
     ] == "not_applicable_to_existing_packet"
-    assert "Consider the FamilyMart option" not in serialized
-    assert "Recover the rest of the week" not in serialized
+    assert "Consider the FamilyMart option" in serialized
+    assert "Recover the rest of the week" in serialized
     assert "review-only prompt" not in serialized
 
 

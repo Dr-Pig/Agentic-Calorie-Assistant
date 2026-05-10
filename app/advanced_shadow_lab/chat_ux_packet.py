@@ -11,6 +11,7 @@ from app.advanced_shadow_lab.chat_ux_copy_alignment import (
     copy_diagnostic_blockers,
     copy_for_workflow,
     copy_status,
+    lab_only_copy_preview,
     public_copy_metadata,
 )
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
@@ -76,6 +77,8 @@ def build_advanced_shadow_chat_ux_packet(
         "journey_chat_packets": journey_packets,
         "blockers": blockers,
         "runtime_connected": False,
+        "served_to_user": False,
+        "scheduler_enqueued": False,
         "non_claims": list(NON_CLAIMS),
         **dict(FALSE_FLAGS),
     }
@@ -142,6 +145,7 @@ def _packet(
         "source_artifact_refs": [SOURCE_TYPE, SINK_TYPE],
         "copy_status": copy_status(copy),
         "copy_source_metadata": public_copy_metadata(copy),
+        "lab_only_copy_preview": lab_only_copy_preview(copy),
         "controls": {
             "dismiss_reason_required": record.get("dismiss_reason_choices_present") is True,
             "snooze_window_present": record.get("snooze_window_present") is True,
