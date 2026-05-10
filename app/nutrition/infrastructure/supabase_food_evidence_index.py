@@ -147,6 +147,13 @@ def _record_from_row(
         runtime_usage_boundary=_text(values.get("runtime_usage_boundary")),
         source_provenance=_dict_value(values.get("source_provenance")),
         approval_metadata=_dict_value(values.get("approval_metadata")),
+        source_lane=_text(values.get("source_lane")) or "generic_common_serving",
+        protein_g=_optional_int(values.get("protein_g"), field_name="protein_g")[0],
+        carbs_g=_optional_int(values.get("carbs_g"), field_name="carbs_g")[0],
+        fat_g=_optional_int(values.get("fat_g"), field_name="fat_g")[0],
+        macro_visibility_status=_text(values.get("macro_visibility_status")) or "hidden_missing_source",
+        macro_source_basis=_text(values.get("macro_source_basis")) or "unknown",
+        macro_confidence=_text(values.get("macro_confidence")) or "unknown",
     )
     return record, blockers
 

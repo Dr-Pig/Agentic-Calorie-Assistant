@@ -31,8 +31,15 @@ def _candidate_payload(
         "requires_manager_disambiguation": match["requires_manager_disambiguation"],
         "runtime_truth_allowed": record.runtime_truth_allowed,
         "runtime_role": record.runtime_role,
+        "source_lane": record.source_lane,
         "kcal_point": record.kcal_point,
         "kcal_range": list(record.kcal_range) if record.kcal_range else None,
+        "protein_g": record.protein_g,
+        "carbs_g": record.carbs_g,
+        "fat_g": record.fat_g,
+        "macro_visibility_status": record.macro_visibility_status,
+        "macro_source_basis": record.macro_source_basis,
+        "macro_confidence": record.macro_confidence,
         "serving_basis": record.serving_basis,
         "portion_basis": record.portion_basis,
         "runtime_usage_boundary": record.runtime_usage_boundary,
@@ -82,6 +89,8 @@ def _ranking_reasons(
     reasons = [str(match["match_path"])]
     if record.runtime_truth_allowed:
         reasons.append("runtime_truth_allowed")
+    if record.source_lane:
+        reasons.append(f"source_lane:{record.source_lane}")
     if record.kcal_range:
         reasons.append("kcal_range_present")
     if record.serving_basis and record.serving_basis != "not_applicable":
@@ -95,12 +104,13 @@ def _ranking_reasons(
 
 
 def _rank_candidates(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    def key(item: dict[str, Any]) -> tuple[int, int, int, int, int, int, int, int, int, str]:
+    def key(item: dict[str, Any]) -> tuple[int, int, int, int, int, int, int, int, int, int, str]:
         path_rank = {
             "canonical_or_alias_exact": 0,
-            "alias_expansion_exact": 1,
-            "fuzzy_alias_expansion": 2,
-            "fuzzy_alias": 3,
+            "canonical_or_alias_substring": 1,
+            "alias_expansion_exact": 2,
+            "fuzzy_alias_expansion": 3,
+            "fuzzy_alias": 4,
         }.get(str(item.get("match_path")), 9)
         modifier_compatibility = item.get("modifier_compatibility") or {}
         if not isinstance(modifier_compatibility, dict):
@@ -116,10 +126,17 @@ def _rank_candidates(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
         serving_basis_score = 1 if item.get("serving_basis") else 0
         portion_basis_score = 1 if item.get("portion_basis") else 0
         ambiguity_penalty = 1 if item.get("requires_manager_disambiguation") else 0
+        source_lane_rank = {
+            "exact_item_card": 0,
+            "generic_common_serving": 1,
+            "listed_component": 2,
+            "basket_family_semantic_only": 9,
+        }.get(str(item.get("source_lane") or ""), 5)
         return (
             path_rank,
             unsupported_modifier_count,
             -compatible_modifier_count,
+            source_lane_rank,
             -runtime_truth_score,
             -source_quality_score,
             -serving_basis_score,
@@ -153,6 +170,7 @@ def _ranking_policy() -> dict[str, Any]:
     return {
         "features": [
             "lexical_match",
+            "source_lane",
             "runtime_truth_allowed",
             "source_quality",
             "serving_basis",

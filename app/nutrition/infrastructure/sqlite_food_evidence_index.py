@@ -183,6 +183,13 @@ def _record_from_payload(payload: dict[str, Any]) -> IndexedFoodRecord:
         runtime_usage_boundary=str(payload.get("runtime_usage_boundary") or ""),
         source_provenance=dict(payload.get("source_provenance") or {}),
         approval_metadata=dict(payload.get("approval_metadata") or {}),
+        source_lane=str(payload.get("source_lane") or "generic_common_serving"),
+        protein_g=payload.get("protein_g"),
+        carbs_g=payload.get("carbs_g"),
+        fat_g=payload.get("fat_g"),
+        macro_visibility_status=str(payload.get("macro_visibility_status") or "hidden_missing_source"),
+        macro_source_basis=str(payload.get("macro_source_basis") or "unknown"),
+        macro_confidence=str(payload.get("macro_confidence") or "unknown"),
     )
 
 
