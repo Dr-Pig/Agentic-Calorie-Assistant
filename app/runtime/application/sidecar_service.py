@@ -20,12 +20,17 @@ def build_deterministic_sidecar(
         today["budget_kcal"] = 0
         today["remaining_kcal"] = 0
         today["adjustment_kcal"] = 0
-    macro["protein_g"] = int(today.get("consumed_protein") or 0)
-    macro["carbs_g"] = int(today.get("consumed_carbs") or 0)
-    macro["fat_g"] = int(today.get("consumed_fat") or 0)
-    macro["display_status"] = "show" if bool(today.get("show_macro")) else "hide"
-    macro["guard_reason"] = str(today.get("macro_guard_reason") or macro.get("guard_reason") or "no_macro_data")
-    macro.setdefault("macro_kcal_delta", 0)
+    if not macro:
+        macro = {
+            "protein_g": int(today.get("consumed_protein") or 0),
+            "carbs_g": int(today.get("consumed_carbs") or 0),
+            "fat_g": int(today.get("consumed_fat") or 0),
+            "display_status": "show" if bool(today.get("show_macro")) else "hide",
+            "guard_reason": str(today.get("macro_guard_reason") or "no_macro_data"),
+            "macro_kcal_delta": 0,
+        }
+    else:
+        macro.setdefault("macro_kcal_delta", 0)
     return {
         "ui": {
             "body_plan": body_plan,

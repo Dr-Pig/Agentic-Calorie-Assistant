@@ -22,6 +22,7 @@ from scripts.run_accurate_intake_mvp_manager_style_smoke import DeterministicSel
 
 ROOT = Path(__file__).resolve().parents[2]
 NOT_CLAIMING = ["product_ready", "private_self_use_approved", "fooddb_expansion_ready", "live_llm_ready"]
+MACRO_PRESENT_APPROVED_TEXT = "\u7d71\u4e00\u5de7\u514b\u529b\u725b\u4e73(400ml)"
 
 def _repo_relative(path: Path) -> str:
     try:
@@ -124,7 +125,8 @@ def _session_client(app: Any, *, token: str) -> TestClient:
 def _turn_summary(body: dict[str, Any]) -> dict[str, Any]:
     payload = dict(body.get("payload") or {})
     sidecar = dict(payload.get("sidecar") or {})
-    trace = dict(dict(sidecar.get("macro") or {}).get("approved_fooddb_evidence_trace") or {})
+    macro = dict(sidecar.get("macro") or {})
+    trace = dict(macro.get("approved_exact_macro_trace") or macro.get("approved_fooddb_evidence_trace") or {})
     return {
         "request_id": body.get("request_id"),
         "canonical_commit": dict(payload.get("state_delta") or {}).get("canonical_commit") is True,
@@ -132,6 +134,13 @@ def _turn_summary(body: dict[str, Any]) -> dict[str, Any]:
         "db_hit_type": dict(sidecar.get("evidence") or {}).get("db_hit_type"),
         "disambiguation_required": trace.get("disambiguation_required") is True,
         "macro_visibility_status": trace.get("macro_visibility_status"),
+        "macro_display_status": macro.get("display_status"),
+        "macro_guard_reason": macro.get("guard_reason"),
+        "protein_g": macro.get("protein_g"),
+        "carbs_g": macro.get("carbs_g"),
+        "fat_g": macro.get("fat_g"),
+        "macro_truth_owner": trace.get("macro_truth_owner"),
+        "fooddb_truth_updated": trace.get("fooddb_truth_updated") is True,
     }
 
 def _snapshot(client: TestClient, *, user_external_id: str, local_date: str) -> dict[str, Any]:
@@ -146,6 +155,9 @@ def _snapshot(client: TestClient, *, user_external_id: str, local_date: str) -> 
             "consumed_kcal": today.get("consumed_kcal"),
             "remaining_kcal": today.get("remaining_kcal"),
             "active_meal_count": today.get("active_meal_count"),
+            "consumed_protein": today.get("consumed_protein"),
+            "consumed_carbs": today.get("consumed_carbs"),
+            "consumed_fat": today.get("consumed_fat"),
             "show_macro": today.get("show_macro"),
             "macro_guard_reason": today.get("macro_guard_reason"),
         },
@@ -159,7 +171,7 @@ def _run_first_launch(db_path: Path, *, user_external_id: str, local_date: str, 
         _seed_body_plan(app, user_external_id=user_external_id, local_date=local_date)
         with _session_client(app, token=token) as client:
             base = {"allow_search": False, "user_id": user_external_id, "local_date": local_date}
-            approved = client.post("/estimate", json={**base, "text": "茶葉蛋"})
+            approved = client.post("/estimate", json={**base, "text": MACRO_PRESENT_APPROVED_TEXT})
             ambiguous = client.post("/estimate", json={**base, "text": "boba milk teaa"})
             approved.raise_for_status()
             ambiguous.raise_for_status()
