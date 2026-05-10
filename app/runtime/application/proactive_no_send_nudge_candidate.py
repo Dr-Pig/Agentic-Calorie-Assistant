@@ -20,6 +20,11 @@ TRIGGER_SOURCE = {
         "pass_status": "context_available",
         "source_used_field": "source_projection_used",
     },
+    "pending_meal_followup": {
+        "kind": "pending_meal_followup_review",
+        "pass_status": "active_pending_intent",
+        "source_used_field": "source_pending_intent_used",
+    },
 }
 SOURCE_CLAIM_FLAGS = (
     "runtime_effect_allowed",
@@ -35,6 +40,8 @@ SOURCE_CLAIM_FLAGS = (
     "body_plan_mutated",
     "meal_thread_mutated",
     "durable_memory_written",
+    "intake_commit_requested",
+    "pending_intent_mutated",
 )
 FALSE_FLAGS = {
     "runtime_effect_allowed": False,
@@ -53,6 +60,8 @@ FALSE_FLAGS = {
     "body_plan_mutated": False,
     "meal_thread_mutated": False,
     "durable_memory_written": False,
+    "intake_commit_requested": False,
+    "pending_intent_mutated": False,
     "mutation_changed": False,
 }
 NON_CLAIMS = [

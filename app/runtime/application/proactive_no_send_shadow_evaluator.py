@@ -36,6 +36,7 @@ PERMISSION_POSTURE_BY_TRIGGER = {
     "low_frequency_weight_log_reminder": "user_opted_in",
     "weight_reminder": "user_opted_in",
     "missing_log_reminder_with_cooldown": "user_expected",
+    "pending_meal_followup": "user_expected",
     "recommendation_prompt": "app_open_only",
     "pre_meal_budget_awareness": "no_push_allowed",
     "recommendation_nudge_meal_time": "no_push_allowed",
@@ -462,7 +463,6 @@ def _add_trigger_boundaries(row: dict[str, Any], trigger_type: str) -> None:
         row["forbidden_output"] = ["output_specific_future_deficit", "create_rescue_proposal", "mutate_day_budget_ledger"]
         row["rescue_committed"] = False
 
-
 def _ux_intent(trigger_type: str) -> str:
     return f"shadow_evaluate_{trigger_type}_without_delivery"
 
@@ -481,7 +481,6 @@ def _why_now(item: ProactiveNoSendShadowInput) -> str:
 
 
 __all__ = [
-    "ProactiveNoSendShadowInput",
-    "SIDECAR_ACTIVATION_CONTRACT",
+    "ProactiveNoSendShadowInput", "SIDECAR_ACTIVATION_CONTRACT",
     "build_proactive_no_send_simulation",
 ]

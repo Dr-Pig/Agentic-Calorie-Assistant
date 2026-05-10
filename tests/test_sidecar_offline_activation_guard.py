@@ -81,6 +81,7 @@ SIDECAR_MODULES = [
     "app.runtime.application.proactive_no_send_interaction_model",
     "app.runtime.application.proactive_no_send_nudge_bridge",
     "app.runtime.application.proactive_no_send_nudge_candidate",
+    "app.runtime.application.proactive_pending_meal_followup_shadow",
     "app.runtime.application.proactive_no_send_review_sink",
     "app.runtime.application.proactive_no_send_shadow_evaluator",
     "app.runtime.application.proactive_recommendation_prompt_bridge",
