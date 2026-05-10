@@ -5,6 +5,14 @@ from typing import Any, Mapping
 from app.advanced_shadow_lab.e2e_fixture_chain_policy import (
     FALSE_FLAG_NAMES as LAB_FALSE_FLAG_NAMES,
 )
+from app.advanced_shadow_lab.chat_ux_copy_alignment import (
+    build_copy_diagnostic_metadata,
+    copy_alignment_summary,
+    copy_diagnostic_blockers,
+    copy_for_workflow,
+    copy_status,
+    public_copy_metadata,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -29,15 +37,21 @@ NON_CLAIMS = [
 
 
 def build_advanced_shadow_chat_ux_packet(
-    *, fixture_chain_artifact: Mapping[str, Any]
+    *,
+    fixture_chain_artifact: Mapping[str, Any],
+    copy_diagnostic_artifacts: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     sink = _mapping(fixture_chain_artifact.get("terminal_review_sink"))
     records = _records(sink)
+    copy_metadata = build_copy_diagnostic_metadata(list(copy_diagnostic_artifacts or []))
     blockers = [
         *_source_blockers(fixture_chain_artifact, sink),
+        *copy_diagnostic_blockers(copy_metadata),
         *_packet_blockers(records),
     ]
-    chat_packets = [] if blockers else [_packet(record, index) for index, record in enumerate(records)]
+    chat_packets = [] if blockers else [
+        _packet(record, index, copy_metadata) for index, record in enumerate(records)
+    ]
     return {
         "artifact_type": ARTIFACT_TYPE,
         "artifact_schema_version": "1.0",
@@ -50,6 +64,8 @@ def build_advanced_shadow_chat_ux_packet(
         "source_status": str(fixture_chain_artifact.get("status") or ""),
         "terminal_sink_status": str(sink.get("status") or ""),
         "control_path_summary": _control_path_summary(sink),
+        "copy_alignment_summary": copy_alignment_summary(copy_metadata),
+        "copy_diagnostic_metadata": copy_metadata,
         "packet_count": len(chat_packets),
         "chat_packets": chat_packets,
         "blockers": blockers,
@@ -101,8 +117,13 @@ def _packet_blockers(records: list[Mapping[str, Any]]) -> list[str]:
     return blockers
 
 
-def _packet(record: Mapping[str, Any], index: int) -> dict[str, Any]:
+def _packet(
+    record: Mapping[str, Any],
+    index: int,
+    copy_metadata: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
     trigger = str(record.get("trigger_type") or "")
+    copy = copy_for_workflow(_workflow_family(trigger), copy_metadata)
     return {
         "packet_id": f"{trigger}:{index}",
         "surface": "chat",
@@ -113,7 +134,8 @@ def _packet(record: Mapping[str, Any], index: int) -> dict[str, Any]:
         "candidate_kind": str(record.get("candidate_kind") or ""),
         "source_domains": _source_domains(trigger),
         "source_artifact_refs": [SOURCE_TYPE, SINK_TYPE],
-        "copy_status": "copy_diagnostic_not_attached",
+        "copy_status": copy_status(copy),
+        "copy_source_metadata": public_copy_metadata(copy),
         "controls": {
             "dismiss_reason_required": record.get("dismiss_reason_choices_present") is True,
             "snooze_window_present": record.get("snooze_window_present") is True,

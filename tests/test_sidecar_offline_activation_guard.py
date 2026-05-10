@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 SIDECAR_MODULES = [
     "app.advanced_shadow_lab",
+    "app.advanced_shadow_lab.chat_ux_copy_alignment",
     "app.advanced_shadow_lab.case_pairing",
     "app.advanced_shadow_lab.chat_ux_packet",
     "app.advanced_shadow_lab.dogfood_replay",
@@ -20,6 +21,7 @@ SIDECAR_MODULES = [
     "app.advanced_shadow_lab.recommendation_copy_live_diagnostic",
     "app.advanced_shadow_lab.rescue_copy_live_diagnostic",
     "app.advanced_shadow_lab.shadow_comparison",
+    "app.advanced_shadow_lab.shadow_comparison_live_rows",
     "app.advanced_shadow_lab.vertical_proof",
     "app.memory",
     "app.memory.domain",

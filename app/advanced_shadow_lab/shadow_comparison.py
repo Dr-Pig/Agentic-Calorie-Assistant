@@ -8,6 +8,14 @@ from app.advanced_shadow_lab.no_send_control_comparison import (
     control_blockers_if_comparable,
     terminal_sink_row,
 )
+from app.advanced_shadow_lab.chat_ux_copy_alignment import (
+    chat_packet_copy_alignment_blockers,
+    chat_packet_copy_alignment_row,
+)
+from app.advanced_shadow_lab.shadow_comparison_live_rows import (
+    live_copy_row,
+    live_diagnostic_signal,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -68,6 +76,7 @@ def build_advanced_shadow_comparison_artifact(
     blockers = [
         *_source_type_blockers(source_inputs),
         *_source_status_blockers(sources),
+        *chat_packet_copy_alignment_blockers(sources["fixture_chain"]),
         *[f"{row['source']}.{row['flag']}" for row in invariant["observed_true_flags"]],
         *control_blockers_if_comparable(source_statuses=source_statuses, blockers=control_blockers),
         *pairing_summary["schema_gaps"],
@@ -84,18 +93,19 @@ def build_advanced_shadow_comparison_artifact(
         "surface_status_rows": [
             terminal_sink_row(fixture_chain=sources["fixture_chain"], dogfood_replay=sources["dogfood_replay"]),
             control_row,
-            _live_copy_row("recommendation_prompt_reason_copy", sources["recommendation_copy_live_diagnostic"]),
-            _live_copy_row("rescue_proposal_copy_posture", sources["rescue_copy_live_diagnostic"]),
-            _live_copy_row("proactive_chat_copy_posture", sources["proactive_copy_live_diagnostic"]),
+            chat_packet_copy_alignment_row(sources["fixture_chain"]),
+            live_copy_row("recommendation_prompt_reason_copy", sources["recommendation_copy_live_diagnostic"]),
+            live_copy_row("rescue_proposal_copy_posture", sources["rescue_copy_live_diagnostic"]),
+            live_copy_row("proactive_chat_copy_posture", sources["proactive_copy_live_diagnostic"]),
         ],
         "no_send_control_path_comparison": control_comparison,
         "activation_invariant_summary": invariant,
         "pairing_summary": pairing_summary,
         "paired_case_rows": paired_case_rows,
         "live_diagnostic_signals": {
-            "recommendation_copy_live_diagnostic": _live_diagnostic_signal(sources["recommendation_copy_live_diagnostic"]),
-            "rescue_copy_live_diagnostic": _live_diagnostic_signal(sources["rescue_copy_live_diagnostic"]),
-            "proactive_copy_live_diagnostic": _live_diagnostic_signal(sources["proactive_copy_live_diagnostic"]),
+            "recommendation_copy_live_diagnostic": live_diagnostic_signal(sources["recommendation_copy_live_diagnostic"]),
+            "rescue_copy_live_diagnostic": live_diagnostic_signal(sources["rescue_copy_live_diagnostic"]),
+            "proactive_copy_live_diagnostic": live_diagnostic_signal(sources["proactive_copy_live_diagnostic"]),
         },
         "blockers": blockers,
         "runtime_connected": False,
@@ -135,26 +145,6 @@ def _source_status_blockers(sources: Mapping[str, Mapping[str, Any]]) -> list[st
     return blockers
 
 
-def _live_copy_row(surface: str, live: Mapping[str, Any]) -> dict[str, str]:
-    live_status = str(live.get("status") or "missing")
-    guard_status = str(_mapping(live.get("output_guard")).get("status") or "")
-    if live_status == "pass":
-        finding = "live_diagnostic_passed"
-    elif live_status == "not_run":
-        finding = "live_diagnostic_not_run"
-    elif guard_status == "blocked":
-        finding = "live_diagnostic_model_output_blocked"
-    else:
-        finding = "live_diagnostic_unavailable"
-    return {
-        "surface": surface,
-        "fixture_status": "not_applicable",
-        "dogfood_status": "not_applicable",
-        "live_status": live_status,
-        "finding": finding,
-    }
-
-
 def _activation_invariant_summary(artifacts: list[Mapping[str, Any]] | Any) -> dict[str, Any]:
     observed: list[dict[str, str]] = []
     for artifact in artifacts:
@@ -165,26 +155,6 @@ def _activation_invariant_summary(artifacts: list[Mapping[str, Any]] | Any) -> d
     return {
         "expected_false_flags": list(FALSE_FLAG_NAMES),
         "observed_true_flags": observed,
-    }
-
-
-def _live_diagnostic_signal(live: Mapping[str, Any]) -> dict[str, Any]:
-    if live.get("status") == "not_run":
-        return _signal(False, False, "not_run", "not_run")
-    return _signal(
-        bool(live.get("live_invoked")),
-        bool(live.get("live_provider_used")),
-        str(live.get("provider_mode") or ""),
-        str(_mapping(live.get("output_guard")).get("status") or ""),
-    )
-
-
-def _signal(invoked: bool, used: bool, mode: str, guard: str) -> dict[str, Any]:
-    return {
-        "live_invoked": invoked,
-        "live_provider_used": used,
-        "provider_mode": mode,
-        "output_guard_status": guard,
     }
 
 
