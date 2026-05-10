@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from scripts import run_accurate_intake_browser_one_day_fixture_dogfood as module
+from scripts import run_accurate_intake_desktop_dogfood_launcher as launcher_module
 
 EXPECTED_MANAGER_DOGFOOD_TODAY = {
     "budget_kcal": "1600",
@@ -182,7 +183,7 @@ def test_browser_one_day_fixture_normalizes_relative_db_path_before_route_export
 def test_browser_one_day_fixture_session_factory_uses_null_pool_for_threaded_browser_teardown(
     tmp_path: Path,
 ) -> None:
-    engine, _SessionLocal = module._session_factory(tmp_path / "one_day.sqlite3")
+    engine, _SessionLocal = launcher_module._session_factory(tmp_path / "one_day.sqlite3")
     try:
         assert engine.pool.__class__.__name__ == "NullPool"
     finally:
@@ -213,6 +214,37 @@ def test_browser_one_day_fixture_uses_browser_fixture_status_not_dogfood_pass(
     assert report["browser"]["desktop_loop"]["data_export_sidecars_included"] is True
     assert Path(report["review_queue_artifact_path"]).parent.name.startswith("data_")
     assert Path(report["feedback_store_path"]).parent.name.startswith("feedback_")
+
+
+def test_browser_one_day_fixture_uses_desktop_launcher_app_builder(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    built_paths: list[Path] = []
+
+    class FakeServer:
+        should_exit = False
+
+    class FakeThread:
+        def join(self, timeout: float | None = None) -> None:
+            return None
+
+    def fake_build_app(db_path: Path) -> object:
+        built_paths.append(Path(db_path))
+        return object()
+
+    monkeypatch.setattr(module, "_load_sync_playwright", lambda: object())
+    monkeypatch.setattr(module, "_run_browser_sequence", lambda **_: _passing_browser_result())
+    monkeypatch.setattr(module, "_run_uvicorn_in_thread", lambda _app, *, port: (FakeServer(), FakeThread()))
+    monkeypatch.setattr(module, "_wait_for_http", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(module, "build_realistic_manager_dogfood_report", lambda **_: _passing_manager_dogfood_report())
+    monkeypatch.setattr(module, "build_app_for_desktop_dogfood", fake_build_app)
+
+    db_path = tmp_path / "one_day.sqlite3"
+    report = module.build_browser_one_day_fixture_dogfood_report(db_path=db_path)
+
+    assert report["status"] == "browser_fixture_pass"
+    assert built_paths == [db_path.resolve()]
 
 
 def test_browser_one_day_fixture_validator_requires_render_reload_data_export_and_no_storage() -> None:
@@ -313,10 +345,10 @@ def test_browser_one_day_fixture_restores_debug_token_on_setup_failure(
         lambda **_: _passing_manager_dogfood_report(),
     )
 
-    def broken_build_app(_db: object) -> object:
+    def broken_build_app(_db_path: object) -> object:
         raise RuntimeError("setup_boom")
 
-    monkeypatch.setattr(module, "_build_app", broken_build_app)
+    monkeypatch.setattr(module, "build_app_for_desktop_dogfood", broken_build_app)
 
     with pytest.raises(RuntimeError, match="setup_boom"):
         module.build_browser_one_day_fixture_dogfood_report(db_path=tmp_path / "one_day.sqlite3")

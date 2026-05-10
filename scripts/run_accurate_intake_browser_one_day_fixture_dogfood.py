@@ -15,10 +15,6 @@ from typing import Any
 
 import uvicorn
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import NullPool
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -29,14 +25,15 @@ from app.composition.dogfood_review_queue import (  # noqa: E402
     build_dogfood_review_queue_artifact,
     read_desktop_feedback_records,
 )
-from app.database import get_db  # noqa: E402
-from app.models import Base  # noqa: E402
-from app.routes import router  # noqa: E402
 from app.budget.interface.today_surface import resolve_today_local_date  # noqa: E402
 from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
     BrowserSmokeDependencyMissing,
     _install_fetch_recorder,
     _load_sync_playwright,
+)
+from scripts.run_accurate_intake_desktop_dogfood_launcher import (  # noqa: E402
+    build_app_for_desktop_dogfood,
+    close_desktop_dogfood_app,
 )
 from scripts.run_accurate_intake_one_day_realistic_web_dogfood import (  # noqa: E402
     DOGFOOD_USER_EXTERNAL_ID,
@@ -76,33 +73,6 @@ DESKTOP_ENTRY_SELECTOR = '[data-surface-role="desktop-dogfood-entry"]'
 DEFAULT_FEEDBACK_TRACE_ID = "one-day-dogfood-trace"
 DEFAULT_FEEDBACK_MESSAGE_ID = "one-day-dogfood-message"
 DEFAULT_FEEDBACK_TEXT = "One-day desktop dogfood loop smoke feedback."
-
-
-def _session_factory(db_path: Path) -> tuple[Any, sessionmaker[Session]]:
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    engine = create_engine(
-        f"sqlite:///{db_path.as_posix()}",
-        connect_args={"check_same_thread": False},
-        poolclass=NullPool,
-    )
-    Base.metadata.create_all(bind=engine)
-    return engine, sessionmaker(bind=engine, autocommit=False, autoflush=False)
-
-
-def _build_app(SessionLocal: sessionmaker[Session]) -> FastAPI:
-    app = FastAPI()
-    app.include_router(router)
-    app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
-
-    def override_get_db():
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    return app
 
 
 def _free_port() -> int:
@@ -701,7 +671,6 @@ def build_browser_one_day_fixture_dogfood_report(
     report["scenario_wall_status"] = manager_dogfood.get("status")
     report["scenario_wall_summary"] = manager_summary
     report["scenario_wall_id"] = "one_day_realistic_web_dogfood"
-    engine, SessionLocal = _session_factory(db_path)
     local_debug_token = secrets.token_urlsafe(24)
     previous_debug_token = os.environ.get("LOCAL_DEBUG_API_TOKEN")
     os.environ["LOCAL_DEBUG_API_TOKEN"] = local_debug_token
@@ -722,10 +691,11 @@ def build_browser_one_day_fixture_dogfood_report(
     local_data_hygiene_routes.DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH = review_queue_artifact_path
     local_data_hygiene_routes.DOGFOOD_BACKUP_DIR = data_hygiene_dir / "backups"
     local_data_hygiene_routes.DOGFOOD_EXPORT_DIR = data_hygiene_dir / "exports"
+    app: FastAPI | None = None
     server: uvicorn.Server | None = None
     thread: threading.Thread | None = None
     try:
-        app = _build_app(SessionLocal)
+        app = build_app_for_desktop_dogfood(db_path)
         port = _free_port()
         server, thread = _run_uvicorn_in_thread(app, port=port)
         base_url = f"http://127.0.0.1:{port}"
@@ -761,7 +731,8 @@ def build_browser_one_day_fixture_dogfood_report(
         local_data_hygiene_routes.DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH = previous_data_review_queue_path
         local_data_hygiene_routes.DOGFOOD_BACKUP_DIR = previous_backup_dir
         local_data_hygiene_routes.DOGFOOD_EXPORT_DIR = previous_export_dir
-        engine.dispose()
+        if app is not None:
+            close_desktop_dogfood_app(app)
         if previous_debug_token is None:
             os.environ.pop("LOCAL_DEBUG_API_TOKEN", None)
         else:
