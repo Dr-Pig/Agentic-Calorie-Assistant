@@ -32,7 +32,7 @@ def test_local_small_anchor_index_reports_adapter_metadata_without_policy_leakag
 
     assert metadata["adapter_type"] == "local_small_anchor_json"
     assert metadata["record_contract"] == "IndexedFoodRecord"
-    assert metadata["runtime_record_count"] == 55
+    assert metadata["runtime_record_count"] == 59
     assert metadata["semantic_record_count"] >= 1
     assert metadata["future_backends"] == ["sqlite_fts", "supabase"]
     assert metadata["forbidden_policy_dependencies"] == [
