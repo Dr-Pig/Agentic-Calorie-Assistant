@@ -56,6 +56,8 @@ def test_review_queue_page_displays_feedback_trace_fields_without_semantic_infer
         "correction_feedback_event_count",
         "desktop_feedback_records",
         "review_candidates",
+        "record.feedback_id",
+        "record.status",
         "linked.trace_id",
         "linked.message_id",
         "policy.feedback_can_create_product_truth",
@@ -75,3 +77,20 @@ def test_review_queue_page_displays_feedback_trace_fields_without_semantic_infer
         "private_self_use_approved=true",
     ):
         assert forbidden not in html
+
+
+def test_review_queue_page_surfaces_feedback_source_context_for_triage() -> None:
+    html = _html(REVIEW)
+
+    for fragment in (
+        "linked.user_external_id",
+        "uiEvent.source_page",
+        "uiEvent.route",
+        "uiEvent.feedback_route",
+        "source_page",
+        "route",
+        "feedback_id",
+        "status",
+        "user",
+    ):
+        assert fragment in html
