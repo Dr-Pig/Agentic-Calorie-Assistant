@@ -31,11 +31,16 @@ def test_product_lab_rescue_runtime_builds_chat_first_proposal_lifecycle() -> No
         "accepted_lab_pending_explicit_commit",
         "dismissed_lab",
         "gentler_requested_lab",
+        "shorter_requested_lab",
+        "explanation_requested_lab",
     ]
     assert artifact["primary_actions"] == [
         "accept_rescue_plan",
         "dismiss_rescue_plan",
+    ]
+    assert artifact["negotiation_affordances"] == [
         "request_gentler_plan",
+        "request_shorter_plan",
         "ask_why_this_plan",
     ]
     assert artifact["proposal_presented_to_lab"] is True

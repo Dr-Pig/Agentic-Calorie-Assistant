@@ -11,7 +11,14 @@ from app.advanced_shadow_lab.product_lab_rescue_handoff import (
 )
 
 
-LAB_INTERACTION_INTENTS = ["present", "accept", "dismiss", "request_gentler"]
+LAB_INTERACTION_INTENTS = [
+    "present",
+    "accept",
+    "dismiss",
+    "request_gentler",
+    "request_shorter",
+    "ask_why",
+]
 
 
 def run_product_lab_rescue(
@@ -37,6 +44,7 @@ def run_product_lab_rescue(
     option = _option_stage(chain)
     proposal_card = {} if blockers else _proposal_card(option)
     primary_actions = [] if blockers else _primary_actions()
+    negotiation_affordances = [] if blockers else _negotiation_affordances()
     lifecycle_packets = [] if blockers else _lab_lifecycle_packets(lifecycle)
     pending_commit = build_pending_rescue_commit_packet(
         proposal_card=proposal_card,
@@ -53,6 +61,7 @@ def run_product_lab_rescue(
         "proposal_card": proposal_card,
         "guardrail_math": _guardrail_math(option),
         "primary_actions": primary_actions,
+        "negotiation_affordances": negotiation_affordances,
         "lifecycle_packets": lifecycle_packets,
         "pending_rescue_commit_packet": pending_commit,
         "proposal_presented_to_lab": not bool(blockers),
@@ -129,6 +138,10 @@ def _lab_state(packet: Mapping[str, Any]) -> str:
         return "dismissed_lab"
     if intent == "request_gentler":
         return "gentler_requested_lab"
+    if intent == "request_shorter":
+        return "shorter_requested_lab"
+    if intent == "ask_why":
+        return "explanation_requested_lab"
     return f"{state}_lab"
 
 
@@ -136,7 +149,13 @@ def _primary_actions() -> list[str]:
     return [
         "accept_rescue_plan",
         "dismiss_rescue_plan",
+    ]
+
+
+def _negotiation_affordances() -> list[str]:
+    return [
         "request_gentler_plan",
+        "request_shorter_plan",
         "ask_why_this_plan",
     ]
 
