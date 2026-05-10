@@ -21,12 +21,20 @@ REVIEW_GROUPS = {
 
 CHAT_ACTION_TYPES = (
     "accept_candidate",
+    "confirm_candidate_semantics",
     "reject_candidate",
     "correct_candidate",
+    "do_not_save_candidate",
     "suppress_candidate",
+    "forget_memory_record",
     "delete_candidate",
     "expire_candidate",
 )
+USER_EQUIVALENT_ACTION_TYPES = {
+    "confirm_candidate_semantics",
+    "do_not_save_candidate",
+    "forget_memory_record",
+}
 
 
 def lab_review_correction_surface(
@@ -135,6 +143,10 @@ def _chat_commands() -> list[dict[str, Any]]:
             "creates_runtime_effect": False,
             "durable_memory_write_allowed": False,
             "manager_context_injection_allowed": False,
+            "fixture_only_user_equivalent_semantics": (
+                action_type in USER_EQUIVALENT_ACTION_TYPES
+            ),
+            "user_facing_behavior_changed_in_mainline": False,
         }
         for action_type in CHAT_ACTION_TYPES
     ]

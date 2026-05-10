@@ -218,8 +218,11 @@ def _correction_deletion_suppression_policy() -> dict[str, Any]:
     return {
         "policy_status": "shadow_policy_only",
         "supported_shadow_actions": [
+            "confirm_candidate_semantics",
             "correct_candidate",
+            "do_not_save_candidate",
             "suppress_candidate",
+            "forget_memory_record",
             "delete_candidate",
             "expire_candidate",
         ],

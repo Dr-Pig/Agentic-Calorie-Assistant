@@ -178,3 +178,78 @@ def test_lab_review_loop_blocks_unknown_action_without_partial_state() -> None:
     assert artifact["durable_memory_written"] is False
     assert artifact["manager_context_injected"] is False
     assert artifact["runtime_effect_allowed"] is False
+
+
+def test_user_equivalent_confirmation_do_not_save_and_forget_stay_shadow_only() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    fixture = _fixture_payload()
+    fixture["review_actions"] = [
+        {
+            "action_id": "confirm-negative-preference",
+            "target_candidate_ids": ["negative-preference-ingredient-cilantro"],
+            "action_type": "confirm_candidate_semantics",
+            "actor": "fixture_user",
+            "rationale": "User confirmed cilantro should keep blocking recommendations.",
+        },
+        {
+            "action_id": "do-not-save-style",
+            "target_candidate_ids": ["app-usage-style-pattern"],
+            "action_type": "do_not_save_candidate",
+            "actor": "fixture_user",
+            "rationale": "User does not want thin usage style saved.",
+        },
+        {
+            "action_id": "forget-golden-order",
+            "target_candidate_ids": ["golden-order-morning-bar-oatmeal-latte"],
+            "action_type": "forget_memory_record",
+            "actor": "fixture_user",
+            "rationale": "User asked the lab to forget this remembered order.",
+        },
+    ]
+
+    artifact = build_shadow_lab_artifacts(fixture)["memory_lab_review_loop_state"]
+
+    assert artifact["status"] == "generated"
+    assert artifact["review_control_semantics"] == {
+        "semantic_owner": "human_or_user_review_action",
+        "deterministic_role": "validate_scope_apply_audit_tombstone_and_exclusion",
+        "llm_role": "none",
+        "deterministic_semantic_inference_allowed": False,
+        "user_equivalent_actions": [
+            "confirm_candidate_semantics",
+            "do_not_save_candidate",
+            "forget_memory_record",
+        ],
+        "forget_semantics": "shadow_tombstone_retains_audit_no_durable_delete",
+        "mainline_activation_allowed": False,
+    }
+
+    records = {
+        record["source_candidate_id"]: record
+        for record in artifact["lab_memory_records"]
+    }
+    confirmed = records["negative-preference-ingredient-cilantro"]
+    assert confirmed["record_state"] == "accepted_shadow"
+    assert confirmed["confirmation_status"] == "user_confirmed_candidate_semantics"
+    assert confirmed["active_in_lab_context"] is True
+    assert confirmed["audit_log"][-1]["user_equivalent_memory_control"] is True
+
+    do_not_save = records["app-usage-style-pattern"]
+    assert do_not_save["record_state"] == "suppressed_shadow"
+    assert do_not_save["do_not_save_requested"] is True
+    assert do_not_save["excluded_from_lab_context_reason"] == "do_not_save_by_user"
+    assert do_not_save["active_in_lab_context"] is False
+
+    forgotten = records["golden-order-morning-bar-oatmeal-latte"]
+    assert forgotten["record_state"] == "deleted_shadow"
+    assert forgotten["memory_text"] is None
+    assert forgotten["forget_requested"] is True
+    assert forgotten["forget_semantics"] == "shadow_tombstone_retains_audit"
+    assert forgotten["durable_delete_performed"] is False
+    assert forgotten["audit_provenance_retained"] is True
+
+    assert artifact["durable_product_memory_written_in_mainline"] is False
+    assert artifact["manager_context_packet_changed_in_mainline"] is False
