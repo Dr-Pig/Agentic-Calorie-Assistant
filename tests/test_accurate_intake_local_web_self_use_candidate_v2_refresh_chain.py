@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from tests.test_accurate_intake_local_web_self_use_candidate_v2_gate_runner import (
     _required_payloads,
 )
@@ -17,6 +19,152 @@ from tests.test_current_shell_compatibility_browser_activation_evidence_gate imp
 from tests.test_current_shell_compatibility_product_pages_self_use_flow_gate import (
     _valid_inputs as _valid_product_pages_flow_inputs,
 )
+
+
+def _clone(payload: dict[str, object]) -> dict[str, object]:
+    return json.loads(json.dumps(payload, ensure_ascii=False))
+
+
+def _browser_fixture_dogfood_payload() -> dict[str, object]:
+    return {
+        "artifact_schema_version": "1.0",
+        "artifact_type": "accurate_intake_browser_one_day_fixture_dogfood",
+        "status": "browser_fixture_pass",
+        "fixture_evidence_used": True,
+        "fixture_fooddb_evidence_used": True,
+        "fooddb_evidence_used": False,
+        "fooddb_evidence_used_normalized_for_local_review": True,
+        "real_fooddb_pass_claimed": False,
+        "dogfood_pass": False,
+        "product_readiness_claimed": False,
+        "manager_dogfood_summary": {
+            "macro_present_evidence_seen": True,
+            "macro_missing_evidence_seen": True,
+        },
+    }
+
+
+def _browser_realistic_dogfood_payload() -> dict[str, object]:
+    return {
+        "artifact_schema_version": "1.0",
+        "artifact_type": "accurate_intake_browser_realistic_web_dogfood_v2",
+        "status": "browser_diagnostic_pass_with_fixture_evidence_gap",
+        "fixture_evidence_used": True,
+        "real_fooddb_pass_claimed": False,
+    }
+
+
+@pytest.fixture(autouse=True)
+def _fast_expensive_refresh_chain_generators(monkeypatch: pytest.MonkeyPatch) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+    from tests.test_accurate_intake_session_context_carryover_qa_bundle import (
+        _valid_inputs as _valid_session_context_inputs,
+    )
+    from tests.test_accurate_intake_context_quality_pack import (
+        _short_term_context_smoke,
+    )
+    from app.composition.accurate_intake_session_context_carryover_qa_bundle import (
+        build_session_context_carryover_qa_bundle_artifact,
+    )
+    from scripts.build_accurate_intake_context_quality_pack import (
+        build_context_quality_pack_report,
+    )
+
+    gate_payloads = _required_payloads()
+    product_page_payloads = _valid_product_pages_flow_inputs()
+    browser_gate_payloads = _valid_browser_gate_inputs()
+    session_context_payloads = _valid_session_context_inputs()
+    mvp_gate_summary = _clone(gate_payloads["accurate_intake_mvp_gate"])
+    mvp_gate_summary["groups"] = [
+        {"group_id": "ledger_truth_and_read_model", "status": "pass"}
+    ]
+    session_context_bundle = build_session_context_carryover_qa_bundle_artifact(
+        session_context_payloads
+    )
+    context_quality_pack = build_context_quality_pack_report(
+        short_term_context_smoke=_short_term_context_smoke(),
+        require_runtime_trace_input=True,
+    )
+    short_term_context = _clone(product_page_payloads["product_pages_short_term_context_smoke"])
+    short_term_context.update(browser_gate_payloads["product_pages_short_term_context_smoke"])
+    short_term_context.update(
+        {
+            "browser_execution_required": True,
+            "chat_context_status_ui_rendered": True,
+            "today_no_meal_before_followup_answer": True,
+            "today_consumed_zero_before_followup_answer": True,
+            "fake_provider_calls": [
+                {
+                    "stage": "entry",
+                    "context_policy_version_present": True,
+                    "loaded_context_summary_present": True,
+                    "omitted_context_summary_present": True,
+                    "pending_followup_pin_present": False,
+                    "raw_user_input_used_for_fixture_selection": False,
+                },
+                {
+                    "stage": "execution_after_followup",
+                    "context_policy_version_present": True,
+                    "loaded_context_summary_present": True,
+                    "omitted_context_summary_present": True,
+                    "pending_followup_pin_present": True,
+                    "raw_user_input_used_for_fixture_selection": False,
+                },
+            ],
+        }
+    )
+    fast_payloads = {
+        "_generate_accurate_intake_mvp_gate_summary": mvp_gate_summary,
+        "_generate_product_pages_browser_smoke": {
+            **product_page_payloads["product_pages_browser_smoke"],
+            **browser_gate_payloads["product_pages_browser_smoke"],
+            "browser_execution_required": True,
+        },
+        "_generate_product_pages_seven_day_diary_smoke": {
+            **product_page_payloads["product_pages_seven_day_diary_smoke"],
+            **browser_gate_payloads["product_pages_seven_day_diary_smoke"],
+            "browser_execution_required": True,
+        },
+        "_generate_product_pages_body_noplan_degraded_smoke": {
+            **product_page_payloads["product_pages_body_noplan_degraded_smoke"],
+            **browser_gate_payloads["product_pages_body_noplan_degraded_smoke"],
+            "browser_execution_required": True,
+            "manager_provider_call_count": 0,
+        },
+        "_generate_product_pages_short_term_context_smoke": short_term_context,
+        "_generate_product_pages_target_candidate_ui_smoke": {
+            **product_page_payloads["product_pages_target_candidate_ui_smoke"],
+            **browser_gate_payloads["product_pages_target_candidate_ui_smoke"],
+            "browser_execution_required": True,
+        },
+        "_generate_product_pages_visual_qa": {
+            **product_page_payloads["product_pages_visual_qa"],
+            **browser_gate_payloads["product_pages_visual_qa"],
+            "browser_execution_required": True,
+        },
+        "_generate_fixture_full_product_loop_e2e": {
+            **product_page_payloads["fixture_full_product_loop_e2e"],
+            **browser_gate_payloads["fixture_full_product_loop_e2e"],
+            "diagnostic_only": True,
+            "local_only": True,
+        },
+        "build_context_quality_pack_report": {
+            **context_quality_pack,
+            "ready_for_live_diagnostic_decision": False,
+        },
+        "build_pl_ce_context_coverage_matrix_artifact": session_context_payloads[
+            "context_coverage_matrix"
+        ],
+        "build_session_context_carryover_qa_bundle_artifact": session_context_bundle,
+        "build_browser_one_day_fixture_dogfood_report": _browser_fixture_dogfood_payload(),
+        "build_browser_realistic_web_dogfood_v2_report": _browser_realistic_dogfood_payload(),
+    }
+    for name, payload in fast_payloads.items():
+        monkeypatch.setattr(
+            module,
+            name,
+            lambda *args, _payload=payload, **kwargs: _clone(_payload),
+        )
 
 
 def _write(path: Path, payload: dict[str, object]) -> None:
@@ -403,6 +551,38 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
             / module.REFRESHED_ARTIFACT_FILENAMES["context_live_diagnostic_gate"]
         ).read_text(encoding="utf-8")
     )["holdout_plan_required"] is True
+
+
+def test_refresh_chain_reuses_existing_expensive_closeout_artifacts(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+    _seed_required_gate_inputs(artifact_dir)
+
+    def fail_if_regenerated(*_args, **_kwargs):
+        raise AssertionError("expensive closeout artifact should be reused")
+
+    for name in [
+        "_generate_accurate_intake_mvp_gate_summary",
+        "_generate_product_pages_browser_smoke",
+        "_generate_product_pages_seven_day_diary_smoke",
+        "_generate_product_pages_body_noplan_degraded_smoke",
+        "_generate_product_pages_target_candidate_ui_smoke",
+        "_generate_product_pages_visual_qa",
+        "_generate_fixture_full_product_loop_e2e",
+    ]:
+        monkeypatch.setattr(module, name, fail_if_regenerated)
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert printed["status"] == "pass"
+    assert printed["closeout_navigation"]["first_blocking_gate"] is None
 
 
 def test_refresh_chain_regenerates_current_shell_local_review_decision_from_evidence_inputs(
