@@ -18,8 +18,8 @@ def test_broad_coverage_taxonomy_groups_existing_non_runtime_anchors() -> None:
     assert taxonomy["artifact_type"] == "accurate_intake_fooddb_broad_coverage_taxonomy"
     assert taxonomy["runtime_truth_changed"] is False
     assert taxonomy["summary"] == {
-        "total_anchor_count": 63,
-        "runtime_visible_common_serving_count": 59,
+        "total_anchor_count": 68,
+        "runtime_visible_common_serving_count": 64,
         "existing_generic_not_runtime_count": 0,
         "semantic_only_basket_count": 4,
         "next_runtime_batch_candidate_count": 0,
@@ -31,7 +31,7 @@ def test_broad_coverage_taxonomy_groups_existing_non_runtime_anchors() -> None:
         "single_item_sweet_potato",
     }
     assert len(groups["customizable_drinks"]) == 7
-    assert len(groups["breakfast_and_staples"]) == 5
+    assert len(groups["breakfast_and_staples"]) == 10
     assert len(groups["listed_basket_components"]) == 34
     assert len(groups["composite_meals"]) == 10
 

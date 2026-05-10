@@ -107,7 +107,7 @@ def _candidate_groups(
 def _group_name(anchor: dict[str, Any]) -> str:
     anchor_id = str(anchor.get("anchor_id") or "")
     dish_type = str(anchor.get("dish_type") or "")
-    if anchor_id in BREAKFAST_AND_STAPLE_IDS:
+    if anchor_id in BREAKFAST_AND_STAPLE_IDS or dish_type == "breakfast_staple":
         return "breakfast_and_staples"
     if dish_type == "customizable_drink":
         return "customizable_drinks"

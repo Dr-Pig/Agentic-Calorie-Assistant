@@ -88,10 +88,10 @@ def test_retrieval_policy_artifact_is_report_only_and_manager_packet_is_compact(
     assert artifact["runtime_truth_changed"] is False
     assert artifact["manager_context_changed"] is False
     assert artifact["packetizer_format_changed"] is False
-    assert artifact["summary"]["runtime_anchor_indexed_count"] == 59
+    assert artifact["summary"]["runtime_anchor_indexed_count"] == 64
     assert artifact["summary"]["source_lane_counts"] == {
         "exact_item_card": 0,
-        "generic_common_serving": 25,
+        "generic_common_serving": 30,
         "listed_component": 34,
         "basket_family_semantic_only": 4,
     }
