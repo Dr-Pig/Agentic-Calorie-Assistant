@@ -145,6 +145,7 @@ def build_fooddb_retrieval_policy_artifact(
         "summary": {
             "runtime_anchor_indexed_count": len(runtime_anchor_records),
             "semantic_basket_indexed_count": len(semantic_basket_records),
+            "source_lane_counts": _source_lane_counts(retrieval_records),
             "alias_expansion_count": len(ALIAS_EXPANSIONS),
             "basket_family_count": len(BASKET_TERMS),
         },
@@ -159,6 +160,7 @@ def build_fooddb_retrieval_policy_artifact(
                     "canonical_name": record.canonical_name,
                     "aliases": list(record.aliases),
                     "dish_type": record.dish_type,
+                    "source_lane": record.source_lane,
                     "runtime_usage_boundary": record.runtime_usage_boundary,
                 }
                 for record in retrieval_records
@@ -196,6 +198,20 @@ def _result(
         "vector_search_policy": _vector_search_policy(),
         "ranking_policy": _ranking_policy(),
     }
+
+
+def _source_lane_counts(records: tuple[IndexedFoodRecord, ...]) -> dict[str, int]:
+    counts = {
+        "exact_item_card": 0,
+        "generic_common_serving": 0,
+        "listed_component": 0,
+        "basket_family_semantic_only": 0,
+    }
+    for record in records:
+        lane = record.source_lane
+        if lane in counts:
+            counts[lane] += 1
+    return counts
 
 
 def _now() -> str:

@@ -70,7 +70,7 @@ def _strip_known_modifier_terms(text: str) -> str:
 def _listed_basket_components(text: str) -> list[str]:
     if not any(term in text for term in BASKET_TERMS):
         return []
-    if not any(marker in text for marker in ("有", "、", ",", "，")):
+    if not any(marker in text for marker in (" ", "有", "、", ",", "，")):
         return []
     tail = text
     for marker in ("有", "吃了", "買了"):
@@ -78,7 +78,7 @@ def _listed_basket_components(text: str) -> list[str]:
             tail = tail.split(marker, 1)[1]
     for term in BASKET_TERMS:
         tail = tail.replace(term, "")
-    parts = [part.strip(" 的，,。 ") for part in re.split(r"[、,，和與]", tail)]
+    parts = [part.strip(" 的，,。 ") for part in re.split(r"[\s、,，和與]", tail)]
     return [part for part in parts if part]
 
 
