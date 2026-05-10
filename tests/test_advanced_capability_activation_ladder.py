@@ -67,6 +67,8 @@ def test_all_advanced_capabilities_have_explicit_current_stage_and_dependencies(
     assert capabilities["long_term_memory"]["next_allowed_stage"] == "canary"
     assert capabilities["recommendation"]["current_stage"] == "read_only_runtime"
     assert capabilities["recommendation"]["next_allowed_stage"] == "canary"
+    assert capabilities["rescue"]["current_stage"] == "read_only_runtime"
+    assert capabilities["rescue"]["next_allowed_stage"] == "canary"
     assert capabilities["recommendation"]["depends_on"] == [
         "long_term_memory.read_only_runtime"
     ]
@@ -144,6 +146,41 @@ def test_recommendation_read_only_runtime_stage_is_backed_by_manual_transition_a
         "recommendation_served": False,
         "live_search_allowed": False,
         "app_open_recommendation_serving": False,
+    }
+
+
+def test_rescue_read_only_runtime_stage_is_backed_by_manual_transition_artifact() -> None:
+    contract = _contract()
+    rescue = contract["capabilities"]["rescue"]
+    evidence = rescue["stage_transition_evidence"]
+
+    assert evidence == {
+        "artifact_type": "rescue_read_only_runtime_stage_decision",
+        "status": "approved",
+        "stage_change_recorded": True,
+        "manual_promotion_approved": True,
+        "current_stage_in_decision_artifact": "shadow",
+        "target_stage_in_decision_artifact": "read_only_runtime",
+        "activation_stage_after_decision": "read_only_runtime",
+        "dependency_satisfied": "long_term_memory.read_only_runtime",
+        "required_preflight_artifact": "rescue_read_only_runtime_preflight_report",
+        "required_human_review_artifact": (
+            "rescue_read_only_runtime_stage_review_decision"
+        ),
+    }
+    assert "rescue_read_only_runtime_stage_decision" in rescue[
+        "current_allowed_outputs"
+    ]
+    assert "rescue_read_only_runtime_preflight_report" in rescue[
+        "current_allowed_outputs"
+    ]
+    assert "rescue_no_commit_viability_shadow_packet" in rescue[
+        "current_allowed_outputs"
+    ]
+    assert rescue["stage_specific_no_go"] == {
+        "rescue_proposal_committed": False,
+        "budget_mutation_allowed": False,
+        "proposal_acceptance_route_allowed": False,
     }
 
 

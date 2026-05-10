@@ -285,11 +285,24 @@ capabilities:
       app_open_recommendation_serving: false
   rescue:
     owner_module: app/rescue
-    current_stage: shadow
-    next_allowed_stage: read_only_runtime
+    current_stage: read_only_runtime
+    next_allowed_stage: canary
     depends_on:
       - long_term_memory.read_only_runtime
+    stage_transition_evidence:
+      artifact_type: rescue_read_only_runtime_stage_decision
+      status: approved
+      stage_change_recorded: true
+      manual_promotion_approved: true
+      current_stage_in_decision_artifact: shadow
+      target_stage_in_decision_artifact: read_only_runtime
+      activation_stage_after_decision: read_only_runtime
+      dependency_satisfied: long_term_memory.read_only_runtime
+      required_preflight_artifact: rescue_read_only_runtime_preflight_report
+      required_human_review_artifact: rescue_read_only_runtime_stage_review_decision
     current_allowed_outputs:
+      - rescue_read_only_runtime_preflight_report
+      - rescue_read_only_runtime_stage_decision
       - rescue_shadow_summary_context_projection
       - rescue_no_commit_viability_shadow_packet
       - rescue_proposal_shaping_input_shadow_packet
