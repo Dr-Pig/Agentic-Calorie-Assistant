@@ -110,6 +110,9 @@ def test_review_correction_surface_groups_state_and_chat_commands_without_activa
         "suppress_candidate",
         "delete_candidate",
         "expire_candidate",
+        "confirm_candidate_semantics",
+        "do_not_save_candidate",
+        "forget_memory_record",
     }.issubset(command_types)
     assert all(
         command["creates_runtime_effect"] is False
@@ -124,6 +127,22 @@ def test_review_correction_surface_groups_state_and_chat_commands_without_activa
     assert blocked["promote_to_runtime_memory"]["blocked"] is True
     assert blocked["inject_manager_context"]["blocked"] is True
     assert blocked["mount_memory_settings_route"]["blocked"] is True
+    user_equivalent = [
+        command
+        for command in surface["available_chat_commands"]
+        if command["action_type"]
+        in {
+            "confirm_candidate_semantics",
+            "do_not_save_candidate",
+            "forget_memory_record",
+        }
+    ]
+    assert len(user_equivalent) == 3
+    assert all(
+        command["fixture_only_user_equivalent_semantics"] is True
+        and command["user_facing_behavior_changed_in_mainline"] is False
+        for command in user_equivalent
+    )
 
 
 def test_review_correction_surface_does_not_offer_partial_state_when_blocked() -> None:

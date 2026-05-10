@@ -26,8 +26,11 @@ def test_memory_promotion_demotion_declares_correction_deletion_suppression_poli
         "ui_usage_events_are_source_evidence_only": True,
     }
     assert policy["supported_shadow_actions"] == [
+        "confirm_candidate_semantics",
         "correct_candidate",
+        "do_not_save_candidate",
         "suppress_candidate",
+        "forget_memory_record",
         "delete_candidate",
         "expire_candidate",
     ]

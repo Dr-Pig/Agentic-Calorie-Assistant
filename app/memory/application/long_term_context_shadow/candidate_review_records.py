@@ -26,9 +26,19 @@ def _context_candidate_summary(
 
 
 def _review_status_for_action(action_type: str) -> str:
-    if action_type == "accept_candidate":
+    if action_type in {
+        "accept_candidate",
+        "confirm_candidate_semantics",
+        "correct_candidate",
+    }:
         return "accepted"
-    if action_type == "reject_candidate":
+    if action_type in {
+        "reject_candidate",
+        "suppress_candidate",
+        "do_not_save_candidate",
+        "delete_candidate",
+        "forget_memory_record",
+    }:
         return "rejected"
     if action_type == "expire_candidate":
         return "expired"

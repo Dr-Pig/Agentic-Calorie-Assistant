@@ -330,6 +330,25 @@ def test_lab_complete_capability_requires_explicit_isolation_markers() -> None:
     }
 
 
+def test_memory_ux_acceptance_points_to_review_forget_confirmation_controls() -> None:
+    contract = _contract()
+    entries = {
+        entry["journey_id"]: entry
+        for entry in contract["edge_case_coverage_contract"]["ux_acceptance_entries"]
+    }
+    memory_entry = entries["M"]
+
+    assert "memory_lab_review_loop_state" in memory_entry["existing_shadow_artifacts"]
+    assert (
+        "chat_first_memory_review_correction_surface"
+        in memory_entry["existing_shadow_artifacts"]
+    )
+    assert "review_control_semantics" in memory_entry["required_trace_fields"]
+    assert "user_equivalent_memory_control" in memory_entry["required_trace_fields"]
+    assert memory_entry["claim_boundary"] == "non_claim"
+    assert memory_entry["mainline_activation_allowed"] is False
+
+
 def test_contract_records_best_practice_and_harness_minimization_boundaries() -> None:
     contract = _contract()
     best_practice = contract["best_practice_evidence"]

@@ -6,6 +6,12 @@ from app.memory.application.long_term_context_shadow.contracts import _base_arti
 from app.memory.application.long_term_context_shadow.lab_review_surface import (
     lab_review_correction_surface,
 )
+from app.memory.application.long_term_context_shadow.memory_review_controls import (
+    excluded_reason,
+    is_user_equivalent_action,
+    record_review_flags,
+    review_control_semantics,
+)
 from app.memory.application.long_term_context_shadow.utils import _list_of_dicts
 from app.memory.domain.long_term_context_candidates import LongTermContextCandidate
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
@@ -17,9 +23,12 @@ SIDECAR_ACTIVATION_CONTRACT = offline_sidecar_contract(
 
 STATE_BY_ACTION_TYPE = {
     "accept_candidate": "accepted_shadow",
+    "confirm_candidate_semantics": "accepted_shadow",
     "reject_candidate": "rejected_shadow",
     "correct_candidate": "corrected_shadow",
+    "do_not_save_candidate": "suppressed_shadow",
     "suppress_candidate": "suppressed_shadow",
+    "forget_memory_record": "deleted_shadow",
     "delete_candidate": "deleted_shadow",
     "expire_candidate": "expired_shadow",
 }
@@ -62,6 +71,7 @@ def _memory_lab_review_loop_state_artifact(
             "truth_owner": "human_reviewer",
             "deterministic_role": "validate_scope_apply_audit_and_exclusion",
             "llm_role": "none",
+            "review_control_semantics": review_control_semantics(),
             "summary": summary,
             "blockers": blockers,
             "lab_memory_records": records,
@@ -165,6 +175,7 @@ def _apply_action(
             "runtime_effect_allowed": False,
             "durable_memory_written": False,
             "manager_context_injected": False,
+            "user_equivalent_memory_control": is_user_equivalent_action(action_type),
         }
     )
     active = record_state in ACTIVE_STATES
@@ -180,8 +191,11 @@ def _apply_action(
         "intended_consumers": candidate.intended_consumers,
         "active_in_lab_context": active,
         "excluded_from_lab_context_reason": (
-            None if active else EXCLUSION_REASON_BY_STATE[record_state]
+            None
+            if active
+            else excluded_reason(record_state, action_type, EXCLUSION_REASON_BY_STATE)
         ),
+        **record_review_flags(action_type),
         "can_be_runtime_loaded": False,
         "durable_memory_written": False,
         "runtime_effect_allowed": False,
@@ -195,6 +209,7 @@ def _apply_action(
         },
         "audit_log": audit_log,
     }
+
 
 def _summary(
     actions: list[dict[str, Any]],

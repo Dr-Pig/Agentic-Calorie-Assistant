@@ -674,10 +674,14 @@ edge_case_coverage_contract:
       existing_shadow_artifacts:
         - runtime_lab_memory_consumer_summary_projection
         - runtime_lab_manager_memory_injection_comparison
+        - memory_lab_review_loop_state
+        - chat_first_memory_review_correction_surface
         - recommendation_three_node_shadow_artifact
       required_trace_fields:
         - preference_profile_summary
         - negative_preference_blockers
+        - review_control_semantics
+        - user_equivalent_memory_control
         - memory_summary_projection_used
         - candidate_guard.filtered_candidates.reason_codes
         - no_canonical_mutation
