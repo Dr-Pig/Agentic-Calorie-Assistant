@@ -18,6 +18,20 @@ The first goal is not to create a memory service. The first goal is to make memo
 
 Memory work in this phase may observe runtime behavior as evidence. It must not become runtime behavior.
 
+## Advanced Runtime Lab Addendum
+
+The isolated advanced lab is allowed to build complete product-capability mechanics, but the merge-back posture must stay dormant.
+
+Locked execution decisions:
+
+- The first advanced-lab slice is `advanced_runtime_lab_dormancy_contract`; it must not make live provider calls.
+- Later lab live diagnostics may use BuilderSpace `grok-4-fast` only.
+- `kimi-k2.5` is the target reasoning-model profile, but it is not live-called in this PR train.
+- Model IDs must stay behind role/profile selection; provider-specific behavior must not become product semantics.
+- Proactive output is chat-only in the lab; inbox mirrors, push, LINE, OS notifications, and scheduler delivery remain out of scope.
+- FoodDB expansion waits for real self-use. Until then, lab tests may use simulated traces, fixtures, and approved packets only.
+- Isolated lab semantic memory candidate generation may be introduced after the dormancy contract is green, but mainline live semantic extraction and durable product memory writes remain forbidden until a separate activation PR.
+
 ## Direction And Dependency Classification
 
 ```yaml

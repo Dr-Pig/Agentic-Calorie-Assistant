@@ -89,6 +89,36 @@ shadow_lab_scope:
     and explicit activation reviews until a later runtime activation PR promotes
     a named surface.
 
+advanced_lab_execution_policy:
+  current_first_slice: advanced_runtime_lab_dormancy_contract
+  current_first_slice_live_provider_calls_allowed: false
+  later_lab_live_diagnostics_allowed_after_dormancy_gate: true
+  provider_dependency_inversion_required: true
+  provider_family: builderspace
+  diagnostic_live_model: grok-4-fast
+  target_reasoning_model: kimi-k2.5
+  kimi_live_calls_allowed_in_this_train: false
+  proactive_surface: chat_only
+  inbox_mirror_allowed: false
+  push_line_or_os_notification_allowed: false
+  fooddb_expansion_allowed: false
+  fooddb_expansion_requires_real_self_use: true
+  simulated_dogfood_allowed_until_real_traces_exist: true
+  mainline_activation_requires_separate_pr: true
+  required_dormant_merge_flags:
+    mainline_runtime_connected: false
+    mainline_route_or_api_mount_allowed: false
+    production_manager_mount_allowed: false
+    production_scheduler_delivery_allowed: false
+    production_db_migration_allowed: false
+    canonical_product_mutation_allowed: false
+    manager_context_packet_changed: false
+    user_facing_behavior_changed: false
+    recommendation_served: false
+    rescue_proposal_committed: false
+    proactive_sent: false
+    notification_delivery_allowed: false
+
 stage_requirements:
   contract:
     required_evidence:

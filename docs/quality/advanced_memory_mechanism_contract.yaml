@@ -30,6 +30,21 @@ claim_scope:
   proactive_send_approved: false
   product_readiness_claimed: false
   private_self_use_approved: false
+advanced_lab_execution_policy:
+  current_first_slice: advanced_runtime_lab_dormancy_contract
+  current_first_slice_live_provider_calls_allowed: false
+  isolated_lab_semantic_candidate_generation_allowed_after_dormancy_gate: true
+  mainline_live_provider_semantic_extraction_allowed: false
+  provider_family: builderspace
+  diagnostic_live_model: grok-4-fast
+  target_reasoning_model: kimi-k2.5
+  kimi_live_calls_allowed_in_this_train: false
+  simulated_dogfood_allowed_until_real_traces_exist: true
+  real_dogfood_trace_required_for_promotion_claim: true
+  fooddb_expansion_allowed: false
+  fooddb_expansion_requires_real_self_use: true
+  proactive_surface: chat_only
+  mainline_activation_requires_separate_pr: true
 memory_layers:
   - id: typed_history
     canonical_name: L1 Typed History
@@ -46,6 +61,7 @@ memory_layers:
     truth_owner: reviewed_memory_pipeline_future
     allowed_now: schema_and_fake_provider_cases
     llm_live_extraction_allowed_now: false
+    isolated_lab_live_candidate_generation_allowed_after_dormancy_gate: true
     durable_write_allowed_now: false
   - id: confirmed_memory
     canonical_name: L3 Confirmed Memory
