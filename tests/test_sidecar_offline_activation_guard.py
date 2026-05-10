@@ -54,6 +54,7 @@ SIDECAR_MODULES = [
     "app.recommendation.application.offer_shadow_packet",
     "app.recommendation.application.offer_shadow_packet_parts",
     "app.recommendation.application.offer_shadow_packet_policy",
+    "app.recommendation.application.pending_intent_handoff_shadow",
     "app.recommendation.application.reviewed_memory_candidate_bridge",
     "app.recommendation.application.summary_pool_posture",
     "app.recommendation.application.three_node_shadow_contract",
