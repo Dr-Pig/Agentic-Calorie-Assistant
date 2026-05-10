@@ -231,6 +231,11 @@ def test_product_lab_session_replay_distinguishes_rescue_non_commit_actions(
                         "action": "request_gentler_plan",
                     },
                     {
+                        "event_id": "shorter-rescue",
+                        "target_candidate_id": "rescue_nudge:1",
+                        "action": "request_shorter_plan",
+                    },
+                    {
                         "event_id": "why-rescue",
                         "target_candidate_id": "rescue_nudge:1",
                         "action": "ask_why_this_plan",
@@ -241,10 +246,11 @@ def test_product_lab_session_replay_distinguishes_rescue_non_commit_actions(
     )
 
     assert artifact["status"] == "pass"
-    assert artifact["lab_rescue_action_decision_count"] == 3
+    assert artifact["lab_rescue_action_decision_count"] == 4
     assert artifact["lab_rescue_action_decision_kinds"] == [
         "dismiss_current_proposal_instance",
         "request_gentler_variant",
+        "request_shorter_variant",
         "request_explanation",
     ]
     assert artifact["lab_rescue_commit_pending_count"] == 0
@@ -253,6 +259,7 @@ def test_product_lab_session_replay_distinguishes_rescue_non_commit_actions(
     assert artifact["lab_action_state"]["requested_rescue_next_signals"] == [
         "material_context_change_or_user_reopens_rescue",
         "chat_negotiation_requested_gentler_plan",
+        "chat_negotiation_requested_shorter_plan",
         "chat_explanation_requested",
     ]
     assert artifact["lab_rescue_action_canonical_mutation_allowed"] is False
@@ -263,6 +270,7 @@ def test_product_lab_session_replay_distinguishes_rescue_non_commit_actions(
     assert [item["rescue_action_decision_packet"]["requested_next_signal"] for item in outcomes] == [
         "material_context_change_or_user_reopens_rescue",
         "chat_negotiation_requested_gentler_plan",
+        "chat_negotiation_requested_shorter_plan",
         "chat_explanation_requested",
     ]
     assert all(

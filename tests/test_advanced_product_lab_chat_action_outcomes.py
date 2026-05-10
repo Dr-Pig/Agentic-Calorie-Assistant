@@ -40,6 +40,10 @@ def test_product_lab_chat_action_outcomes_cover_recommendation_and_rescue() -> N
         message=rescue_message,
         action="request_gentler_plan",
     )
+    shorter = apply_product_lab_chat_action(
+        message=rescue_message,
+        action="request_shorter_plan",
+    )
     explain_rescue = apply_product_lab_chat_action(
         message=rescue_message,
         action="ask_why_this_plan",
@@ -90,6 +94,15 @@ def test_product_lab_chat_action_outcomes_cover_recommendation_and_rescue() -> N
         "request_gentler_variant"
     )
     assert gentler["rescue_action_decision_packet"]["lab_rescue_commit_pending"] is False
+    assert shorter["outcome_type"] == "rescue_shorter_plan_requested"
+    assert shorter["proposal_committed"] is False
+    assert shorter["rescue_action_decision_packet"]["decision_kind"] == (
+        "request_shorter_variant"
+    )
+    assert shorter["rescue_action_decision_packet"]["lab_rescue_commit_pending"] is False
+    assert shorter["rescue_action_decision_packet"]["requested_next_signal"] == (
+        "chat_negotiation_requested_shorter_plan"
+    )
     assert explain_rescue["rescue_action_decision_packet"]["decision_kind"] == (
         "request_explanation"
     )

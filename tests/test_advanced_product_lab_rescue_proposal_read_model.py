@@ -109,3 +109,46 @@ def test_rescue_proposal_read_model_records_accepted_pending_history(
     assert history["active_inbox_visible"] is False
     assert history["canonical_product_mutation_allowed"] is False
     assert "150 kcal per day" in history["expandable_user_facing_explanation"]
+
+
+def test_rescue_proposal_read_model_keeps_negotiation_in_active_inbox(
+    tmp_path: Path,
+) -> None:
+    artifact = run_advanced_product_lab_dogfood_session(
+        artifact_root=tmp_path,
+        session_id="rescue-inbox-negotiation-session",
+        fixture_inputs=_fixture_inputs(),
+        turns=[
+            {
+                "turn_id": "t1-negotiate",
+                "post_turn_chat_actions": [
+                    {
+                        "event_id": "shorter-rescue",
+                        "target_candidate_id": "rescue_nudge:1",
+                        "action": "request_shorter_plan",
+                    },
+                    {
+                        "event_id": "why-rescue",
+                        "target_candidate_id": "rescue_nudge:1",
+                        "action": "ask_why_this_plan",
+                    },
+                ],
+            }
+        ],
+    )
+
+    assert artifact["status"] == "pass"
+    assert artifact["lab_rescue_active_inbox_count"] == 1
+    assert artifact["lab_rescue_history_statuses"] == [
+        "request_shorter_variant",
+        "request_explanation",
+    ]
+    [active] = artifact["lab_rescue_proposal_read_model"]["active_inbox_rows"]
+    assert active["candidate_id"] == "rescue_nudge:1"
+    assert active["lifecycle_status"] == "pending_user_rescue_commit_confirmation"
+    assert active["active_inbox_visible"] is True
+    assert artifact["lab_action_state"]["requested_rescue_next_signals"] == [
+        "chat_negotiation_requested_shorter_plan",
+        "chat_explanation_requested",
+    ]
+    assert artifact["canonical_product_mutation_allowed"] is False
