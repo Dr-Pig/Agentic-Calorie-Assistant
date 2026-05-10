@@ -57,6 +57,14 @@ The rescue stage decision artifact still records `current_stage: shadow` as the 
 
 This closure does not serve rescue proposals, commit proposal cards, mutate budget/body/meal/ledger state, activate routes, send proactive messages, or promote proactive.
 
+### Proactive Stage Closure
+
+The activation ladder records proactive as `read_only_runtime` only when the manual `proactive_read_only_runtime_stage_decision` artifact proves the transition from `shadow` to `read_only_runtime`.
+
+The proactive stage decision artifact still records `current_stage: shadow` as the from-state. Do not rewrite that producer constant unless the transition schema itself is redesigned.
+
+This closure does not activate a scheduler, send notifications or chat nudges, persist triggers or snoozes, mount user-facing routes, mutate canonical state, or approve canary/user-facing proactive behavior.
+
 ## Direction And Dependency Classification
 
 ```yaml
