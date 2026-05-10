@@ -27,6 +27,7 @@ from app.composition.accurate_intake_context_live_diagnostic_case_matrix import 
 from app.composition.accurate_intake_context_live_provider_input_preflight import (  # noqa: E402
     build_context_live_provider_input_preflight_artifact,
 )
+from app.providers.builderspace_trace import normalize_usage_cache_metrics  # noqa: E402
 from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
 
@@ -167,6 +168,7 @@ async def run_context_live_diagnostic_canary(
                     "provider_profile_role": profile["provider_profile_role"],
                     "latency_ms": latency_ms,
                     "usage": _dict(data.get("usage")),
+                    "cache_metrics": normalize_usage_cache_metrics(data.get("usage")),
                     "response_status": getattr(response, "status_code", None),
                     **parse_trace,
                 }

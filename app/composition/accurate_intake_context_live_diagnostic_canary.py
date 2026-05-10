@@ -42,6 +42,12 @@ def _list(value: Any) -> list[Any]:
     return list(value) if isinstance(value, list) else []
 
 
+def _int_or_zero(value: Any) -> int:
+    if isinstance(value, bool):
+        return 0
+    return value if isinstance(value, int) else 0
+
+
 def _case_id(row: dict[str, Any]) -> str:
     return str(row.get("case_id") or "")
 
@@ -187,6 +193,7 @@ def _report_shell(
     status = "live_diagnostic_pass" if live_invoked and not blockers else "blocked"
     if provider_mode == "not_invoked":
         status = "not_invoked"
+    cache_metric_rows = [_dict(_dict(trace).get("cache_metrics")) for trace in provider_traces]
     return _json_safe(
         {
             "artifact_schema_version": "1.0",
@@ -256,6 +263,16 @@ def _report_shell(
                 ),
                 "ambiguity_preserved_response_count": _dict(response_contract.get("summary")).get(
                     "ambiguity_preserved_response_count", 0
+                ),
+                "cache_metrics_available_count": sum(
+                    1 for row in cache_metric_rows if row.get("cache_metrics_available") is True
+                ),
+                "cached_tokens_total": sum(_int_or_zero(row.get("cached_tokens")) for row in cache_metric_rows),
+                "cache_read_input_tokens_total": sum(
+                    _int_or_zero(row.get("cache_read_input_tokens")) for row in cache_metric_rows
+                ),
+                "cache_creation_input_tokens_total": sum(
+                    _int_or_zero(row.get("cache_creation_input_tokens")) for row in cache_metric_rows
                 ),
             },
             "response_contract_status": response_contract.get("status", "not_available"),

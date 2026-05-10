@@ -40,6 +40,8 @@ def build_success_trace(
     parse_meta: dict[str, Any],
     effective_response_format_type: str | None,
 ) -> dict[str, Any]:
+    usage = data.get("usage")
+    cache_metrics = normalize_usage_cache_metrics(usage)
     return {
         "stage": stage,
         "provider": provider,
@@ -50,7 +52,8 @@ def build_success_trace(
         "parsed_object": parsed,
         "status": data.get("status"),
         "incomplete_details": data.get("incomplete_details"),
-        "usage": data.get("usage"),
+        "usage": usage,
+        "cache_metrics": cache_metrics,
         "prompt_cache_request": build_prompt_cache_request_identity(request_payload),
         "transport_attempts": transport_attempts,
         "parse_attempts": parse_attempts + list(parse_meta.get("parse_attempts") or []),
@@ -112,6 +115,8 @@ def build_failure_trace(
         decision_transport_meta=decision_transport_meta,
         effective_response_format_type=effective_response_format_type,
     )
+    usage = data.get("usage") if isinstance(data, dict) else None
+    cache_metrics = normalize_usage_cache_metrics(usage)
     return {
         "stage": stage,
         "provider": provider,
@@ -136,7 +141,8 @@ def build_failure_trace(
         "response_status": response_status,
         "status": data.get("status") if isinstance(data, dict) else None,
         "incomplete_details": data.get("incomplete_details") if isinstance(data, dict) else None,
-        "usage": data.get("usage") if isinstance(data, dict) else None,
+        "usage": usage,
+        "cache_metrics": cache_metrics,
         "prompt_cache_request": build_prompt_cache_request_identity(request_payload),
         "finish_reason": _extract_finish_reason(data),
         "parse_contract_status": getattr(exc, "parse_contract_status", None),
@@ -179,6 +185,52 @@ def _extract_finish_reason(data: dict[str, Any] | None) -> str | None:
         return None
     finish_reason = first_choice.get("finish_reason")
     return finish_reason if isinstance(finish_reason, str) else None
+
+
+def normalize_usage_cache_metrics(usage: Any) -> dict[str, Any]:
+    if not isinstance(usage, dict):
+        return _empty_cache_metrics()
+    prompt_tokens_details = usage.get("prompt_tokens_details")
+    cached_tokens = None
+    if isinstance(prompt_tokens_details, dict):
+        cached_tokens = _int_or_none(prompt_tokens_details.get("cached_tokens"))
+    input_tokens_details = usage.get("input_tokens_details")
+    if cached_tokens is None and isinstance(input_tokens_details, dict):
+        cached_tokens = _int_or_none(input_tokens_details.get("cached_tokens"))
+    if cached_tokens is None:
+        cached_tokens = _int_or_none(usage.get("cached_tokens"))
+    cache_read_input_tokens = _int_or_none(usage.get("cache_read_input_tokens"))
+    cache_creation_input_tokens = _int_or_none(usage.get("cache_creation_input_tokens"))
+    return {
+        "cache_metrics_available": any(
+            value is not None
+            for value in (
+                cached_tokens,
+                cache_read_input_tokens,
+                cache_creation_input_tokens,
+            )
+        ),
+        "cached_tokens": cached_tokens,
+        "cache_read_input_tokens": cache_read_input_tokens,
+        "cache_creation_input_tokens": cache_creation_input_tokens,
+    }
+
+
+def _empty_cache_metrics() -> dict[str, Any]:
+    return {
+        "cache_metrics_available": False,
+        "cached_tokens": None,
+        "cache_read_input_tokens": None,
+        "cache_creation_input_tokens": None,
+    }
+
+
+def _int_or_none(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    return None
 
 
 def build_prompt_cache_request_identity(request_payload: dict[str, Any]) -> dict[str, Any]:
