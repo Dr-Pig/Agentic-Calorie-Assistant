@@ -14,6 +14,9 @@ from app.advanced_shadow_lab.product_lab_session_controls import (
     post_turn_events,
     release_completed_controls,
 )
+from app.advanced_shadow_lab.product_lab_session_memory_pipeline import (
+    run_product_lab_turn_memory_pipeline,
+)
 from app.advanced_shadow_lab.product_lab_session_policy import (
     LAB_MODE,
     session_blockers,
@@ -91,15 +94,13 @@ def run_advanced_product_lab_dogfood_session(
             prior_journal=released_journal,
         )
         history_event_ids.extend(event_ids(post_turn_events(turn_spec)))
-        memory_write = memory_store.write_memory_events(
+        memory_pipeline = run_product_lab_turn_memory_pipeline(
+            store=memory_store,
             session_id=session_id,
             turn_id=turn_id,
-            events=[
-                item
-                for item in turn_spec.get("post_turn_memory_events") or []
-                if isinstance(item, Mapping)
-            ],
+            turn_spec=turn_spec,
         )
+        memory_write = dict(memory_pipeline.get("memory_write_artifact") or {})
         memory_record_ids = list(memory_write.get("all_record_ids") or memory_record_ids)
         if memory_write.get("surface_paths"):
             memory_surface_paths = {
@@ -108,11 +109,15 @@ def run_advanced_product_lab_dogfood_session(
             }
         journal = list(post_control["journal_entries"])
         run_blockers.extend(turn_blockers(turn_id, turn_artifact, post_control))
+        if memory_pipeline.get("status") != "pass":
+            run_blockers.append(f"{turn_id}.memory_pipeline_blocked")
+        record = turn_record(turn_artifact, post_control)
+        record["memory_pipeline_artifact"] = memory_pipeline
         path = write_turn_record(
             artifact_root=artifact_root,
             session_id=session_id,
             turn_id=turn_id,
-            record=turn_record(turn_artifact, post_control),
+            record=record,
         )
         turn_paths.append(str(path))
         turn_summaries.append(
