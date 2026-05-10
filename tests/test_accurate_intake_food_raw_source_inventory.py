@@ -49,6 +49,38 @@ def test_raw_source_registry_contains_expected_sources_and_non_claim_flags() -> 
     assert sources["tfda_base_review_candidates"]["source_role"] == "staging_candidate_only"
 
 
+def test_raw_source_registry_declares_source_class_policy_and_macro_boundaries() -> None:
+    registry = build_food_raw_source_registry()
+    policies = registry["source_class_policy"]
+    sources = registry["sources"]
+    source_classes = {source["source_class"] for source in sources}
+
+    assert source_classes <= set(policies)
+    for source in sources:
+        policy = policies[source["source_class"]]
+        assert source["source_class_policy_ref"] == source["source_class"]
+        assert source["source_url_or_origin"]
+        assert source["license_or_terms"]
+        assert source["candidate_role"] in policy["allowed_candidate_roles"]
+        assert source["runtime_truth_allowed_default"] is False
+        assert source["macro_truth_allowed_default"] is False
+        assert source["promotion_requires"]
+        assert source["do_not_use_for"]
+        assert policy["runtime_truth_allowed_default"] is False
+        assert policy["macro_truth_allowed_default"] is False
+
+    tfda_policy = policies["taiwan_tfda_open_data"]
+    assert tfda_policy["default_source_role"] == "source_evidence_only"
+    assert "per_100g_denominator_preserved" in tfda_policy["promotion_requires"]
+    assert "serving_or_unit_mapping_review" in tfda_policy["promotion_requires"]
+    assert tfda_policy["macro_policy"] == "candidate_macro_only_until_anchor_approval"
+
+    off_policy = policies["open_food_facts"]
+    assert off_policy["data_quality_posture"] == "user_contributed"
+    assert "manual_source_audit" in off_policy["promotion_requires"]
+    assert "direct_runtime_truth" in off_policy["do_not_use_for"]
+
+
 def test_tracked_raw_source_registry_doc_has_no_local_paths() -> None:
     registry_path = Path("docs/quality/accurate_intake_food_raw_source_registry.json")
     registry_doc = json.loads(registry_path.read_text(encoding="utf-8"))

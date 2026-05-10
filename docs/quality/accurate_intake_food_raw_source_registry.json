@@ -19,120 +19,442 @@
       "packet_ready"
     ]
   },
+  "source_class_policy": {
+    "taiwan_tfda_open_data": {
+      "default_source_role": "source_evidence_only",
+      "allowed_candidate_roles": [
+        "source_evidence_only",
+        "generic_anchor_candidate",
+        "listed_component_candidate"
+      ],
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
+      "macro_policy": "candidate_macro_only_until_anchor_approval",
+      "data_quality_posture": "official_government_dataset",
+      "promotion_requires": [
+        "source_record_id_preserved",
+        "per_100g_denominator_preserved",
+        "unit_or_weight_basis_preserved",
+        "serving_or_unit_mapping_review",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "exact_brand_identity_without_label",
+        "generic_common_serving_without_portion_mapping",
+        "macro_visibility_without_anchor_approval"
+      ]
+    },
+    "official_brand_chain_page": {
+      "default_source_role": "staging_candidate_only",
+      "allowed_candidate_roles": [
+        "exact_item_candidate"
+      ],
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
+      "macro_policy": "label_macro_candidate_only_until_exact_item_approval",
+      "data_quality_posture": "official_brand_or_chain_source",
+      "promotion_requires": [
+        "official_identity_match",
+        "serving_size_or_denominator_preserved",
+        "kcal_and_macro_label_audit",
+        "source_freshness_recorded",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "near_match_brand_substitution",
+        "generic_anchor_without_separate_serving_mapping"
+      ]
+    },
+    "local_taiwan_packaged_extract": {
+      "default_source_role": "staging_candidate_only",
+      "allowed_candidate_roles": [
+        "exact_item_candidate"
+      ],
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
+      "macro_policy": "extract_macro_candidate_only_until_source_audit",
+      "data_quality_posture": "local_extract_requires_source_audit",
+      "promotion_requires": [
+        "original_label_or_official_page_ref",
+        "serving_size_or_denominator_preserved",
+        "extract_quality_review",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "official_source_claim_without_source_ref",
+        "macro_visibility_without_label_audit"
+      ]
+    },
+    "open_food_facts": {
+      "default_source_role": "raw_source",
+      "allowed_candidate_roles": [
+        "user_contributed_packaged_candidate"
+      ],
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
+      "macro_policy": "user_contributed_candidate_only_until_manual_audit",
+      "data_quality_posture": "user_contributed",
+      "promotion_requires": [
+        "barcode_or_product_identity_match",
+        "manual_source_audit",
+        "serving_size_or_100g_denominator_preserved",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "official_label_claim_without_review",
+        "macro_visibility_without_manual_audit"
+      ]
+    },
+    "usda_fallback": {
+      "default_source_role": "raw_source",
+      "allowed_candidate_roles": [
+        "fallback_source_evidence_only"
+      ],
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
+      "macro_policy": "fallback_candidate_only_until_local_anchor_review",
+      "data_quality_posture": "external_government_dataset",
+      "promotion_requires": [
+        "fdc_id_and_data_type_preserved",
+        "food_matching_review",
+        "locale_fallback_reason",
+        "unit_denominator_preserved",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "taiwan_local_exact_identity",
+        "generic_anchor_without_food_matching_review"
+      ]
+    },
+    "existing_repo_seed": {
+      "default_source_role": "candidate_only",
+      "allowed_candidate_roles": [
+        "alias_coverage_prior"
+      ],
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
+      "macro_policy": "not_macro_truth",
+      "data_quality_posture": "legacy_repo_seed",
+      "promotion_requires": [
+        "replacement_with_source_backed_record",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "source_provenance_claim",
+        "macro_visibility"
+      ]
+    }
+  },
   "sources": [
     {
       "source_id": "tfda_fda_food_nutrition_2024",
       "filename": "FDA_food_nutrition_2024.xlsx",
       "source_class": "taiwan_tfda_open_data",
+      "source_class_policy_ref": "taiwan_tfda_open_data",
       "source_role": "raw_source",
+      "candidate_role": "source_evidence_only",
       "intended_roles": [
         "generic_anchor",
         "listed_component_anchor"
       ],
+      "source_url_or_origin": "https://data.gov.tw/en/datasets/8543",
+      "license_or_terms": "Open Government Data License, version 1.0",
+      "macro_support": "per_100g_and_per_unit_source_evidence_candidate",
+      "promotion_requires": [
+        "source_record_id_preserved",
+        "per_100g_denominator_preserved",
+        "unit_or_weight_basis_preserved",
+        "serving_or_unit_mapping_review",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "exact_brand_identity_without_label",
+        "generic_common_serving_without_portion_mapping",
+        "macro_visibility_without_anchor_approval"
+      ],
       "runtime_truth": false,
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
       "notes": "TFDA/FDA nutrition Excel inventory only; not packet truth."
     },
     {
       "source_id": "tfda_tnfcds_consumer_detail",
       "filename": "tnfcds_consumer_detail.xlsx",
       "source_class": "taiwan_tfda_open_data",
+      "source_class_policy_ref": "taiwan_tfda_open_data",
       "source_role": "raw_source",
+      "candidate_role": "source_evidence_only",
       "intended_roles": [
         "generic_anchor",
         "listed_component_anchor"
       ],
+      "source_url_or_origin": "https://data.gov.tw/en/datasets/8543",
+      "license_or_terms": "Open Government Data License, version 1.0",
+      "macro_support": "per_100g_and_per_unit_source_evidence_candidate",
+      "promotion_requires": [
+        "source_record_id_preserved",
+        "per_100g_denominator_preserved",
+        "unit_or_weight_basis_preserved",
+        "serving_or_unit_mapping_review",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "exact_brand_identity_without_label",
+        "generic_common_serving_without_portion_mapping",
+        "macro_visibility_without_anchor_approval"
+      ],
       "runtime_truth": false,
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
       "notes": "TNFCDS consumer detail raw/staging source inventory only."
     },
     {
       "source_id": "tfda_tnfcds_consumer_items",
       "filename": "tnfcds_consumer_items.xlsx",
       "source_class": "taiwan_tfda_open_data",
+      "source_class_policy_ref": "taiwan_tfda_open_data",
       "source_role": "raw_source",
+      "candidate_role": "source_evidence_only",
       "intended_roles": [
         "generic_anchor",
         "listed_component_anchor"
       ],
+      "source_url_or_origin": "https://data.gov.tw/en/datasets/8543",
+      "license_or_terms": "Open Government Data License, version 1.0",
+      "macro_support": "per_100g_and_per_unit_source_evidence_candidate",
+      "promotion_requires": [
+        "source_record_id_preserved",
+        "per_100g_denominator_preserved",
+        "unit_or_weight_basis_preserved",
+        "serving_or_unit_mapping_review",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "exact_brand_identity_without_label",
+        "generic_common_serving_without_portion_mapping",
+        "macro_visibility_without_anchor_approval"
+      ],
       "runtime_truth": false,
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
       "notes": "TNFCDS consumer items raw/staging source inventory only."
     },
     {
       "source_id": "newtaipei_brand_candidates",
       "filename": "newtaipei_brand_candidates.json",
       "source_class": "official_brand_chain_page",
+      "source_class_policy_ref": "official_brand_chain_page",
       "source_role": "staging_candidate_only",
+      "candidate_role": "exact_item_candidate",
       "intended_roles": [
         "exact_card_candidate"
       ],
+      "source_url_or_origin": "local_staged_official_brand_page_extract",
+      "license_or_terms": "source-specific official page terms; manual audit required",
+      "macro_support": "label_macro_candidate_if_source_provides_it",
+      "promotion_requires": [
+        "official_identity_match",
+        "serving_size_or_denominator_preserved",
+        "kcal_and_macro_label_audit",
+        "source_freshness_recorded",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "near_match_brand_substitution",
+        "generic_anchor_without_separate_serving_mapping"
+      ],
       "runtime_truth": false,
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
       "notes": "Official page-derived brand candidates only; no runtime truth."
     },
     {
       "source_id": "local_tw_packaged_extract_188_2",
       "filename": "188_2.csv",
       "source_class": "local_taiwan_packaged_extract",
+      "source_class_policy_ref": "local_taiwan_packaged_extract",
       "source_role": "staging_candidate_only",
+      "candidate_role": "exact_item_candidate",
       "intended_roles": [
         "exact_card_candidate"
       ],
+      "source_url_or_origin": "local_staged_packaged_product_extract",
+      "license_or_terms": "source-specific label or page terms; manual audit required",
+      "macro_support": "extracted_label_macro_candidate_if_source_provides_it",
+      "promotion_requires": [
+        "original_label_or_official_page_ref",
+        "serving_size_or_denominator_preserved",
+        "extract_quality_review",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "official_source_claim_without_source_ref",
+        "macro_visibility_without_label_audit"
+      ],
       "runtime_truth": false,
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
       "notes": "Local extracted CSV packaged-product trace only; candidate review only and never runtime truth in this slice."
     },
     {
       "source_id": "openfoodfacts_taiwan_small",
       "filename": "openfoodfacts_taiwan_small.json",
       "source_class": "open_food_facts",
+      "source_class_policy_ref": "open_food_facts",
       "source_role": "raw_source",
+      "candidate_role": "user_contributed_packaged_candidate",
       "intended_roles": [
         "packaged_candidate"
       ],
+      "source_url_or_origin": "https://openfoodfacts.github.io/documentation/docs/Product-Opener/api/",
+      "license_or_terms": "Open Database License; contents license; user-contributed data",
+      "macro_support": "user_contributed_macro_candidate_only",
+      "promotion_requires": [
+        "barcode_or_product_identity_match",
+        "manual_source_audit",
+        "serving_size_or_100g_denominator_preserved",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "official_label_claim_without_review",
+        "macro_visibility_without_manual_audit"
+      ],
       "runtime_truth": false,
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
       "notes": "OpenFoodFacts Taiwan sample inventory only."
     },
     {
       "source_id": "usda_food_list_sample",
       "filename": "usda_food_list_sample.json",
       "source_class": "usda_fallback",
+      "source_class_policy_ref": "usda_fallback",
       "source_role": "raw_source",
+      "candidate_role": "fallback_source_evidence_only",
       "intended_roles": [
         "fallback_anchor"
       ],
+      "source_url_or_origin": "https://fdc.nal.usda.gov/index.html",
+      "license_or_terms": "U.S. public-domain FoodData Central records",
+      "macro_support": "source_macro_candidate_only_with_data_type_preserved",
+      "promotion_requires": [
+        "fdc_id_and_data_type_preserved",
+        "food_matching_review",
+        "locale_fallback_reason",
+        "unit_denominator_preserved",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "taiwan_local_exact_identity",
+        "generic_anchor_without_food_matching_review"
+      ],
       "runtime_truth": false,
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
       "notes": "USDA fallback sample inventory only."
     },
     {
       "source_id": "base_nutrition_db",
       "filename": "base_nutrition_db.json",
       "source_class": "existing_repo_seed",
+      "source_class_policy_ref": "existing_repo_seed",
       "source_role": "candidate_only",
+      "candidate_role": "alias_coverage_prior",
       "intended_roles": [
         "alias_coverage_prior"
       ],
+      "source_url_or_origin": "repo_existing_seed",
+      "license_or_terms": "repo-local legacy seed; replace with source-backed records before promotion",
+      "macro_support": "not_macro_truth",
+      "promotion_requires": [
+        "replacement_with_source_backed_record",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "source_provenance_claim",
+        "macro_visibility"
+      ],
       "runtime_truth": false,
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
       "notes": "Existing repo seed used as alias coverage prior only."
     },
     {
       "source_id": "tfda_base_candidates",
       "filename": "tfda_base_candidates.json",
       "source_class": "taiwan_tfda_open_data",
+      "source_class_policy_ref": "taiwan_tfda_open_data",
       "source_role": "staging_candidate_only",
+      "candidate_role": "generic_anchor_candidate",
       "intended_roles": [
         "generic_anchor",
         "listed_component_anchor"
       ],
+      "source_url_or_origin": "https://data.gov.tw/en/datasets/8543",
+      "license_or_terms": "Open Government Data License, version 1.0",
+      "macro_support": "per_100g_and_per_unit_source_evidence_candidate",
+      "promotion_requires": [
+        "source_record_id_preserved",
+        "per_100g_denominator_preserved",
+        "unit_or_weight_basis_preserved",
+        "serving_or_unit_mapping_review",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "exact_brand_identity_without_label",
+        "generic_common_serving_without_portion_mapping",
+        "macro_visibility_without_anchor_approval"
+      ],
       "runtime_truth": false,
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
       "notes": "Existing TFDA staging candidates only."
     },
     {
       "source_id": "tfda_base_review_candidates",
       "filename": "tfda_base_review_candidates.json",
       "source_class": "taiwan_tfda_open_data",
+      "source_class_policy_ref": "taiwan_tfda_open_data",
       "source_role": "staging_candidate_only",
+      "candidate_role": "generic_anchor_candidate",
       "intended_roles": [
         "generic_anchor",
         "listed_component_anchor"
       ],
+      "source_url_or_origin": "https://data.gov.tw/en/datasets/8543",
+      "license_or_terms": "Open Government Data License, version 1.0",
+      "macro_support": "per_100g_and_per_unit_source_evidence_candidate",
+      "promotion_requires": [
+        "source_record_id_preserved",
+        "per_100g_denominator_preserved",
+        "unit_or_weight_basis_preserved",
+        "serving_or_unit_mapping_review",
+        "fooddb_batch_approval"
+      ],
+      "do_not_use_for": [
+        "direct_runtime_truth",
+        "exact_brand_identity_without_label",
+        "generic_common_serving_without_portion_mapping",
+        "macro_visibility_without_anchor_approval"
+      ],
       "runtime_truth": false,
+      "runtime_truth_allowed_default": false,
+      "macro_truth_allowed_default": false,
       "notes": "Existing TFDA review staging candidates only."
     }
   ]
