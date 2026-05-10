@@ -254,6 +254,9 @@ def _base_report(
         "launchpad_page_loaded": False,
         "launchpad_navigation_checked": False,
         "launchpad_navigation_values": {},
+        "launchpad_local_debug_session_established": False,
+        "protected_pages_cookie_only_checked": False,
+        "protected_pages_cookie_only_values": {},
         "launchpad_non_claims": dict(LAUNCHPAD_NON_CLAIMS),
         "chat_page_loaded": False,
         "chat_sent_cjk_message": False,
@@ -570,6 +573,32 @@ def _open_page(
     page = browser.new_page(viewport=viewport)
     _install_fetch_recorder(page)
     page.add_init_script(f"window.LOCAL_DEBUG_API_TOKEN = {json.dumps(local_debug_token)};")
+    page.goto(url, wait_until="networkidle", timeout=timeout_ms)
+    return page
+
+
+def _open_context_page(
+    context: Any,
+    *,
+    url: str,
+    timeout_ms: int,
+    local_debug_token: str,
+) -> Any:
+    page = context.new_page()
+    _install_fetch_recorder(page)
+    page.add_init_script(f"window.LOCAL_DEBUG_API_TOKEN = {json.dumps(local_debug_token)};")
+    page.goto(url, wait_until="networkidle", timeout=timeout_ms)
+    return page
+
+
+def _open_context_page_without_token_injection(
+    context: Any,
+    *,
+    url: str,
+    timeout_ms: int,
+) -> Any:
+    page = context.new_page()
+    _install_fetch_recorder(page)
     page.goto(url, wait_until="networkidle", timeout=timeout_ms)
     return page
 
@@ -1762,32 +1791,118 @@ def _run_data_hygiene_sequence(
     return result
 
 
+def _run_protected_pages_cookie_only_sequence(
+    context: Any,
+    *,
+    base_url: str,
+    user_external_id: str,
+    local_date: str,
+    timeout_ms: int,
+) -> dict[str, Any]:
+    result = {
+        "protected_pages_cookie_only_checked": False,
+        "protected_pages_cookie_only_values": {
+            "feedback": False,
+            "feedback_api_posted": False,
+            "review": False,
+            "data": False,
+            "window_token_used": False,
+            "token_in_url": False,
+            "forbidden_storage_used": False,
+        },
+        "fetch_sequence": [],
+    }
+    page_checks = {
+        "feedback": ('[data-surface-role="dogfood-feedback"]', "#feedback-status"),
+        "review": ('[data-surface-role="dogfood-review-queue"]', "#queue-status"),
+        "data": ('[data-surface-role="local-data-hygiene"]', "#hygiene-status"),
+    }
+    for page_name, (surface_selector, ready_selector) in page_checks.items():
+        page = _open_context_page_without_token_injection(
+            context,
+            url=_page_url(base_url, page_name, user_external_id=user_external_id, local_date=local_date),
+            timeout_ms=timeout_ms,
+        )
+        page.wait_for_selector(surface_selector, timeout=timeout_ms)
+        if page_name == "feedback":
+            page.fill("#trace-id", DEFAULT_FEEDBACK_TRACE_ID)
+            page.select_option("#category", "bug")
+            page.select_option("#severity", "low")
+            page.fill("#feedback-text", "Cookie-only protected API smoke.")
+            page.click("#submit-feedback")
+            page.wait_for_function(
+                """() => (document.querySelector("#feedback-status")?.textContent || "").includes("Captured feedback-")""",
+                timeout=timeout_ms,
+            )
+            result["protected_pages_cookie_only_values"]["feedback_api_posted"] = True
+        if page_name in {"review", "data"}:
+            page.wait_for_function(
+                """(selector) => document.querySelector(selector)?.textContent?.trim()
+                  && document.querySelector(selector)?.textContent?.trim() !== "--" """,
+                arg=ready_selector,
+                timeout=timeout_ms,
+            )
+        result["protected_pages_cookie_only_values"][page_name] = True
+        result["protected_pages_cookie_only_values"]["window_token_used"] = bool(
+            page.evaluate("""() => typeof window.LOCAL_DEBUG_API_TOKEN === "string" && window.LOCAL_DEBUG_API_TOKEN.length > 0""")
+        )
+        result["protected_pages_cookie_only_values"]["token_in_url"] = (
+            result["protected_pages_cookie_only_values"]["token_in_url"]
+            or "local_debug_token=" in page.url
+        )
+        storage = _storage_state(page)
+        result["protected_pages_cookie_only_values"]["forbidden_storage_used"] = (
+            result["protected_pages_cookie_only_values"]["forbidden_storage_used"]
+            or bool(storage.get("localStorageKeys"))
+            or bool(storage.get("sessionStorageKeys"))
+        )
+        result["fetch_sequence"].extend(_capture_fetches(page))
+        page.close()
+    result["protected_pages_cookie_only_checked"] = all(
+        result["protected_pages_cookie_only_values"].get(page_name) is True
+        for page_name in ("feedback", "feedback_api_posted", "review", "data")
+    ) and all(
+        result["protected_pages_cookie_only_values"].get(field) is False
+        for field in ("window_token_used", "token_in_url", "forbidden_storage_used")
+    )
+    return result
+
+
 def _run_launchpad_sequence(
-    browser: Any,
+    context: Any,
     *,
     base_url: str,
     user_external_id: str,
     local_date: str,
     timeout_ms: int,
     local_debug_token: str,
-    viewport: dict[str, int],
 ) -> dict[str, Any]:
     result: dict[str, Any] = {
         "launchpad_page_loaded": False,
         "launchpad_navigation_checked": False,
         "launchpad_navigation_values": {},
+        "launchpad_local_debug_session_established": False,
+        "protected_pages_cookie_only_checked": False,
+        "protected_pages_cookie_only_values": {},
         "launchpad_non_claims": dict(LAUNCHPAD_NON_CLAIMS),
         "fetch_sequence": [],
         "page_text": "",
     }
-    launchpad = _open_page(
-        browser,
-        viewport=viewport,
+    launchpad = _open_context_page(
+        context,
         url=_page_url(base_url, "local-shell", user_external_id=user_external_id, local_date=local_date),
         timeout_ms=timeout_ms,
         local_debug_token=local_debug_token,
     )
     launchpad.wait_for_selector('[data-entry-role="desktop-dogfood-launchpad"]', timeout=timeout_ms)
+    launchpad.fill("#local-debug-token", local_debug_token)
+    with launchpad.expect_response(
+        lambda response: "/accurate-intake/local-debug-session" in response.url
+        and response.request.method == "POST"
+        and response.status == 204,
+        timeout=timeout_ms,
+    ):
+        launchpad.evaluate("() => window.establishLocalDebugSessionForSmoke?.()")
     launchpad.wait_for_function(
         """({ userExternalId, localDate }) => {
           const links = Array.from(document.querySelectorAll("[data-entry-target]"));
@@ -1802,10 +1917,11 @@ def _run_launchpad_sequence(
         timeout=timeout_ms,
     )
     result["launchpad_page_loaded"] = True
+    result["launchpad_local_debug_session_established"] = True
     values = _launchpad_navigation_values(launchpad, user_external_id=user_external_id, local_date=local_date)
     result["launchpad_navigation_values"] = values
     result["launchpad_navigation_checked"] = all(
-        values.get(target) is True for target in ("chat", "today", "body", "feedback", "data")
+        values.get(target) is True for target in ("chat", "today", "body", "feedback", "review", "data")
     )
     result["launchpad_non_claims"] = {
         "frontend_semantic_owner": (
@@ -1894,21 +2010,43 @@ def _run_browser_sequence(
             storage_keys = {"localStorageKeys": [], "sessionStorageKeys": []}
             page_texts: list[str] = []
 
-            result["current_step"] = "open_launchpad"
-            launchpad_result = _run_launchpad_sequence(
-                browser,
-                base_url=base_url,
-                user_external_id=user_external_id,
-                local_date=local_date,
-                timeout_ms=timeout_ms,
-                local_debug_token=local_debug_token,
-                viewport=desktop_viewport,
-            )
-            result["launchpad_page_loaded"] = launchpad_result["launchpad_page_loaded"]
-            result["launchpad_navigation_checked"] = launchpad_result["launchpad_navigation_checked"]
-            result["launchpad_navigation_values"] = launchpad_result["launchpad_navigation_values"]
-            result["launchpad_non_claims"] = launchpad_result["launchpad_non_claims"]
-            result["fetch_sequence"].extend(launchpad_result["fetch_sequence"])
+            debug_session_context = browser.new_context(viewport=desktop_viewport)
+            try:
+                result["current_step"] = "open_launchpad"
+                launchpad_result = _run_launchpad_sequence(
+                    debug_session_context,
+                    base_url=base_url,
+                    user_external_id=user_external_id,
+                    local_date=local_date,
+                    timeout_ms=timeout_ms,
+                    local_debug_token=local_debug_token,
+                )
+                result["launchpad_page_loaded"] = launchpad_result["launchpad_page_loaded"]
+                result["launchpad_navigation_checked"] = launchpad_result["launchpad_navigation_checked"]
+                result["launchpad_navigation_values"] = launchpad_result["launchpad_navigation_values"]
+                result["launchpad_local_debug_session_established"] = launchpad_result[
+                    "launchpad_local_debug_session_established"
+                ]
+                result["launchpad_non_claims"] = launchpad_result["launchpad_non_claims"]
+                result["fetch_sequence"].extend(launchpad_result["fetch_sequence"])
+
+                result["current_step"] = "protected_pages_cookie_only_check"
+                protected_pages_result = _run_protected_pages_cookie_only_sequence(
+                    debug_session_context,
+                    base_url=base_url,
+                    user_external_id=user_external_id,
+                    local_date=local_date,
+                    timeout_ms=timeout_ms,
+                )
+                result["protected_pages_cookie_only_checked"] = protected_pages_result[
+                    "protected_pages_cookie_only_checked"
+                ]
+                result["protected_pages_cookie_only_values"] = protected_pages_result[
+                    "protected_pages_cookie_only_values"
+                ]
+                result["fetch_sequence"].extend(protected_pages_result["fetch_sequence"])
+            finally:
+                debug_session_context.close()
 
             result["current_step"] = "open_chat"
             chat = _open_page(
@@ -2688,6 +2826,11 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("browser_executed", "browser_not_executed")
     require_true("launchpad_page_loaded", "launchpad_page_not_loaded")
     require_true("launchpad_navigation_checked", "launchpad_navigation_not_checked")
+    require_true(
+        "launchpad_local_debug_session_established",
+        "launchpad_local_debug_session_not_established",
+    )
+    require_true("protected_pages_cookie_only_checked", "protected_pages_cookie_only_not_checked")
     require_true("chat_page_loaded", "chat_page_not_loaded")
     require_true("chat_sent_cjk_message", "chat_cjk_message_not_sent")
     require_true("chat_assistant_bubble_rendered", "chat_assistant_bubble_not_rendered")
@@ -2803,9 +2946,16 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
 
     browser = dict(report.get("browser") or {})
     launchpad_values = dict(report.get("launchpad_navigation_values") or {})
-    for target in ("chat", "today", "body", "feedback", "data"):
+    for target in ("chat", "today", "body", "feedback", "review", "data"):
         if launchpad_values.get(target) is not True:
             blockers.append(f"launchpad_navigation_not_preserved:{target}")
+    cookie_only_values = dict(report.get("protected_pages_cookie_only_values") or {})
+    for page_name in ("feedback", "feedback_api_posted", "review", "data"):
+        if cookie_only_values.get(page_name) is not True:
+            blockers.append(f"protected_page_cookie_only_failed:{page_name}")
+    for field in ("window_token_used", "token_in_url", "forbidden_storage_used"):
+        if cookie_only_values.get(field) is True:
+            blockers.append(f"protected_page_cookie_only_overclaim:{field}")
     launchpad_non_claims = dict(report.get("launchpad_non_claims") or {})
     for field, expected_value in LAUNCHPAD_NON_CLAIMS.items():
         if launchpad_non_claims.get(field) != expected_value:

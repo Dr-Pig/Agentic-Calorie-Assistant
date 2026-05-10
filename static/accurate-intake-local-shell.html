@@ -607,6 +607,7 @@
       }
       return true;
     }
+    window.establishLocalDebugSessionForSmoke = establishLocalDebugSession;
 
     function setSyncStatus(value) {
       el("sync-status").textContent = `sync: ${value}`;
