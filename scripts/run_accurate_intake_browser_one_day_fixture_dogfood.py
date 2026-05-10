@@ -25,6 +25,7 @@ from app.composition.dogfood_review_queue import (  # noqa: E402
     build_dogfood_review_queue_artifact,
     read_desktop_feedback_records,
 )
+from app.composition.local_dogfood_data_hygiene import classify_local_dogfood_db  # noqa: E402
 from app.budget.interface.today_surface import resolve_today_local_date  # noqa: E402
 from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
     BrowserSmokeDependencyMissing,
@@ -42,6 +43,7 @@ from scripts.run_accurate_intake_one_day_realistic_web_dogfood import (  # noqa:
 
 DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_browser_one_day_fixture.sqlite3"
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_browser_one_day_fixture_dogfood.json"
+DIAGNOSTIC_ARTIFACT_ROOT = ROOT / ".pytest_tmp_local" / "accurate_intake_browser_one_day_fixture_dogfood"
 USER_EXTERNAL_ID = DOGFOOD_USER_EXTERNAL_ID
 LOCAL_DATE = resolve_today_local_date(None)
 NOT_CLAIMING = [
@@ -129,6 +131,12 @@ def _base_report(*, db_path: Path, browser_execution_required: bool) -> dict[str
         "web_readiness_claimed": False,
         "browser": {},
     }
+
+
+def _diagnostic_sidecar_root(db_path: Path) -> Path:
+    if classify_local_dogfood_db(db_path).get("real_dogfood_data") is True:
+        return DIAGNOSTIC_ARTIFACT_ROOT / secrets.token_hex(4)
+    return db_path.parent
 
 
 def _run_browser_sequence(
@@ -695,8 +703,9 @@ def build_browser_one_day_fixture_dogfood_report(
     local_debug_token = secrets.token_urlsafe(24)
     previous_debug_token = os.environ.get("LOCAL_DEBUG_API_TOKEN")
     os.environ["LOCAL_DEBUG_API_TOKEN"] = local_debug_token
-    feedback_dir = db_path.parent / f"feedback_{secrets.token_hex(4)}"
-    data_hygiene_dir = db_path.parent / f"data_{secrets.token_hex(4)}"
+    sidecar_root = _diagnostic_sidecar_root(db_path)
+    feedback_dir = sidecar_root / f"feedback_{secrets.token_hex(4)}"
+    data_hygiene_dir = sidecar_root / f"data_{secrets.token_hex(4)}"
     review_queue_artifact_path = data_hygiene_dir / "accurate_intake_dogfood_review_queue.json"
     report["feedback_store_path"] = str(feedback_dir / "accurate_intake_dogfood_feedback.jsonl")
     report["review_queue_artifact_path"] = str(review_queue_artifact_path)

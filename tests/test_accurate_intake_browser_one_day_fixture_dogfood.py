@@ -249,6 +249,48 @@ def test_browser_one_day_fixture_uses_desktop_launcher_app_builder(
     assert built_paths == [db_path.resolve()]
 
 
+def test_browser_one_day_fixture_keeps_persistent_db_sidecars_out_of_real_dogfood_dir(
+    monkeypatch,
+) -> None:
+    captured: dict[str, Path] = {}
+
+    class FakeServer:
+        should_exit = False
+
+    class FakeThread:
+        def join(self, timeout: float | None = None) -> None:
+            return None
+
+    def fake_run_browser_sequence(**kwargs: object) -> dict[str, object]:
+        captured["feedback_dir"] = Path(kwargs["feedback_dir"])
+        captured["review_queue_artifact_path"] = Path(kwargs["review_queue_artifact_path"])
+        captured["backup_dir"] = Path(module.local_data_hygiene_routes.DOGFOOD_BACKUP_DIR)
+        captured["export_dir"] = Path(module.local_data_hygiene_routes.DOGFOOD_EXPORT_DIR)
+        return _passing_browser_result()
+
+    monkeypatch.setattr(module, "_load_sync_playwright", lambda: object())
+    monkeypatch.setattr(module, "_run_browser_sequence", fake_run_browser_sequence)
+    monkeypatch.setattr(module, "_run_uvicorn_in_thread", lambda _app, *, port: (FakeServer(), FakeThread()))
+    monkeypatch.setattr(module, "_wait_for_http", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(module, "build_realistic_manager_dogfood_report", lambda **_: _passing_manager_dogfood_report())
+    monkeypatch.setattr(module, "build_app_for_desktop_dogfood", lambda _db_path: object())
+    monkeypatch.setattr(module.secrets, "token_hex", lambda _n: "abc12345")
+
+    db_path = module.ROOT / "workspace_data" / "local_dogfood" / "accurate_intake.sqlite3"
+
+    report = module.build_browser_one_day_fixture_dogfood_report(db_path=db_path)
+
+    diagnostic_root = module.ROOT / ".pytest_tmp_local"
+    real_dogfood_dir = db_path.parent.resolve()
+    assert report["status"] == "browser_fixture_pass"
+    for path in captured.values():
+        resolved = path.resolve()
+        assert resolved.is_relative_to(diagnostic_root.resolve())
+        assert not resolved.is_relative_to(real_dogfood_dir)
+    assert captured["feedback_dir"].name.startswith("feedback_")
+    assert captured["review_queue_artifact_path"].parent.name.startswith("data_")
+
+
 def test_browser_one_day_fixture_validator_requires_render_reload_data_export_and_no_storage() -> None:
     report = module._base_report(db_path=Path("x.sqlite3"), browser_execution_required=True)
     report["browser_executed"] = True
