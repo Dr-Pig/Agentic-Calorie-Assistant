@@ -168,7 +168,7 @@ def _build_chat_history_reload_gate_report(
     initial_engine, InitialSession = _session_factory(db_path)
     initial_provider = DeterministicSelfUseManagerProvider()
     initial_db = InitialSession()
-    initial_client = _build_test_client(initial_db, initial_provider)
+    initial_client = _build_test_client(InitialSession, initial_provider)
     try:
         initial_budget_response = initial_client.get("/today/current-budget", params={"user_id": user_external_id})
         initial_budget = _json(initial_budget_response)
@@ -197,7 +197,7 @@ def _build_chat_history_reload_gate_report(
     reload_engine, ReloadSession = _session_factory(db_path)
     reload_provider = DeterministicSelfUseManagerProvider()
     reload_db = ReloadSession()
-    reload_client = _build_test_client(reload_db, reload_provider)
+    reload_client = _build_test_client(ReloadSession, reload_provider)
     try:
         after_budget_response = reload_client.get("/today/current-budget", params={"user_id": user_external_id})
         after_debug_response = reload_client.get(

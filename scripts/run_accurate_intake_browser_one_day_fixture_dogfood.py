@@ -18,6 +18,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import NullPool
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -79,7 +80,11 @@ DEFAULT_FEEDBACK_TEXT = "One-day desktop dogfood loop smoke feedback."
 
 def _session_factory(db_path: Path) -> tuple[Any, sessionmaker[Session]]:
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    engine = create_engine(f"sqlite:///{db_path.as_posix()}", connect_args={"check_same_thread": False})
+    engine = create_engine(
+        f"sqlite:///{db_path.as_posix()}",
+        connect_args={"check_same_thread": False},
+        poolclass=NullPool,
+    )
     Base.metadata.create_all(bind=engine)
     return engine, sessionmaker(bind=engine, autocommit=False, autoflush=False)
 

@@ -6,6 +6,7 @@ import json
 import os
 import secrets
 import sys
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -20,13 +21,21 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.composition import intake_routes
-from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
-from app.database import get_db, get_or_create_user
-from app.models import Base
-from app.routes import router
-from app.runtime.interface.local_debug_auth import LOCAL_DEBUG_API_TOKEN_ENV, LOCAL_DEBUG_API_TOKEN_HEADER
-from scripts.run_accurate_intake_mvp_manager_style_smoke import DeterministicSelfUseManagerProvider
+from app.composition import intake_routes  # noqa: E402
+from app.composition.onboarding_service import (  # noqa: E402
+    OnboardingBootstrapInput,
+    bootstrap_body_plan_for_date,
+)
+from app.database import get_db, get_or_create_user  # noqa: E402
+from app.models import Base  # noqa: E402
+from app.routes import router  # noqa: E402
+from app.runtime.interface.local_debug_auth import (  # noqa: E402
+    LOCAL_DEBUG_API_TOKEN_ENV,
+    LOCAL_DEBUG_API_TOKEN_HEADER,
+)
+from scripts.run_accurate_intake_mvp_manager_style_smoke import (  # noqa: E402
+    DeterministicSelfUseManagerProvider,
+)
 
 DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_local_web_shell_bridge.sqlite3"
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_local_web_shell_bridge.json"
@@ -66,7 +75,7 @@ def _seed_body_plan(db: Session, *, user_external_id: str, local_date: str) -> N
     )
 
 
-def _build_test_client(db: Session, provider: DeterministicSelfUseManagerProvider) -> TestClient:
+def _build_test_client(SessionLocal: Callable[[], Session], provider: DeterministicSelfUseManagerProvider) -> TestClient:
     previous_manager_provider = intake_routes.manager_provider
     previous_search_provider = intake_routes.search_provider
     previous_extract_provider = intake_routes.extract_provider
@@ -80,7 +89,11 @@ def _build_test_client(db: Session, provider: DeterministicSelfUseManagerProvide
         app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 
         def override_get_db():
-            yield db
+            db = SessionLocal()
+            try:
+                yield db
+            finally:
+                db.close()
 
         app.dependency_overrides[get_db] = override_get_db
         client = TestClient(app)
@@ -180,7 +193,7 @@ def build_local_web_shell_bridge_report(
     client: TestClient | None = None
     try:
         with _local_debug_headers() as debug_headers:
-            client = _build_test_client(db, provider)
+            client = _build_test_client(SessionLocal, provider)
             initial_budget_response = client.get("/today/current-budget", params={"user_id": user_external_id})
             initial_budget = _json(initial_budget_response)
             backend_local_date = str(initial_budget.get("local_date") or "")

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import fields
+import logging
+import threading
 from types import SimpleNamespace
 
 import pytest
@@ -78,6 +80,47 @@ def test_exact_item_search_accepts_injected_engine(monkeypatch) -> None:
     finally:
         exact_item_search._load_cards.cache_clear()
         exact_item_search._cards_by_id.cache_clear()
+
+
+def test_exact_item_search_local_seed_engine_disposes_after_worker_thread_use(
+    monkeypatch,
+    caplog,
+) -> None:
+    exact_item_search._load_cards.cache_clear()
+    exact_item_search._cards_by_id.cache_clear()
+    exact_item_search._local_seed_engine.cache_clear()
+
+    def _fake_loader() -> list[dict[str, object]]:
+        return [
+            {
+                "card_id": "card-1",
+                "title": "Test Drink",
+                "aliases": ["Test Drink"],
+                "brand": "Test Brand",
+                "kcal": 123,
+                "protein_g": 1,
+                "carb_g": 2,
+                "fat_g": 3,
+                "serving_basis": "one bottle",
+            }
+        ]
+
+    monkeypatch.setattr(exact_item_search, "load_exact_item_card_seed_records", _fake_loader)
+    caplog.set_level(logging.ERROR, logger="sqlalchemy.pool")
+
+    try:
+        worker = threading.Thread(target=lambda: exact_item_search.resolve_exact_item_fts("Test Drink"))
+        worker.start()
+        worker.join(timeout=5)
+
+        assert not worker.is_alive()
+        exact_item_search._local_seed_engine().dispose()
+        assert "Exception closing connection" not in caplog.text
+    finally:
+        exact_item_search._local_seed_engine().dispose()
+        exact_item_search._load_cards.cache_clear()
+        exact_item_search._cards_by_id.cache_clear()
+        exact_item_search._local_seed_engine.cache_clear()
 
 
 def test_small_anchor_store_anchor_record_conversion_is_cached(monkeypatch) -> None:

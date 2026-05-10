@@ -339,6 +339,51 @@ def test_browser_realistic_v2_cli_writes_blocked_artifact_without_optional_failu
     assert artifact["status"] == "blocked"
 
 
+def test_browser_realistic_v2_app_uses_request_scoped_db_sessions() -> None:
+    provider = module._BrowserRealisticManagerProvider()
+    created: list[FakeSession] = []
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    def fake_session_factory() -> FakeSession:
+        session = FakeSession()
+        created.append(session)
+        return session
+
+    app = module._build_app(fake_session_factory, provider)  # type: ignore[arg-type]
+    override_get_db = app.dependency_overrides[module.get_db]
+
+    first_dependency = override_get_db()
+    second_dependency = override_get_db()
+    first_session = next(first_dependency)
+    second_session = next(second_dependency)
+
+    assert first_session is created[0]
+    assert second_session is created[1]
+    assert first_session is not second_session
+    with pytest.raises(StopIteration):
+        next(first_dependency)
+    with pytest.raises(StopIteration):
+        next(second_dependency)
+    assert first_session.closed is True
+    assert second_session.closed is True
+
+
+def test_browser_realistic_v2_session_factory_uses_null_pool_for_threaded_browser_teardown(
+    tmp_path: Path,
+) -> None:
+    engine, _SessionLocal = module._session_factory(tmp_path / "realistic.sqlite3")
+    try:
+        assert engine.pool.__class__.__name__ == "NullPool"
+    finally:
+        engine.dispose()
+
+
 def test_browser_realistic_v2_restores_debug_token_on_setup_failure(
     monkeypatch,
     tmp_path: Path,
