@@ -152,9 +152,10 @@ def test_advanced_shadow_live_bundle_runner_blocks_live_without_env(
         "provider_mode": "not_run",
         "output_guard_status": "not_run",
     }
-    assert terminal["surface_status_rows"][3]["finding"] == "live_diagnostic_not_run"
-    assert terminal["surface_status_rows"][4]["finding"] == "live_diagnostic_not_run"
-    assert terminal["surface_status_rows"][5]["finding"] == "live_diagnostic_not_run"
+    rows = {row["surface"]: row for row in terminal["surface_status_rows"]}
+    assert rows["recommendation_prompt_reason_copy"]["finding"] == "live_diagnostic_not_run"
+    assert rows["rescue_proposal_copy_posture"]["finding"] == "live_diagnostic_not_run"
+    assert rows["proactive_chat_copy_posture"]["finding"] == "live_diagnostic_not_run"
     assert terminal["product_readiness_claimed"] is False
     assert terminal["user_facing_behavior_changed"] is False
 
