@@ -78,6 +78,10 @@ EXPECTED_RUNTIME_VISIBLE_ANCHOR_IDS = {
     "generic_meal_gyudon",
     "stable_base_spicy_stinky_tofu",
     "rice_bowl_luroufan",
+    "generic_meal_pork_rib_bento",
+    "stable_base_curry_rice",
+    "stable_base_ramen",
+    "rice_bowl_salmon_don",
     "staple_dumplings",
     "staple_potstickers",
     "listed_item_oil_tofu",
@@ -200,7 +204,7 @@ def test_status_packet_reports_runtime_anchors_without_claiming_integration_read
     assert status["pl_ce_files_changed"] is False
     assert status["real_fooddb_evidence_available"] is True
     assert status["product_loop_integration_claimed"] is False
-    assert status["runtime_visible_anchor_count"] == 51
+    assert status["runtime_visible_anchor_count"] == 55
     assert set(status["runtime_visible_anchor_ids"]) == EXPECTED_RUNTIME_VISIBLE_ANCHOR_IDS
 
 

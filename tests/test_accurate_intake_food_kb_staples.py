@@ -28,6 +28,10 @@ SMALL_ANCHOR_PATH = ROOT / "app" / "knowledge" / "small_anchor_store_tw.json"
         ("\u6211\u5403\u4e86\u4e00\u500b\u98ef\u7cf0", "\u98ef\u7cf0", "ask_filling"),
         ("\u6211\u5403\u4e86\u4e09\u660e\u6cbb", "\u4e09\u660e\u6cbb", "ask_filling"),
         ("\u6211\u5403\u4e86\u4e00\u4efd\u6ef7\u8089\u98ef", "\u6ef7\u8089\u98ef", "ask_rice_portion"),
+        ("\u6211\u5403\u4e86\u6392\u9aa8\u4fbf\u7576", "\u6392\u9aa8\u4fbf\u7576", "ask_main_style"),
+        ("\u6211\u5403\u4e86\u5496\u54e9\u98ef", "\u5496\u54e9\u98ef", "ask_rice_portion"),
+        ("\u6211\u5403\u4e86\u62c9\u9eb5", "\u62c9\u9eb5", "ask_noodle_portion"),
+        ("\u6211\u5403\u4e86\u9bad\u9b5a\u89aa\u5b50\u4e3c", "\u9bad\u9b5a\u4e3c", "ask_rice_portion"),
         ("\u6211\u5403\u4e86\u6c34\u9903", "\u6c34\u9903", "ask_piece_count"),
         ("\u6211\u5403\u4e86\u4e00\u4efd\u934b\u8cbc", "\u934b\u8cbc", "ask_piece_count"),
         ("\u6211\u5403\u4e86\u4e00\u689d\u5730\u74dc", "\u5730\u74dc", "ask_size"),
@@ -87,6 +91,26 @@ def test_practical_staple_query_lookup_stays_non_authoritative() -> None:
             "\u8acb\u88dc\u5145\u98ef\u91cf\u3001\u7897\u578b\u6216\u52a0\u6599\u3002",
         ),
         (
+            "\u6211\u5403\u4e86\u6392\u9aa8\u4fbf\u7576",
+            "\u6392\u9aa8\u4fbf\u7576",
+            "\u8acb\u88dc\u5145\u4e3b\u83dc\u505a\u6cd5\u6216\u767d\u98ef\u4efd\u91cf\u3002",
+        ),
+        (
+            "\u6211\u5403\u4e86\u5496\u54e9\u98ef",
+            "\u5496\u54e9\u98ef",
+            "\u8acb\u88dc\u5145\u98ef\u91cf\u3001\u7897\u578b\u6216\u52a0\u6599\u3002",
+        ),
+        (
+            "\u6211\u5403\u4e86\u62c9\u9eb5",
+            "\u62c9\u9eb5",
+            "\u8acb\u88dc\u5145\u9eb5\u91cf\u3001\u52a0\u6599\u6216\u4efd\u91cf\u3002",
+        ),
+        (
+            "\u6211\u5403\u4e86\u9bad\u9b5a\u89aa\u5b50\u4e3c",
+            "\u9bad\u9b5a\u4e3c",
+            "\u8acb\u88dc\u5145\u98ef\u91cf\u3001\u7897\u578b\u6216\u52a0\u6599\u3002",
+        ),
+        (
             "\u6211\u5403\u4e86\u6c34\u9903",
             "\u6c34\u9903",
             "\u8acb\u88dc\u5145\u9846\u6578\u6216\u5167\u9921\u3002",
@@ -120,7 +144,8 @@ def test_practical_staple_packets_synthesize_to_anchor_estimate_with_refinement_
     assert consumption.accepted_packets[0]["accepted_usage"] == "anchor"
     item = manager_pass["item_results"][0]
     assert item["interpreted_food_identity"] == expected_name
-    assert item["exactness_posture"] == "estimated"
+    expected_posture = "provisional" if expected_name == "\u6392\u9aa8\u4fbf\u7576" else "estimated"
+    assert item["exactness_posture"] == expected_posture
     assert item["evidence_confidence"] == "moderate"
     assert item["evidence_used"][0]["usage"] == "anchor"
     assert item["suggested_followup_question"] == expected_question

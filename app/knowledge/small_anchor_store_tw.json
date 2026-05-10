@@ -4941,6 +4941,450 @@
         "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
         "external_source_role": "source_evidence_only_not_common_serving"
       }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_meal_pork_rib_bento",
+      "canonical_name": "\u6392\u9aa8\u4fbf\u7576",
+      "aliases": [
+        "\u6392\u9aa8\u4fbf\u7576",
+        "\u70b8\u6392\u9aa8\u4fbf\u7576",
+        "\u6ef7\u6392\u9aa8\u4fbf\u7576"
+      ],
+      "dish_type": "generic_meal",
+      "composition_posture": "estimable_generic_meal",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "bento",
+        "taiwan_lunch_dinner_staple"
+      ],
+      "followup_hints": [
+        "ask_main_style",
+        "ask_rice_portion"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        680,
+        980
+      ],
+      "baseline_likely_kcal": 820,
+      "major_modifiers": [
+        {
+          "name": "main_style",
+          "values": [
+            "fried",
+            "braised"
+          ]
+        },
+        {
+          "name": "rice_portion",
+          "values": [
+            "half",
+            "full",
+            "extra"
+          ]
+        }
+      ],
+      "composition_hints": [
+        "rice",
+        "pork_rib",
+        "side_dishes"
+      ],
+      "runtime_usage_boundary": "generic_range_estimate_only_not_exact",
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "box",
+        "portion_quantity": 1,
+        "label": "one generic pork rib bento",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "self_use_common_serving_batch_policy"
+        ]
+      },
+      "kcal_point": 820,
+      "kcal_range": [
+        680,
+        980
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_generic_meal_pork_rib_bento",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 820,
+          "kcal_range": [
+            680,
+            980
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "generic_meal_pork_rib_bento",
+        "raw_row_hash": "b24282c78571d4fe7724d01742717fcaee50a19f4a0680f902759a1dfa81cbfc"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "self_use_common_serving_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "self_use_common_serving_batch_approved",
+        "approval_scope": "current_shell_v1_common_taiwan_food_batch",
+        "policy_version": "fooddb_self_use_common_serving_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "reviewed_common_serving_baseline_range"
+      },
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "stable_base_curry_rice",
+      "canonical_name": "\u5496\u54e9\u98ef",
+      "aliases": [
+        "\u5496\u54e9\u98ef",
+        "\u65e5\u5f0f\u5496\u54e9\u98ef"
+      ],
+      "dish_type": "stable_base_variable_dish",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "rice_bowl",
+        "curry",
+        "taiwan_lunch_dinner_staple"
+      ],
+      "followup_hints": [
+        "ask_rice_portion",
+        "ask_bowl_size",
+        "ask_add_ons"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        650,
+        950
+      ],
+      "baseline_likely_kcal": 800,
+      "major_modifiers": [
+        {
+          "name": "rice_portion",
+          "values": [
+            "small",
+            "regular",
+            "large"
+          ]
+        },
+        {
+          "name": "protein_add_on",
+          "values": [
+            "none",
+            "chicken_cutlet",
+            "pork_cutlet",
+            "egg"
+          ]
+        }
+      ],
+      "composition_hints": [
+        "rice",
+        "curry_sauce",
+        "optional_protein"
+      ],
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "generic_common_serving",
+        "portion_quantity": 1,
+        "label": "one generic curry rice serving",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "self_use_common_serving_batch_policy"
+        ]
+      },
+      "kcal_point": 800,
+      "kcal_range": [
+        650,
+        950
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_stable_base_curry_rice",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 800,
+          "kcal_range": [
+            650,
+            950
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "stable_base_curry_rice",
+        "raw_row_hash": "cc036b31bcf25cdca7e96b2a69ffde545b65d6be717558b14484c2abcd4e55ae"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "self_use_common_serving_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "self_use_common_serving_batch_approved",
+        "approval_scope": "current_shell_v1_common_taiwan_food_batch",
+        "policy_version": "fooddb_self_use_common_serving_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "reviewed_common_serving_baseline_range"
+      },
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "stable_base_ramen",
+      "canonical_name": "\u62c9\u9eb5",
+      "aliases": [
+        "\u62c9\u9eb5",
+        "\u8c5a\u9aa8\u62c9\u9eb5",
+        "\u65e5\u5f0f\u62c9\u9eb5"
+      ],
+      "dish_type": "stable_base_variable_dish",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "high",
+      "semantic_hints": [
+        "noodle_soup",
+        "ramen",
+        "taiwan_lunch_dinner_staple"
+      ],
+      "followup_hints": [
+        "ask_noodle_portion",
+        "ask_add_ons",
+        "ask_portion"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        650,
+        1100
+      ],
+      "baseline_likely_kcal": 850,
+      "major_modifiers": [
+        {
+          "name": "noodle_portion",
+          "values": [
+            "small",
+            "regular",
+            "large",
+            "extra_noodle"
+          ]
+        },
+        {
+          "name": "add_ons",
+          "values": [
+            "egg",
+            "chashu",
+            "extra_chashu"
+          ]
+        }
+      ],
+      "composition_hints": [
+        "noodles",
+        "broth",
+        "protein",
+        "add_ons"
+      ],
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "bowl",
+        "portion_quantity": 1,
+        "label": "one generic ramen bowl",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "self_use_common_serving_batch_policy"
+        ]
+      },
+      "kcal_point": 850,
+      "kcal_range": [
+        650,
+        1100
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_stable_base_ramen",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 850,
+          "kcal_range": [
+            650,
+            1100
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "stable_base_ramen",
+        "raw_row_hash": "d91cfd6193111065f4f7e4b71cc40a9e02b1355f06c26cafe5550ae7fab6ce1b"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "self_use_common_serving_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "self_use_common_serving_batch_approved",
+        "approval_scope": "current_shell_v1_common_taiwan_food_batch",
+        "policy_version": "fooddb_self_use_common_serving_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "high_variance_customizable_drink_or_meal",
+        "range_basis": "reviewed_common_serving_baseline_range"
+      },
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "rice_bowl_salmon_don",
+      "canonical_name": "\u9bad\u9b5a\u4e3c",
+      "aliases": [
+        "\u9bad\u9b5a\u4e3c",
+        "\u9bad\u9b5a\u89aa\u5b50\u4e3c",
+        "\u9bad\u9b5a\u84cb\u98ef"
+      ],
+      "dish_type": "rice_bowl",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "rice_bowl",
+        "salmon",
+        "taiwan_lunch_dinner_staple"
+      ],
+      "followup_hints": [
+        "ask_rice_portion",
+        "ask_bowl_size",
+        "ask_add_ons"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        600,
+        950
+      ],
+      "baseline_likely_kcal": 760,
+      "major_modifiers": [
+        {
+          "name": "rice_portion",
+          "values": [
+            "small",
+            "regular",
+            "large"
+          ]
+        },
+        {
+          "name": "add_ons",
+          "values": [
+            "none",
+            "ikura",
+            "avocado",
+            "mayo"
+          ]
+        }
+      ],
+      "composition_hints": [
+        "rice",
+        "salmon",
+        "optional_add_ons"
+      ],
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "bowl",
+        "portion_quantity": 1,
+        "label": "one generic salmon don bowl",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "self_use_common_serving_batch_policy"
+        ]
+      },
+      "kcal_point": 760,
+      "kcal_range": [
+        600,
+        950
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_rice_bowl_salmon_don",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 760,
+          "kcal_range": [
+            600,
+            950
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "rice_bowl_salmon_don",
+        "raw_row_hash": "54d3da3021799d1f4aaf60887270d1585070efc88951a461904f269943cdcfbb"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "self_use_common_serving_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "self_use_common_serving_batch_approved",
+        "approval_scope": "current_shell_v1_common_taiwan_food_batch",
+        "policy_version": "fooddb_self_use_common_serving_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "reviewed_common_serving_baseline_range"
+      },
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     }
   ]
 }
