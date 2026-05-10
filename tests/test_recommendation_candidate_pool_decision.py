@@ -103,3 +103,22 @@ def test_pool_decision_has_no_runtime_or_serving_effects() -> None:
     assert result.live_search_used is False
     assert result.ranking_llm_invoked is False
     assert result.user_facing_behavior_changed is False
+
+
+def test_pool_decision_does_not_repeat_primary_candidate_as_backup() -> None:
+    from app.recommendation.application.candidate_quality_gate import (
+        decide_recommendation_candidate_pool,
+    )
+
+    result = decide_recommendation_candidate_pool(
+        [
+            _candidate("primary-1", availability_posture="available"),
+            _candidate("primary-1", availability_posture="available"),
+            _candidate("backup-1", availability_posture="unknown"),
+        ]
+    )
+
+    assert result.pool_decision == "primary_plus_backup"
+    assert result.primary_candidate_id == "primary-1"
+    assert result.backup_candidate_ids == ["backup-1"]
+    assert result.offer_candidate_ids == []

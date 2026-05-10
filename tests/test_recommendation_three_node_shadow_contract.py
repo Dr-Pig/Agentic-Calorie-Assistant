@@ -153,6 +153,35 @@ def test_three_node_guard_blocks_memory_projection_claim_drift() -> None:
     assert artifact["activation_flags"] == _false_activation_flags()
 
 
+def test_three_node_offer_blocks_duplicate_or_primary_backup_ids() -> None:
+    payload = build_fixture_recommendation_three_node_input()
+    payload["candidate_source_fixture"].append(
+        {
+            "candidate_id": "backup-1",
+            "title": "backup tofu bowl",
+            "estimated_kcal_range": {"min": 300, "max": 420},
+            "item_patterns": ["tofu"],
+            "hard_avoid_flags": [],
+            "source_refs": ["fixture:backup-1"],
+        }
+    )
+    payload["shadow_offer_packet_fixture"]["backup_candidate_ids"] = [
+        "golden-1",
+        "backup-1",
+        "backup-1",
+    ]
+
+    artifact = run_recommendation_three_node_shadow(payload)
+
+    assert artifact["status"] == "blocked"
+    assert artifact["blockers"] == [
+        "shadow_offer_packet_fixture.backup_matches_primary:golden-1",
+        "shadow_offer_packet_fixture.duplicate_backup_candidate_id:backup-1",
+    ]
+    assert artifact["shadow_offer_packet"] is None
+    assert artifact["activation_flags"] == _false_activation_flags()
+
+
 def _false_activation_flags() -> dict[str, bool]:
     return {
         "runtime_effect_allowed": False,

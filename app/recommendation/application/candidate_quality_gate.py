@@ -17,6 +17,8 @@ def evaluate_recommendation_candidate_quality(
     disqualifiers: list[str] = []
     signals: list[str] = []
 
+    if not candidate.candidate_id.strip():
+        disqualifiers.append("missing_candidate_id")
     if candidate.violates_negative_preference:
         disqualifiers.append("negative_preference")
     if not candidate.realistic_executable:
@@ -33,6 +35,12 @@ def evaluate_recommendation_candidate_quality(
         disqualifiers.append("invalid_kcal_estimate")
     if candidate.kcal_range_max is not None and candidate.kcal_range_max <= 0:
         disqualifiers.append("invalid_kcal_estimate")
+    if (
+        candidate.kcal_range_min is not None
+        and candidate.kcal_range_max is not None
+        and candidate.kcal_range_min > candidate.kcal_range_max
+    ):
+        disqualifiers.append("invalid_kcal_range")
     if candidate.evidence_posture in {"generic", "unknown"}:
         disqualifiers.append(f"{candidate.evidence_posture}_evidence_not_proactive")
     if _over_budget(candidate):
@@ -74,7 +82,7 @@ def decide_recommendation_candidate_pool(
     candidates: list[RecommendationCandidateQualityInput],
 ) -> RecommendationCandidatePoolDecisionResult:
     evaluations = [evaluate_recommendation_candidate_quality(item) for item in candidates]
-    passed = [item for item in evaluations if item.passed]
+    passed = _unique_passed_evaluations(evaluations)
     high = [item for item in passed if item.quality_tier == "high"]
     medium = [item for item in passed if item.quality_tier == "medium"]
     rejected_ids = [item.candidate_id for item in evaluations if not item.passed]
@@ -104,6 +112,19 @@ def decide_recommendation_candidate_pool(
         rejected_candidate_ids=rejected_ids,
         candidate_quality=evaluations,
     )
+
+
+def _unique_passed_evaluations(
+    evaluations: list[RecommendationCandidateQualityResult],
+) -> list[RecommendationCandidateQualityResult]:
+    seen: set[str] = set()
+    unique: list[RecommendationCandidateQualityResult] = []
+    for evaluation in evaluations:
+        if not evaluation.passed or evaluation.candidate_id in seen:
+            continue
+        seen.add(evaluation.candidate_id)
+        unique.append(evaluation)
+    return unique
 
 
 def _over_budget(candidate: RecommendationCandidateQualityInput) -> bool:

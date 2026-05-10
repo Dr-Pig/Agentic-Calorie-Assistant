@@ -172,3 +172,40 @@ def test_non_positive_kcal_candidate_is_rejected() -> None:
     assert result.passed is False
     assert result.proactive_intensity == "none"
     assert "invalid_kcal_estimate" in result.disqualifier_flags
+
+
+def test_invalid_identity_or_kcal_range_candidate_is_rejected() -> None:
+    blank_identity = evaluate_recommendation_candidate_quality(
+        RecommendationCandidateQualityInput(
+            candidate_id="",
+            title="Specific but unaddressable meal",
+            estimated_kcal=520,
+            remaining_budget_kcal=700,
+            evidence_posture="anchored",
+            availability_posture="available",
+            realistic_executable=True,
+            violates_negative_preference=False,
+            user_accessible=True,
+        )
+    )
+    inverted_range = evaluate_recommendation_candidate_quality(
+        RecommendationCandidateQualityInput(
+            candidate_id="c10",
+            title="Inverted range meal",
+            kcal_range_min=760,
+            kcal_range_max=580,
+            remaining_budget_kcal=700,
+            evidence_posture="anchored",
+            availability_posture="available",
+            realistic_executable=True,
+            violates_negative_preference=False,
+            user_accessible=True,
+        )
+    )
+
+    assert blank_identity.passed is False
+    assert blank_identity.proactive_intensity == "none"
+    assert "missing_candidate_id" in blank_identity.disqualifier_flags
+    assert inverted_range.passed is False
+    assert inverted_range.proactive_intensity == "none"
+    assert "invalid_kcal_range" in inverted_range.disqualifier_flags
