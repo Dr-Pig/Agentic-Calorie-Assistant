@@ -7,6 +7,8 @@ from app.memory.application.runtime_lab_retrieval_policy import (
     context_entry,
     is_stale_or_expired,
     negative_blocked_types,
+    requires_conflict_review,
+    scope_matches,
     token_estimate,
 )
 from app.memory.application.runtime_lab_store import RuntimeLabMemoryStore
@@ -26,7 +28,14 @@ def build_shadow_memory_context_pack(
     runtime_connected: bool = False,
 ) -> dict[str, Any]:
     records = store.list_candidates(scope_keys)
-    blocked_types, blocker_ids = negative_blocked_types(records)
+    eligible_blocker_records = [
+        record
+        for record in records
+        if scope_matches(record, scope_keys)
+        and not is_stale_or_expired(record)
+        and not requires_conflict_review(record)
+    ]
+    blocked_types, blocker_ids = negative_blocked_types(eligible_blocker_records)
     entries: list[dict[str, Any]] = []
     omissions: list[dict[str, str]] = []
     used_tokens = 0
@@ -35,8 +44,14 @@ def build_shadow_memory_context_pack(
         candidate = record["candidate"]
         candidate_id = str(candidate.get("candidate_id"))
         candidate_type = str(candidate.get("candidate_type"))
+        if not scope_matches(record, scope_keys):
+            omissions.append(_omission(candidate_id, "scope_mismatch"))
+            continue
         if is_stale_or_expired(record):
             omissions.append(_omission(candidate_id, "stale_or_expired"))
+            continue
+        if requires_conflict_review(record):
+            omissions.append(_omission(candidate_id, "conflict_review_required"))
             continue
         if candidate_type in blocked_types and candidate_id not in blocker_ids:
             omissions.append(_omission(candidate_id, "blocked_by_negative_preference"))
