@@ -71,6 +71,7 @@ PAGE_SURFACE_SELECTORS = {
     "review": '[data-surface-role="dogfood-review-queue"]',
     "data": '[data-surface-role="local-data-hygiene"]',
 }
+DESKTOP_ENTRY_SELECTOR = '[data-surface-role="desktop-dogfood-entry"]'
 DEFAULT_FEEDBACK_TRACE_ID = "one-day-dogfood-trace"
 DEFAULT_FEEDBACK_MESSAGE_ID = "one-day-dogfood-message"
 DEFAULT_FEEDBACK_TEXT = "One-day desktop dogfood loop smoke feedback."
@@ -199,7 +200,24 @@ def _run_browser_sequence(
         )
         _install_fetch_recorder(page)
         try:
-            page.goto(f"{base_url}/static/accurate-intake-local-shell.html", wait_until="networkidle", timeout=timeout_ms)
+            page.goto(
+                f"{base_url}/static/accurate-intake-desktop.html?user_id={USER_EXTERNAL_ID}&local_date={LOCAL_DATE}",
+                wait_until="networkidle",
+                timeout=timeout_ms,
+            )
+            page.wait_for_selector(DESKTOP_ENTRY_SELECTOR, timeout=timeout_ms)
+            page.fill("#local-debug-token", local_debug_token)
+            page.click("#establish-local-session")
+            page.wait_for_function(
+                """() => (document.querySelector("#entry-status")?.textContent || "").includes("Session connected")""",
+                timeout=timeout_ms,
+            )
+            desktop_entry = _desktop_entry_state(page)
+            page.goto(
+                f"{base_url}/static/accurate-intake-local-shell.html",
+                wait_until="networkidle",
+                timeout=timeout_ms,
+            )
             page.fill("#user-id", USER_EXTERNAL_ID)
             page.fill("#local-debug-token", local_debug_token)
             page.wait_for_function(
@@ -267,10 +285,32 @@ def _run_browser_sequence(
                 ],
                 "storage": storage,
                 "forbidden_storage_used": bool(storage["localStorageKeys"] or storage["sessionStorageKeys"]),
+                "desktop_entry": desktop_entry,
                 "desktop_loop": desktop_loop,
             }
         finally:
             browser.close()
+
+
+def _desktop_entry_state(page: Any) -> dict[str, Any]:
+    return page.evaluate(
+        """() => {
+          const links = {};
+          document.querySelectorAll("[data-nav-target]").forEach((link) => {
+            links[link.getAttribute("data-nav-target")] = link.getAttribute("href");
+          });
+          return {
+            surface_loaded: Boolean(document.querySelector('[data-surface-role="desktop-dogfood-entry"]')),
+            session_connected: (document.querySelector("#entry-status")?.textContent || "").includes("Session connected"),
+            token_in_url: window.location.href.includes("local_debug_token="),
+            storage_used: Boolean(
+              Object.keys(window.localStorage || {}).length ||
+              Object.keys(window.sessionStorage || {}).length
+            ),
+            links
+          };
+        }"""
+    )
 
 
 def _page_url(base_url: str, page: str, *, extra: dict[str, str] | None = None) -> str:
@@ -529,6 +569,19 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         blockers.append("storage_evidence_missing")
     if browser.get("forbidden_storage_used") is True:
         blockers.append("forbidden_storage_used")
+    desktop_entry = dict(browser.get("desktop_entry") or {})
+    if desktop_entry.get("surface_loaded") is not True:
+        blockers.append("desktop_entry_not_loaded")
+    if desktop_entry.get("session_connected") is not True:
+        blockers.append("desktop_entry_session_not_connected")
+    if desktop_entry.get("token_in_url") is True:
+        blockers.append("desktop_entry_local_debug_token_in_url")
+    if desktop_entry.get("storage_used") is True:
+        blockers.append("desktop_entry_forbidden_storage_used")
+    entry_links = dict(desktop_entry.get("links") or {})
+    for page_name in ("desktop", *PAGE_SURFACE_SELECTORS.keys()):
+        if page_name not in entry_links:
+            blockers.append(f"desktop_entry_link_missing:{page_name}")
     desktop_loop = dict(browser.get("desktop_loop") or {})
     page_navigation = dict(desktop_loop.get("page_navigation") or {})
     for page_name in PAGE_SURFACE_SELECTORS:

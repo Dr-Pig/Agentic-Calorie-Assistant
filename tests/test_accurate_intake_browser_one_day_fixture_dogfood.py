@@ -56,6 +56,21 @@ def _passing_browser_result() -> dict[str, object]:
     return {
         "browser_name": "chromium",
         "page_url": "http://127.0.0.1:1234/static/accurate-intake-local-shell.html",
+        "desktop_entry": {
+            "surface_loaded": True,
+            "session_connected": True,
+            "token_in_url": False,
+            "storage_used": False,
+            "links": {
+                "desktop": "/static/accurate-intake-desktop.html?user_id=dogfood-user-v2-diagnostic",
+                "chat": "/static/accurate-intake-chat.html?user_id=dogfood-user-v2-diagnostic",
+                "today": "/static/accurate-intake-today.html?user_id=dogfood-user-v2-diagnostic",
+                "body": "/static/accurate-intake-body.html?user_id=dogfood-user-v2-diagnostic",
+                "feedback": "/static/accurate-intake-feedback.html?user_id=dogfood-user-v2-diagnostic",
+                "review": "/static/accurate-intake-review.html?user_id=dogfood-user-v2-diagnostic",
+                "data": "/static/accurate-intake-data.html?user_id=dogfood-user-v2-diagnostic",
+            },
+        },
         "today_summary_rendered": True,
         "meal_threads_rendered": True,
         "correction_history_rendered": True,
@@ -184,6 +199,7 @@ def test_browser_one_day_fixture_uses_browser_fixture_status_not_dogfood_pass(
     assert report["manager_runtime_source"] == "one_day_realistic_web_dogfood"
     assert report["expected_today_summary"] == EXPECTED_MANAGER_DOGFOOD_TODAY
     assert report["browser"]["observed_today_summary"] == EXPECTED_MANAGER_DOGFOOD_TODAY
+    assert report["browser"]["desktop_entry"]["surface_loaded"] is True
     assert report["browser"]["desktop_loop"]["data_export_sidecars_included"] is True
     assert Path(report["review_queue_artifact_path"]).parent.name.startswith("data_")
     assert Path(report["feedback_store_path"]).parent.name.startswith("feedback_")

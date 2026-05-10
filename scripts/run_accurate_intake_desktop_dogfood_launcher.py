@@ -5,6 +5,8 @@ import json
 import os
 import secrets
 import sys
+import threading
+import webbrowser
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -50,7 +52,7 @@ def _repo_relative(path: Path) -> str:
 
 def _launch_url(*, host: str, port: int, user_id: str) -> str:
     query = urlencode({"user_id": user_id})
-    return f"http://{host}:{port}/static/accurate-intake-local-shell.html?{query}"
+    return f"http://{host}:{port}/static/accurate-intake-desktop.html?{query}"
 
 
 def build_launch_descriptor(
@@ -61,10 +63,12 @@ def build_launch_descriptor(
     db_path: Path,
     local_debug_token: str,
     server_started: bool = False,
+    browser_open_requested: bool = False,
 ) -> dict[str, Any]:
     return {
         "artifact_type": "accurate_intake_desktop_dogfood_launcher_descriptor",
         "status": "launch_descriptor_ready",
+        "entry_surface": "desktop_dogfood_hub",
         "host": host,
         "port": port,
         "user_id": user_id,
@@ -72,7 +76,17 @@ def build_launch_descriptor(
         "persistent_local_sqlite": True,
         "reset_db_default": False,
         "server_started": server_started,
+        "browser_open_requested": browser_open_requested,
         "launch_url": _launch_url(host=host, port=port, user_id=user_id),
+        "entry_pages": [
+            "desktop",
+            "chat",
+            "today",
+            "body",
+            "feedback",
+            "review",
+            "data",
+        ],
         "local_debug_token": local_debug_token,
         "local_debug_header": LOCAL_DEBUG_API_TOKEN_HEADER,
         "local_debug_token_in_url": False,
@@ -126,10 +140,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT_PATH))
     parser.add_argument("--local-debug-token", default="")
     parser.add_argument("--describe-only", action="store_true")
+    parser.add_argument("--no-open-browser", action="store_true")
     args = parser.parse_args(argv)
 
     db_path = Path(args.db_path)
     token = str(args.local_debug_token or "").strip() or secrets.token_urlsafe(24)
+    browser_open_requested = not bool(args.describe_only or args.no_open_browser)
     descriptor = build_launch_descriptor(
         host=str(args.host),
         port=int(args.port),
@@ -137,6 +153,7 @@ def main(argv: list[str] | None = None) -> int:
         db_path=db_path,
         local_debug_token=token,
         server_started=not bool(args.describe_only),
+        browser_open_requested=browser_open_requested,
     )
     _write_descriptor(Path(args.output), descriptor)
     print(json.dumps(descriptor, ensure_ascii=False, indent=2))
@@ -145,6 +162,8 @@ def main(argv: list[str] | None = None) -> int:
 
     os.environ[LOCAL_DEBUG_API_TOKEN_ENV] = token
     app = build_app_for_desktop_dogfood(db_path)
+    if browser_open_requested:
+        threading.Timer(1.0, lambda: webbrowser.open(descriptor["launch_url"])).start()
     uvicorn.run(app, host=str(args.host), port=int(args.port), log_level="info")
     return 0
 

@@ -20,14 +20,24 @@ def test_desktop_dogfood_launch_descriptor_uses_persistent_local_sqlite_and_laun
 
     assert descriptor["artifact_type"] == "accurate_intake_desktop_dogfood_launcher_descriptor"
     assert descriptor["status"] == "launch_descriptor_ready"
+    assert descriptor["entry_surface"] == "desktop_dogfood_hub"
     assert descriptor["host"] == "127.0.0.1"
     assert descriptor["port"] == 8765
     assert descriptor["db_path"] == "workspace_data/local_dogfood/accurate_intake.sqlite3"
     assert descriptor["persistent_local_sqlite"] is True
     assert descriptor["reset_db_default"] is False
     assert descriptor["launch_url"] == (
-        "http://127.0.0.1:8765/static/accurate-intake-local-shell.html?user_id=dogfood-user"
+        "http://127.0.0.1:8765/static/accurate-intake-desktop.html?user_id=dogfood-user"
     )
+    assert descriptor["entry_pages"] == [
+        "desktop",
+        "chat",
+        "today",
+        "body",
+        "feedback",
+        "review",
+        "data",
+    ]
     assert descriptor["local_debug_token"] == "test-token"
     assert descriptor["local_debug_header"] == "X-Local-Debug-Token"
     assert descriptor["local_debug_token_in_url"] is False
@@ -90,6 +100,7 @@ def test_desktop_dogfood_launcher_cli_prints_descriptor_without_starting_server(
     assert artifact == printed
     assert artifact["status"] == "launch_descriptor_ready"
     assert artifact["server_started"] is False
+    assert artifact["browser_open_requested"] is False
     assert artifact["db_path"].endswith(
         ".pytest_tmp_local/test_desktop_dogfood_launcher_0/accurate_intake.sqlite3"
     )
@@ -100,6 +111,6 @@ def test_self_use_runbook_documents_desktop_launcher_without_readiness_claim() -
 
     assert "run_accurate_intake_desktop_dogfood_launcher.py" in runbook
     assert "workspace_data/local_dogfood/accurate_intake.sqlite3" in runbook
-    assert "/static/accurate-intake-local-shell.html" in runbook
+    assert "/static/accurate-intake-desktop.html" in runbook
     assert "X-Local-Debug-Token" in runbook
     assert "does not approve private self-use" in runbook
