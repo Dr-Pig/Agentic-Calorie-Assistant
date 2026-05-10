@@ -131,6 +131,25 @@ def _product_loop_evidence() -> dict[str, object]:
             "fixture_evidence_used": True,
             "real_fooddb_pass_claimed": False,
         },
+        "one_day_realistic_dogfood": {
+            "one_day_realistic_web_dogfood": {
+                "status": "pass",
+                "live_provider_called": False,
+                "kimi_activated": False,
+                "production_db_touched": False,
+                "product_readiness_claimed": False,
+                "private_self_use_approved": False,
+                "real_fooddb_pass_claimed": False,
+                "dogfood_pass": False,
+                "blockers": [],
+                "evidence": {
+                    "approved_fooddb_evidence_fixture_used": True,
+                    "fooddb_evidence_used": True,
+                    "macro_present_evidence_seen": True,
+                    "macro_missing_evidence_seen": True,
+                },
+            }
+        },
         "operator_review": {
             "artifact_type": "accurate_intake_dogfood_operator_review_surface",
             "status": "browser_diagnostic_review_with_fixture_evidence_gap",
@@ -326,7 +345,6 @@ def test_default_repo_artifact_builds_from_tracked_exact_item_seed() -> None:
 
 def test_artifact_is_accepted_by_product_loop_handoff_validation_only() -> None:
     fooddb_artifact = build_approved_packet_ready_fooddb_artifact(
-        exact_item_cards=[_macro_complete_card()],
         artifact_path="artifacts/approved_packet_ready_fooddb_min1.json",
     )
 

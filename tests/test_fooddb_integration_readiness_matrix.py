@@ -1,9 +1,26 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from app.nutrition.application.fooddb_integration_readiness_matrix import (
     build_fooddb_integration_readiness_matrix,
+)
+from app.nutrition.application.approved_packet_ready_fooddb_artifact import (
+    build_approved_packet_ready_fooddb_artifact,
+)
+from app.nutrition.application.fooddb_manager_packet_smoke import (
+    build_fooddb_manager_packet_smoke,
+)
+from app.nutrition.application.fooddb_retrieval_policy import (
+    build_runtime_retrieval_records_from_small_anchor_payload,
+)
+from scripts.build_accurate_intake_product_loop_handoff_v3 import (
+    build_product_loop_handoff_v3,
+)
+from tests.test_accurate_intake_product_loop_handoff_v3 import (
+    _one_day_operator_review,
+    _product_loop_evidence,
 )
 
 
@@ -251,6 +268,121 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
     assert matrix["summary"]["draft"] == 0
     assert matrix["summary"]["missing"] == 0
     assert matrix["summary"]["next_required_slices"] == ["manager_fooddb_packet_seam_smoke"]
+
+
+def test_fooddb_integration_readiness_matrix_validates_current_shell_packet_handoff() -> None:
+    fooddb_artifact = build_approved_packet_ready_fooddb_artifact(
+        artifact_path="artifacts/approved_packet_ready_fooddb_min1.json"
+    )
+    handoff = build_product_loop_handoff_v3(
+        _product_loop_evidence(operator_review=_one_day_operator_review()),
+        fooddb_artifact=fooddb_artifact,
+    )
+    records = build_runtime_retrieval_records_from_small_anchor_payload(
+        json.loads(
+            Path("app/knowledge/small_anchor_store_tw.json").read_text(encoding="utf-8-sig")
+        )
+    )
+    packet_smoke = build_fooddb_manager_packet_smoke(
+        retrieval_records=records,
+        approved_packet_ready_artifact=fooddb_artifact,
+    )
+
+    matrix = build_fooddb_integration_readiness_matrix(
+        product_loop_handoff=handoff,
+        approved_packet_ready_artifact=fooddb_artifact,
+        fooddb_manager_packet_smoke=packet_smoke,
+    )
+
+    validation = matrix["current_shell_product_loop_fooddb_validation"]
+    assert validation["status"] == "validation_only_pass"
+    assert validation["next_allowed_fooddb_scope"] == (
+        "bounded_packet_contract_implementation_only"
+    )
+    assert validation["broad_fooddb_expansion_allowed"] is False
+    assert validation["runtime_truth_promotion_allowed"] is False
+    assert validation["live_or_websearch_probe_allowed"] is False
+    assert validation["source_handoff_status"] == (
+        "product_loop_handoff_ready_for_fdb_integration_validation"
+    )
+    assert validation["fooddb_contract_validation_source"] == (
+        "one_day_realistic_web_dogfood.evidence"
+    )
+    assert validation["approved_packet_ready_items"]["status"] == (
+        "approved_packet_ready_items_valid"
+    )
+    assert validation["approved_packet_ready_items"]["macro_visible_item_count"] == 1
+    assert validation["approved_packet_ready_items"]["macro_hidden_item_count"] == 2
+    assert validation["approved_manager_packet_smoke"]["approved_packet_ready_case_count"] == 3
+    assert validation["approved_manager_packet_smoke"]["raw_source_rows_included"] is False
+    assert validation["approved_manager_packet_smoke"]["full_fooddb_included"] is False
+    assert validation["blockers"] == []
+    assert "current_shell_product_loop_fooddb_validation" in matrix["summary"][
+        "validation_sections"
+    ]
+    assert matrix["summary"]["next_required_slices"] == [
+        "bounded_fooddb_contract_implementation_validation"
+    ]
+    assert matrix["runtime_truth_changed"] is False
+    assert matrix["mutation_changed"] is False
+    assert matrix["readiness_claimed"] is False
+
+
+def test_fooddb_integration_readiness_matrix_cli_accepts_product_loop_validation_inputs(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.build_accurate_intake_fooddb_integration_readiness_matrix import main
+
+    fooddb_artifact = build_approved_packet_ready_fooddb_artifact(
+        artifact_path=str(tmp_path / "approved_packet_ready_fooddb.json")
+    )
+    handoff = build_product_loop_handoff_v3(
+        _product_loop_evidence(operator_review=_one_day_operator_review()),
+        fooddb_artifact=fooddb_artifact,
+    )
+    records = build_runtime_retrieval_records_from_small_anchor_payload(
+        json.loads(
+            Path("app/knowledge/small_anchor_store_tw.json").read_text(encoding="utf-8-sig")
+        )
+    )
+    packet_smoke = build_fooddb_manager_packet_smoke(
+        retrieval_records=records,
+        approved_packet_ready_artifact=fooddb_artifact,
+    )
+    fooddb_path = tmp_path / "approved_packet_ready_fooddb.json"
+    handoff_path = tmp_path / "product_loop_handoff.json"
+    packet_smoke_path = tmp_path / "fooddb_manager_packet_smoke.json"
+    output_path = tmp_path / "fooddb_integration_readiness_matrix.json"
+    write_json_artifact(fooddb_path, fooddb_artifact)
+    write_json_artifact(handoff_path, handoff)
+    write_json_artifact(packet_smoke_path, packet_smoke)
+
+    assert main(
+        [
+            "--product-loop-handoff",
+            str(handoff_path),
+            "--approved-packet-ready-artifact",
+            str(fooddb_path),
+            "--fooddb-manager-packet-smoke",
+            str(packet_smoke_path),
+            "--output",
+            str(output_path),
+        ]
+    ) == 0
+    printed = json.loads(capsys.readouterr().out)
+    artifact = read_json_artifact(output_path)
+
+    assert printed["current_shell_product_loop_fooddb_validation_status"] == (
+        "validation_only_pass"
+    )
+    assert artifact["current_shell_product_loop_fooddb_validation"]["status"] == (
+        "validation_only_pass"
+    )
+    assert artifact["current_shell_product_loop_fooddb_validation"][
+        "broad_fooddb_expansion_allowed"
+    ] is False
 
 
 def test_activation_plan_documents_integration_readiness_matrix() -> None:

@@ -438,6 +438,12 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
             artifact_dir / module.REFRESHED_ARTIFACT_FILENAMES["product_loop_handoff"]
         ).read_text(encoding="utf-8")
     )
+    fooddb_integration_readiness_matrix = json.loads(
+        (
+            artifact_dir
+            / module.REFRESHED_ARTIFACT_FILENAMES["fooddb_integration_readiness_matrix"]
+        ).read_text(encoding="utf-8")
+    )
 
     assert exit_code == 0
     assert printed["status"] == "pass"
@@ -578,6 +584,23 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
     assert product_loop_handoff["dogfood_pass"] is False
     assert product_loop_handoff["product_readiness_claimed"] is False
     assert product_loop_handoff["private_self_use_approved"] is False
+    validation = fooddb_integration_readiness_matrix[
+        "current_shell_product_loop_fooddb_validation"
+    ]
+    assert validation["status"] == "validation_only_pass"
+    assert validation["next_allowed_fooddb_scope"] == (
+        "bounded_packet_contract_implementation_only"
+    )
+    assert validation["broad_fooddb_expansion_allowed"] is False
+    assert validation["runtime_truth_promotion_allowed"] is False
+    assert validation["fooddb_contract_validation_source"] == (
+        "one_day_realistic_web_dogfood.evidence"
+    )
+    assert validation["approved_packet_ready_items"]["macro_visible_item_count"] == 1
+    assert validation["approved_packet_ready_items"]["macro_hidden_item_count"] == 2
+    assert validation["approved_manager_packet_smoke"]["approved_packet_ready_case_count"] == 3
+    assert fooddb_integration_readiness_matrix["runtime_truth_changed"] is False
+    assert fooddb_integration_readiness_matrix["readiness_claimed"] is False
     assert printed["approved_fooddb_artifact_status"] == (
         "approved_packet_ready_fooddb_artifact_ready"
     )
@@ -585,6 +608,7 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
         "product_loop_handoff_ready_for_fdb_integration_validation"
     )
     assert printed["ready_for_fdb_integration_validation"] is True
+    assert printed["fdb_integration_validation_status"] == "validation_only_pass"
     assert printed["fooddb_evidence_used"] is False
     assert printed["real_fooddb_pass_claimed"] is False
     assert json.loads(
