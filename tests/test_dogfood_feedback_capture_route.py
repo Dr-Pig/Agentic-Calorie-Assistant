@@ -268,6 +268,17 @@ def test_review_page_displays_feedback_operation_context_fields() -> None:
     assert "referrer" in page
 
 
+def test_review_page_displays_linked_meal_context_without_new_semantic_owner() -> None:
+    page = Path("static/accurate-intake-review.html").read_text(encoding="utf-8")
+
+    assert "meal_id" in page
+    assert "meal_title" in page
+    assert "display only" in page
+    assert "meal title" in page.lower()
+    assert 'data-frontend-semantic-owner="false"' in page
+    assert "meal_title.includes" not in page
+
+
 def test_local_review_queue_route_preserves_existing_review_candidates(
     monkeypatch,
     tmp_path,
