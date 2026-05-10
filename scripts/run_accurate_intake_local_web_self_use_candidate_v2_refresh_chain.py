@@ -138,6 +138,15 @@ from app.shared.domain.canonical_models import CurrentBudgetView  # noqa: E402
 from app.nutrition.application.approved_packet_ready_fooddb_artifact import (  # noqa: E402
     build_approved_packet_ready_fooddb_artifact,
 )
+from app.nutrition.application.fooddb_integration_readiness_matrix import (  # noqa: E402
+    build_fooddb_integration_readiness_matrix,
+)
+from app.nutrition.application.fooddb_manager_packet_smoke import (  # noqa: E402
+    build_fooddb_manager_packet_smoke,
+)
+from app.nutrition.infrastructure.local_food_evidence_index import (  # noqa: E402
+    LocalSmallAnchorFoodEvidenceIndex,
+)
 from app.database import get_db  # noqa: E402
 from app.models import Base  # noqa: E402
 from app.routes import router  # noqa: E402
@@ -282,6 +291,10 @@ REFRESHED_ARTIFACT_FILENAMES = {
     "local_web_candidate": "accurate_intake_local_web_self_use_candidate_v2.json",
     "approved_packet_ready_fooddb_artifact": (
         "accurate_intake_approved_packet_ready_fooddb_artifact.json"
+    ),
+    "fooddb_manager_packet_smoke": "accurate_intake_fooddb_manager_packet_smoke.json",
+    "fooddb_integration_readiness_matrix": (
+        "accurate_intake_fooddb_integration_readiness_matrix.json"
     ),
     "product_loop_handoff": "accurate_intake_product_loop_handoff_v3.json",
 }
@@ -1685,6 +1698,20 @@ def build_local_web_self_use_candidate_refresh_chain(
     )
     write_json_artifact(approved_fooddb_artifact_path, approved_fooddb_artifact)
 
+    small_anchor_index = LocalSmallAnchorFoodEvidenceIndex.from_path(
+        ROOT / "app" / "knowledge" / "small_anchor_store_tw.json"
+    )
+    fooddb_manager_packet_smoke = _read_or_generate_json_artifact(
+        _artifact_path(
+            artifacts_dir,
+            REFRESHED_ARTIFACT_FILENAMES["fooddb_manager_packet_smoke"],
+        ),
+        lambda: build_fooddb_manager_packet_smoke(
+            retrieval_records=small_anchor_index.load_records(),
+            approved_packet_ready_artifact=approved_fooddb_artifact,
+        ),
+    )
+
     product_loop_handoff = build_product_loop_handoff_v3(
         _product_loop_handoff_evidence(
             artifacts_dir,
@@ -1698,6 +1725,19 @@ def build_local_web_self_use_candidate_refresh_chain(
             REFRESHED_ARTIFACT_FILENAMES["product_loop_handoff"],
         ),
         product_loop_handoff,
+    )
+
+    fooddb_integration_readiness_matrix = build_fooddb_integration_readiness_matrix(
+        product_loop_handoff=product_loop_handoff,
+        approved_packet_ready_artifact=approved_fooddb_artifact,
+        fooddb_manager_packet_smoke=fooddb_manager_packet_smoke,
+    )
+    write_json_artifact(
+        _artifact_path(
+            artifacts_dir,
+            REFRESHED_ARTIFACT_FILENAMES["fooddb_integration_readiness_matrix"],
+        ),
+        fooddb_integration_readiness_matrix,
     )
 
     candidate_payload = dict(local_web_candidate.get("local_web_self_use_candidate_v2") or {})
@@ -1731,6 +1771,7 @@ def build_local_web_self_use_candidate_refresh_chain(
         ("local_web_candidate", local_web_candidate_payload),
         ("approved_packet_ready_fooddb_artifact", approved_fooddb_artifact),
         ("product_loop_handoff", product_loop_handoff),
+        ("fooddb_integration_readiness_matrix", fooddb_integration_readiness_matrix),
     ]
     closeout_navigation = _build_closeout_navigation(closeout_payloads)
     closeout_clear = closeout_navigation["first_blocking_gate"] is None
@@ -1759,6 +1800,11 @@ def build_local_web_self_use_candidate_refresh_chain(
         "product_loop_handoff_status": product_loop_handoff.get("status"),
         "ready_for_fdb_integration_validation": product_loop_handoff.get("ready_for_fdb_integration")
         is True,
+        "fdb_integration_validation_status": _object_dict(
+            fooddb_integration_readiness_matrix.get(
+                "current_shell_product_loop_fooddb_validation"
+            )
+        ).get("status"),
         "product_loop_handoff_blockers": list(product_loop_handoff.get("blockers") or []),
         "candidate_prepared": candidate_prepared,
         "candidate_blockers": list(candidate_payload.get("blockers") or []),

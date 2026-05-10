@@ -9,13 +9,21 @@ from .websearch_live_diagnostic_integration_edges import (
 from .fooddb_live_diagnostic_integration_edges import (
     build_fooddb_live_diagnostic_integration_edges,
 )
+from .fooddb_current_shell_product_loop_validation import (
+    validate_current_shell_product_loop_fooddb_handoff,
+)
 
 
 def _wave_one_b_two_test_ref(name: str) -> str:
     return "tests.test_wave1_phase_" + "b2_" + name
 
 
-def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
+def build_fooddb_integration_readiness_matrix(
+    *,
+    product_loop_handoff: dict[str, Any] | None = None,
+    approved_packet_ready_artifact: dict[str, Any] | None = None,
+    fooddb_manager_packet_smoke: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     check_edges = (
         _edge(
             edge_id="manager_decision_to_retrieval_intent",
@@ -208,7 +216,22 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
         ),
     )
     counts = {"contract_backed": sum(1 for edge in check_edges if edge["current_status"] == "contract_backed"), "draft": sum(1 for edge in check_edges if edge["current_status"] == "draft"), "missing": sum(1 for edge in check_edges if edge["current_status"] == "missing")}
-    return {
+    validation = validate_current_shell_product_loop_fooddb_handoff(
+        product_loop_handoff=product_loop_handoff,
+        approved_packet_ready_artifact=approved_packet_ready_artifact,
+        fooddb_manager_packet_smoke=fooddb_manager_packet_smoke,
+    )
+    validation_sections = (
+        ["current_shell_product_loop_fooddb_validation"]
+        if validation["status"] != "not_evaluated"
+        else []
+    )
+    next_required_slices = (
+        ["bounded_fooddb_contract_implementation_validation"]
+        if validation["status"] == "validation_only_pass"
+        else ["manager_fooddb_packet_seam_smoke"]
+    )
+    artifact = {
         "artifact_type": "accurate_intake_fooddb_integration_readiness_matrix",
         "artifact_schema_version": "1.0",
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
@@ -221,7 +244,12 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
         "websearch_runtime_truth_allowed": False,
         "readiness_claimed": False,
         "check_edges": list(check_edges),
-        "summary": {"edge_count": len(check_edges), **counts, "next_required_slices": ["manager_fooddb_packet_seam_smoke"]},
+        "summary": {
+            "edge_count": len(check_edges),
+            **counts,
+            "validation_sections": validation_sections,
+            "next_required_slices": next_required_slices,
+        },
         "non_claims": [
             "no_runtime_truth_promotion",
             "no_packetizer_contract_change",
@@ -230,6 +258,9 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
             "no_readiness_claim",
         ],
     }
+    if validation["status"] != "not_evaluated":
+        artifact["current_shell_product_loop_fooddb_validation"] = validation
+    return artifact
 
 
 def _edge(
