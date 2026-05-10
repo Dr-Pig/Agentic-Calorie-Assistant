@@ -15,9 +15,12 @@ SIDECAR_ACTIVATION_CONTRACT = offline_sidecar_contract(
 STAGE_ORDER = [
     "recommendation_three_node_shadow_artifact",
     "recommendation_shadow_summary_consumer_quality_report",
+    "recommendation_offer_shadow_packet",
+    "recommendation_offer_packet_no_send_review",
     "recommendation_prompt_no_send_review",
     "rescue_shadow_summary_context_projection",
     "rescue_shadow_chain_runner_artifact",
+    "rescue_chain_lifecycle_adapter_artifact",
     "rescue_nudge_no_send_review",
     "proactive_no_send_nudge_candidate_bridge",
     "proactive_no_send_review_sink_artifact",
@@ -42,6 +45,7 @@ NON_CLAIMS = [
     "not_canonical_mutation_authority", "not_scheduler_delivery", "not_durable_outbox",
 ]
 ACCEPTED_STAGE_STATUSES = {
+    "recommendation_offer_packet_no_send_review": {"candidate_for_human_review"},
     "recommendation_prompt_no_send_review": {"candidate_for_human_review"},
     "rescue_nudge_no_send_review": {"context_available"},
 }
