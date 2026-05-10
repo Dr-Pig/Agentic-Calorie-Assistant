@@ -3,30 +3,15 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.case_pairing import build_case_pairing
-from app.advanced_shadow_lab.no_send_control_comparison import (
-    compare_no_send_control_paths,
-    control_blockers_if_comparable,
-    terminal_sink_row,
-)
+from app.advanced_shadow_lab.no_send_control_comparison import compare_no_send_control_paths, control_blockers_if_comparable, terminal_sink_row
 from app.advanced_shadow_lab.chat_ux_copy_alignment import (
     chat_packet_copy_alignment_blockers,
     chat_packet_copy_alignment_row,
 )
-from app.advanced_shadow_lab.edge_case_coverage import (
-    edge_case_coverage_blockers,
-    edge_case_coverage_row,
-    edge_case_coverage_summary,
-    load_edge_case_coverage_contract,
-)
-from app.advanced_shadow_lab.journey_terminal_evidence import (
-    journey_terminal_evidence_blockers,
-    journey_terminal_evidence_row,
-    journey_terminal_evidence_summary,
-)
-from app.advanced_shadow_lab.shadow_comparison_live_rows import (
-    live_copy_row,
-    live_diagnostic_signal,
-)
+from app.advanced_shadow_lab.edge_case_coverage import edge_case_coverage_blockers, edge_case_coverage_row, edge_case_coverage_summary, load_edge_case_coverage_contract
+from app.advanced_shadow_lab.journey_terminal_evidence import journey_terminal_evidence_blockers, journey_terminal_evidence_row, journey_terminal_evidence_summary
+from app.advanced_shadow_lab.journey_chat_packet_summary import compare_journey_chat_packets
+from app.advanced_shadow_lab.shadow_comparison_live_rows import live_copy_row, live_diagnostic_signal
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -80,6 +65,13 @@ def build_advanced_shadow_comparison_artifact(
     invariant = _activation_invariant_summary(sources.values())
     edge_coverage = load_edge_case_coverage_contract()
     journey_evidence = journey_terminal_evidence_summary(sources["fixture_chain"])
+    journey_chat_packets, journey_chat_row, journey_chat_blockers = (
+        compare_journey_chat_packets(
+            fixture_chain=sources["fixture_chain"],
+            fixture_status=source_statuses.get("fixture_chain") or "missing",
+            journey_evidence_summary=journey_evidence,
+        )
+    )
     control_comparison, control_row, control_blockers = compare_no_send_control_paths(
         fixture_sink=_mapping(sources["fixture_chain"].get("terminal_review_sink")),
         dogfood_sink=_mapping(sources["dogfood_replay"].get("terminal_review_sink_summary")))
@@ -95,6 +87,7 @@ def build_advanced_shadow_comparison_artifact(
             source_statuses=source_statuses,
             summary=journey_evidence,
         ),
+        *journey_chat_blockers,
         *[f"{row['source']}.{row['flag']}" for row in invariant["observed_true_flags"]],
         *control_blockers_if_comparable(source_statuses=source_statuses, blockers=control_blockers),
         *pairing_summary["schema_gaps"],
@@ -114,12 +107,14 @@ def build_advanced_shadow_comparison_artifact(
             chat_packet_copy_alignment_row(sources["fixture_chain"]),
             edge_case_coverage_row(edge_coverage),
             journey_terminal_evidence_row(journey_evidence),
+            journey_chat_row,
             live_copy_row("recommendation_prompt_reason_copy", sources["recommendation_copy_live_diagnostic"]),
             live_copy_row("rescue_proposal_copy_posture", sources["rescue_copy_live_diagnostic"]),
             live_copy_row("proactive_chat_copy_posture", sources["proactive_copy_live_diagnostic"]),
         ],
         "edge_case_coverage_summary": edge_case_coverage_summary(edge_coverage),
         "journey_terminal_evidence_summary": journey_evidence,
+        "journey_chat_packet_summary": journey_chat_packets,
         "no_send_control_path_comparison": control_comparison,
         "activation_invariant_summary": invariant,
         "pairing_summary": pairing_summary,

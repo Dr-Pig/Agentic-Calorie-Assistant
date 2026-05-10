@@ -8,9 +8,13 @@ from app.advanced_shadow_lab.chat_ux_packet import (
 from app.advanced_shadow_lab.e2e_fixture_chain import (
     run_advanced_shadow_e2e_fixture_chain,
 )
+from app.advanced_shadow_lab.journey_terminal_contract import expected_terminal_output
 from app.advanced_shadow_lab.live_bundle_fixture_inputs import (
     build_live_bundle_chain_payload,
 )
+
+
+EXPECTED_UX_JOURNEY_IDS = ["F", "F2", "I", "L", "M", "N"]
 
 
 def test_chat_ux_packet_projects_fixture_chain_without_serving_or_mutating() -> None:
@@ -61,6 +65,59 @@ def test_chat_ux_packet_projects_fixture_chain_without_serving_or_mutating() -> 
     assert packet["mutation_changed"] is False
     assert "Chicken salad" not in serialized
     assert "Fixture headline" not in serialized
+
+
+def test_chat_ux_packet_projects_each_mapped_journey_without_runtime_effect() -> None:
+    packet = build_advanced_shadow_chat_ux_packet(
+        fixture_chain_artifact=_fixture_chain()
+    )
+    journey_packets = packet["journey_chat_packets"]
+
+    assert packet["journey_chat_packet_summary"] == {
+        "status": "pass",
+        "required_journey_ids": EXPECTED_UX_JOURNEY_IDS,
+        "observed_journey_ids": EXPECTED_UX_JOURNEY_IDS,
+        "packet_count": 6,
+        "missing_journey_ids": [],
+        "output_kind_by_journey": {
+            journey_id: expected_terminal_output(journey_id)["output_kind"]
+            for journey_id in EXPECTED_UX_JOURNEY_IDS
+        },
+        "workflow_family_by_journey": {
+            journey_id: expected_terminal_output(journey_id)["workflow_family"]
+            for journey_id in EXPECTED_UX_JOURNEY_IDS
+        },
+        "output_kind_mismatch_journey_ids": [],
+        "workflow_family_mismatch_journey_ids": [],
+        "control_contract_mismatch_journey_ids": [],
+        "activation_violations": [],
+        "semantic_decision_inferred_journey_ids": [],
+        "new_report_family_created": False,
+    }
+    assert [item["journey_id"] for item in journey_packets] == EXPECTED_UX_JOURNEY_IDS
+    for item in journey_packets:
+        expected = expected_terminal_output(item["journey_id"])
+
+        assert item["packet_kind"] == "lab_only_journey_terminal_projection"
+        assert item["surface"] == "chat"
+        assert item["chat_first"] is True
+        assert item["output_kind"] == expected["output_kind"]
+        assert item["workflow_family"] == expected["workflow_family"]
+        assert item["control_contract"] == expected["control_contract"]
+        assert item["source_terminal_evidence_id"] == item["journey_id"]
+        assert item["semantic_truth_owner"] == "journey_terminal_evidence"
+        assert item["semantic_decision_inferred_by_runner"] is False
+        assert item["served_to_user"] is False
+        assert item["delivery_attempted"] is False
+        assert item["scheduler_enqueued"] is False
+        assert item["canonical_mutation_requested"] is False
+        assert item["mainline_runtime_connected"] is False
+        assert item["recommendation_served"] is False
+        assert item["rescue_committed"] is False
+        assert item["proactive_sent"] is False
+        assert item["mutation_changed"] is False
+        assert item["user_facing_behavior_changed"] is False
+        assert "advanced_shadow_e2e_fixture_chain_artifact" in item["source_artifact_refs"]
 
 
 def test_chat_ux_packet_attaches_copy_diagnostic_metadata_without_copy_text() -> None:
