@@ -69,6 +69,17 @@ def _fixture_chain() -> dict[str, object]:
     return {
         "artifact_type": "advanced_shadow_e2e_fixture_chain_artifact",
         "status": "pass",
+        "chat_ux_packet": {
+            "artifact_type": "advanced_shadow_chat_ux_packet_artifact",
+            "status": "pass",
+            "copy_alignment_summary": {
+                "status": "pass",
+                "aligned_count": 2,
+                "not_applicable_count": 0,
+                "blocked_count": 0,
+                "not_run_count": 0,
+            },
+        },
         "terminal_review_sink": {
             "status": "pass",
             "record_count": 2,

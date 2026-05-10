@@ -87,6 +87,17 @@ def test_advanced_shadow_live_bundle_runner_writes_existing_terminal_comparison(
         fixture_chain["stage_order"]
     )
     assert fixture_chain["terminal_review_sink"]["status"] == "pass"
+    assert fixture_chain["chat_ux_packet"]["copy_alignment_summary"] == {
+        "status": "pass",
+        "aligned_count": 2,
+        "not_applicable_count": 1,
+        "blocked_count": 0,
+        "not_run_count": 0,
+    }
+    assert [item["copy_status"] for item in fixture_chain["chat_ux_packet"]["chat_packets"]] == [
+        "copy_diagnostic_aligned",
+        "copy_diagnostic_aligned",
+    ]
     assert fixture_chain["mainline_runtime_connected"] is False
     assert fixture_chain["recommendation_served"] is False
     assert fixture_chain["proactive_sent"] is False
@@ -141,9 +152,9 @@ def test_advanced_shadow_live_bundle_runner_blocks_live_without_env(
         "provider_mode": "not_run",
         "output_guard_status": "not_run",
     }
-    assert terminal["surface_status_rows"][2]["finding"] == "live_diagnostic_not_run"
     assert terminal["surface_status_rows"][3]["finding"] == "live_diagnostic_not_run"
     assert terminal["surface_status_rows"][4]["finding"] == "live_diagnostic_not_run"
+    assert terminal["surface_status_rows"][5]["finding"] == "live_diagnostic_not_run"
     assert terminal["product_readiness_claimed"] is False
     assert terminal["user_facing_behavior_changed"] is False
 

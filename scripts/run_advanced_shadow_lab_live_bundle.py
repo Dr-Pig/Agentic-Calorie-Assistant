@@ -30,6 +30,9 @@ from app.advanced_shadow_lab.shadow_comparison import (  # noqa: E402
 from app.advanced_shadow_lab.e2e_fixture_chain import (  # noqa: E402
     run_advanced_shadow_e2e_fixture_chain,
 )
+from app.advanced_shadow_lab.chat_ux_packet import (  # noqa: E402
+    build_advanced_shadow_chat_ux_packet,
+)
 from app.advanced_shadow_lab.live_bundle_profile_gate import (  # noqa: E402
     ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
     resolve_live_bundle_profile_gate,
@@ -104,6 +107,15 @@ def main(argv: list[str] | None = None) -> int:
         live_profile=live_profile,
         artifact_dir=artifact_dir,
     )
+    fixture_chain["chat_ux_packet"] = build_advanced_shadow_chat_ux_packet(
+        fixture_chain_artifact=fixture_chain,
+        copy_diagnostic_artifacts=[
+            recommendation_live,
+            rescue_live,
+            proactive_live,
+        ],
+    )
+    _write_json(artifact_dir / FIXTURE_CHAIN_OUTPUT, fixture_chain)
 
     terminal = build_advanced_shadow_comparison_artifact(
         fixture_chain_artifact=fixture_chain,

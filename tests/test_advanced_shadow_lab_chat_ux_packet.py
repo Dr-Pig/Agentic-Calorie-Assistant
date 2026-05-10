@@ -63,6 +63,89 @@ def test_chat_ux_packet_projects_fixture_chain_without_serving_or_mutating() -> 
     assert "Fixture headline" not in serialized
 
 
+def test_chat_ux_packet_attaches_copy_diagnostic_metadata_without_copy_text() -> None:
+    packet = build_advanced_shadow_chat_ux_packet(
+        fixture_chain_artifact=_fixture_chain(),
+        copy_diagnostic_artifacts=[
+            _recommendation_copy(),
+            _rescue_copy(),
+            _proactive_copy(),
+        ],
+    )
+    serialized = json.dumps(packet, ensure_ascii=False)
+
+    assert packet["status"] == "pass"
+    assert packet["copy_alignment_summary"] == {
+        "status": "pass",
+        "aligned_count": 2,
+        "not_applicable_count": 1,
+        "blocked_count": 0,
+        "not_run_count": 0,
+    }
+    assert [item["copy_status"] for item in packet["chat_packets"]] == [
+        "copy_diagnostic_aligned",
+        "copy_diagnostic_aligned",
+    ]
+    assert packet["chat_packets"][0]["copy_source_metadata"] == {
+        "artifact_type": "advanced_shadow_recommendation_copy_live_diagnostic_artifact",
+        "status": "pass",
+        "target_surface": "recommendation_prompt_reason_copy",
+        "provider_mode": "fake_provider_contract_test",
+        "output_guard_status": "pass",
+        "alignment_status": "aligned",
+    }
+    assert packet["chat_packets"][1]["copy_source_metadata"] == {
+        "artifact_type": "advanced_shadow_rescue_copy_live_diagnostic_artifact",
+        "status": "pass",
+        "target_surface": "rescue_proposal_copy_posture",
+        "provider_mode": "fake_provider_contract_test",
+        "output_guard_status": "pass",
+        "alignment_status": "aligned",
+    }
+    assert packet["copy_diagnostic_metadata"]["proactive_chat_copy_posture"][
+        "alignment_status"
+    ] == "not_applicable_to_existing_packet"
+    assert "Consider the FamilyMart option" not in serialized
+    assert "Recover the rest of the week" not in serialized
+    assert "review-only prompt" not in serialized
+
+
+def test_chat_ux_packet_blocks_copy_diagnostic_claim_drift() -> None:
+    drift = _recommendation_copy()
+    drift["recommendation_served"] = True
+
+    packet = build_advanced_shadow_chat_ux_packet(
+        fixture_chain_artifact=_fixture_chain(),
+        copy_diagnostic_artifacts=[drift],
+    )
+
+    assert packet["status"] == "blocked"
+    assert packet["blockers"] == [
+        "copy_diagnostic[recommendation_prompt_reason_copy].recommendation_served"
+    ]
+    assert packet["chat_packets"] == []
+    assert packet["recommendation_served"] is False
+
+
+def test_chat_ux_packet_allows_live_provider_provenance_without_activation() -> None:
+    live_copy = _recommendation_copy()
+    live_copy["provider_mode"] = "builderspace-grok-4-fast-advanced-shadow-lab-live-diagnostic"
+    live_copy["live_provider_used"] = True
+
+    packet = build_advanced_shadow_chat_ux_packet(
+        fixture_chain_artifact=_fixture_chain(),
+        copy_diagnostic_artifacts=[live_copy, _rescue_copy()],
+    )
+
+    assert packet["status"] == "pass"
+    assert packet["chat_packets"][0]["copy_source_metadata"]["provider_mode"] == (
+        "builderspace-grok-4-fast-advanced-shadow-lab-live-diagnostic"
+    )
+    assert "live_provider_used" not in packet["chat_packets"][0]["copy_source_metadata"]
+    assert packet["live_provider_used"] is False
+    assert packet["user_facing_behavior_changed"] is False
+
+
 def test_chat_ux_packet_blocks_missing_required_controls() -> None:
     chain = _fixture_chain()
     chain["terminal_review_sink"]["records"][0]["undo_scope"] = ""
@@ -106,3 +189,59 @@ def _fixture_chain() -> dict[str, object]:
         user_control_models=payload["user_control_models"],
         interaction_plan=payload["interaction_plan"],
     )
+
+
+def _recommendation_copy() -> dict[str, object]:
+    return {
+        "artifact_type": "advanced_shadow_recommendation_copy_live_diagnostic_artifact",
+        "status": "pass",
+        "target_surface": "recommendation_prompt_reason_copy",
+        "provider_mode": "fake_provider_contract_test",
+        "output_guard": {"status": "pass"},
+        "model_output_summary": {
+            "draft_prompt_present": True,
+            "diagnostic_copy_preview": "Consider the FamilyMart option",
+        },
+        "recommendation_served": False,
+        "delivery_attempted": False,
+        "mutation_changed": False,
+        "user_facing_behavior_changed": False,
+    }
+
+
+def _rescue_copy() -> dict[str, object]:
+    return {
+        "artifact_type": "advanced_shadow_rescue_copy_live_diagnostic_artifact",
+        "status": "pass",
+        "target_surface": "rescue_proposal_copy_posture",
+        "provider_mode": "fake_provider_contract_test",
+        "output_guard": {"status": "pass"},
+        "model_output_summary": {
+            "proposal_headline_present": True,
+            "diagnostic_copy_preview": "Recover the rest of the week",
+        },
+        "rescue_committed": False,
+        "proposal_committed": False,
+        "delivery_attempted": False,
+        "mutation_changed": False,
+        "user_facing_behavior_changed": False,
+    }
+
+
+def _proactive_copy() -> dict[str, object]:
+    return {
+        "artifact_type": "advanced_shadow_proactive_copy_live_diagnostic_artifact",
+        "status": "pass",
+        "target_surface": "proactive_chat_copy_posture",
+        "provider_mode": "fake_provider_contract_test",
+        "output_guard": {"status": "pass"},
+        "model_output_summary": {
+            "draft_chat_message_present": True,
+            "diagnostic_copy_preview": "review-only prompt",
+        },
+        "proactive_sent": False,
+        "scheduler_enqueued": False,
+        "delivery_attempted": False,
+        "mutation_changed": False,
+        "user_facing_behavior_changed": False,
+    }
