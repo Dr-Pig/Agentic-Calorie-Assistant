@@ -5,6 +5,9 @@ from typing import Any, Mapping
 from app.advanced_shadow_lab.product_lab_pending_intake_draft import (
     build_pending_intake_draft_packet,
 )
+from app.advanced_shadow_lab.product_lab_pending_intake_lifecycle import (
+    build_pending_intake_lifecycle_packet,
+)
 from app.advanced_shadow_lab.product_lab_rescue_chat_action import (
     rescue_outcome,
 )
@@ -27,6 +30,8 @@ def apply_product_lab_chat_action(
             action=action,
             base_outcome=base_outcome,
         )
+    if workflow == "pending_intake":
+        return pending_intake_outcome(message=message, action=action)
     return base_outcome(
         status="blocked",
         workflow_family=workflow,
@@ -111,6 +116,30 @@ def recommendation_outcome(
     }
 
 
+def pending_intake_outcome(
+    *,
+    message: Mapping[str, Any],
+    action: str,
+) -> dict[str, Any]:
+    packet = build_pending_intake_lifecycle_packet(message=message, action=action)
+    blockers = [
+        f"pending_intake_lifecycle.{blocker}"
+        for blocker in packet.get("blockers") or []
+    ]
+    return {
+        **base_outcome(
+            status="blocked" if blockers else "pass",
+            workflow_family="pending_intake",
+            action=action,
+            outcome_type=pending_intake_outcome_type(action),
+            blockers=blockers,
+        ),
+        "candidate_id": str(message.get("candidate_id") or ""),
+        "target_draft_id": str(packet.get("target_draft_id") or ""),
+        "pending_intake_lifecycle_packet": dict(packet),
+    }
+
+
 def base_outcome(
     *,
     status: str,
@@ -140,6 +169,14 @@ def recommendation_outcome_type(action: str) -> str:
     if action == "show_backups":
         return "recommendation_backups_visible"
     return "recommendation_dismissed_lab"
+
+
+def pending_intake_outcome_type(action: str) -> str:
+    if action == "confirm_pending_intake":
+        return "pending_intake_confirmed_lab"
+    if action == "cancel_pending_intake":
+        return "pending_intake_canceled_lab"
+    return "pending_intake_action_unsupported"
 
 
 def mapping(value: Any) -> Mapping[str, Any]:

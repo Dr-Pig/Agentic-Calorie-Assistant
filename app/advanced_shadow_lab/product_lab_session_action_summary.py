@@ -45,6 +45,15 @@ def session_chat_action_summary(
             item.get("lab_pending_intake_draft_canonical_mutation_allowed") is True
             for item in turn_summaries
         ),
+        "lab_pending_intake_terminal_count": sum(
+            int(item.get("lab_pending_intake_terminal_count") or 0)
+            for item in turn_summaries
+        ),
+        "lab_pending_intake_terminal_states": [
+            str(state)
+            for item in turn_summaries
+            for state in item.get("lab_pending_intake_terminal_states") or []
+        ],
         "lab_rescue_action_decision_count": sum(
             int(item.get("lab_rescue_action_decision_count") or 0)
             for item in turn_summaries
@@ -74,6 +83,7 @@ def turn_chat_action_summary(
     action_outcomes: list[Mapping[str, Any]],
 ) -> dict[str, Any]:
     draft_packets = _pending_draft_packets(action_outcomes)
+    terminal_packets = _pending_terminal_packets(action_outcomes)
     rescue_decisions = _rescue_decision_packets(action_outcomes)
     return {
         "lab_chat_action_outcome_count": len(action_outcomes),
@@ -105,6 +115,10 @@ def turn_chat_action_summary(
             item.get("canonical_product_mutation_allowed") is True
             for item in draft_packets
         ),
+        "lab_pending_intake_terminal_count": len(terminal_packets),
+        "lab_pending_intake_terminal_states": [
+            str(item.get("terminal_state") or "") for item in terminal_packets
+        ],
         "lab_rescue_action_decision_count": len(rescue_decisions),
         "lab_rescue_action_decision_kinds": [
             str(item.get("decision_kind") or "") for item in rescue_decisions
@@ -135,6 +149,17 @@ def _pending_draft_packets(
         if draft.get("status") == "pass":
             drafts.append(draft)
     return drafts
+
+
+def _pending_terminal_packets(
+    action_outcomes: list[Mapping[str, Any]],
+) -> list[Mapping[str, Any]]:
+    packets: list[Mapping[str, Any]] = []
+    for outcome in action_outcomes:
+        packet = _mapping(outcome.get("pending_intake_lifecycle_packet"))
+        if packet.get("status") == "pass":
+            packets.append(packet)
+    return packets
 
 
 def _rescue_decision_packets(

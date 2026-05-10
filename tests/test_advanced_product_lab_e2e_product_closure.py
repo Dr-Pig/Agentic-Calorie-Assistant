@@ -89,6 +89,7 @@ def test_product_lab_final_loop_closes_with_live_diagnostic_dormant_wall(
     assert summary["lab_chat_action_outcome_types"] == [
         "recommendation_intake_draft",
         "rescue_commit_confirmation",
+        "pending_intake_confirmed_lab",
     ]
     assert live_diagnostic["status"] == "pass"
     assert live_diagnostic["source_product_loop_closed"] is True
