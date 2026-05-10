@@ -4,6 +4,9 @@ import json
 from pathlib import Path
 
 from app.advanced_shadow_lab.journey_terminal_contract import expected_terminal_output
+from app.advanced_shadow_lab.journey_chat_packet_projection import (
+    build_journey_chat_packets,
+)
 from scripts import build_advanced_shadow_comparison_artifact as runner
 
 
@@ -70,6 +73,11 @@ def _write(path: Path, payload: object) -> Path:
 
 
 def _fixture_chain() -> dict[str, object]:
+    journey_evidence = [
+        _journey_terminal_evidence(journey_id)
+        for journey_id in EXPECTED_UX_JOURNEY_IDS
+    ]
+    journey_packets, journey_summary = build_journey_chat_packets(journey_evidence)
     return {
         "artifact_type": "advanced_shadow_e2e_fixture_chain_artifact",
         "status": "pass",
@@ -83,16 +91,15 @@ def _fixture_chain() -> dict[str, object]:
                 "blocked_count": 0,
                 "not_run_count": 0,
             },
+            "journey_chat_packet_summary": journey_summary,
+            "journey_chat_packets": journey_packets,
         },
         "terminal_review_sink": {
             "status": "pass",
             "record_count": 2,
             "control_path_evidence": _control_evidence(),
         },
-        "journey_terminal_evidence": [
-            _journey_terminal_evidence(journey_id)
-            for journey_id in EXPECTED_UX_JOURNEY_IDS
-        ],
+        "journey_terminal_evidence": journey_evidence,
         "mainline_runtime_connected": False,
         "delivery_attempted": False,
         "scheduler_enabled": False,

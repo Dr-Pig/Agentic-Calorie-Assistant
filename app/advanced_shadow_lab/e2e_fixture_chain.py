@@ -112,11 +112,11 @@ def run_advanced_shadow_e2e_fixture_chain(
         "non_claims": list(NON_CLAIMS),
         **dict(FALSE_FLAGS),
     }
-    artifact["chat_ux_packet"] = build_advanced_shadow_chat_ux_packet(
-        fixture_chain_artifact=artifact
-    )
     artifact["journey_terminal_evidence"] = build_journey_terminal_evidence(
         artifact
+    )
+    artifact["chat_ux_packet"] = build_advanced_shadow_chat_ux_packet(
+        fixture_chain_artifact=artifact
     )
     return artifact
 

@@ -148,10 +148,11 @@ def _terminal_blockers(
 
 
 def _terminal_statuses(fixture_chain: Mapping[str, Any]) -> dict[str, str]:
+    chat = fixture_chain.get("chat_ux_packet")
     return {
         "fixture_chain": str(fixture_chain.get("status") or "missing"),
         "terminal_review_sink": _artifact_status(fixture_chain.get("terminal_review_sink")),
-        "chat_ux_packet": _artifact_status(fixture_chain.get("chat_ux_packet")),
+        **({"chat_ux_packet": _artifact_status(chat)} if chat is not None else {}),
     }
 
 
@@ -184,9 +185,7 @@ def _activation_violations(rows: list[Mapping[str, Any]]) -> list[str]:
 
 
 def _row_status(row: Mapping[str, Any] | None) -> str:
-    if row is None:
-        return "missing"
-    return str(row.get("status") or "blocked")
+    return "missing" if row is None else str(row.get("status") or "blocked")
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:

@@ -5,6 +5,9 @@ import json
 from app.advanced_shadow_lab.shadow_comparison import (
     build_advanced_shadow_comparison_artifact,
 )
+from app.advanced_shadow_lab.journey_chat_packet_projection import (
+    build_journey_chat_packets,
+)
 
 
 EXPECTED_UX_JOURNEY_IDS = ["F", "F2", "I", "L", "M", "N"]
@@ -82,6 +85,13 @@ def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> N
             "finding": "all_required_journeys_have_terminal_lab_evidence",
         },
         {
+            "surface": "journey_chat_ux_packet_projection",
+            "fixture_status": "pass",
+            "dogfood_status": "not_applicable",
+            "live_status": "not_required",
+            "finding": "all_required_journeys_have_lab_chat_packets",
+        },
+        {
             "surface": "recommendation_prompt_reason_copy",
             "fixture_status": "not_applicable",
             "dogfood_status": "not_applicable",
@@ -117,6 +127,21 @@ def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> N
         "output_kind_mismatch_journey_ids": [],
         "workflow_family_mismatch_journey_ids": [],
         "activation_violations": [],
+        "new_report_family_created": False,
+    }
+    assert artifact["journey_chat_packet_summary"] == {
+        "status": "pass",
+        "required_journey_ids": EXPECTED_UX_JOURNEY_IDS,
+        "observed_journey_ids": EXPECTED_UX_JOURNEY_IDS,
+        "packet_count": 6,
+        "missing_journey_ids": [],
+        "output_kind_by_journey": EXPECTED_OUTPUT_KIND_BY_JOURNEY,
+        "workflow_family_by_journey": EXPECTED_WORKFLOW_FAMILY_BY_JOURNEY,
+        "output_kind_mismatch_journey_ids": [],
+        "workflow_family_mismatch_journey_ids": [],
+        "control_contract_mismatch_journey_ids": [],
+        "activation_violations": [],
+        "semantic_decision_inferred_journey_ids": [],
         "new_report_family_created": False,
     }
     assert artifact["live_diagnostic_signals"] == {
@@ -214,6 +239,38 @@ def test_shadow_comparison_blocks_journey_terminal_output_mismatch() -> None:
     assert artifact["user_facing_behavior_changed"] is False
 
 
+def test_shadow_comparison_blocks_missing_journey_chat_packet_projection() -> None:
+    fixture = _fixture_chain()
+    fixture["chat_ux_packet"]["journey_chat_packets"] = [  # type: ignore[index]
+        item
+        for item in fixture["chat_ux_packet"]["journey_chat_packets"]  # type: ignore[index]
+        if item["journey_id"] != "N"
+    ]
+
+    artifact = build_advanced_shadow_comparison_artifact(
+        fixture_chain_artifact=fixture,
+        dogfood_replay_artifact=_dogfood_replay(),
+        recommendation_copy_live_diagnostic_artifact=_live_diagnostic(),
+        rescue_copy_live_diagnostic_artifact=_rescue_live_diagnostic(),
+        proactive_copy_live_diagnostic_artifact=_proactive_live_diagnostic(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["surface_status_rows"][5] == {
+        "surface": "journey_chat_ux_packet_projection",
+        "fixture_status": "blocked",
+        "dogfood_status": "not_applicable",
+        "live_status": "not_required",
+        "finding": "journey_chat_packet_projection_blocked",
+    }
+    assert artifact["journey_chat_packet_summary"]["missing_journey_ids"] == [
+        "N"
+    ]
+    assert artifact["blockers"] == ["journey_chat_packet_projection.missing_journey:N"]
+    assert artifact["proactive_sent"] is False
+    assert artifact["user_facing_behavior_changed"] is False
+
+
 def test_shadow_comparison_blocks_activation_claim_drift() -> None:
     dogfood = _dogfood_replay()
     dogfood["delivery_attempted"] = True
@@ -266,7 +323,7 @@ def test_shadow_comparison_treats_live_guard_block_as_quality_finding() -> None:
 
     assert artifact["status"] == "blocked"
     assert artifact["source_statuses"]["recommendation_copy_live_diagnostic"] == "blocked"
-    assert artifact["surface_status_rows"][5] == {
+    assert artifact["surface_status_rows"][6] == {
         "surface": "recommendation_prompt_reason_copy",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",
@@ -290,7 +347,7 @@ def test_shadow_comparison_treats_rescue_live_guard_block_as_quality_finding() -
 
     assert artifact["status"] == "blocked"
     assert artifact["source_statuses"]["rescue_copy_live_diagnostic"] == "blocked"
-    assert artifact["surface_status_rows"][6] == {
+    assert artifact["surface_status_rows"][7] == {
         "surface": "rescue_proposal_copy_posture",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",
@@ -313,7 +370,7 @@ def test_shadow_comparison_treats_proactive_live_guard_block_as_quality_finding(
 
     assert artifact["status"] == "blocked"
     assert artifact["source_statuses"]["proactive_copy_live_diagnostic"] == "blocked"
-    assert artifact["surface_status_rows"][7] == {
+    assert artifact["surface_status_rows"][8] == {
         "surface": "proactive_chat_copy_posture",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",
@@ -402,7 +459,7 @@ def test_shadow_comparison_allows_rescue_live_diagnostic_to_be_absent() -> None:
 
     assert artifact["status"] == "pass"
     assert artifact["source_statuses"]["rescue_copy_live_diagnostic"] == "not_run"
-    assert artifact["surface_status_rows"][6] == {
+    assert artifact["surface_status_rows"][7] == {
         "surface": "rescue_proposal_copy_posture",
         "fixture_status": "not_applicable",
         "dogfood_status": "not_applicable",
@@ -498,6 +555,11 @@ def test_shadow_comparison_reports_pairing_gaps_without_readiness_claims() -> No
 
 
 def _fixture_chain() -> dict[str, object]:
+    journey_evidence = [
+        _journey_terminal_evidence(journey_id)
+        for journey_id in EXPECTED_UX_JOURNEY_IDS
+    ]
+    journey_packets, journey_summary = build_journey_chat_packets(journey_evidence)
     return {
         "artifact_type": "advanced_shadow_e2e_fixture_chain_artifact",
         "status": "pass",
@@ -511,16 +573,15 @@ def _fixture_chain() -> dict[str, object]:
                 "blocked_count": 0,
                 "not_run_count": 0,
             },
+            "journey_chat_packet_summary": journey_summary,
+            "journey_chat_packets": journey_packets,
         },
         "terminal_review_sink": {
             "status": "pass",
             "record_count": 2,
             "control_path_evidence": _control_evidence(),
         },
-        "journey_terminal_evidence": [
-            _journey_terminal_evidence(journey_id)
-            for journey_id in EXPECTED_UX_JOURNEY_IDS
-        ],
+        "journey_terminal_evidence": journey_evidence,
         "mainline_runtime_connected": False,
         "delivery_attempted": False,
         "scheduler_enabled": False,

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from app.advanced_shadow_lab.e2e_fixture_chain_policy import (
-    FALSE_FLAG_NAMES as LAB_FALSE_FLAG_NAMES,
-)
+from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAG_NAMES as LAB_FALSE_FLAG_NAMES
+from app.advanced_shadow_lab.journey_chat_packet_projection import build_journey_chat_packets
+from app.advanced_shadow_lab.journey_chat_packet_summary import journey_chat_packet_blockers
 from app.advanced_shadow_lab.chat_ux_copy_alignment import (
     build_copy_diagnostic_metadata,
     copy_alignment_summary,
@@ -44,10 +44,14 @@ def build_advanced_shadow_chat_ux_packet(
     sink = _mapping(fixture_chain_artifact.get("terminal_review_sink"))
     records = _records(sink)
     copy_metadata = build_copy_diagnostic_metadata(list(copy_diagnostic_artifacts or []))
+    journey_packets, journey_summary = build_journey_chat_packets(
+        fixture_chain_artifact.get("journey_terminal_evidence")
+    )
     blockers = [
         *_source_blockers(fixture_chain_artifact, sink),
         *copy_diagnostic_blockers(copy_metadata),
         *_packet_blockers(records),
+        *journey_chat_packet_blockers(journey_summary),
     ]
     chat_packets = [] if blockers else [
         _packet(record, index, copy_metadata) for index, record in enumerate(records)
@@ -68,6 +72,8 @@ def build_advanced_shadow_chat_ux_packet(
         "copy_diagnostic_metadata": copy_metadata,
         "packet_count": len(chat_packets),
         "chat_packets": chat_packets,
+        "journey_chat_packet_summary": journey_summary,
+        "journey_chat_packets": journey_packets,
         "blockers": blockers,
         "runtime_connected": False,
         "non_claims": list(NON_CLAIMS),
@@ -187,7 +193,4 @@ def _mapping(value: Any) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
-__all__ = [
-    "SIDECAR_ACTIVATION_CONTRACT",
-    "build_advanced_shadow_chat_ux_packet",
-]
+__all__ = ["SIDECAR_ACTIVATION_CONTRACT", "build_advanced_shadow_chat_ux_packet"]
