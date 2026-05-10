@@ -345,6 +345,7 @@ def _run_desktop_loop_sequence(
         "feedback_submitted": False,
         "review_queue_ingested_feedback": False,
         "review_queue_artifact_written": False,
+        "review_operation_context_rendered": False,
         "data_export_created": False,
         "data_export_sidecars_included": False,
         "feedback_record_count": 0,
@@ -428,6 +429,16 @@ def _run_desktop_loop_sequence(
     )
     result["review_feedback_count"] = int(page.locator("#feedback-count").inner_text(timeout=timeout_ms).strip())
     result["review_queue_ingested_feedback"] = result["review_feedback_count"] >= 1
+    review_text = page.locator("#feedback-list").inner_text(timeout=timeout_ms)
+    result["review_operation_context_rendered"] = all(
+        expected in review_text
+        for expected in (
+            "endpoint /accurate-intake/feedback",
+            "status 200",
+            "duration_ms",
+            "page_path /static/accurate-intake-feedback.html",
+        )
+    )
     result["fetch_sequence"].extend(_capture_fetches(page))
 
     goto("data")
@@ -567,6 +578,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         ("feedback_submitted", "desktop_loop_feedback_not_submitted"),
         ("review_queue_artifact_written", "desktop_loop_review_queue_artifact_not_written"),
         ("review_queue_ingested_feedback", "desktop_loop_review_queue_not_ingested"),
+        ("review_operation_context_rendered", "desktop_loop_review_operation_context_not_rendered"),
         ("data_export_created", "desktop_loop_export_not_created"),
         ("data_export_sidecars_included", "desktop_loop_export_sidecars_not_included"),
     ):

@@ -30,6 +30,7 @@ def _passing_desktop_loop() -> dict[str, object]:
         "feedback_submitted": True,
         "review_queue_artifact_written": True,
         "review_queue_ingested_feedback": True,
+        "review_operation_context_rendered": True,
         "data_export_created": True,
         "data_export_sidecars_included": True,
         "feedback_record_count": 1,
@@ -259,6 +260,7 @@ def test_browser_one_day_fixture_validator_requires_render_reload_data_export_an
         "storage": {"localStorageKeys": ["bad"], "sessionStorageKeys": []},
         "desktop_loop": {
             **_passing_desktop_loop(),
+            "review_operation_context_rendered": False,
             "data_export_sidecars_included": False,
             "export_sidecar_evidence": {
                 **_passing_desktop_loop()["export_sidecar_evidence"],
@@ -275,6 +277,7 @@ def test_browser_one_day_fixture_validator_requires_render_reload_data_export_an
     assert "browser_reload_not_checked" in blockers
     assert "forbidden_storage_used" in blockers
     assert "desktop_loop_export_sidecars_not_included" in blockers
+    assert "desktop_loop_review_operation_context_not_rendered" in blockers
     assert (
         "desktop_loop_export_sidecar_policy_violation:sidecar_evidence_can_create_eval_truth"
         in blockers
