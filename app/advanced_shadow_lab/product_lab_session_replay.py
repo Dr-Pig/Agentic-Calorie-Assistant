@@ -23,6 +23,7 @@ from app.advanced_shadow_lab.product_lab_session_action_state import (
 )
 from app.advanced_shadow_lab.product_lab_session_policy import (
     LAB_MODE,
+    lab_now_minute,
     session_blockers,
     turn_input,
 )
@@ -76,6 +77,7 @@ def run_advanced_product_lab_dogfood_session(
             turn_id=turn_id,
             consumers=["recommendation", "rescue", "proactive"],
             token_budget=180,
+            lab_now_minute=lab_now_minute(turn_spec),
         )
         memory_tool_calls.extend(
             dict(call) for call in memory_context_pack.get("memory_tool_calls") or []

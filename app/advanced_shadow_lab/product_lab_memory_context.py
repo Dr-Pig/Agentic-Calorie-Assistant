@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.advanced_shadow_lab.product_lab_memory_action_projection import (
+    memory_action_projection_from_context,
+)
 from app.advanced_shadow_lab.product_lab_memory_records import (
     ACCEPTED_REVIEW_STATUSES,
     DEFAULT_CONSUMERS,
     context_entry,
-    mapping,
     scope_keys,
     segment_blockers,
     token_estimate,
@@ -97,6 +99,9 @@ def _context_pack(
         "negative_preference_blockers": [
             entry["record_id"] for entry in selected if entry.get("memory_type") == "negative_preference"
         ],
+        "memory_action_projection": memory_action_projection_from_context(
+            {"artifact_type": "advanced_product_lab_memory_context_pack", "entries": selected}
+        ),
         "omission_trace": omissions,
         "token_budget": token_budget,
         "token_estimate": token_estimate_value,
@@ -133,8 +138,7 @@ def _omission_reason(
         return "stale_or_expired"
     valid_until = entry.get("valid_until_minute")
     if (
-        entry.get("memory_type") == "temporary_preference"
-        and isinstance(valid_until, int | float)
+        isinstance(valid_until, int | float)
         and valid_until < lab_now_minute
     ):
         return "stale_or_expired"
