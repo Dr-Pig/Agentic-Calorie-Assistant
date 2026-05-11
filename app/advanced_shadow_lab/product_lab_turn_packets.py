@@ -182,6 +182,7 @@ def _product_fields(
             "rescue_proposal_packet": {
                 "proposal_card": dict(card),
                 "primary_actions": list(product_rescue.get("primary_actions") or []),
+                "negotiation_affordances": list(product_rescue.get("negotiation_affordances") or []),
                 "guardrail_math": dict(product_rescue.get("guardrail_math") or {}),
                 "pending_rescue_commit_packet": dict(
                     product_rescue.get("pending_rescue_commit_packet") or {}

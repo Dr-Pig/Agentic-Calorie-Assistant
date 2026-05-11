@@ -11,6 +11,7 @@ RESCUE_ACTIONS = {
     "accept_rescue_plan",
     "dismiss_rescue_plan",
     "request_gentler_plan",
+    "request_shorter_plan",
     "ask_why_this_plan",
 }
 
@@ -67,6 +68,8 @@ def rescue_outcome_type(action: str) -> str:
         return "rescue_dismissed_lab"
     if action == "request_gentler_plan":
         return "rescue_gentler_plan_requested"
+    if action == "request_shorter_plan":
+        return "rescue_shorter_plan_requested"
     return "rescue_explanation_requested"
 
 

@@ -7,6 +7,7 @@ COMMIT_ACTIONS = {"accept_rescue_plan"}
 NON_COMMIT_DECISIONS = {
     "dismiss_rescue_plan": "dismiss_current_proposal_instance",
     "request_gentler_plan": "request_gentler_variant",
+    "request_shorter_plan": "request_shorter_variant",
     "ask_why_this_plan": "request_explanation",
 }
 
@@ -77,6 +78,8 @@ def _requested_next_signal(action: str) -> str:
         return "material_context_change_or_user_reopens_rescue"
     if action == "request_gentler_plan":
         return "chat_negotiation_requested_gentler_plan"
+    if action == "request_shorter_plan":
+        return "chat_negotiation_requested_shorter_plan"
     if action == "ask_why_this_plan":
         return "chat_explanation_requested"
     return "explicit_rescue_commit_confirmation"

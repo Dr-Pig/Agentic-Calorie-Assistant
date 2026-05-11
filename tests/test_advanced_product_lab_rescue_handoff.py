@@ -36,7 +36,10 @@ def test_product_lab_rescue_proposal_is_mirrored_on_chat_message() -> None:
     assert proposal["primary_actions"] == [
         "accept_rescue_plan",
         "dismiss_rescue_plan",
+    ]
+    assert proposal["negotiation_affordances"] == [
         "request_gentler_plan",
+        "request_shorter_plan",
         "ask_why_this_plan",
     ]
     assert proposal["proposal_card"]["card_kind"] == "same_day_rescue_lab"
