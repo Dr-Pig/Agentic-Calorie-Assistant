@@ -9,6 +9,7 @@ LAB_MODE = "isolated_advanced_product_lab"
 SUPPORTED_FIXTURE_INTENTS = {
     "advanced_recommendation_rescue_proactive_loop",
     "calibration_proposal_from_body_trend",
+    "no_plan_degraded_journey",
 }
 CAPABILITIES_EXERCISED = [
     "long_term_memory",

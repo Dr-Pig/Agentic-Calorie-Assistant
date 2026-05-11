@@ -9,7 +9,6 @@ from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAGS
 from app.advanced_shadow_lab.product_lab_chat_surface import (
     build_advanced_product_lab_chat_surface,
 )
-from app.advanced_shadow_lab.product_lab_calibration import run_product_lab_calibration
 from app.advanced_shadow_lab.product_lab_control_state import (
     build_product_lab_control_state,
 )
@@ -21,10 +20,9 @@ from app.advanced_shadow_lab.product_lab_manager_tool_loop import (
     run_product_lab_manager_tool_loop,
 )
 from app.advanced_shadow_lab.product_lab_memory_store import ProductLabMemoryStore
-from app.advanced_shadow_lab.product_lab_recommendation import run_product_lab_recommendation
-from app.advanced_shadow_lab.product_lab_proactive import run_product_lab_proactive
-from app.advanced_shadow_lab import product_lab_planned_event_rescue as planned_event
-from app.advanced_shadow_lab.product_lab_rescue import run_product_lab_rescue
+from app.advanced_shadow_lab.product_lab_runtime_product_artifacts import (
+    run_product_lab_product_artifacts,
+)
 from app.advanced_shadow_lab.product_lab_turn_packets import chat_packet_blockers, chat_packets, lab_chat_response_packet
 from app.advanced_shadow_lab.product_lab_turn_policy import (
     CAPABILITIES_EXERCISED,
@@ -84,23 +82,20 @@ def run_advanced_product_lab_turn(
         interaction_plan=interaction_plan(fixture_inputs),
     )
     chain_blockers = [f"e2e_chain.{blocker}" for blocker in chain.get("blockers") or []]
-    product_recommendation = run_product_lab_recommendation(
+    product_artifacts = run_product_lab_product_artifacts(
         turn=turn,
         fixture_inputs=fixture_inputs,
+        runtime_inputs=runtime_inputs,
         memory_context_pack=memory_context_pack,
-    )
-    product_rescue = run_product_lab_rescue(fixture_inputs=runtime_inputs)
-    product_calibration = run_product_lab_calibration(fixture_inputs=runtime_inputs, enabled=turn.get("calibration_enabled") is True)
-    product_planned_event_rescue = planned_event.run_product_lab_planned_event_rescue(fixture_inputs=runtime_inputs, enabled=turn.get("planned_event_rescue_enabled") is True)
-    product_proactive = run_product_lab_proactive(
-        turn=turn,
-        fixture_inputs=runtime_inputs,
-        memory_context_pack=memory_context_pack,
-        recommendation_artifact=product_recommendation,
-        rescue_artifact=product_rescue,
-        action_state=prior_action_state,
+        prior_action_state=prior_action_state,
         prior_control_journal=list(prior_control_journal or []),
     )
+    product_recommendation = product_artifacts["recommendation"]
+    product_rescue = product_artifacts["rescue"]
+    product_calibration = product_artifacts["calibration"]
+    product_no_plan_degraded = product_artifacts["no_plan_degraded"]
+    product_planned_event_rescue = product_artifacts["planned_event_rescue"]
+    product_proactive = product_artifacts["proactive"]
     control_state = build_product_lab_control_state(
         session_id=str(turn.get("session_id") or ""),
         turn_id=str(turn.get("turn_id") or ""),
@@ -117,6 +112,7 @@ def run_advanced_product_lab_turn(
         product_recommendation=product_recommendation,
         product_rescue=product_rescue,
         product_calibration=product_calibration,
+        product_no_plan_degraded=product_no_plan_degraded,
         product_planned_event_rescue=product_planned_event_rescue,
         product_proactive=product_proactive,
     )
@@ -134,6 +130,10 @@ def run_advanced_product_lab_turn(
         *[
             f"product_calibration.{blocker}"
             for blocker in product_calibration.get("blockers") or []
+        ],
+        *[
+            f"product_no_plan_degraded.{blocker}"
+            for blocker in product_no_plan_degraded.get("blockers") or []
         ],
         *[
             f"product_proactive.{blocker}"
@@ -155,6 +155,7 @@ def run_advanced_product_lab_turn(
         "product_capabilities_exercised": [] if all_blockers else [
             *CAPABILITIES_EXERCISED,
             *(["calibration"] if product_calibration.get("proposal_presented_to_lab") is True else []),
+            *(["no_plan_degraded"] if product_no_plan_degraded.get("status") == "pass" else []),
         ],
         "lab_memory_context_pack": memory_context_pack,
         "memory_tools_enabled": memory_context_pack.get("memory_tools_enabled") is True,
@@ -163,6 +164,7 @@ def run_advanced_product_lab_turn(
         "product_lab_recommendation_artifact": product_recommendation,
         "product_lab_rescue_artifact": product_rescue,
         "product_lab_calibration_artifact": product_calibration,
+        "product_lab_no_plan_degraded_artifact": product_no_plan_degraded,
         "product_lab_planned_event_rescue_artifact": product_planned_event_rescue,
         "product_lab_proactive_artifact": product_proactive,
         "manager_tool_loop_enabled": manager_tool_loop is not None,

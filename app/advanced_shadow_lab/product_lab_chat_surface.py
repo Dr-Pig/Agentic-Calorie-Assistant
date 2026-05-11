@@ -4,6 +4,7 @@ from typing import Any, Mapping
 
 from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAGS
 from app.advanced_shadow_lab.product_lab_chat_surface_calibration import calibration_proposal
+from app.advanced_shadow_lab.product_lab_chat_surface_no_plan import no_plan_degraded
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -91,6 +92,7 @@ def _message(
         "recommendation_offer": _recommendation_offer(packet),
         "rescue_proposal": _rescue_proposal(packet),
         "calibration_proposal": calibration_proposal(packet),
+        "no_plan_degraded": no_plan_degraded(packet),
         "pending_intake_draft_ids": [
             str(item) for item in packet.get("pending_intake_draft_ids") or []
         ],

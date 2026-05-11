@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.advanced_shadow_lab.product_lab_no_plan_summary import (
+    session_no_plan_summary,
+    turn_no_plan_summary,
+)
+
 
 PRODUCT_CAPABILITIES = [
     "long_term_memory",
@@ -48,6 +53,7 @@ def turn_product_summary(turn_artifact: Mapping[str, Any]) -> dict[str, Any]:
         "product_proactive_delivery_packet_ready": (
             proactive_delivery.get("chat_delivery_allowed") is True
         ),
+        **turn_no_plan_summary(turn_artifact),
     }
 
 
@@ -82,6 +88,7 @@ def session_product_summary(
             item.get("product_proactive_delivery_packet_ready") is True
             for item in turn_summaries
         ),
+        **session_no_plan_summary(turn_summaries),
     }
 
 

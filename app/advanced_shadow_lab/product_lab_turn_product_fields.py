@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.product_lab_calibration_packets import calibration_product_fields
+from app.advanced_shadow_lab.product_lab_no_plan_packets import no_plan_product_fields
 from app.advanced_shadow_lab.product_lab_planned_event_packets import planned_event_product_fields
 
 
@@ -14,6 +15,9 @@ def product_fields(
     product_proactive: Mapping[str, Any],
 ) -> dict[str, Any]:
     family = str(packet.get("workflow_family") or "")
+    no_plan_fields = no_plan_product_fields(packet)
+    if no_plan_fields:
+        return no_plan_fields
     calibration_fields = calibration_product_fields(packet)
     if calibration_fields:
         return calibration_fields
