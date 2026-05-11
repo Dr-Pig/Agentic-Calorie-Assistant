@@ -55,6 +55,7 @@ def proposal_row(
         "message_id": message_id,
         "lifecycle_status": lifecycle_status,
         "active_inbox_visible": active_visible,
+        "proposal_card": dict(proposal_card),
         "concise_summary": str(proposal_card.get("headline") or "").strip(),
         "expandable_user_facing_explanation": explanation(
             proposal_card, guardrail_math

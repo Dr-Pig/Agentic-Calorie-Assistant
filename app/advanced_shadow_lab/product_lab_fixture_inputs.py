@@ -32,6 +32,15 @@ def build_product_lab_fixture_inputs() -> dict[str, Any]:
     }
 
 
+def build_product_lab_planned_event_fixture_inputs() -> dict[str, Any]:
+    return {
+        **build_product_lab_fixture_inputs(),
+        "active_body_plan_view": _planned_event_body_plan_view(),
+        "planned_event_context": _planned_event_context(),
+        "planned_event_proposal_candidate": _planned_event_proposal_candidate(),
+    }
+
+
 def _recommendation_payload() -> dict[str, Any]:
     payload = build_fixture_recommendation_three_node_input()
     golden = _candidate(payload, "golden-1")
@@ -142,4 +151,39 @@ def _controls(next_signal: str) -> dict[str, Any]:
     }
 
 
-__all__ = ["build_product_lab_fixture_inputs"]
+def _planned_event_context() -> dict[str, object]:
+    return {
+        "event_id": "event-buffet-1",
+        "intent_kind": "planned_event_budget_rescue",
+        "event_label": "Saturday buffet",
+        "event_local_date": "2026-05-16",
+        "reserve_kcal": 800,
+        "planning_days_before_event": 4,
+        "source_refs": ["planned_event:event-buffet-1"],
+    }
+
+
+def _planned_event_body_plan_view() -> dict[str, Any]:
+    return {
+        **_body_plan_view(),
+        "target_days": [
+            {"local_date": f"2026-05-{12 + index:02d}", "base_budget_kcal": 1800}
+            for index in range(4)
+        ],
+    }
+
+
+def _planned_event_proposal_candidate() -> dict[str, object]:
+    return {
+        "headline": "Keep 800 kcal open for Saturday buffet",
+        "summary": "Shift 200 kcal across four days before the event.",
+        "primary_actions": ["accept_rescue_plan", "dismiss_rescue_plan"],
+        "proposal_committed": False,
+        "day_budget_mutated": False,
+    }
+
+
+__all__ = [
+    "build_product_lab_fixture_inputs",
+    "build_product_lab_planned_event_fixture_inputs",
+]

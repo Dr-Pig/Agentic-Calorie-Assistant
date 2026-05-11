@@ -20,16 +20,11 @@ from app.advanced_shadow_lab.product_lab_manager_tool_loop import (
     run_product_lab_manager_tool_loop,
 )
 from app.advanced_shadow_lab.product_lab_memory_store import ProductLabMemoryStore
-from app.advanced_shadow_lab.product_lab_recommendation import (
-    run_product_lab_recommendation,
-)
+from app.advanced_shadow_lab.product_lab_recommendation import run_product_lab_recommendation
 from app.advanced_shadow_lab.product_lab_proactive import run_product_lab_proactive
+from app.advanced_shadow_lab import product_lab_planned_event_rescue as planned_event
 from app.advanced_shadow_lab.product_lab_rescue import run_product_lab_rescue
-from app.advanced_shadow_lab.product_lab_turn_packets import (
-    chat_packet_blockers,
-    chat_packets,
-    lab_chat_response_packet,
-)
+from app.advanced_shadow_lab.product_lab_turn_packets import chat_packet_blockers, chat_packets, lab_chat_response_packet
 from app.advanced_shadow_lab.product_lab_turn_policy import (
     CAPABILITIES_EXERCISED,
     base_turn,
@@ -101,6 +96,7 @@ def run_advanced_product_lab_turn(
         memory_context_pack=memory_context_pack,
     )
     product_rescue = run_product_lab_rescue(fixture_inputs=runtime_inputs)
+    product_planned_event_rescue = planned_event.run_product_lab_planned_event_rescue(fixture_inputs=runtime_inputs, enabled=turn.get("planned_event_rescue_enabled") is True)
     product_proactive = run_product_lab_proactive(
         turn=turn,
         fixture_inputs=runtime_inputs,
@@ -125,6 +121,7 @@ def run_advanced_product_lab_turn(
         memory_context_pack=memory_context_pack,
         product_recommendation=product_recommendation,
         product_rescue=product_rescue,
+        product_planned_event_rescue=product_planned_event_rescue,
         product_proactive=product_proactive,
     )
     lab_chat_surface = build_advanced_product_lab_chat_surface(
@@ -168,6 +165,7 @@ def run_advanced_product_lab_turn(
         "lab_manager_context_injected": memory_context_pack.get("lab_manager_context_injected") is True,
         "product_lab_recommendation_artifact": product_recommendation,
         "product_lab_rescue_artifact": product_rescue,
+        "product_lab_planned_event_rescue_artifact": product_planned_event_rescue,
         "product_lab_proactive_artifact": product_proactive,
         "manager_tool_loop_enabled": manager_tool_loop is not None,
         "manager_tool_loop_artifact": manager_tool_loop,
