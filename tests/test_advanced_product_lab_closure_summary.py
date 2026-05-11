@@ -28,6 +28,7 @@ def test_product_lab_closure_summary_requires_user_actions_and_activation_wall()
         "pending_intake_terminal_replayed",
         "rescue_commit_action_replayed",
         "rescue_negotiation_posture_replayed",
+        "calibration_effect_replayed",
         "activation_wall_intact",
     ]
 
@@ -60,4 +61,5 @@ def test_product_lab_closure_summary_requires_rescue_negotiation_posture() -> No
     assert summary["advanced_product_lab_product_loop_closed"] is False
     assert summary["advanced_product_lab_closure_missing"] == [
         "rescue_negotiation_posture_replayed",
+        "calibration_effect_replayed",
     ]

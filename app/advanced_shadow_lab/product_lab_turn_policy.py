@@ -6,7 +6,10 @@ from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAGS
 
 
 LAB_MODE = "isolated_advanced_product_lab"
-SUPPORTED_FIXTURE_INTENTS = {"advanced_recommendation_rescue_proactive_loop"}
+SUPPORTED_FIXTURE_INTENTS = {
+    "advanced_recommendation_rescue_proactive_loop",
+    "calibration_proposal_from_body_trend",
+}
 CAPABILITIES_EXERCISED = [
     "long_term_memory",
     "recommendation",
