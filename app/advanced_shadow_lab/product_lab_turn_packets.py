@@ -4,6 +4,7 @@ from typing import Any, Mapping
 
 from app.advanced_shadow_lab.product_lab_pending_intake_surface import pending_intake_chat_packets
 from app.advanced_shadow_lab.product_lab_calibration_packets import with_calibration_chat_packet
+from app.advanced_shadow_lab.product_lab_no_plan_packets import with_no_plan_degraded_chat_packets
 from app.advanced_shadow_lab.product_lab_planned_event_packets import with_planned_event_chat_packet
 from app.advanced_shadow_lab.product_lab_turn_product_fields import product_fields
 
@@ -15,6 +16,7 @@ def lab_chat_response_packet(
     memory_context_pack: Mapping[str, Any] | None = None,
     product_recommendation: Mapping[str, Any] | None = None, product_rescue: Mapping[str, Any] | None = None,
     product_calibration: Mapping[str, Any] | None = None,
+    product_no_plan_degraded: Mapping[str, Any] | None = None,
     product_planned_event_rescue: Mapping[str, Any] | None = None, product_proactive: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     packet = chain.get("chat_ux_packet")
@@ -37,8 +39,14 @@ def lab_chat_response_packet(
     ]
     allowed_packets = _packets_allowed_by_proactive(base_packets, product_proactive or {})
     product_packets = with_calibration_chat_packet(allowed_packets, product_calibration or {})
+    product_packets = with_planned_event_chat_packet(
+        product_packets, product_planned_event_rescue or {}
+    )
+    product_packets = with_no_plan_degraded_chat_packets(
+        product_packets, product_no_plan_degraded or {}
+    )
     chat_packets = _packets_with_memory_refs(
-        with_planned_event_chat_packet(product_packets, product_planned_event_rescue or {}),
+        product_packets,
         selected_record_ids,
         product_recommendation=product_recommendation or {},
         product_rescue=product_rescue or {},
@@ -67,7 +75,14 @@ def lab_chat_response_packet(
         "memory_context_source_artifact_type": memory_pack.get("artifact_type"),
         "product_outputs_applied": any(
             bool(_mapping(artifact))
-            for artifact in (product_recommendation, product_rescue, product_proactive)
+            for artifact in (
+                product_recommendation,
+                product_rescue,
+                product_calibration,
+                product_no_plan_degraded,
+                product_planned_event_rescue,
+                product_proactive,
+            )
         ),
         "lab_runtime_capabilities": {
             "memory_tools_enabled": memory_pack.get("memory_tools_enabled") is True,
@@ -75,6 +90,7 @@ def lab_chat_response_packet(
             "recommendation_served_to_lab": packet.get("status") == "pass",
             "rescue_served_to_lab": packet.get("status") == "pass",
             "calibration_served_to_lab": (product_calibration or {}).get("proposal_presented_to_lab") is True,
+            "no_plan_degraded_served_to_lab": (product_no_plan_degraded or {}).get("status") == "pass",
             "proactive_chat_packet_served_to_lab": packet.get("status") == "pass",
             "mainline_activation_enabled": False,
         },
