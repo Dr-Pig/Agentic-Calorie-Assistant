@@ -14,8 +14,10 @@ if str(ROOT) not in sys.path:
 
 from app.advanced_shadow_lab.model_profiles import (  # noqa: E402
     ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
+    advanced_lab_model_profile_policy,
     resolve_live_diagnostic_profile,
 )
+from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAGS  # noqa: E402
 from app.advanced_shadow_lab.product_lab_live_diagnostic import (  # noqa: E402
     ARTIFACT_TYPE,
     run_product_lab_live_diagnostic,
@@ -84,11 +86,23 @@ def _live_artifact(*, args: argparse.Namespace, output: Path) -> dict[str, Any]:
     try:
         profile, blockers = resolve_live_diagnostic_profile(str(args.provider_profile_id))
     except ValueError as exc:
-        return _blocked_not_invoked(output=output, reason=str(exc))
+        return _blocked_not_invoked(
+            output=output,
+            provider_profile_id=str(args.provider_profile_id),
+            reason=str(exc),
+        )
     if blockers:
-        return _blocked_not_invoked(output=output, reason=";".join(blockers))
+        return _blocked_not_invoked(
+            output=output,
+            provider_profile_id=str(args.provider_profile_id),
+            reason=";".join(blockers),
+        )
     if not args.allow_live_provider or os.getenv(ALLOW_ENV) != "1":
-        return _blocked_not_invoked(output=output, reason="live_gate_not_enabled")
+        return _blocked_not_invoked(
+            output=output,
+            provider_profile_id=str(args.provider_profile_id),
+            reason="live_gate_not_enabled",
+        )
     return run_product_lab_live_diagnostic(
         summary_artifact=read_json_artifact(Path(args.summary)),
         output_path=output,
@@ -98,15 +112,32 @@ def _live_artifact(*, args: argparse.Namespace, output: Path) -> dict[str, Any]:
     )
 
 
-def _blocked_not_invoked(*, output: Path, reason: str) -> dict[str, Any]:
+def _blocked_not_invoked(
+    *, output: Path, provider_profile_id: str, reason: str
+) -> dict[str, Any]:
     artifact = {
         "artifact_type": ARTIFACT_TYPE,
         "artifact_schema_version": "1.0",
         "status": "blocked",
+        **dict(FALSE_FLAGS),
         "provider_mode": "not_invoked",
+        "provider_profile_id": provider_profile_id,
         "live_invoked": False,
         "live_provider_used": False,
         "provider_invoked": False,
+        "model_profile_policy": advanced_lab_model_profile_policy(),
+        "provider_trace_summary": {
+            "stage": "not_invoked",
+            "provider": "not_invoked",
+            "usage_present": False,
+        },
+        "provider_error": {},
+        "model_output_summary": {
+            "diagnostic_notes_present": False,
+            "risk_notes_present": False,
+            "claim_scope": "",
+        },
+        "output_guard": {"status": "not_invoked", "blockers": []},
         "blockers": [reason],
         "non_claims": [
             "not_user_facing_activation",
@@ -114,6 +145,8 @@ def _blocked_not_invoked(*, output: Path, reason: str) -> dict[str, Any]:
             "not_scheduler_delivery",
             "not_durable_product_memory",
             "not_canonical_mutation",
+            "not_kimi_activation",
+            "not_provider_semantic_ownership",
         ],
         "mainline_runtime_connected": False,
         "production_db_migration_allowed": False,
