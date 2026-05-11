@@ -4,6 +4,9 @@ from typing import Any, Mapping
 
 from app.advanced_shadow_lab.product_lab_pending_intake_surface import pending_intake_chat_packets
 from app.advanced_shadow_lab.product_lab_calibration_packets import with_calibration_chat_packet
+from app.advanced_shadow_lab.product_lab_exercise_packets import (
+    with_exercise_budget_chat_packet,
+)
 from app.advanced_shadow_lab.product_lab_no_plan_packets import with_no_plan_degraded_chat_packets
 from app.advanced_shadow_lab.product_lab_planned_event_packets import with_planned_event_chat_packet
 from app.advanced_shadow_lab.product_lab_swap_packets import (
@@ -20,7 +23,9 @@ def lab_chat_response_packet(
     product_recommendation: Mapping[str, Any] | None = None, product_rescue: Mapping[str, Any] | None = None,
     product_calibration: Mapping[str, Any] | None = None,
     product_no_plan_degraded: Mapping[str, Any] | None = None,
-    product_planned_event_rescue: Mapping[str, Any] | None = None, product_proactive: Mapping[str, Any] | None = None,
+    product_planned_event_rescue: Mapping[str, Any] | None = None,
+    product_exercise_budget: Mapping[str, Any] | None = None,
+    product_proactive: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     packet = chain.get("chat_ux_packet")
     if not isinstance(packet, Mapping):
@@ -48,6 +53,9 @@ def lab_chat_response_packet(
     product_packets = with_calibration_chat_packet(product_packets, product_calibration or {})
     product_packets = with_planned_event_chat_packet(
         product_packets, product_planned_event_rescue or {}
+    )
+    product_packets = with_exercise_budget_chat_packet(
+        product_packets, product_exercise_budget or {}
     )
     product_packets = with_no_plan_degraded_chat_packets(
         product_packets, product_no_plan_degraded or {}
@@ -88,6 +96,7 @@ def lab_chat_response_packet(
                 product_calibration,
                 product_no_plan_degraded,
                 product_planned_event_rescue,
+                product_exercise_budget,
                 product_proactive,
             )
         ),
@@ -98,6 +107,7 @@ def lab_chat_response_packet(
             "rescue_served_to_lab": packet.get("status") == "pass",
             "calibration_served_to_lab": (product_calibration or {}).get("proposal_presented_to_lab") is True,
             "no_plan_degraded_served_to_lab": (product_no_plan_degraded or {}).get("status") == "pass",
+            "exercise_budget_served_to_lab": (product_exercise_budget or {}).get("status") == "pass",
             "proactive_chat_packet_served_to_lab": packet.get("status") == "pass",
             "mainline_activation_enabled": False,
         },

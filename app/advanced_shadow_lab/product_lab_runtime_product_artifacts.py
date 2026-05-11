@@ -4,6 +4,7 @@ from typing import Any, Mapping
 
 from app.advanced_shadow_lab import product_lab_planned_event_rescue as planned_event
 from app.advanced_shadow_lab.product_lab_calibration import run_product_lab_calibration
+from app.advanced_shadow_lab.product_lab_exercise import run_product_lab_exercise_budget
 from app.advanced_shadow_lab.product_lab_no_plan_degraded import (
     inactive_proactive_artifact,
     inactive_recommendation_artifact,
@@ -51,6 +52,10 @@ def run_product_lab_product_artifacts(
         fixture_inputs=runtime_inputs,
         enabled=turn.get("planned_event_rescue_enabled") is True and not no_plan_enabled,
     )
+    exercise = run_product_lab_exercise_budget(
+        fixture_inputs=runtime_inputs,
+        enabled=turn.get("exercise_budget_enabled") is True and not no_plan_enabled,
+    )
     proactive = (
         inactive_proactive_artifact(turn)
         if no_plan_enabled
@@ -70,6 +75,7 @@ def run_product_lab_product_artifacts(
         "calibration": calibration,
         "no_plan_degraded": no_plan,
         "planned_event_rescue": planned_rescue,
+        "exercise_budget": exercise,
         "proactive": proactive,
     }
 
