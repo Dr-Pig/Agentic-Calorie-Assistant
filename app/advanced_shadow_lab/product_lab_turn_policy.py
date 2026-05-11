@@ -11,6 +11,7 @@ SUPPORTED_FIXTURE_INTENTS = {
     "calibration_proposal_from_body_trend",
     "no_plan_degraded_journey",
     "pre_meal_planning",
+    "planned_event_all_day_allocation",
     "swap_suggestion",
     "exercise_budget_bonus",
     "weekly_insight_proactive_lab",
