@@ -12,7 +12,8 @@ from typing import Any
 from urllib.parse import urlencode
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -48,6 +49,7 @@ NOT_CLAIMING = [
     "live_llm_ready",
     "fooddb_expansion_ready",
 ]
+DESKTOP_PAGES = ("desktop", "chat", "today", "body", "feedback", "review", "data")
 
 
 def _repo_relative(path: Path) -> str:
@@ -66,7 +68,7 @@ def _entry_page_urls(*, host: str, port: int, user_id: str) -> dict[str, str]:
     query = urlencode({"user_id": user_id})
     return {
         page: f"http://{host}:{port}/static/accurate-intake-{page}.html?{query}"
-        for page in ("desktop", "chat", "today", "body", "feedback", "review", "data")
+        for page in DESKTOP_PAGES
     }
 
 
@@ -145,6 +147,24 @@ def build_app_for_desktop_dogfood(db_path: Path) -> FastAPI:
     engine, SessionLocal = _session_factory(db_path)
     app = FastAPI()
     app.include_router(router)
+
+    def redirect_to_static_page(page: str):
+        async def redirect(request: Request) -> RedirectResponse:
+            target = f"/static/accurate-intake-{page}.html"
+            if request.url.query:
+                target = f"{target}?{request.url.query}"
+            return RedirectResponse(target, status_code=307)
+
+        return redirect
+
+    desktop_redirect = redirect_to_static_page("desktop")
+    app.add_api_route("/accurate-intake", desktop_redirect, methods=["GET"], include_in_schema=False)
+    app.add_api_route("/accurate-intake/", desktop_redirect, methods=["GET"], include_in_schema=False)
+    for page in DESKTOP_PAGES:
+        endpoint = redirect_to_static_page(page)
+        app.add_api_route(f"/accurate-intake/{page}", endpoint, methods=["GET"], include_in_schema=False)
+        app.add_api_route(f"/accurate-intake-{page}.html", endpoint, methods=["GET"], include_in_schema=False)
+
     app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
     app.state.accurate_intake_desktop_engine = engine
 
