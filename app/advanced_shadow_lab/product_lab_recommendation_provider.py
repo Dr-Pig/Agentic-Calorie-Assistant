@@ -5,6 +5,16 @@ from typing import Any, Mapping
 from app.advanced_shadow_lab.product_lab_recommendation_ux import (
     build_recommendation_ux_packet,
 )
+from app.advanced_shadow_lab.product_lab_recommendation_offer_parts import (
+    candidate_by_id,
+    candidate_explanation,
+    public_candidate,
+    remaining_kcal_from_retrieval,
+)
+from app.advanced_shadow_lab.product_lab_premeal_planning import (
+    premeal_context,
+    premeal_packet,
+)
 
 
 class FixtureProductLabRecommendationProvider:
@@ -33,17 +43,21 @@ class FixtureProductLabRecommendationProvider:
             str(record_id)
             for record_id in memory_context_pack.get("selected_record_ids") or []
         ]
+        premeal = premeal_context(turn=turn, payload=payload)
         return {
             "node": "recommendation_planning",
             "owner": "llm_fixture_provider",
             "model_profile": self.planning_model_profile,
             "recommendation_context_result": {
-                "user_goal": str(turn.get("semantic_intent_fixture") or ""),
+                "user_goal": str(
+                    "pre_meal_planning" if premeal else turn.get("semantic_intent_fixture") or ""
+                ),
                 "soft_preferences": selected_refs,
                 "budget_posture": {
                     "remaining_kcal": remaining,
                     "already_logged_kcal": _already_logged_kcal(fixture_inputs),
                 },
+                "pre_meal_planning": premeal,
                 "raw_user_text_semantic_inference_performed": False,
             },
             "candidate_spec": {
@@ -58,6 +72,7 @@ class FixtureProductLabRecommendationProvider:
                     "remaining_kcal": remaining,
                     "max_candidate_kcal": remaining,
                 },
+                "pre_meal_planning": premeal,
                 "hard_blockers_must_be_deterministic": True,
             },
             "blockers": [],
@@ -95,16 +110,22 @@ class FixtureProductLabRecommendationProvider:
                 "blockers": [],
             }
         selected_id = str(retrieval_guard_scoring.get("primary_candidate_id") or "")
-        primary = _candidate_by_id(allowed, selected_id) or dict(allowed[0])
+        primary = candidate_by_id(allowed, selected_id) or dict(allowed[0])
         backups = [
             dict(candidate)
             for candidate_id in retrieval_guard_scoring.get("backup_candidate_ids") or []
-            if (candidate := _candidate_by_id(allowed, str(candidate_id)))
+            if (candidate := candidate_by_id(allowed, str(candidate_id)))
         ]
-        public_primary = _public_candidate(primary)
-        public_backups = [_public_candidate(item) for item in backups]
-        explanation = _explanation(primary)
+        public_primary = public_candidate(primary)
+        public_backups = [public_candidate(item) for item in backups]
+        explanation = candidate_explanation(primary)
         backup_ids = [str(item.get("candidate_id") or "") for item in backups]
+        premeal = _mapping(retrieval_guard_scoring.get("pre_meal_planning_context"))
+        premeal_ux = premeal_packet(
+            primary_candidate=primary,
+            context=premeal,
+            remaining_kcal=remaining_kcal_from_retrieval(retrieval_guard_scoring),
+        )
         return {
             "node": "offer_synthesis",
             "owner": "llm_fixture_provider",
@@ -131,28 +152,10 @@ class FixtureProductLabRecommendationProvider:
                 primary_candidate=public_primary,
                 backup_candidates=public_backups,
                 explanation=explanation,
+                pre_meal_planning_packet=premeal_ux,
             ),
             "blockers": [],
         }
-
-
-def _public_candidate(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        "candidate_id": str(candidate.get("candidate_id") or ""),
-        "title": str(candidate.get("title") or ""),
-        "source_type": str(candidate.get("source_type") or ""),
-        "estimated_kcal_range": dict(_mapping(candidate.get("estimated_kcal_range"))),
-        "quality_score": int(candidate.get("quality_score") or 0),
-        "quality_tier": str(candidate.get("quality_tier") or ""),
-        "proactive_intensity": str(candidate.get("proactive_intensity") or ""),
-        "source_refs": [str(ref) for ref in candidate.get("source_refs") or []],
-    }
-
-
-def _explanation(candidate: Mapping[str, Any]) -> str:
-    title = str(candidate.get("title") or "this option")
-    return f"{title} fits the current budget and remembered preference context."
-
 
 def _remaining_kcal(payload: Mapping[str, Any]) -> int | None:
     value = _mapping(payload.get("current_budget_view")).get("remaining_kcal")
@@ -168,16 +171,6 @@ def _already_logged_kcal(fixture_inputs: Mapping[str, Any]) -> int | None:
 
 def _mapping(value: Any) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
-
-
-def _candidate_by_id(
-    candidates: list[Mapping[str, Any]],
-    candidate_id: str,
-) -> dict[str, Any] | None:
-    for candidate in candidates:
-        if str(candidate.get("candidate_id") or "") == candidate_id:
-            return dict(candidate)
-    return None
 
 
 __all__ = ["FixtureProductLabRecommendationProvider"]
