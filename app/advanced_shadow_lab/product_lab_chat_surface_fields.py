@@ -7,6 +7,9 @@ from app.advanced_shadow_lab.product_lab_chat_surface_calibration import (
     calibration_proposal,
 )
 from app.advanced_shadow_lab.product_lab_chat_surface_no_plan import no_plan_degraded
+from app.advanced_shadow_lab.product_lab_chat_surface_weekly_insight import (
+    weekly_insight_report,
+)
 
 
 def chat_copy(packet: Mapping[str, Any], workflow_family: str) -> str:
@@ -96,6 +99,7 @@ def product_surface_fields(packet: Mapping[str, Any]) -> dict[str, Any]:
         "rescue_proposal": rescue_proposal(packet),
         "swap_suggestion": swap_suggestion(packet),
         "exercise_budget": exercise_budget(packet),
+        "weekly_insight_report": weekly_insight_report(packet),
         "calibration_proposal": calibration_proposal(packet),
         "no_plan_degraded": no_plan_degraded(packet),
     }

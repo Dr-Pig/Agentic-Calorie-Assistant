@@ -13,6 +13,7 @@ SUPPORTED_FIXTURE_INTENTS = {
     "pre_meal_planning",
     "swap_suggestion",
     "exercise_budget_bonus",
+    "weekly_insight_proactive_lab",
 }
 CAPABILITIES_EXERCISED = [
     "long_term_memory",
@@ -94,6 +95,7 @@ def base_turn(*, turn: Mapping[str, Any], lab_mode: str) -> dict[str, Any]:
         "chat_first_surface": str(turn.get("surface") or "") == "chat",
         "semantic_intent_fixture": str(turn.get("semantic_intent_fixture") or ""),
         "raw_user_text_semantic_inference_performed": False,
+        "mainline_activation_enabled": False,
         "merge_back_activation_wall": dict(MERGE_BACK_ACTIVATION_WALL),
         "non_claims": list(NON_CLAIMS),
     }

@@ -13,6 +13,9 @@ from app.advanced_shadow_lab.product_lab_swap_packets import (
     with_swap_suggestion_chat_packet,
 )
 from app.advanced_shadow_lab.product_lab_turn_product_fields import product_fields
+from app.advanced_shadow_lab.product_lab_weekly_insight_packets import (
+    with_weekly_insight_chat_packet,
+)
 
 
 def lab_chat_response_packet(
@@ -25,6 +28,7 @@ def lab_chat_response_packet(
     product_no_plan_degraded: Mapping[str, Any] | None = None,
     product_planned_event_rescue: Mapping[str, Any] | None = None,
     product_exercise_budget: Mapping[str, Any] | None = None,
+    product_weekly_insight: Mapping[str, Any] | None = None,
     product_proactive: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     packet = chain.get("chat_ux_packet")
@@ -56,6 +60,9 @@ def lab_chat_response_packet(
     )
     product_packets = with_exercise_budget_chat_packet(
         product_packets, product_exercise_budget or {}
+    )
+    product_packets = with_weekly_insight_chat_packet(
+        product_packets, product_weekly_insight or {}, product_proactive or {}
     )
     product_packets = with_no_plan_degraded_chat_packets(
         product_packets, product_no_plan_degraded or {}
@@ -97,6 +104,7 @@ def lab_chat_response_packet(
                 product_no_plan_degraded,
                 product_planned_event_rescue,
                 product_exercise_budget,
+                product_weekly_insight,
                 product_proactive,
             )
         ),
@@ -108,6 +116,7 @@ def lab_chat_response_packet(
             "calibration_served_to_lab": (product_calibration or {}).get("proposal_presented_to_lab") is True,
             "no_plan_degraded_served_to_lab": (product_no_plan_degraded or {}).get("status") == "pass",
             "exercise_budget_served_to_lab": (product_exercise_budget or {}).get("status") == "pass",
+            "weekly_insight_served_to_lab": (product_weekly_insight or {}).get("lab_chat_delivery_allowed") is True,
             "proactive_chat_packet_served_to_lab": packet.get("status") == "pass",
             "mainline_activation_enabled": False,
         },

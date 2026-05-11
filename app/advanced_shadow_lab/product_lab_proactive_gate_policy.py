@@ -7,6 +7,7 @@ PERMISSION_POSTURE = {
     "recommendation_prompt": "app_open_only",
     "pending_intake_followup": "user_expected",
     "rescue_nudge": "later_requires_explicit_consent",
+    "weekly_insight": "user_expected",
 }
 DEFAULT_QUIET_HOURS = ("22:00", "08:00")
 
