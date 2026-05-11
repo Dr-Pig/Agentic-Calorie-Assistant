@@ -88,8 +88,15 @@ def test_product_lab_final_loop_closes_with_live_diagnostic_dormant_wall(
     ]
     assert summary["lab_chat_action_outcome_types"] == [
         "recommendation_intake_draft",
-        "rescue_commit_confirmation",
+        "rescue_shorter_plan_requested",
+        "rescue_explanation_requested",
         "pending_intake_confirmed_lab",
+        "rescue_commit_confirmation",
+    ]
+    assert summary["lab_rescue_action_decision_kinds"] == [
+        "request_shorter_variant",
+        "request_explanation",
+        "pending_rescue_commit_confirmation",
     ]
     assert live_diagnostic["status"] == "pass"
     assert live_diagnostic["source_product_loop_closed"] is True

@@ -46,6 +46,9 @@ def product_lab_live_provider_payload(
             "action_outcome_types": list(
                 summary_artifact.get("lab_chat_action_outcome_types") or []
             ),
+            "rescue_action_decision_kinds": list(
+                summary_artifact.get("lab_rescue_action_decision_kinds") or []
+            ),
             "canonical_mutation_allowed": bool(
                 summary_artifact.get("lab_chat_action_canonical_mutation_allowed")
             ),
