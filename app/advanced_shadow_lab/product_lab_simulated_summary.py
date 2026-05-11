@@ -52,6 +52,9 @@ def build_simulated_dogfood_summary(
         "lab_chat_action_outcome_types": list(
             session_artifact.get("lab_chat_action_outcome_types") or []
         ),
+        "lab_rescue_action_decision_kinds": list(
+            session_artifact.get("lab_rescue_action_decision_kinds") or []
+        ),
         "lab_chat_action_canonical_mutation_allowed": bool(
             session_artifact.get("lab_chat_action_canonical_mutation_allowed")
         ),

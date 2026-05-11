@@ -28,7 +28,12 @@ def build_product_lab_simulated_turns() -> list[dict[str, Any]]:
                 {
                     "event_id": "accept-rescue",
                     "target_candidate_id": "rescue_nudge:1",
-                    "action": "accept_rescue_plan",
+                    "action": "request_shorter_plan",
+                },
+                {
+                    "event_id": "why-rescue",
+                    "target_candidate_id": "rescue_nudge:1",
+                    "action": "ask_why_this_plan",
                 },
             ],
             "post_turn_memory_signal_events": [
@@ -80,6 +85,11 @@ def build_product_lab_simulated_turns() -> list[dict[str, Any]]:
                     "event_id": "confirm-pending-intake",
                     "target_candidate_id": "pending_intake_followup:3",
                     "action": "confirm_pending_intake",
+                },
+                {
+                    "event_id": "accept-rescue",
+                    "target_candidate_id": "rescue_nudge:1",
+                    "action": "accept_rescue_plan",
                 }
             ],
         },

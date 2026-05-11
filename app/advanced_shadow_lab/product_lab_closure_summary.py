@@ -26,7 +26,13 @@ def build_product_lab_closure_summary(
         "recommendation_intake_action_replayed": (
             "recommendation_intake_draft" in action_types
         ),
+        "pending_intake_terminal_replayed": (
+            "pending_intake_confirmed_lab" in action_types
+        ),
         "rescue_commit_action_replayed": "rescue_commit_confirmation" in action_types,
+        "rescue_negotiation_posture_replayed": (
+            _rescue_negotiation_posture_replayed(session_artifact)
+        ),
         "proactive_chat_delivery_ready": (
             session_artifact.get("product_proactive_delivery_packet_ready") is True
         ),
@@ -52,6 +58,18 @@ def _activation_wall_intact(session_artifact: Mapping[str, Any]) -> bool:
         and session_artifact.get("canonical_product_mutation_allowed") is False
         and session_artifact.get("durable_product_memory_written") is False
         and session_artifact.get("production_scheduler_delivery_allowed") is False
+    )
+
+
+def _rescue_negotiation_posture_replayed(session_artifact: Mapping[str, Any]) -> bool:
+    decision_kinds = set(session_artifact.get("lab_rescue_action_decision_kinds") or [])
+    return bool(
+        {
+            "request_gentler_variant",
+            "request_shorter_variant",
+            "request_explanation",
+        }
+        & decision_kinds
     )
 
 

@@ -79,11 +79,18 @@ def test_simulated_dogfood_cli_writes_operator_review_artifacts(
     assert file_summary["product_recommendation_intake_handoff_created"] is True
     assert file_summary["product_rescue_commit_handoff_created"] is True
     assert file_summary["product_proactive_delivery_packet_ready"] is True
-    assert file_summary["lab_chat_action_outcome_count"] == 3
+    assert file_summary["lab_chat_action_outcome_count"] == 5
     assert file_summary["lab_chat_action_outcome_types"] == [
         "recommendation_intake_draft",
-        "rescue_commit_confirmation",
+        "rescue_shorter_plan_requested",
+        "rescue_explanation_requested",
         "pending_intake_confirmed_lab",
+        "rescue_commit_confirmation",
+    ]
+    assert file_summary["lab_rescue_action_decision_kinds"] == [
+        "request_shorter_variant",
+        "request_explanation",
+        "pending_rescue_commit_confirmation",
     ]
     assert file_summary["lab_chat_action_canonical_mutation_allowed"] is False
     assert file_summary["lab_chat_action_blockers"] == []
@@ -95,7 +102,9 @@ def test_simulated_dogfood_cli_writes_operator_review_artifacts(
         "memory_context_injected": True,
         "recommendation_selected": True,
         "recommendation_intake_action_replayed": True,
+        "pending_intake_terminal_replayed": True,
         "rescue_commit_action_replayed": True,
+        "rescue_negotiation_posture_replayed": True,
         "proactive_chat_delivery_ready": True,
         "chat_surface_outputs_applied": True,
         "activation_wall_intact": True,

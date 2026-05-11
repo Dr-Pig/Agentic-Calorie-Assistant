@@ -185,11 +185,18 @@ def test_product_lab_live_diagnostic_payload_includes_product_runtime_summary(
         "proactive_delivery_packet_ready": True,
     }
     assert provider.user_payload["chat_action_summary"] == {
-        "action_outcome_count": 3,
+        "action_outcome_count": 5,
         "action_outcome_types": [
             "recommendation_intake_draft",
-            "rescue_commit_confirmation",
+            "rescue_shorter_plan_requested",
+            "rescue_explanation_requested",
             "pending_intake_confirmed_lab",
+            "rescue_commit_confirmation",
+        ],
+        "rescue_action_decision_kinds": [
+            "request_shorter_variant",
+            "request_explanation",
+            "pending_rescue_commit_confirmation",
         ],
         "canonical_mutation_allowed": False,
         "blockers": [],
@@ -203,7 +210,9 @@ def test_product_lab_live_diagnostic_payload_includes_product_runtime_summary(
             "memory_context_injected": True,
             "recommendation_selected": True,
             "recommendation_intake_action_replayed": True,
+            "pending_intake_terminal_replayed": True,
             "rescue_commit_action_replayed": True,
+            "rescue_negotiation_posture_replayed": True,
             "proactive_chat_delivery_ready": True,
             "chat_surface_outputs_applied": True,
             "activation_wall_intact": True,
