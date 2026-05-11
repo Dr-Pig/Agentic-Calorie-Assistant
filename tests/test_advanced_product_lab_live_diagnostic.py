@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from app.advanced_shadow_lab.model_profiles import (
+    ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
     ADVANCED_LAB_TARGET_REASONING_PROFILE_ID,
 )
 from app.advanced_shadow_lab.product_lab_live_diagnostic import (
@@ -50,9 +51,20 @@ def test_product_lab_live_diagnostic_blocks_without_live_gate(
     assert artifact["artifact_type"] == "advanced_product_lab_live_diagnostic_artifact"
     assert artifact["status"] == "blocked"
     assert artifact["provider_mode"] == "not_invoked"
+    assert artifact["provider_profile_id"] == ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID
+    assert artifact["model_profile_policy"]["default_live_diagnostic_profile_id"] == (
+        ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID
+    )
+    assert artifact["provider_trace_summary"] == {
+        "stage": "not_invoked",
+        "provider": "not_invoked",
+        "usage_present": False,
+    }
+    assert artifact["output_guard"] == {"status": "not_invoked", "blockers": []}
     assert artifact["live_invoked"] is False
     assert artifact["live_provider_used"] is False
     assert artifact["blockers"] == ["live_gate_not_enabled"]
+    assert artifact["runtime_effect_allowed"] is False
     assert artifact["user_facing_behavior_changed"] is False
     assert artifact["mainline_runtime_connected"] is False
     assert artifact["production_db_migration_allowed"] is False
@@ -90,9 +102,21 @@ def test_product_lab_live_diagnostic_rejects_kimi_profile_before_input_read(
     artifact = read_json_artifact(output)
     assert artifact["status"] == "blocked"
     assert artifact["provider_mode"] == "not_invoked"
+    assert artifact["provider_profile_id"] == ADVANCED_LAB_TARGET_REASONING_PROFILE_ID
+    assert artifact["model_profile_policy"]["target_reasoning_profile_id"] == (
+        ADVANCED_LAB_TARGET_REASONING_PROFILE_ID
+    )
+    assert artifact["provider_trace_summary"] == {
+        "stage": "not_invoked",
+        "provider": "not_invoked",
+        "usage_present": False,
+    }
+    assert artifact["output_guard"] == {"status": "not_invoked", "blockers": []}
     assert artifact["blockers"] == [
         "profile_not_live_diagnostic_allowed;kimi_live_calls_forbidden"
     ]
+    assert "not_kimi_activation" in artifact["non_claims"]
+    assert artifact["runtime_effect_allowed"] is False
     assert "No such file" not in result.stderr
 
 
