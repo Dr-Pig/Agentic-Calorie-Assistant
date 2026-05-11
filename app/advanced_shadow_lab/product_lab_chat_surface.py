@@ -3,8 +3,11 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAGS
-from app.advanced_shadow_lab.product_lab_chat_surface_calibration import calibration_proposal
-from app.advanced_shadow_lab.product_lab_chat_surface_no_plan import no_plan_degraded
+from app.advanced_shadow_lab.product_lab_chat_surface_fields import (
+    chat_copy,
+    message_actions,
+    product_surface_fields,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -80,8 +83,9 @@ def _message(
         "message_id": f"{session_id}:{turn_id}:{candidate_id}",
         "candidate_id": candidate_id,
         "workflow_family": workflow_family,
+        "trigger_type": str(packet.get("trigger_type") or ""),
         "surface": "chat",
-        "copy": _copy(packet, workflow_family),
+        "copy": chat_copy(packet, workflow_family),
         "memory_context_refs": [
             str(item) for item in packet.get("memory_context_refs") or []
         ],
@@ -89,96 +93,22 @@ def _message(
         "product_runtime_output_refs": [
             str(item) for item in packet.get("product_runtime_output_refs") or []
         ],
-        "recommendation_offer": _recommendation_offer(packet),
-        "rescue_proposal": _rescue_proposal(packet),
-        "calibration_proposal": calibration_proposal(packet),
-        "no_plan_degraded": no_plan_degraded(packet),
+        **product_surface_fields(packet),
         "pending_intake_draft_ids": [
             str(item) for item in packet.get("pending_intake_draft_ids") or []
         ],
         "controls_visible": True,
-        "actions": [
-            _action(session_id, turn_id, candidate_id, "dismiss"),
-            _action(session_id, turn_id, candidate_id, "snooze"),
-            _action(session_id, turn_id, candidate_id, "undo"),
-        ],
+        "actions": message_actions(
+            session_id=session_id,
+            turn_id=turn_id,
+            candidate_id=candidate_id,
+            packet=packet,
+        ),
         "served_to_lab_user": True,
         "served_to_mainline_user": False,
         "delivery_attempted_outside_lab": False,
         "scheduler_enqueued": False,
         "canonical_mutation_requested": False,
-    }
-
-
-def _action(
-    session_id: str,
-    turn_id: str,
-    candidate_id: str,
-    action: str,
-) -> dict[str, str]:
-    return {
-        "action_id": f"{session_id}:{turn_id}:{candidate_id}:{action}",
-        "action": action,
-        "scope": "candidate_instance",
-    }
-
-
-def _copy(packet: Mapping[str, Any], workflow_family: str) -> str:
-    product_copy = str(packet.get("product_lab_copy") or "").strip()
-    if product_copy:
-        return product_copy
-    preview = str(packet.get("lab_only_copy_preview") or "").strip()
-    if preview:
-        return preview
-    if workflow_family == "recommendation":
-        return "I can help pick a stable option for this moment."
-    if workflow_family == "rescue":
-        return "I can help adjust the next step without making it harsh."
-    return "I can help with this when it is useful."
-
-
-def _recommendation_offer(packet: Mapping[str, Any]) -> dict[str, Any]:
-    ux = packet.get("recommendation_ux_packet")
-    if not isinstance(ux, Mapping):
-        return {}
-    handoff = _mapping(packet.get("pending_intake_handoff_packet"))
-    return {
-        "primary_candidate_id": str(ux.get("primary_candidate_id") or ""),
-        "backup_candidate_ids": [str(item) for item in ux.get("backup_candidate_ids") or []],
-        "candidate_snapshot": dict(_mapping(handoff.get("candidate_snapshot"))),
-        "pre_meal_planning": dict(_mapping(ux.get("pre_meal_planning_packet"))),
-        "offer_actions": [dict(item) for item in ux.get("actions") or [] if isinstance(item, Mapping)],
-        "intake_handoff_state": str(handoff.get("handoff_state") or ""),
-        "canonical_commit_requested": handoff.get("canonical_commit_requested") is True,
-        "requires_explicit_user_intake_action": any(
-            item.get("requires_explicit_user_intake_action") is True
-            for item in ux.get("actions") or []
-            if isinstance(item, Mapping)
-        ),
-        "source_pending_intake_handoff_artifact_type": str(
-            handoff.get("artifact_type") or ""
-        ),
-    }
-
-
-def _rescue_proposal(packet: Mapping[str, Any]) -> dict[str, Any]:
-    proposal = _mapping(packet.get("rescue_proposal_packet"))
-    if not proposal:
-        return {}
-    pending = _mapping(proposal.get("pending_rescue_commit_packet"))
-    return {
-        "handoff_state": str(pending.get("handoff_state") or ""),
-        "primary_actions": [str(item) for item in proposal.get("primary_actions") or []],
-        "negotiation_affordances": [
-            str(item) for item in proposal.get("negotiation_affordances") or []
-        ],
-        "proposal_card": dict(_mapping(proposal.get("proposal_card"))),
-        "guardrail_math": dict(_mapping(proposal.get("guardrail_math"))),
-        "canonical_commit_requested": pending.get("canonical_commit_requested") is True,
-        "proposal_committed": pending.get("proposal_committed") is True,
-        "source_pending_rescue_commit_artifact_type": str(
-            pending.get("artifact_type") or ""
-        ),
     }
 
 
