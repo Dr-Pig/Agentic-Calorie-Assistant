@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from app.advanced_shadow_lab.product_lab_pending_intake_surface import (
-    pending_intake_chat_packets,
-)
+from app.advanced_shadow_lab.product_lab_pending_intake_surface import pending_intake_chat_packets
+from app.advanced_shadow_lab.product_lab_planned_event_packets import planned_event_product_fields, with_planned_event_chat_packet
 
 
 def lab_chat_response_packet(
@@ -12,9 +11,8 @@ def lab_chat_response_packet(
     control_state: Mapping[str, Any],
     *,
     memory_context_pack: Mapping[str, Any] | None = None,
-    product_recommendation: Mapping[str, Any] | None = None,
-    product_rescue: Mapping[str, Any] | None = None,
-    product_proactive: Mapping[str, Any] | None = None,
+    product_recommendation: Mapping[str, Any] | None = None, product_rescue: Mapping[str, Any] | None = None,
+    product_planned_event_rescue: Mapping[str, Any] | None = None, product_proactive: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     packet = chain.get("chat_ux_packet")
     if not isinstance(packet, Mapping):
@@ -30,14 +28,13 @@ def lab_chat_response_packet(
     selected_record_ids = [
         str(item) for item in memory_pack.get("selected_record_ids") or []
     ]
+    base_packets = [
+        *list(packet.get("chat_packets") or []),
+        *pending_intake_chat_packets(product_proactive=product_proactive or {}),
+    ]
+    allowed_packets = _packets_allowed_by_proactive(base_packets, product_proactive or {})
     chat_packets = _packets_with_memory_refs(
-        _packets_allowed_by_proactive(
-            [
-                *list(packet.get("chat_packets") or []),
-                *pending_intake_chat_packets(product_proactive=product_proactive or {}),
-            ],
-            product_proactive or {},
-        ),
+        with_planned_event_chat_packet(allowed_packets, product_planned_event_rescue or {}),
         selected_record_ids,
         product_recommendation=product_recommendation or {},
         product_rescue=product_rescue or {},
@@ -159,6 +156,9 @@ def _product_fields(
     product_proactive: Mapping[str, Any],
 ) -> dict[str, Any]:
     family = str(packet.get("workflow_family") or "")
+    planned_fields = planned_event_product_fields(packet)
+    if planned_fields:
+        return planned_fields
     if family == "recommendation":
         ux = _mapping(_mapping(product_recommendation.get("offer_synthesis")).get("ux_packet"))
         return {
