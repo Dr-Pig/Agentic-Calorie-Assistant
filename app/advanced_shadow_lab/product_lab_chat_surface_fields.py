@@ -89,6 +89,23 @@ def rescue_proposal(packet: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def planned_event_guidance(packet: Mapping[str, Any]) -> dict[str, Any]:
+    guidance = _mapping(packet.get("planned_event_guidance_packet"))
+    if not guidance:
+        return {}
+    card = _mapping(guidance.get("guidance_card"))
+    return {
+        "event_label": str(card.get("event_label") or ""),
+        "suggested_reserve_kcal": card.get("suggested_reserve_kcal"),
+        "lunch_cap_kcal": card.get("lunch_cap_kcal"),
+        "informational_only": guidance.get("informational_only") is True,
+        "proposal_created": guidance.get("proposal_created") is True,
+        "canonical_product_mutation_allowed": (
+            guidance.get("canonical_product_mutation_allowed") is True
+        ),
+    }
+
+
 def swap_suggestion(packet: Mapping[str, Any]) -> dict[str, Any]:
     return dict(_mapping(packet.get("swap_suggestion_packet")))
 
@@ -97,6 +114,7 @@ def product_surface_fields(packet: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "recommendation_offer": recommendation_offer(packet),
         "rescue_proposal": rescue_proposal(packet),
+        "planned_event_guidance": planned_event_guidance(packet),
         "swap_suggestion": swap_suggestion(packet),
         "exercise_budget": exercise_budget(packet),
         "weekly_insight_report": weekly_insight_report(packet),

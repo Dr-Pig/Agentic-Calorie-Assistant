@@ -95,6 +95,7 @@ def run_advanced_product_lab_turn(
     product_rescue = product_artifacts["rescue"]
     product_calibration = product_artifacts["calibration"]
     product_no_plan_degraded = product_artifacts["no_plan_degraded"]
+    product_planned_event_guidance = product_artifacts["planned_event_guidance"]
     product_planned_event_rescue = product_artifacts["planned_event_rescue"]
     product_exercise_budget = product_artifacts["exercise_budget"]
     product_weekly_insight = product_artifacts["weekly_insight"]
@@ -116,6 +117,7 @@ def run_advanced_product_lab_turn(
         product_rescue=product_rescue,
         product_calibration=product_calibration,
         product_no_plan_degraded=product_no_plan_degraded,
+        product_planned_event_guidance=product_planned_event_guidance,
         product_planned_event_rescue=product_planned_event_rescue,
         product_exercise_budget=product_exercise_budget,
         product_weekly_insight=product_weekly_insight,
@@ -142,6 +144,7 @@ def run_advanced_product_lab_turn(
             *CAPABILITIES_EXERCISED,
             *(["calibration"] if product_calibration.get("proposal_presented_to_lab") is True else []),
             *(["no_plan_degraded"] if product_no_plan_degraded.get("status") == "pass" else []),
+            *(["planned_event_guidance"] if product_planned_event_guidance.get("status") == "pass" else []),
             *(["exercise_budget"] if product_exercise_budget.get("status") == "pass" else []),
             *(["weekly_insight"] if product_weekly_insight.get("lab_chat_delivery_allowed") is True else []),
         ],
@@ -153,6 +156,7 @@ def run_advanced_product_lab_turn(
         "product_lab_rescue_artifact": product_rescue,
         "product_lab_calibration_artifact": product_calibration,
         "product_lab_no_plan_degraded_artifact": product_no_plan_degraded,
+        "product_lab_planned_event_guidance_artifact": product_planned_event_guidance,
         "product_lab_planned_event_rescue_artifact": product_planned_event_rescue,
         "product_lab_exercise_budget_artifact": product_exercise_budget,
         "product_lab_weekly_insight_artifact": product_weekly_insight,

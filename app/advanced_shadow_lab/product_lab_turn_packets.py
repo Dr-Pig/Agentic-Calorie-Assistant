@@ -3,19 +3,12 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.product_lab_pending_intake_surface import pending_intake_chat_packets
-from app.advanced_shadow_lab.product_lab_calibration_packets import with_calibration_chat_packet
-from app.advanced_shadow_lab.product_lab_exercise_packets import (
-    with_exercise_budget_chat_packet,
-)
-from app.advanced_shadow_lab.product_lab_no_plan_packets import with_no_plan_degraded_chat_packets
-from app.advanced_shadow_lab.product_lab_planned_event_packets import with_planned_event_chat_packet
-from app.advanced_shadow_lab.product_lab_swap_packets import (
-    with_swap_suggestion_chat_packet,
+from app.advanced_shadow_lab.product_lab_turn_packet_products import (
+    product_chat_packets,
+    product_lab_runtime_capabilities,
+    product_outputs_applied,
 )
 from app.advanced_shadow_lab.product_lab_turn_product_fields import product_fields
-from app.advanced_shadow_lab.product_lab_weekly_insight_packets import (
-    with_weekly_insight_chat_packet,
-)
 
 
 def lab_chat_response_packet(
@@ -26,6 +19,7 @@ def lab_chat_response_packet(
     product_recommendation: Mapping[str, Any] | None = None, product_rescue: Mapping[str, Any] | None = None,
     product_calibration: Mapping[str, Any] | None = None,
     product_no_plan_degraded: Mapping[str, Any] | None = None,
+    product_planned_event_guidance: Mapping[str, Any] | None = None,
     product_planned_event_rescue: Mapping[str, Any] | None = None,
     product_exercise_budget: Mapping[str, Any] | None = None,
     product_weekly_insight: Mapping[str, Any] | None = None,
@@ -50,22 +44,16 @@ def lab_chat_response_packet(
         *pending_intake_chat_packets(product_proactive=product_proactive or {}),
     ]
     allowed_packets = _packets_allowed_by_proactive(base_packets, product_proactive or {})
-    product_packets = with_swap_suggestion_chat_packet(
+    product_packets = product_chat_packets(
         allowed_packets,
-        product_recommendation or {},
-    )
-    product_packets = with_calibration_chat_packet(product_packets, product_calibration or {})
-    product_packets = with_planned_event_chat_packet(
-        product_packets, product_planned_event_rescue or {}
-    )
-    product_packets = with_exercise_budget_chat_packet(
-        product_packets, product_exercise_budget or {}
-    )
-    product_packets = with_weekly_insight_chat_packet(
-        product_packets, product_weekly_insight or {}, product_proactive or {}
-    )
-    product_packets = with_no_plan_degraded_chat_packets(
-        product_packets, product_no_plan_degraded or {}
+        recommendation=product_recommendation or {},
+        calibration=product_calibration or {},
+        no_plan_degraded=product_no_plan_degraded or {},
+        planned_event_guidance=product_planned_event_guidance or {},
+        planned_event_rescue=product_planned_event_rescue or {},
+        exercise_budget=product_exercise_budget or {},
+        weekly_insight=product_weekly_insight or {},
+        proactive=product_proactive or {},
     )
     chat_packets = _packets_with_memory_refs(
         product_packets,
@@ -95,31 +83,28 @@ def lab_chat_response_packet(
         "memory_context_applied": bool(selected_record_ids),
         "memory_context_refs": selected_record_ids,
         "memory_context_source_artifact_type": memory_pack.get("artifact_type"),
-        "product_outputs_applied": any(
-            bool(_mapping(artifact))
-            for artifact in (
+        "product_outputs_applied": product_outputs_applied(
+            [
                 product_recommendation,
                 product_rescue,
                 product_calibration,
                 product_no_plan_degraded,
+                product_planned_event_guidance,
                 product_planned_event_rescue,
                 product_exercise_budget,
                 product_weekly_insight,
                 product_proactive,
-            )
+            ]
         ),
-        "lab_runtime_capabilities": {
-            "memory_tools_enabled": memory_pack.get("memory_tools_enabled") is True,
-            "memory_context_injected": memory_pack.get("memory_context_injected") is True,
-            "recommendation_served_to_lab": packet.get("status") == "pass",
-            "rescue_served_to_lab": packet.get("status") == "pass",
-            "calibration_served_to_lab": (product_calibration or {}).get("proposal_presented_to_lab") is True,
-            "no_plan_degraded_served_to_lab": (product_no_plan_degraded or {}).get("status") == "pass",
-            "exercise_budget_served_to_lab": (product_exercise_budget or {}).get("status") == "pass",
-            "weekly_insight_served_to_lab": (product_weekly_insight or {}).get("lab_chat_delivery_allowed") is True,
-            "proactive_chat_packet_served_to_lab": packet.get("status") == "pass",
-            "mainline_activation_enabled": False,
-        },
+        "lab_runtime_capabilities": product_lab_runtime_capabilities(
+            memory_pack=memory_pack,
+            packet=packet,
+            calibration=product_calibration or {},
+            no_plan_degraded=product_no_plan_degraded or {},
+            planned_event_guidance=product_planned_event_guidance or {},
+            exercise_budget=product_exercise_budget or {},
+            weekly_insight=product_weekly_insight or {},
+        ),
         "blockers": list(packet.get("blockers") or []),
         "chat_packets": chat_packets,
     }

@@ -62,8 +62,6 @@ def _row(journey_id: str) -> dict[str, Any]:
 
 
 def _status(journey_id: str) -> str:
-    if journey_id == "T":
-        return MISSING_SCENARIO
     return COVERED
 
 
@@ -98,6 +96,7 @@ def _evidence_refs(journey_id: str, status: str) -> list[str]:
         "N": ["tests/test_advanced_product_lab_proactive_runtime.py"],
         "Q": ["tests/test_advanced_product_lab_premeal_planning.py"],
         "S": ["tests/test_advanced_product_lab_swap_suggestion.py"],
+        "T": ["tests/test_advanced_product_lab_planned_event_rescue.py"],
         "U": ["tests/test_advanced_product_lab_exercise_budget.py"],
         "V": ["tests/test_advanced_product_lab_weekly_insight.py"],
     }
@@ -110,6 +109,12 @@ def _do_not_cross(journey_id: str) -> list[str]:
             "no_body_plan_tdee_rewrite",
             "no_production_ledger_write",
             "no_scheduler_or_notification",
+        ]
+    if journey_id == "T":
+        return [
+            "proposal_first_no_direct_ledger_write",
+            "informational_guidance_does_not_create_proposal",
+            "future_overlay_preview_only_in_lab",
         ]
     if journey_id == "V":
         return [
