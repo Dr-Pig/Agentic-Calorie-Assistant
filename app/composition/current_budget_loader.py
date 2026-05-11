@@ -4,9 +4,21 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.shared.domain import CurrentBudgetMealSummary, CurrentBudgetView
+from app.body.infrastructure.models import BodyPlanRecord
 from app.budget.infrastructure.models import DayBudgetLedgerRecord
 from app.intake.infrastructure.models import MealThreadRecord, MealVersionRecord
 from app.runtime.application.execution_guard import evaluate_macro_display
+
+
+def _active_plan_budget_kcal(db: Session, *, user_id: int) -> int:
+    active_plan = db.execute(
+        select(BodyPlanRecord.daily_budget_kcal).where(
+            BodyPlanRecord.user_id == user_id,
+            BodyPlanRecord.plan_status == "active",
+            BodyPlanRecord.daily_budget_kcal > 0,
+        )
+    ).scalars().first()
+    return int(active_plan or 0)
 
 
 def load_current_budget_view(
@@ -51,10 +63,10 @@ def load_current_budget_view(
     consumed_carbs = sum(int(version.carb_g or 0) for _, version in meal_rows)
     consumed_fat = sum(int(version.fat_g or 0) for _, version in meal_rows)
     active_consumed_kcal = sum(int(version.total_kcal or 0) for _, version in meal_rows)
-    budget_kcal = int(ledger.budget_kcal or 0) if ledger is not None else 0
+    budget_kcal = int(ledger.budget_kcal or 0) if ledger is not None else _active_plan_budget_kcal(db, user_id=user_id)
     adjustment_kcal = int(ledger.adjustment_kcal or 0) if ledger is not None else 0
     consumed_kcal = active_consumed_kcal
-    remaining_kcal = budget_kcal - consumed_kcal - adjustment_kcal if ledger is not None else 0
+    remaining_kcal = budget_kcal - consumed_kcal - adjustment_kcal
     macro_guard = evaluate_macro_display(
         estimated_kcal=consumed_kcal,
         protein_g=consumed_protein,
