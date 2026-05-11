@@ -11,6 +11,7 @@ SUPPORTED_FIXTURE_INTENTS = {
     "calibration_proposal_from_body_trend",
     "no_plan_degraded_journey",
     "pre_meal_planning",
+    "swap_suggestion",
 }
 CAPABILITIES_EXERCISED = [
     "long_term_memory",

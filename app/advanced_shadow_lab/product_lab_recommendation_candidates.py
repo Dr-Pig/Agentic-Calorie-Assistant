@@ -45,6 +45,7 @@ def build_candidate_retrieval_guard_scoring(
         str(item) for item in memory_context_pack.get("negative_preference_blockers") or []
     ]
     premeal = _mapping(_mapping(planning.get("candidate_spec")).get("pre_meal_planning"))
+    swap = _mapping(_mapping(planning.get("candidate_spec")).get("swap_suggestion"))
     for candidate in source_candidates:
         reasons = premeal_candidate_filter_reason(candidate, premeal)
         reasons.extend(filter_reason_codes(
@@ -113,6 +114,7 @@ def build_candidate_retrieval_guard_scoring(
         "offer_candidate_ids": pool["offer_candidate_ids"],
         "budget_posture": dict(_mapping(_mapping(planning.get("candidate_spec")).get("budget_posture"))),
         "pre_meal_planning_context": dict(premeal),
+        "swap_suggestion_context": dict(swap),
         "omission_traces": [
             *omission_traces(quality_rejected),
             *_memory_action_omission_traces(filtered),

@@ -100,8 +100,8 @@ def test_journey_coverage_moves_q_after_premeal_planning_evidence() -> None:
     summary = build_product_lab_journey_coverage_summary({})
 
     assert "Q" in summary["covered_by_existing_executable_evidence_journey_ids"]
-    assert summary["product_capability_gap_journey_ids"] == ["S", "U", "V"]
-    assert summary["next_product_capability_slice"] == "swap_suggestion_memory_lab"
+    assert summary["product_capability_gap_journey_ids"] == ["U", "V"]
+    assert summary["next_product_capability_slice"] == "exercise_bonus_budget_lab"
 
 
 def _premeal_turn(turn_id: str) -> dict[str, object]:

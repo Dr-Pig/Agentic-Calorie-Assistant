@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
+from app.composition.current_budget_read_model import build_current_budget_view
 from app.database import get_or_create_user
 from app.models import Base
 
@@ -101,3 +102,31 @@ def test_onboarding_bootstrap_uses_conservative_activity_policy_when_new_fields_
     assert result.target_result.recommended_target_kcal == 1841
     assert result.body_profile.metadata["daily_lifestyle"] == "sedentary_with_some_walking"
     assert result.body_profile.metadata["weekly_exercise_days_band"] == "3_4"
+
+
+def test_current_budget_view_uses_active_plan_target_when_new_day_ledger_is_missing() -> None:
+    db = _session()
+    user = get_or_create_user(db, "next-day-budget-user")
+    bootstrap = bootstrap_body_plan_for_date(
+        db,
+        user=user,
+        inputs=OnboardingBootstrapInput(
+            sex="male",
+            age_years=32,
+            height_cm=177.0,
+            current_weight_kg=84.0,
+            activity_level="light",
+            daily_lifestyle="sedentary_with_some_walking",
+            weekly_exercise_days_band="1_2",
+            goal_type="lose_weight",
+            weekly_target_rate_kg=0.7,
+            local_date="2026-05-11",
+            timezone="Asia/Taipei",
+        ),
+    )
+
+    next_day = build_current_budget_view(db, user_id=user.id, local_date="2026-05-12")
+
+    assert next_day.budget_kcal == bootstrap.target_result.recommended_target_kcal
+    assert next_day.consumed_kcal == 0
+    assert next_day.remaining_kcal == bootstrap.target_result.recommended_target_kcal
