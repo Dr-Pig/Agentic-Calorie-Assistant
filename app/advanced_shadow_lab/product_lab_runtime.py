@@ -95,6 +95,7 @@ def run_advanced_product_lab_turn(
     product_calibration = product_artifacts["calibration"]
     product_no_plan_degraded = product_artifacts["no_plan_degraded"]
     product_planned_event_rescue = product_artifacts["planned_event_rescue"]
+    product_exercise_budget = product_artifacts["exercise_budget"]
     product_proactive = product_artifacts["proactive"]
     control_state = build_product_lab_control_state(
         session_id=str(turn.get("session_id") or ""),
@@ -114,6 +115,7 @@ def run_advanced_product_lab_turn(
         product_calibration=product_calibration,
         product_no_plan_degraded=product_no_plan_degraded,
         product_planned_event_rescue=product_planned_event_rescue,
+        product_exercise_budget=product_exercise_budget,
         product_proactive=product_proactive,
     )
     lab_chat_surface = build_advanced_product_lab_chat_surface(session_id=str(turn.get("session_id") or ""), turn_id=str(turn.get("turn_id") or ""), lab_chat_response_packet=chat_packet)
@@ -156,6 +158,7 @@ def run_advanced_product_lab_turn(
             *CAPABILITIES_EXERCISED,
             *(["calibration"] if product_calibration.get("proposal_presented_to_lab") is True else []),
             *(["no_plan_degraded"] if product_no_plan_degraded.get("status") == "pass" else []),
+            *(["exercise_budget"] if product_exercise_budget.get("status") == "pass" else []),
         ],
         "lab_memory_context_pack": memory_context_pack,
         "memory_tools_enabled": memory_context_pack.get("memory_tools_enabled") is True,
@@ -166,6 +169,7 @@ def run_advanced_product_lab_turn(
         "product_lab_calibration_artifact": product_calibration,
         "product_lab_no_plan_degraded_artifact": product_no_plan_degraded,
         "product_lab_planned_event_rescue_artifact": product_planned_event_rescue,
+        "product_lab_exercise_budget_artifact": product_exercise_budget,
         "product_lab_proactive_artifact": product_proactive,
         "manager_tool_loop_enabled": manager_tool_loop is not None,
         "manager_tool_loop_artifact": manager_tool_loop,

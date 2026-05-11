@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.advanced_shadow_lab.product_lab_chat_surface_exercise import exercise_budget
 from app.advanced_shadow_lab.product_lab_chat_surface_calibration import (
     calibration_proposal,
 )
@@ -94,6 +95,7 @@ def product_surface_fields(packet: Mapping[str, Any]) -> dict[str, Any]:
         "recommendation_offer": recommendation_offer(packet),
         "rescue_proposal": rescue_proposal(packet),
         "swap_suggestion": swap_suggestion(packet),
+        "exercise_budget": exercise_budget(packet),
         "calibration_proposal": calibration_proposal(packet),
         "no_plan_degraded": no_plan_degraded(packet),
     }
