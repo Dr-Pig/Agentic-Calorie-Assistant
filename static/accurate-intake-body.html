@@ -80,9 +80,7 @@
     }
     .page-header {
       display: grid;
-      grid-template-columns: minmax(260px, 1fr) auto;
-      gap: 18px;
-      align-items: end;
+      gap: 8px;
     }
     h1 {
       margin: 0 0 6px;
@@ -96,25 +94,6 @@
     .subtle, .status {
       color: var(--muted);
       line-height: 1.45;
-    }
-    .page-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-    .action-link {
-      min-height: 40px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 9px 12px;
-      color: var(--ink);
-      background: #fff;
-      text-decoration: none;
-      font-weight: 800;
     }
     .grid {
       display: grid;
@@ -232,12 +211,6 @@
         display: grid;
         grid-template-columns: 1fr;
       }
-      .page-actions {
-        justify-content: stretch;
-      }
-      .action-link {
-        width: 100%;
-      }
     }
   </style>
 </head>
@@ -260,12 +233,6 @@
         <span class="eyebrow">Body plan</span>
         <h1>Body / Goal / TDEE</h1>
         <p class="subtle">先把體重、目標、活動量和每日熱量目標整理清楚；這頁只顯示已保存的計畫與紀錄。</p>
-      </div>
-      <div class="page-actions">
-        <a class="action-link" data-nav-target="today" href="/static/accurate-intake-today.html">Open Today</a>
-        <a class="action-link" data-nav-target="chat" href="/static/accurate-intake-chat.html">Open Chat</a>
-        <a class="action-link" data-nav-target="feedback" href="/static/accurate-intake-feedback.html">Send Feedback</a>
-        <a class="action-link" data-nav-target="review" href="/static/accurate-intake-review.html">Open Review</a>
       </div>
     </section>
     <section class="session-strip" aria-label="Current body plan session">
@@ -295,6 +262,7 @@
         <div class="metric"><strong>Effective budget</strong><span id="body-effective-budget">--</span></div>
         <div class="metric"><strong>Weekly progress</strong><span id="body-weekly-progress">--</span></div>
       </div>
+      <p id="body-target-basis" class="status">Target basis not loaded yet.</p>
       <p class="status">Rendered from backend body-budget read models.</p>
     </section>
     <section class="grid">
@@ -497,6 +465,12 @@
       el("body-weekly-progress").textContent = weeklyConsumed == null
         ? "--"
         : `${weeklyConsumed} kcal consumed / ${weeklyEstimatedDeficit ?? "--"} kcal estimated deficit`;
+      const target = deficit.active_daily_target_kcal;
+      const deficitKcal = deficit.estimated_daily_deficit_kcal;
+      const tdeeText = el("plan-tdee").textContent || "--";
+      el("body-target-basis").textContent = target == null
+        ? "Target basis not loaded yet."
+        : `Backend target ${target} kcal. TDEE ${tdeeText}. Estimated daily deficit ${deficitKcal ?? "--"} kcal.`;
     }
     async function loadBudgetReadModels() {
       const readModelQuery = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
