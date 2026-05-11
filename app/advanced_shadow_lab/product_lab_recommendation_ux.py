@@ -9,6 +9,7 @@ def build_recommendation_ux_packet(
     backup_candidates: list[Mapping[str, Any]],
     explanation: str,
     pre_meal_planning_packet: Mapping[str, Any] | None = None,
+    swap_suggestion_packet: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     backup_ids = [str(candidate.get("candidate_id") or "") for candidate in backup_candidates]
     primary_id = str(primary_candidate.get("candidate_id") or "")
@@ -23,6 +24,7 @@ def build_recommendation_ux_packet(
         "backup_candidates": [dict(candidate) for candidate in backup_candidates],
         "explanation": explanation,
         "pre_meal_planning_packet": dict(pre_meal_planning_packet or {}),
+        "swap_suggestion_packet": dict(swap_suggestion_packet or {}),
         "actions": [
             {
                 "action": "log_this",

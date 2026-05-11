@@ -15,6 +15,10 @@ from app.advanced_shadow_lab.product_lab_premeal_planning import (
     premeal_context,
     premeal_packet,
 )
+from app.advanced_shadow_lab.product_lab_swap_suggestion import (
+    swap_suggestion_context,
+    swap_suggestion_packet,
+)
 
 
 class FixtureProductLabRecommendationProvider:
@@ -44,13 +48,14 @@ class FixtureProductLabRecommendationProvider:
             for record_id in memory_context_pack.get("selected_record_ids") or []
         ]
         premeal = premeal_context(turn=turn, payload=payload)
+        swap = swap_suggestion_context(turn=turn, payload=payload)
         return {
             "node": "recommendation_planning",
             "owner": "llm_fixture_provider",
             "model_profile": self.planning_model_profile,
             "recommendation_context_result": {
                 "user_goal": str(
-                    "pre_meal_planning" if premeal else turn.get("semantic_intent_fixture") or ""
+                    _user_goal(turn=turn, premeal=premeal, swap=swap)
                 ),
                 "soft_preferences": selected_refs,
                 "budget_posture": {
@@ -58,6 +63,7 @@ class FixtureProductLabRecommendationProvider:
                     "already_logged_kcal": _already_logged_kcal(fixture_inputs),
                 },
                 "pre_meal_planning": premeal,
+                "swap_suggestion": swap,
                 "raw_user_text_semantic_inference_performed": False,
             },
             "candidate_spec": {
@@ -73,6 +79,7 @@ class FixtureProductLabRecommendationProvider:
                     "max_candidate_kcal": remaining,
                 },
                 "pre_meal_planning": premeal,
+                "swap_suggestion": swap,
                 "hard_blockers_must_be_deterministic": True,
             },
             "blockers": [],
@@ -126,6 +133,9 @@ class FixtureProductLabRecommendationProvider:
             context=premeal,
             remaining_kcal=remaining_kcal_from_retrieval(retrieval_guard_scoring),
         )
+        swap_ux = swap_suggestion_packet(
+            context=_mapping(retrieval_guard_scoring.get("swap_suggestion_context")),
+        )
         return {
             "node": "offer_synthesis",
             "owner": "llm_fixture_provider",
@@ -153,6 +163,7 @@ class FixtureProductLabRecommendationProvider:
                 backup_candidates=public_backups,
                 explanation=explanation,
                 pre_meal_planning_packet=premeal_ux,
+                swap_suggestion_packet=swap_ux,
             ),
             "blockers": [],
         }
@@ -171,6 +182,19 @@ def _already_logged_kcal(fixture_inputs: Mapping[str, Any]) -> int | None:
 
 def _mapping(value: Any) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
+
+
+def _user_goal(
+    *,
+    turn: Mapping[str, Any],
+    premeal: Mapping[str, Any],
+    swap: Mapping[str, Any],
+) -> str:
+    if premeal:
+        return "pre_meal_planning"
+    if swap:
+        return "swap_suggestion"
+    return str(turn.get("semantic_intent_fixture") or "")
 
 
 __all__ = ["FixtureProductLabRecommendationProvider"]

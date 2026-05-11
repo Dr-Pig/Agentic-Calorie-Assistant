@@ -6,6 +6,9 @@ from app.advanced_shadow_lab.product_lab_pending_intake_surface import pending_i
 from app.advanced_shadow_lab.product_lab_calibration_packets import with_calibration_chat_packet
 from app.advanced_shadow_lab.product_lab_no_plan_packets import with_no_plan_degraded_chat_packets
 from app.advanced_shadow_lab.product_lab_planned_event_packets import with_planned_event_chat_packet
+from app.advanced_shadow_lab.product_lab_swap_packets import (
+    with_swap_suggestion_chat_packet,
+)
 from app.advanced_shadow_lab.product_lab_turn_product_fields import product_fields
 
 
@@ -38,7 +41,11 @@ def lab_chat_response_packet(
         *pending_intake_chat_packets(product_proactive=product_proactive or {}),
     ]
     allowed_packets = _packets_allowed_by_proactive(base_packets, product_proactive or {})
-    product_packets = with_calibration_chat_packet(allowed_packets, product_calibration or {})
+    product_packets = with_swap_suggestion_chat_packet(
+        allowed_packets,
+        product_recommendation or {},
+    )
+    product_packets = with_calibration_chat_packet(product_packets, product_calibration or {})
     product_packets = with_planned_event_chat_packet(
         product_packets, product_planned_event_rescue or {}
     )

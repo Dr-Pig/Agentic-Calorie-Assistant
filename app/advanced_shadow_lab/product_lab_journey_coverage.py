@@ -62,7 +62,7 @@ def _row(journey_id: str) -> dict[str, Any]:
 
 
 def _status(journey_id: str) -> str:
-    if journey_id in {"S", "U", "V"}:
+    if journey_id in {"U", "V"}:
         return CAPABILITY_GAP
     if journey_id == "T":
         return MISSING_SCENARIO
@@ -99,6 +99,7 @@ def _evidence_refs(journey_id: str, status: str) -> list[str]:
         "M": ["tests/test_advanced_product_lab_memory_vertical.py"],
         "N": ["tests/test_advanced_product_lab_proactive_runtime.py"],
         "Q": ["tests/test_advanced_product_lab_premeal_planning.py"],
+        "S": ["tests/test_advanced_product_lab_swap_suggestion.py"],
     }
     return list(refs[journey_id])
 
