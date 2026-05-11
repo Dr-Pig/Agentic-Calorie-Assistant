@@ -96,6 +96,19 @@ def test_data_page_is_local_only_export_surface_not_truth_or_readiness_surface()
     assert 'id="backup-data"' in html
     assert 'id="export-data"' in html
     assert 'id="data-status"' in html
+    assert "Inspect DB" in html
+    assert "Create backup" in html
+    assert "Export review bundle" in html
+    assert 'id="data-action-summary"' in html
+    assert 'id="result-operation"' in html
+    assert 'id="result-db-path"' in html
+    assert 'id="result-backup-path"' in html
+    assert 'id="result-export-path"' in html
+    assert 'id="result-manifest-path"' in html
+    assert 'id="result-sidecars"' in html
+    assert "Raw local response" in html
+    assert "Open Feedback" not in html
+    assert "Open Review" not in html
     assert "backup_required_before_reset" in html
     assert "operation_previews" in html
     for forbidden in (
@@ -439,9 +452,11 @@ def test_body_page_covers_plan_weight_goal_activity_inputs_without_frontend_tdee
     html = _html(BODY)
 
     assert 'data-surface-role="body-plan"' in html
-    assert 'class="page-actions"' in html
-    assert 'data-nav-target="today"' in html
-    assert 'data-nav-target="chat"' in html
+    assert 'class="page-actions"' not in html
+    assert 'Open Today' not in html
+    assert 'Open Chat' not in html
+    assert 'Send Feedback' not in html
+    assert 'Open Review' not in html
     assert 'id="body-session-user"' in html
     assert 'id="body-session-date"' in html
     assert 'id="body-plan-source"' in html
@@ -505,6 +520,7 @@ def test_body_page_renders_budget_read_models_without_frontend_budget_math() -> 
     assert 'id="body-estimated-deficit"' in html
     assert 'id="body-effective-budget"' in html
     assert 'id="body-weekly-progress"' in html
+    assert 'id="body-target-basis"' in html
     assert 'deficitSummary: "/today/deficit-summary"' in html
     assert 'effectiveBudget: "/today/effective-budget"' in html
     assert 'weeklyProgress: "/today/weekly-progress"' in html
@@ -513,6 +529,7 @@ def test_body_page_renders_budget_read_models_without_frontend_budget_math() -> 
     assert "requestJson(`${endpoints.deficitSummary}?${readModelQuery.toString()}`)" in html
     assert "requestJson(`${endpoints.effectiveBudget}?${readModelQuery.toString()}`)" in html
     assert "requestJson(`${endpoints.weeklyProgress}?${readModelQuery.toString()}`)" in html
+    assert "Backend target" in html
     for fragment in (
         "estimatedDailyDeficit =",
         "runtimeEffectiveBudget =",
