@@ -122,6 +122,6 @@ def test_exercise_budget_journey_coverage_moves_u_to_executable_evidence() -> No
     summary = build_product_lab_journey_coverage_summary({})
 
     assert "U" in summary["covered_by_existing_executable_evidence_journey_ids"]
-    assert summary["product_capability_gap_journey_ids"] == ["V"]
+    assert summary["product_capability_gap_journey_ids"] == []
     assert summary["implemented_but_missing_executable_scenario_journey_ids"] == ["T"]
-    assert summary["next_product_capability_slice"] == "weekly_insight_proactive_lab"
+    assert summary["next_product_capability_slice"] == "planned_event_all_day_allocation_e2e_lab"

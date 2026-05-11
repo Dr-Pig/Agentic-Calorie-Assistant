@@ -14,6 +14,9 @@ from app.advanced_shadow_lab.product_lab_no_plan_degraded import (
 from app.advanced_shadow_lab.product_lab_proactive import run_product_lab_proactive
 from app.advanced_shadow_lab.product_lab_recommendation import run_product_lab_recommendation
 from app.advanced_shadow_lab.product_lab_rescue import run_product_lab_rescue
+from app.advanced_shadow_lab.product_lab_weekly_insight import (
+    run_product_lab_weekly_insight,
+)
 
 
 def run_product_lab_product_artifacts(
@@ -56,6 +59,10 @@ def run_product_lab_product_artifacts(
         fixture_inputs=runtime_inputs,
         enabled=turn.get("exercise_budget_enabled") is True and not no_plan_enabled,
     )
+    weekly_insight = run_product_lab_weekly_insight(
+        fixture_inputs=runtime_inputs,
+        enabled=turn.get("weekly_insight_enabled") is True and not no_plan_enabled,
+    )
     proactive = (
         inactive_proactive_artifact(turn)
         if no_plan_enabled
@@ -65,6 +72,7 @@ def run_product_lab_product_artifacts(
             memory_context_pack=memory_context_pack,
             recommendation_artifact=recommendation,
             rescue_artifact=rescue,
+            weekly_insight_artifact=weekly_insight,
             action_state=prior_action_state,
             prior_control_journal=list(prior_control_journal or []),
         )
@@ -76,8 +84,34 @@ def run_product_lab_product_artifacts(
         "no_plan_degraded": no_plan,
         "planned_event_rescue": planned_rescue,
         "exercise_budget": exercise,
+        "weekly_insight": weekly_insight,
         "proactive": proactive,
     }
 
 
-__all__ = ["run_product_lab_product_artifacts"]
+def product_lab_product_artifact_blockers(
+    artifacts: Mapping[str, Mapping[str, Any]],
+) -> list[str]:
+    blockers: list[str] = []
+    for key in [
+        "recommendation",
+        "rescue",
+        "calibration",
+        "no_plan_degraded",
+        "proactive",
+    ]:
+        blockers.extend(_blockers(key, artifacts.get(key, {})))
+    weekly = artifacts.get("weekly_insight", {})
+    if weekly.get("status") == "blocked":
+        blockers.extend(_blockers("weekly_insight", weekly))
+    return blockers
+
+
+def _blockers(name: str, artifact: Mapping[str, Any]) -> list[str]:
+    return [f"product_{name}.{blocker}" for blocker in artifact.get("blockers") or []]
+
+
+__all__ = [
+    "product_lab_product_artifact_blockers",
+    "run_product_lab_product_artifacts",
+]

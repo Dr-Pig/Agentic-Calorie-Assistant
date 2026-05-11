@@ -60,6 +60,7 @@ def product_lab_proactive_candidate_id(trigger_type: str) -> str:
     return {
         "recommendation_prompt": "recommendation_prompt:0",
         "rescue_nudge": "rescue_nudge:1",
+        "weekly_insight": "weekly_insight:2",
         "pending_intake_followup": "pending_intake_followup:3",
     }.get(trigger_type, f"{trigger_type}:0")
 

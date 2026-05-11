@@ -7,6 +7,9 @@ from app.advanced_shadow_lab.product_lab_exercise_packets import exercise_produc
 from app.advanced_shadow_lab.product_lab_no_plan_packets import no_plan_product_fields
 from app.advanced_shadow_lab.product_lab_planned_event_packets import planned_event_product_fields
 from app.advanced_shadow_lab.product_lab_swap_packets import swap_product_fields
+from app.advanced_shadow_lab.product_lab_weekly_insight_packets import (
+    weekly_insight_product_fields,
+)
 
 
 def product_fields(
@@ -32,6 +35,9 @@ def product_fields(
     planned_fields = planned_event_product_fields(packet)
     if planned_fields:
         return planned_fields
+    weekly_fields = weekly_insight_product_fields(packet)
+    if weekly_fields:
+        return weekly_fields
     if family == "recommendation":
         return _recommendation_fields(product_recommendation, product_proactive)
     if family == "rescue":
