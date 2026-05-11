@@ -5,6 +5,9 @@ from pathlib import Path
 from app.advanced_shadow_lab.product_lab_fixture_inputs import (
     build_product_lab_planned_event_fixture_inputs,
 )
+from app.advanced_shadow_lab.product_lab_planned_event_all_day_fixture_inputs import (
+    build_product_lab_planned_event_all_day_fixture_inputs,
+)
 from app.advanced_shadow_lab.product_lab_planned_event_rescue import (
     run_product_lab_planned_event_rescue,
 )
@@ -116,6 +119,67 @@ def test_product_lab_session_accepts_planned_event_as_pending_lab_commit(
     assert artifact["durable_product_memory_written"] is False
 
 
+def test_product_lab_session_runs_t_all_day_allocation_guidance_to_proposal(
+    tmp_path: Path,
+) -> None:
+    artifact = run_advanced_product_lab_dogfood_session(
+        artifact_root=tmp_path,
+        session_id="planned-event-all-day-session",
+        fixture_inputs=build_product_lab_planned_event_all_day_fixture_inputs(),
+        turns=[
+            {
+                "turn_id": "t-guidance",
+                "semantic_intent_fixture": "planned_event_all_day_allocation",
+                "planned_event_guidance_enabled": True,
+            },
+            {
+                **_planned_event_turn("t-set-reserve"),
+                "semantic_intent_fixture": "planned_event_all_day_allocation",
+                "post_turn_chat_actions": [
+                    {
+                        "event_id": "accept-t-rescue",
+                        "target_candidate_id": "planned_event_rescue:0",
+                        "action": "accept_rescue_plan",
+                    }
+                ],
+            },
+        ],
+    )
+
+    assert artifact["status"] == "pass"
+    first_turn = artifact["turn_summaries"][0]
+    second_turn = artifact["turn_summaries"][1]
+    assert first_turn["visible_candidate_ids"] == ["planned_event_guidance:0"]
+    assert "planned_event_rescue:0" in second_turn["visible_candidate_ids"]
+    assert "rescue_nudge:1" not in second_turn["visible_candidate_ids"]
+    assert artifact["lab_rescue_history_statuses"] == [
+        "accepted_pending_commit_confirmation"
+    ]
+
+    first_record = _read_turn_record(artifact, 0)
+    [guidance] = first_record["turn_artifact"]["lab_chat_surface"]["messages"]
+    assert guidance["candidate_id"] == "planned_event_guidance:0"
+    assert guidance["planned_event_guidance"]["informational_only"] is True
+    assert guidance["planned_event_guidance"]["proposal_created"] is False
+    assert guidance["planned_event_guidance"]["suggested_reserve_kcal"] == 600
+    assert guidance["planned_event_guidance"]["lunch_cap_kcal"] == 400
+    assert guidance["canonical_mutation_requested"] is False
+
+    [history] = artifact["lab_rescue_proposal_read_model"]["history_rows"]
+    preview = history["proposal_card"]["overlay_preview_rows"]
+    assert [row["local_date"] for row in preview] == [
+        "2026-05-12",
+        "2026-05-13",
+        "2026-05-14",
+        "2026-05-15",
+    ]
+    assert {row["proposed_rescue_overlay_kcal"] for row in preview} == {-200}
+    assert {row["candidate_effective_budget_kcal"] for row in preview} == {1600}
+    assert history["canonical_product_mutation_allowed"] is False
+    assert artifact["canonical_product_mutation_allowed"] is False
+    assert artifact["durable_product_memory_written"] is False
+
+
 def test_product_lab_session_dismisses_planned_event_instance_to_history(
     tmp_path: Path,
 ) -> None:
@@ -157,3 +221,9 @@ def _planned_event_turn(turn_id: str) -> dict[str, object]:
         "semantic_intent_fixture": "advanced_recommendation_rescue_proactive_loop",
         "planned_event_rescue_enabled": True,
     }
+
+
+def _read_turn_record(artifact: dict[str, object], index: int) -> dict[str, object]:
+    from app.shared.infra.json_artifacts import read_json_artifact
+
+    return read_json_artifact(Path(artifact["turn_artifact_paths"][index]))  # type: ignore[index]

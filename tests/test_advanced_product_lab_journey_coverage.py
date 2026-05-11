@@ -55,13 +55,14 @@ def test_product_lab_journey_coverage_maps_current_scope_and_gaps() -> None:
         "N",
         "Q",
         "S",
+        "T",
         "U",
         "V",
     ]
-    assert summary["implemented_but_missing_executable_scenario_journey_ids"] == ["T"]
+    assert summary["implemented_but_missing_executable_scenario_journey_ids"] == []
     assert summary["product_capability_gap_journey_ids"] == []
-    assert summary["advanced_product_lab_journey_coverage_closed"] is False
-    assert summary["next_product_capability_slice"] == "planned_event_all_day_allocation_e2e_lab"
+    assert summary["advanced_product_lab_journey_coverage_closed"] is True
+    assert summary["next_product_capability_slice"] == ""
 
 
 def test_product_lab_journey_coverage_rows_keep_claim_boundaries() -> None:
@@ -75,6 +76,11 @@ def test_product_lab_journey_coverage_rows_keep_claim_boundaries() -> None:
         "no_body_plan_tdee_rewrite",
         "no_production_ledger_write",
         "no_scheduler_or_notification",
+    ]
+    assert by_id["T"]["do_not_cross"] == [
+        "proposal_first_no_direct_ledger_write",
+        "informational_guidance_does_not_create_proposal",
+        "future_overlay_preview_only_in_lab",
     ]
     assert by_id["V"]["do_not_cross"] == [
         "no_production_scheduler_delivery",
@@ -103,9 +109,9 @@ def test_product_lab_closure_summary_embeds_journey_gap_decision_gate() -> None:
     summary = build_product_lab_closure_summary(_closed_session())
 
     assert summary["advanced_product_lab_product_loop_closed"] is True
-    assert summary["advanced_product_lab_journey_coverage_closed"] is False
+    assert summary["advanced_product_lab_journey_coverage_closed"] is True
     assert summary["product_capability_gap_journey_ids"] == []
-    assert summary["implemented_but_missing_executable_scenario_journey_ids"] == ["T"]
+    assert summary["implemented_but_missing_executable_scenario_journey_ids"] == []
     assert summary["new_report_family_created"] is False
 
 
