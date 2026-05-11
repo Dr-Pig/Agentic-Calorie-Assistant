@@ -62,8 +62,6 @@ def _row(journey_id: str) -> dict[str, Any]:
 
 
 def _status(journey_id: str) -> str:
-    if journey_id in {"V"}:
-        return CAPABILITY_GAP
     if journey_id == "T":
         return MISSING_SCENARIO
     return COVERED
@@ -101,6 +99,7 @@ def _evidence_refs(journey_id: str, status: str) -> list[str]:
         "Q": ["tests/test_advanced_product_lab_premeal_planning.py"],
         "S": ["tests/test_advanced_product_lab_swap_suggestion.py"],
         "U": ["tests/test_advanced_product_lab_exercise_budget.py"],
+        "V": ["tests/test_advanced_product_lab_weekly_insight.py"],
     }
     return list(refs[journey_id])
 
@@ -111,6 +110,12 @@ def _do_not_cross(journey_id: str) -> list[str]:
             "no_body_plan_tdee_rewrite",
             "no_production_ledger_write",
             "no_scheduler_or_notification",
+        ]
+    if journey_id == "V":
+        return [
+            "no_production_scheduler_delivery",
+            "no_push_or_line_delivery",
+            "no_llm_invented_metrics",
         ]
     return ["no_mainline_activation", "no_product_semantics_from_fixture_labels"]
 

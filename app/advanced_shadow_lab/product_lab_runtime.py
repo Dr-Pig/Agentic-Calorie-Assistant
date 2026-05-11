@@ -21,6 +21,7 @@ from app.advanced_shadow_lab.product_lab_manager_tool_loop import (
 )
 from app.advanced_shadow_lab.product_lab_memory_store import ProductLabMemoryStore
 from app.advanced_shadow_lab.product_lab_runtime_product_artifacts import (
+    product_lab_product_artifact_blockers,
     run_product_lab_product_artifacts,
 )
 from app.advanced_shadow_lab.product_lab_turn_packets import chat_packet_blockers, chat_packets, lab_chat_response_packet
@@ -96,6 +97,7 @@ def run_advanced_product_lab_turn(
     product_no_plan_degraded = product_artifacts["no_plan_degraded"]
     product_planned_event_rescue = product_artifacts["planned_event_rescue"]
     product_exercise_budget = product_artifacts["exercise_budget"]
+    product_weekly_insight = product_artifacts["weekly_insight"]
     product_proactive = product_artifacts["proactive"]
     control_state = build_product_lab_control_state(
         session_id=str(turn.get("session_id") or ""),
@@ -116,31 +118,13 @@ def run_advanced_product_lab_turn(
         product_no_plan_degraded=product_no_plan_degraded,
         product_planned_event_rescue=product_planned_event_rescue,
         product_exercise_budget=product_exercise_budget,
+        product_weekly_insight=product_weekly_insight,
         product_proactive=product_proactive,
     )
     lab_chat_surface = build_advanced_product_lab_chat_surface(session_id=str(turn.get("session_id") or ""), turn_id=str(turn.get("turn_id") or ""), lab_chat_response_packet=chat_packet)
     all_blockers = [
         *chain_blockers,
-        *[
-            f"product_recommendation.{blocker}"
-            for blocker in product_recommendation.get("blockers") or []
-        ],
-        *[
-            f"product_rescue.{blocker}"
-            for blocker in product_rescue.get("blockers") or []
-        ],
-        *[
-            f"product_calibration.{blocker}"
-            for blocker in product_calibration.get("blockers") or []
-        ],
-        *[
-            f"product_no_plan_degraded.{blocker}"
-            for blocker in product_no_plan_degraded.get("blockers") or []
-        ],
-        *[
-            f"product_proactive.{blocker}"
-            for blocker in product_proactive.get("blockers") or []
-        ],
+        *product_lab_product_artifact_blockers(product_artifacts),
         *[
             f"manager_tool_loop.{blocker}"
             for blocker in _tool_loop_blockers(manager_tool_loop)
@@ -159,6 +143,7 @@ def run_advanced_product_lab_turn(
             *(["calibration"] if product_calibration.get("proposal_presented_to_lab") is True else []),
             *(["no_plan_degraded"] if product_no_plan_degraded.get("status") == "pass" else []),
             *(["exercise_budget"] if product_exercise_budget.get("status") == "pass" else []),
+            *(["weekly_insight"] if product_weekly_insight.get("lab_chat_delivery_allowed") is True else []),
         ],
         "lab_memory_context_pack": memory_context_pack,
         "memory_tools_enabled": memory_context_pack.get("memory_tools_enabled") is True,
@@ -170,6 +155,7 @@ def run_advanced_product_lab_turn(
         "product_lab_no_plan_degraded_artifact": product_no_plan_degraded,
         "product_lab_planned_event_rescue_artifact": product_planned_event_rescue,
         "product_lab_exercise_budget_artifact": product_exercise_budget,
+        "product_lab_weekly_insight_artifact": product_weekly_insight,
         "product_lab_proactive_artifact": product_proactive,
         "manager_tool_loop_enabled": manager_tool_loop is not None,
         "manager_tool_loop_artifact": manager_tool_loop,

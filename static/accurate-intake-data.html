@@ -37,7 +37,7 @@
     }
     .brand { font-weight: 700; }
     nav { display: flex; gap: 8px; flex-wrap: wrap; }
-    nav a, .action-link {
+    nav a {
       color: var(--ink);
       text-decoration: none;
       border: 1px solid var(--line);
@@ -105,8 +105,28 @@
     }
     .metric span { display: block; color: var(--muted); font-size: 12px; }
     .metric strong { display: block; margin-top: 4px; word-break: break-word; }
+    .result-summary {
+      display: grid;
+      gap: 10px;
+    }
+    .result-row {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .result-row:last-child { border-bottom: 0; }
+    .result-row span {
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .path-value {
+      font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+      word-break: break-word;
+    }
     pre {
-      margin: 0;
+      margin: 14px 0 0;
       white-space: pre-wrap;
       word-break: break-word;
       background: #f3f5f7;
@@ -156,11 +176,9 @@
       </label>
     </section>
     <section class="panel actions" aria-label="Data actions">
-      <button id="inspect-data" type="button">Inspect</button>
-      <button id="backup-data" type="button">Backup</button>
-      <button id="export-data" type="button">Export</button>
-      <a class="action-link" data-nav-target="feedback" href="/static/accurate-intake-feedback.html">Open Feedback</a>
-      <a class="action-link" data-nav-target="review" href="/static/accurate-intake-review.html">Open Review</a>
+      <button id="inspect-data" type="button">Inspect DB</button>
+      <button id="backup-data" type="button">Create backup</button>
+      <button id="export-data" type="button">Export review bundle</button>
       <span id="data-status" class="status" aria-live="polite">Not checked.</span>
     </section>
     <section class="panel grid" aria-label="Data summary">
@@ -173,6 +191,16 @@
     </section>
     <section class="panel">
       <h2>Latest result</h2>
+      <div id="data-action-summary" class="result-summary" aria-live="polite">
+        <div class="result-row"><span>Operation</span><strong id="result-operation">--</strong></div>
+        <div class="result-row"><span>Status</span><strong id="result-status">--</strong></div>
+        <div class="result-row"><span>Database</span><strong id="result-db-path" class="path-value">--</strong></div>
+        <div class="result-row"><span>Backup</span><strong id="result-backup-path" class="path-value">--</strong></div>
+        <div class="result-row"><span>Export</span><strong id="result-export-path" class="path-value">--</strong></div>
+        <div class="result-row"><span>Manifest</span><strong id="result-manifest-path" class="path-value">--</strong></div>
+        <div class="result-row"><span>Sidecars</span><strong id="result-sidecars">--</strong></div>
+      </div>
+      <h3>Raw local response</h3>
       <pre id="data-result">No result.</pre>
     </section>
   </main>
@@ -240,13 +268,32 @@
         el(id).disabled = isBusy;
       });
     }
-    function render(payload) {
+    function sidecarSummary(payload) {
+      const sidecar = payload.sidecar_evidence || {};
+      const feedback = sidecar.feedback_jsonl || {};
+      const review = sidecar.review_queue || {};
+      if (!payload.sidecar_evidence_included) {
+        return "No sidecar evidence included.";
+      }
+      return `feedback ${feedback.record_count ?? 0}; review ${review.feedback_triage_record_count ?? 0}`;
+    }
+    function renderSummary(payload, operation) {
+      el("result-operation").textContent = operation || payload.operation || "--";
+      el("result-status").textContent = payload.status || "--";
+      el("result-db-path").textContent = payload.db_path || "--";
+      el("result-backup-path").textContent = payload.backup_path || "--";
+      el("result-export-path").textContent = payload.export_path || "--";
+      el("result-manifest-path").textContent = payload.manifest_path || "--";
+      el("result-sidecars").textContent = sidecarSummary(payload);
+    }
+    function render(payload, operation) {
       el("hygiene-status").textContent = payload.status || "--";
       el("db-class").textContent = payload.db_class || "--";
       el("backup-required").textContent = String(payload.backup_required_before_reset ?? "--");
       el("writes-performed").textContent = String(payload.writes_performed ?? "--");
       el("import-allowed").textContent = String(payload.import_allowed ?? "--");
       el("local-only").textContent = String(payload.local_only ?? "--");
+      renderSummary(payload, operation);
       el("data-result").textContent = JSON.stringify({
         artifact_type: payload.artifact_type,
         status: payload.status,
@@ -283,7 +330,7 @@
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ label: "browser" })
             });
-        render(payload);
+        render(payload, kind);
         el("data-status").textContent = `${kind} ${payload.status || "done"}.`;
       } catch (error) {
         el("data-status").dataset.state = "error";

@@ -26,6 +26,7 @@ def run_product_lab_proactive(
     memory_context_pack: Mapping[str, Any],
     recommendation_artifact: Mapping[str, Any],
     rescue_artifact: Mapping[str, Any],
+    weekly_insight_artifact: Mapping[str, Any] | None = None,
     action_state: Mapping[str, Any] | None = None,
     prior_control_journal: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -40,6 +41,7 @@ def run_product_lab_proactive(
     ]
     if rescue_omission is None:
         specs.append(_rescue_candidate(rescue_artifact, fixture_inputs))
+    specs.append(_weekly_insight_candidate(weekly_insight_artifact or {}, fixture_inputs))
     prepared_candidates = [
         product_lab_proactive_candidate(
             trigger_type=str(spec.get("trigger_type") or ""),
@@ -95,6 +97,7 @@ def run_product_lab_proactive(
         "source_outputs_read": [
             str(recommendation_artifact.get("artifact_type") or ""),
             str(rescue_artifact.get("artifact_type") or ""),
+            str((weekly_insight_artifact or {}).get("artifact_type") or ""),
             str(current_action_state.get("artifact_type") or ""),
         ],
         "lab_chat_delivery_allowed": not bool(blockers),
@@ -149,6 +152,29 @@ def _rescue_candidate(
         "source_status": str(rescue.get("status") or ""),
         "control_model": _control_model(fixture_inputs, "rescue_nudge"),
         "next_signal_fallback": "material_budget_change_or_user_reopens_rescue",
+    }
+
+
+def _weekly_insight_candidate(
+    weekly_insight: Mapping[str, Any],
+    fixture_inputs: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if (
+        weekly_insight.get("status") != "pass"
+        or weekly_insight.get("weekly_insight_chat_candidate_allowed") is not True
+    ):
+        return None
+    report = _mapping(weekly_insight.get("weekly_insight_report"))
+    return {
+        "trigger_type": "weekly_insight",
+        "candidate_kind": "weekly_behavior_insight_report",
+        "source_output_refs": [
+            str(weekly_insight.get("artifact_type") or ""),
+            f"weekly_report:{report.get('report_id') or ''}",
+        ],
+        "source_status": str(weekly_insight.get("status") or ""),
+        "control_model": _control_model(fixture_inputs, "weekly_insight"),
+        "next_signal_fallback": "new_weekly_insight_window",
     }
 
 

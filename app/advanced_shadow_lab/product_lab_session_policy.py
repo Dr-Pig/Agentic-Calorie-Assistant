@@ -34,13 +34,16 @@ def turn_input(*, session_id: str, turn_spec: Mapping[str, Any]) -> dict[str, An
         "turn_id": str(turn_spec.get("turn_id") or ""),
         "surface": "chat",
         "user_utterance": "simulated dogfood text is not a semantic oracle",
-        "semantic_intent_fixture": INTENT_FIXTURE,
+        "semantic_intent_fixture": str(
+            turn_spec.get("semantic_intent_fixture") or INTENT_FIXTURE
+        ),
         "turn_mode": str(turn_spec.get("turn_mode") or ""),
         "lab_now_minute": lab_now_minute(turn_spec),
         "observed_material_signals": observed_material_signals(turn_spec),
         "planned_event_rescue_enabled": (
             turn_spec.get("planned_event_rescue_enabled") is True
         ),
+        "weekly_insight_enabled": turn_spec.get("weekly_insight_enabled") is True,
         "calibration_enabled": turn_spec.get("calibration_enabled") is True,
         "no_plan_degraded_enabled": turn_spec.get("no_plan_degraded_enabled") is True,
     }
