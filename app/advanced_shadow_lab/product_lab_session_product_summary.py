@@ -7,6 +7,7 @@ PRODUCT_CAPABILITIES = [
     "long_term_memory",
     "recommendation",
     "rescue",
+    "calibration",
     "proactive",
     "chat_surface",
 ]

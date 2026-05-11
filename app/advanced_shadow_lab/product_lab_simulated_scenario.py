@@ -110,6 +110,18 @@ def build_product_lab_simulated_turns() -> list[dict[str, Any]]:
             ],
         },
         {"turn_id": "t4-before-snooze-release", "lab_now_minute": 70},
+        {
+            "turn_id": "t5-calibration",
+            "lab_now_minute": 90,
+            "calibration_enabled": True,
+            "post_turn_chat_actions": [
+                {
+                    "event_id": "accept-calibration",
+                    "target_candidate_id": "calibration_proposal:0",
+                    "action": "accept_calibration_proposal",
+                }
+            ],
+        },
     ]
 
 

@@ -33,6 +33,9 @@ def build_product_lab_closure_summary(
         "rescue_negotiation_posture_replayed": (
             _rescue_negotiation_posture_replayed(session_artifact)
         ),
+        "calibration_effect_replayed": (
+            int(session_artifact.get("lab_calibration_effect_applied_count") or 0) > 0
+        ),
         "proactive_chat_delivery_ready": (
             session_artifact.get("product_proactive_delivery_packet_ready") is True
         ),

@@ -40,6 +40,7 @@ def turn_input(*, session_id: str, turn_spec: Mapping[str, Any]) -> dict[str, An
         "planned_event_rescue_enabled": (
             turn_spec.get("planned_event_rescue_enabled") is True
         ),
+        "calibration_enabled": turn_spec.get("calibration_enabled") is True,
     }
 
 

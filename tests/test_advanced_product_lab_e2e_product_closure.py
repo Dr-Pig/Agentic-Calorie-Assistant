@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from app.advanced_shadow_lab.product_lab_fixture_inputs import (
-    build_product_lab_fixture_inputs,
+from app.advanced_shadow_lab.product_lab_calibration_fixture_inputs import (
+    build_product_lab_calibration_fixture_inputs,
 )
 from app.advanced_shadow_lab.product_lab_memory import (
     ProductLabMemoryStore,
@@ -32,7 +32,7 @@ def test_product_lab_e2e_surface_uses_product_outputs_and_controls(
     artifact = run_advanced_product_lab_turn(
         lab_mode="isolated_advanced_product_lab",
         turn=_turn("product-closure-turn"),
-        fixture_inputs=build_product_lab_fixture_inputs(),
+        fixture_inputs=build_product_lab_calibration_fixture_inputs(),
         lab_memory_context_pack=_memory_pack(tmp_path),
     )
     messages = artifact["lab_chat_surface"]["messages"]
@@ -66,7 +66,7 @@ def test_product_lab_final_loop_closes_with_live_diagnostic_dormant_wall(
     session = run_advanced_product_lab_dogfood_session(
         artifact_root=tmp_path / "final-loop",
         session_id="product-lab-final-loop",
-        fixture_inputs=build_product_lab_fixture_inputs(),
+        fixture_inputs=build_product_lab_calibration_fixture_inputs(),
         turns=build_product_lab_simulated_turns(),
     )
     summary = build_simulated_dogfood_summary(session)
@@ -83,6 +83,7 @@ def test_product_lab_final_loop_closes_with_live_diagnostic_dormant_wall(
         "long_term_memory",
         "recommendation",
         "rescue",
+        "calibration",
         "proactive",
         "chat_surface",
     ]
@@ -92,6 +93,7 @@ def test_product_lab_final_loop_closes_with_live_diagnostic_dormant_wall(
         "rescue_explanation_requested",
         "pending_intake_confirmed_lab",
         "rescue_commit_confirmation",
+        "calibration_effect_applied_lab",
     ]
     assert summary["lab_rescue_action_decision_kinds"] == [
         "request_shorter_variant",

@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.product_lab_pending_intake_surface import pending_intake_chat_packets
-from app.advanced_shadow_lab.product_lab_planned_event_packets import planned_event_product_fields, with_planned_event_chat_packet
+from app.advanced_shadow_lab.product_lab_calibration_packets import with_calibration_chat_packet
+from app.advanced_shadow_lab.product_lab_planned_event_packets import with_planned_event_chat_packet
+from app.advanced_shadow_lab.product_lab_turn_product_fields import product_fields
 
 
 def lab_chat_response_packet(
@@ -12,6 +14,7 @@ def lab_chat_response_packet(
     *,
     memory_context_pack: Mapping[str, Any] | None = None,
     product_recommendation: Mapping[str, Any] | None = None, product_rescue: Mapping[str, Any] | None = None,
+    product_calibration: Mapping[str, Any] | None = None,
     product_planned_event_rescue: Mapping[str, Any] | None = None, product_proactive: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     packet = chain.get("chat_ux_packet")
@@ -33,11 +36,13 @@ def lab_chat_response_packet(
         *pending_intake_chat_packets(product_proactive=product_proactive or {}),
     ]
     allowed_packets = _packets_allowed_by_proactive(base_packets, product_proactive or {})
+    product_packets = with_calibration_chat_packet(allowed_packets, product_calibration or {})
     chat_packets = _packets_with_memory_refs(
-        with_planned_event_chat_packet(allowed_packets, product_planned_event_rescue or {}),
+        with_planned_event_chat_packet(product_packets, product_planned_event_rescue or {}),
         selected_record_ids,
         product_recommendation=product_recommendation or {},
         product_rescue=product_rescue or {},
+        product_calibration=product_calibration or {},
         product_proactive=product_proactive or {},
     )
     candidate_states = list(control_state.get("candidate_states") or [])
@@ -69,6 +74,7 @@ def lab_chat_response_packet(
             "memory_context_injected": memory_pack.get("memory_context_injected") is True,
             "recommendation_served_to_lab": packet.get("status") == "pass",
             "rescue_served_to_lab": packet.get("status") == "pass",
+            "calibration_served_to_lab": (product_calibration or {}).get("proposal_presented_to_lab") is True,
             "proactive_chat_packet_served_to_lab": packet.get("status") == "pass",
             "mainline_activation_enabled": False,
         },
@@ -111,6 +117,7 @@ def _packets_with_memory_refs(
     *,
     product_recommendation: Mapping[str, Any],
     product_rescue: Mapping[str, Any],
+    product_calibration: Mapping[str, Any],
     product_proactive: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
     return [
@@ -118,7 +125,7 @@ def _packets_with_memory_refs(
             **dict(packet),
             "memory_context_refs": list(selected_record_ids),
             "memory_context_applied": bool(selected_record_ids),
-            **_product_fields(
+            **product_fields(
                 packet,
                 product_recommendation=product_recommendation,
                 product_rescue=product_rescue,
@@ -146,55 +153,6 @@ def _packets_allowed_by_proactive(
         if str(packet.get("trigger_type") or "") in allowed
         or str(packet.get("workflow_family") or "") == "general_chat"
     ]
-
-
-def _product_fields(
-    packet: Mapping[str, Any],
-    *,
-    product_recommendation: Mapping[str, Any],
-    product_rescue: Mapping[str, Any],
-    product_proactive: Mapping[str, Any],
-) -> dict[str, Any]:
-    family = str(packet.get("workflow_family") or "")
-    planned_fields = planned_event_product_fields(packet)
-    if planned_fields:
-        return planned_fields
-    if family == "recommendation":
-        ux = _mapping(_mapping(product_recommendation.get("offer_synthesis")).get("ux_packet"))
-        return {
-            "product_lab_copy": str(ux.get("explanation") or ""),
-            "recommendation_ux_packet": dict(ux),
-            "pending_intake_handoff_packet": dict(
-                product_recommendation.get("pending_intake_handoff_packet") or {}
-            ),
-            "product_runtime_output_refs": [
-                str(product_recommendation.get("artifact_type") or ""),
-                str(product_proactive.get("artifact_type") or ""),
-            ],
-        }
-    if family == "rescue":
-        card = _mapping(product_rescue.get("proposal_card"))
-        copy = " ".join(
-            item for item in [str(card.get("headline") or ""), str(card.get("summary") or "")] if item
-        )
-        return {
-            "product_lab_copy": copy,
-            "rescue_proposal_packet": {
-                "proposal_card": dict(card),
-                "primary_actions": list(product_rescue.get("primary_actions") or []),
-                "negotiation_affordances": list(product_rescue.get("negotiation_affordances") or []),
-                "guardrail_math": dict(product_rescue.get("guardrail_math") or {}),
-                "pending_rescue_commit_packet": dict(
-                    product_rescue.get("pending_rescue_commit_packet") or {}
-                ),
-            },
-            "product_runtime_output_refs": [
-                str(product_rescue.get("artifact_type") or ""),
-                str(product_proactive.get("artifact_type") or ""),
-            ],
-        }
-    return {"product_lab_copy": "", "product_runtime_output_refs": []}
-
 
 def _mapping(value: Any) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
