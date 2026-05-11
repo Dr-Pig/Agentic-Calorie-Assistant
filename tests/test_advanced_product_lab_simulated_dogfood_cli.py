@@ -43,7 +43,7 @@ def test_simulated_dogfood_cli_writes_operator_review_artifacts(
     )
     assert file_summary["status"] == "pass"
     assert file_summary["session_id"] == "operator-session-1"
-    assert file_summary["turn_count"] == 4
+    assert file_summary["turn_count"] == 5
     assert file_summary["lab_session_store_written"] is True
     assert file_summary["lab_memory_store_written"] is True
     assert file_summary["lab_memory_context_injected"] is True
@@ -60,11 +60,12 @@ def test_simulated_dogfood_cli_writes_operator_review_artifacts(
     assert file_summary["production_db_migration_allowed"] is False
     assert file_summary["durable_product_memory_written"] is False
     assert file_summary["canonical_product_mutation_allowed"] is False
-    assert file_summary["visible_candidate_counts"] == [2, 2, 2, 1]
+    assert file_summary["visible_candidate_counts"] == [2, 2, 2, 1, 1]
     assert file_summary["product_runtime_capabilities_exercised"] == [
         "long_term_memory",
         "recommendation",
         "rescue",
+        "calibration",
         "proactive",
         "chat_surface",
     ]
@@ -73,19 +74,21 @@ def test_simulated_dogfood_cli_writes_operator_review_artifacts(
         "golden-breakfast-oatmeal",
         "golden-breakfast-oatmeal",
         "golden-breakfast-oatmeal",
+        "golden-breakfast-oatmeal",
     ]
-    assert file_summary["product_proactive_candidate_counts"] == [2, 3, 2, 2]
+    assert file_summary["product_proactive_candidate_counts"] == [2, 3, 2, 2, 2]
     assert file_summary["product_outputs_applied_to_chat_surface"] is True
     assert file_summary["product_recommendation_intake_handoff_created"] is True
     assert file_summary["product_rescue_commit_handoff_created"] is True
     assert file_summary["product_proactive_delivery_packet_ready"] is True
-    assert file_summary["lab_chat_action_outcome_count"] == 5
+    assert file_summary["lab_chat_action_outcome_count"] == 6
     assert file_summary["lab_chat_action_outcome_types"] == [
         "recommendation_intake_draft",
         "rescue_shorter_plan_requested",
         "rescue_explanation_requested",
         "pending_intake_confirmed_lab",
         "rescue_commit_confirmation",
+        "calibration_effect_applied_lab",
     ]
     assert file_summary["lab_rescue_action_decision_kinds"] == [
         "request_shorter_variant",
@@ -105,6 +108,7 @@ def test_simulated_dogfood_cli_writes_operator_review_artifacts(
         "pending_intake_terminal_replayed": True,
         "rescue_commit_action_replayed": True,
         "rescue_negotiation_posture_replayed": True,
+        "calibration_effect_replayed": True,
         "proactive_chat_delivery_ready": True,
         "chat_surface_outputs_applied": True,
         "activation_wall_intact": True,
@@ -115,14 +119,14 @@ def test_simulated_dogfood_cli_writes_operator_review_artifacts(
     assert session_artifact["artifact_type"] == (
         "advanced_product_lab_dogfood_session_artifact"
     )
-    assert session_artifact["turn_count"] == 4
+    assert session_artifact["turn_count"] == 5
     assert session_artifact["lab_memory_context_injected"] is True
     assert session_artifact["product_outputs_applied_to_chat_surface"] is True
     assert Path(session_artifact["lab_memory_surface_paths"]["user_md"]).exists()
     assert Path(file_summary["session_artifact_path"]).is_relative_to(
         output_root.resolve(strict=False)
     )
-    assert len(file_summary["turn_artifact_paths"]) == 4
+    assert len(file_summary["turn_artifact_paths"]) == 5
     first_turn = read_json_artifact(Path(file_summary["turn_artifact_paths"][0]))
     memory_pipeline = first_turn["memory_pipeline_artifact"]
     assert memory_pipeline["pipeline_path"] == "candidate_review_promotion"

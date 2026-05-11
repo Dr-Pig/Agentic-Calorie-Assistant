@@ -56,8 +56,8 @@ def test_product_lab_is_not_imported_by_active_runtime_or_migrations() -> None:
 def test_product_lab_full_loop_closure_does_not_claim_mainline_activation(
     tmp_path: Path,
 ) -> None:
-    from app.advanced_shadow_lab.product_lab_fixture_inputs import (
-        build_product_lab_fixture_inputs,
+    from app.advanced_shadow_lab.product_lab_calibration_fixture_inputs import (
+        build_product_lab_calibration_fixture_inputs,
     )
     from app.advanced_shadow_lab.product_lab_session_replay import (
         run_advanced_product_lab_dogfood_session,
@@ -72,7 +72,7 @@ def test_product_lab_full_loop_closure_does_not_claim_mainline_activation(
     session_artifact = run_advanced_product_lab_dogfood_session(
         artifact_root=tmp_path,
         session_id="activation-wall-full-loop",
-        fixture_inputs=build_product_lab_fixture_inputs(),
+        fixture_inputs=build_product_lab_calibration_fixture_inputs(),
         turns=build_product_lab_simulated_turns(),
     )
     summary = build_simulated_dogfood_summary(session_artifact)

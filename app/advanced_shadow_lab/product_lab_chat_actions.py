@@ -11,14 +11,13 @@ from app.advanced_shadow_lab.product_lab_pending_intake_lifecycle import (
 from app.advanced_shadow_lab.product_lab_rescue_chat_action import (
     rescue_outcome,
 )
+from app.advanced_shadow_lab.product_lab_calibration_chat_action import calibration_outcome
 from app.advanced_shadow_lab.product_lab_generic_control_action import (
     generic_control_outcome,
     is_generic_control_only,
 )
 
-
 RECOMMENDATION_ACTIONS = {"log_this", "show_backups", "dismiss"}
-
 
 def apply_product_lab_chat_action(
     *,
@@ -40,6 +39,8 @@ def apply_product_lab_chat_action(
             action=action,
             base_outcome=base_outcome,
         )
+    if workflow == "calibration":
+        return calibration_outcome(message=message, action=action, base_outcome=base_outcome)
     if workflow == "pending_intake":
         return pending_intake_outcome(message=message, action=action)
     return base_outcome(
@@ -49,7 +50,6 @@ def apply_product_lab_chat_action(
         outcome_type="unsupported_workflow",
         blockers=[f"workflow_family_unsupported:{workflow}"],
     )
-
 
 def apply_product_lab_chat_actions(
     *,

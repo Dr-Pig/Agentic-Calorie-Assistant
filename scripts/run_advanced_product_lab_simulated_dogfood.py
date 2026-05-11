@@ -10,8 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.advanced_shadow_lab.product_lab_fixture_inputs import (  # noqa: E402
-    build_product_lab_fixture_inputs,
+from app.advanced_shadow_lab.product_lab_calibration_fixture_inputs import (  # noqa: E402
+    build_product_lab_calibration_fixture_inputs,
 )
 from app.advanced_shadow_lab.product_lab_session_replay import (  # noqa: E402
     run_advanced_product_lab_dogfood_session,
@@ -37,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
     session = run_advanced_product_lab_dogfood_session(
         artifact_root=Path(args.output_root),
         session_id=str(args.session_id),
-        fixture_inputs=build_product_lab_fixture_inputs(),
+        fixture_inputs=build_product_lab_calibration_fixture_inputs(),
         turns=build_product_lab_simulated_turns(),
     )
     summary = build_simulated_dogfood_summary(session)

@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.advanced_shadow_lab.product_lab_calibration_action_summary import (
+    session_calibration_action_summary,
+    turn_calibration_action_summary,
+)
+
 
 def session_chat_action_summary(
     turn_summaries: list[Mapping[str, Any]],
@@ -76,6 +81,7 @@ def session_chat_action_summary(
             item.get("lab_rescue_action_canonical_mutation_allowed") is True
             for item in turn_summaries
         ),
+        **session_calibration_action_summary(turn_summaries),
     }
 
 
@@ -137,6 +143,7 @@ def turn_chat_action_summary(
             item.get("canonical_product_mutation_allowed") is True
             for item in rescue_decisions
         ),
+        **turn_calibration_action_summary(action_outcomes),
     }
 
 
