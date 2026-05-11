@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.product_lab_calibration_packets import calibration_product_fields
+from app.advanced_shadow_lab.product_lab_exercise_packets import exercise_product_fields
 from app.advanced_shadow_lab.product_lab_no_plan_packets import no_plan_product_fields
 from app.advanced_shadow_lab.product_lab_planned_event_packets import planned_event_product_fields
 from app.advanced_shadow_lab.product_lab_swap_packets import swap_product_fields
@@ -22,6 +23,9 @@ def product_fields(
     swap_fields = swap_product_fields(packet)
     if swap_fields:
         return swap_fields
+    exercise_fields = exercise_product_fields(packet)
+    if exercise_fields:
+        return exercise_fields
     calibration_fields = calibration_product_fields(packet)
     if calibration_fields:
         return calibration_fields

@@ -12,6 +12,7 @@ SUPPORTED_FIXTURE_INTENTS = {
     "no_plan_degraded_journey",
     "pre_meal_planning",
     "swap_suggestion",
+    "exercise_budget_bonus",
 }
 CAPABILITIES_EXERCISED = [
     "long_term_memory",
