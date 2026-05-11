@@ -146,6 +146,7 @@ def _recommendation_offer(packet: Mapping[str, Any]) -> dict[str, Any]:
         "primary_candidate_id": str(ux.get("primary_candidate_id") or ""),
         "backup_candidate_ids": [str(item) for item in ux.get("backup_candidate_ids") or []],
         "candidate_snapshot": dict(_mapping(handoff.get("candidate_snapshot"))),
+        "pre_meal_planning": dict(_mapping(ux.get("pre_meal_planning_packet"))),
         "offer_actions": [dict(item) for item in ux.get("actions") or [] if isinstance(item, Mapping)],
         "intake_handoff_state": str(handoff.get("handoff_state") or ""),
         "canonical_commit_requested": handoff.get("canonical_commit_requested") is True,

@@ -6,6 +6,9 @@ from app.advanced_shadow_lab.product_lab_memory_action_projection import (
     memory_action_projection_from_context,
     recommendation_memory_blocker_reasons,
 )
+from app.advanced_shadow_lab.product_lab_premeal_planning import (
+    premeal_candidate_filter_reason,
+)
 from app.advanced_shadow_lab.product_lab_recommendation_candidate_quality import (
     hard_rejected_review,
     omission_traces,
@@ -41,12 +44,14 @@ def build_candidate_retrieval_guard_scoring(
     memory_negative_ids = [
         str(item) for item in memory_context_pack.get("negative_preference_blockers") or []
     ]
+    premeal = _mapping(_mapping(planning.get("candidate_spec")).get("pre_meal_planning"))
     for candidate in source_candidates:
-        reasons = filter_reason_codes(
+        reasons = premeal_candidate_filter_reason(candidate, premeal)
+        reasons.extend(filter_reason_codes(
             candidate,
             payload,
             memory_negative_ids=memory_negative_ids,
-        )
+        ))
         reasons.extend(
             recommendation_memory_blocker_reasons(candidate, memory_action_projection)
         )
@@ -106,6 +111,8 @@ def build_candidate_retrieval_guard_scoring(
         "primary_candidate_id": pool["primary_candidate_id"],
         "backup_candidate_ids": pool["backup_candidate_ids"],
         "offer_candidate_ids": pool["offer_candidate_ids"],
+        "budget_posture": dict(_mapping(_mapping(planning.get("candidate_spec")).get("budget_posture"))),
+        "pre_meal_planning_context": dict(premeal),
         "omission_traces": [
             *omission_traces(quality_rejected),
             *_memory_action_omission_traces(filtered),

@@ -119,6 +119,7 @@ def run_product_lab_recommendation(
         "pending_intake_handoff_created": (
             pending_handoff.get("lab_intake_intent_created") is True
         ),
+        "external_location_search_used": False,
         "raw_user_text_semantic_inference_performed": False,
         "mainline_activation_enabled": False,
         "self_use_v1_affected": False,
