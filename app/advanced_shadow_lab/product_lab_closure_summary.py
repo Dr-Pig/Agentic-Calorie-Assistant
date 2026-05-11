@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.advanced_shadow_lab.product_lab_journey_coverage import (
+    build_product_lab_journey_coverage_summary,
+)
+
 
 def build_product_lab_closure_summary(
     session_artifact: Mapping[str, Any],
@@ -52,6 +56,7 @@ def build_product_lab_closure_summary(
         "advanced_product_lab_product_loop_closed": not bool(missing),
         "advanced_product_lab_closure_criteria": criteria,
         "advanced_product_lab_closure_missing": missing,
+        **build_product_lab_journey_coverage_summary(session_artifact),
     }
 
 
