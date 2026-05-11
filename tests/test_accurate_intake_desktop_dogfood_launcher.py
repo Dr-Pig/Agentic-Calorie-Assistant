@@ -217,6 +217,35 @@ def test_desktop_dogfood_launcher_app_path_captures_feedback_into_review_queue(
         close_desktop_dogfood_app(app)
 
 
+def test_desktop_dogfood_app_redirects_friendly_page_routes(tmp_path: Path) -> None:
+    app = build_app_for_desktop_dogfood(tmp_path / "accurate_intake.sqlite3")
+    try:
+        with TestClient(app) as client:
+            home = client.get(
+                "/accurate-intake/desktop?user_id=dogfood-user&local_date=2026-05-11",
+                follow_redirects=False,
+            )
+            root_alias = client.get(
+                "/accurate-intake-desktop.html?user_id=dogfood-user",
+                follow_redirects=False,
+            )
+            chat = client.get(
+                "/accurate-intake/chat?user_id=dogfood-user",
+                follow_redirects=False,
+            )
+
+        assert home.status_code == 307
+        assert home.headers["location"] == (
+            "/static/accurate-intake-desktop.html?user_id=dogfood-user&local_date=2026-05-11"
+        )
+        assert root_alias.status_code == 307
+        assert root_alias.headers["location"] == "/static/accurate-intake-desktop.html?user_id=dogfood-user"
+        assert chat.status_code == 307
+        assert chat.headers["location"] == "/static/accurate-intake-chat.html?user_id=dogfood-user"
+    finally:
+        close_desktop_dogfood_app(app)
+
+
 def test_self_use_runbook_documents_desktop_launcher_without_readiness_claim() -> None:
     runbook = Path("docs/quality/ACCURATE_INTAKE_MVP_SELF_USE_RUNBOOK.md").read_text(encoding="utf-8-sig")
 
