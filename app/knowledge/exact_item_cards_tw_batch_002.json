@@ -1,0 +1,124 @@
+{
+  "cards": [
+    {
+      "item_id": "exact_weichuan_prince_cup_noodle_pork_52g",
+      "title": "味王王子杯麵-蔥蔥肉燥湯麵(52g)",
+      "aliases": [
+        "味王 王子杯麵 蔥蔥肉燥湯麵 52g",
+        "王子杯麵蔥蔥肉燥52g",
+        "蔥蔥肉燥湯麵52g"
+      ],
+      "brand": "味王",
+      "serving_basis": "每份52公克",
+      "kcal": 262,
+      "protein_g": 4.5,
+      "carb_g": 30.8,
+      "fat_g": 13.4,
+      "macro_basis": "per_serving",
+      "macro_confidence": "high",
+      "macro_source_strength": "official_label",
+      "kcal_band": "per_serving",
+      "source_class": "official_brand_chain_page",
+      "source_url": "https://711go.7-11.com.tw/product/239324",
+      "reviewed_date": "2026-05-12",
+      "source_record_id": "7-11_product_239324",
+      "source_note": "7-ELEVEN i預購 official nutrition label; per serving 52g; values copied from label."
+    },
+    {
+      "item_id": "exact_weichuan_prince_cup_noodle_seafood_52g",
+      "title": "味王王子杯麵-鮮鮮海味湯麵(52g)",
+      "aliases": [
+        "味王 王子杯麵 鮮鮮海味湯麵 52g",
+        "王子杯麵鮮鮮海味52g",
+        "鮮鮮海味湯麵52g"
+      ],
+      "brand": "味王",
+      "serving_basis": "每份52公克",
+      "kcal": 253,
+      "protein_g": 5.0,
+      "carb_g": 29.5,
+      "fat_g": 12.8,
+      "macro_basis": "per_serving",
+      "macro_confidence": "high",
+      "macro_source_strength": "official_label",
+      "kcal_band": "per_serving",
+      "source_class": "official_brand_chain_page",
+      "source_url": "https://pxbox.es.pxmart.com.tw/product/428725",
+      "reviewed_date": "2026-05-12",
+      "source_record_id": "pxmart_product_428725",
+      "source_note": "全聯全電商 official product nutrition label; per serving 52g; values copied from label."
+    },
+    {
+      "item_id": "exact_weichuan_prince_cup_noodle_beef_51g",
+      "title": "味王王子杯麵-濃濃牛肉湯麵(51g)",
+      "aliases": [
+        "味王 王子杯麵 濃濃牛肉湯麵 51g",
+        "王子杯麵濃濃牛肉51g",
+        "濃濃牛肉湯麵51g"
+      ],
+      "brand": "味王",
+      "serving_basis": "每份51公克",
+      "kcal": 243,
+      "protein_g": 4.7,
+      "carb_g": 29.3,
+      "fat_g": 11.9,
+      "macro_basis": "per_serving",
+      "macro_confidence": "high",
+      "macro_source_strength": "official_label",
+      "kcal_band": "per_serving",
+      "source_class": "official_brand_chain_page",
+      "source_url": "https://pxbox.es.pxmart.com.tw/product/429532",
+      "reviewed_date": "2026-05-12",
+      "source_record_id": "pxmart_product_429532",
+      "source_note": "全聯全電商 official product nutrition label; per serving 51g; values copied from label."
+    },
+    {
+      "item_id": "exact_chungabern_scallion_pork_pie_30g",
+      "title": "蔥阿伯家鄉味蔥肉餡餅(30g)",
+      "aliases": [
+        "蔥阿伯 家鄉味 蔥肉餡餅 30g",
+        "蔥阿伯蔥肉餡餅30公克",
+        "家鄉味蔥肉餡餅"
+      ],
+      "brand": "蔥阿伯",
+      "serving_basis": "每份30公克",
+      "kcal": 59,
+      "protein_g": 2.7,
+      "carb_g": 7.3,
+      "fat_g": 2.2,
+      "macro_basis": "per_serving",
+      "macro_confidence": "high",
+      "macro_source_strength": "official_label",
+      "kcal_band": "per_serving",
+      "source_class": "official_brand_page",
+      "source_url": "https://fresh123.cyberbiz.co/zh-TW/products/a15039",
+      "reviewed_date": "2026-05-12",
+      "source_record_id": "fresh123_product_a15039",
+      "source_note": "Fresh123 official brand page nutrition label; per serving 30g; values copied from label."
+    },
+    {
+      "item_id": "exact_i3fresh_beef_tripe_tendon_hotpot_120g",
+      "title": "愛上新鮮牛三寶老饕牛肉爐(120g)",
+      "aliases": [
+        "愛上新鮮 牛三寶老饕牛肉爐 120g",
+        "牛三寶老饕牛肉爐120公克",
+        "牛三寶牛肉爐"
+      ],
+      "brand": "愛上新鮮",
+      "serving_basis": "每份120公克",
+      "kcal": 106,
+      "protein_g": 13.8,
+      "carb_g": 4.4,
+      "fat_g": 3.6,
+      "macro_basis": "per_serving",
+      "macro_confidence": "high",
+      "macro_source_strength": "official_label",
+      "kcal_band": "per_serving",
+      "source_class": "official_brand_page",
+      "source_url": "https://i3fresh.tw/favorable_5658.html",
+      "reviewed_date": "2026-05-12",
+      "source_record_id": "i3fresh_product_5658",
+      "source_note": "i3Fresh official brand page nutrition label; per serving 120g; values copied from label."
+    }
+  ]
+}
