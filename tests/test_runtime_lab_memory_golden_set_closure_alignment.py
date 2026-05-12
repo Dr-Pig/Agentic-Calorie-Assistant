@@ -14,7 +14,7 @@ def test_runtime_lab_memory_golden_set_tracks_closure_artifacts() -> None:
 
     alignment = contract["runtime_lab_closure_alignment"]
 
-    assert contract["version"] == 1.2
+    assert contract["version"] == 1.3
     assert alignment["status"] == "active_runtime_lab_alignment"
     assert alignment["complete_lab_allowed"] is True
     assert alignment["mainline_activation_enabled"] is False
@@ -27,7 +27,9 @@ def test_runtime_lab_memory_golden_set_tracks_closure_artifacts() -> None:
         "advanced_product_lab_memory_record_closure_pack",
         "advanced_product_lab_activation_wall_audit",
     ]
-    assert alignment["next_required_slice"] == "lab_debt_retirement_plan"
+    assert alignment["next_required_slice"] == (
+        "real_dogfood_trace_calibration_when_available"
+    )
 
 
 def test_runtime_lab_memory_golden_set_records_negative_holdout_contract() -> None:
