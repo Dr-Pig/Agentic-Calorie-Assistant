@@ -3,11 +3,12 @@ from __future__ import annotations
 from hmac import compare_digest
 import os
 
-from fastapi import Cookie, Header, HTTPException, Request
+from fastapi import Cookie, Header, HTTPException, Request, Response
 
 LOCAL_DEBUG_API_TOKEN_ENV = "LOCAL_DEBUG_API_TOKEN"
 LOCAL_DEBUG_API_TOKEN_HEADER = "X-Local-Debug-Token"
 LOCAL_DEBUG_SESSION_COOKIE = "local_debug_session"
+LOCAL_DEBUG_SESSION_MAX_AGE_SECONDS = 8 * 60 * 60
 
 _PLACEHOLDER_TOKENS = {
     "change-me",
@@ -51,6 +52,24 @@ def require_local_debug_access(
     if not supplied_token and not supplied_session:
         raise HTTPException(status_code=403, detail="Forbidden")
     raise HTTPException(status_code=403, detail="Forbidden")
+
+
+def configured_local_debug_token_for_request(request: Request) -> str | None:
+    expected_token = _configured_local_debug_token()
+    if not expected_token or not _request_is_local(request):
+        return None
+    return expected_token
+
+
+def set_local_debug_session_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key=LOCAL_DEBUG_SESSION_COOKIE,
+        value=token,
+        max_age=LOCAL_DEBUG_SESSION_MAX_AGE_SECONDS,
+        path="/",
+        httponly=True,
+        samesite="strict",
+    )
 
 
 def validate_local_debug_token(request: Request, supplied_token: str) -> str:

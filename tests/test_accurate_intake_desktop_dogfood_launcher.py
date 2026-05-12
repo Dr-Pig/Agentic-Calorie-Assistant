@@ -37,9 +37,7 @@ def test_desktop_dogfood_launch_descriptor_uses_persistent_local_sqlite_and_laun
     assert descriptor["db_path"] == "workspace_data/local_dogfood/accurate_intake.sqlite3"
     assert descriptor["persistent_local_sqlite"] is True
     assert descriptor["reset_db_default"] is False
-    assert descriptor["launch_url"] == (
-        "http://127.0.0.1:8765/static/accurate-intake-desktop.html?user_id=dogfood-user"
-    )
+    assert descriptor["launch_url"] == "http://127.0.0.1:8765/accurate-intake?user_id=dogfood-user"
     assert descriptor["entry_pages"] == [
         "desktop",
         "chat",
@@ -50,17 +48,19 @@ def test_desktop_dogfood_launch_descriptor_uses_persistent_local_sqlite_and_laun
         "data",
     ]
     assert descriptor["entry_page_urls"] == {
-        "desktop": "http://127.0.0.1:8765/static/accurate-intake-desktop.html?user_id=dogfood-user",
-        "chat": "http://127.0.0.1:8765/static/accurate-intake-chat.html?user_id=dogfood-user",
-        "today": "http://127.0.0.1:8765/static/accurate-intake-today.html?user_id=dogfood-user",
-        "body": "http://127.0.0.1:8765/static/accurate-intake-body.html?user_id=dogfood-user",
-        "feedback": "http://127.0.0.1:8765/static/accurate-intake-feedback.html?user_id=dogfood-user",
-        "review": "http://127.0.0.1:8765/static/accurate-intake-review.html?user_id=dogfood-user",
-        "data": "http://127.0.0.1:8765/static/accurate-intake-data.html?user_id=dogfood-user",
+        "desktop": "http://127.0.0.1:8765/accurate-intake/desktop?user_id=dogfood-user",
+        "chat": "http://127.0.0.1:8765/accurate-intake/chat?user_id=dogfood-user",
+        "today": "http://127.0.0.1:8765/accurate-intake/today?user_id=dogfood-user",
+        "body": "http://127.0.0.1:8765/accurate-intake/body?user_id=dogfood-user",
+        "feedback": "http://127.0.0.1:8765/accurate-intake/feedback?user_id=dogfood-user",
+        "review": "http://127.0.0.1:8765/accurate-intake/review?user_id=dogfood-user",
+        "data": "http://127.0.0.1:8765/accurate-intake/data?user_id=dogfood-user",
     }
     assert descriptor["local_debug_token"] == "test-token"
     assert descriptor["local_debug_header"] == "X-Local-Debug-Token"
     assert descriptor["local_debug_token_in_url"] is False
+    assert descriptor["local_debug_session_auto_cookie"] is True
+    assert descriptor["manual_local_debug_token_fallback"] is True
     assert descriptor["provider_status"]["manager_provider"] == {
         "status": "configured",
         "configured": True,
@@ -246,11 +246,44 @@ def test_desktop_dogfood_app_redirects_friendly_page_routes(tmp_path: Path) -> N
         close_desktop_dogfood_app(app)
 
 
+def test_desktop_dogfood_friendly_routes_auto_establish_cookie_without_url_token(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    token = "launcher-token"
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", token)
+    app = build_app_for_desktop_dogfood(tmp_path / "accurate_intake.sqlite3")
+    try:
+        with TestClient(app) as client:
+            home = client.get(
+                "/accurate-intake?user_id=dogfood-user&local_date=2026-05-11",
+                follow_redirects=False,
+            )
+            protected = client.get("/accurate-intake/local-debug-session")
+
+        assert home.status_code == 307
+        assert home.headers["location"] == (
+            "/static/accurate-intake-desktop.html?user_id=dogfood-user&local_date=2026-05-11"
+        )
+        assert "local_debug_token=" not in home.headers["location"]
+        set_cookie = home.headers["set-cookie"]
+        assert "local_debug_session=" in set_cookie
+        assert "HttpOnly" in set_cookie
+        assert "samesite=strict" in set_cookie.lower()
+        assert "Path=/" in set_cookie
+        assert "Domain=" not in set_cookie
+        assert protected.status_code == 200
+        assert protected.json() == {"status": "connected", "local_only": True}
+    finally:
+        close_desktop_dogfood_app(app)
+
+
 def test_self_use_runbook_documents_desktop_launcher_without_readiness_claim() -> None:
     runbook = Path("docs/quality/ACCURATE_INTAKE_MVP_SELF_USE_RUNBOOK.md").read_text(encoding="utf-8-sig")
 
     assert "run_accurate_intake_desktop_dogfood_launcher.py" in runbook
     assert "workspace_data/local_dogfood/accurate_intake.sqlite3" in runbook
+    assert "/accurate-intake" in runbook
     assert "/static/accurate-intake-desktop.html" in runbook
     assert "X-Local-Debug-Token" in runbook
     assert "provider preflight" in runbook

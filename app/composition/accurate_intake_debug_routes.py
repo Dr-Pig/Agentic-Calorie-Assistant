@@ -23,8 +23,8 @@ from app.composition.local_data_hygiene_routes import router as local_data_hygie
 from app.database import get_db
 from app.intake.interface.accurate_intake_debug_surface import render_accurate_intake_debug_surface
 from app.runtime.interface.local_debug_auth import (
-    LOCAL_DEBUG_SESSION_COOKIE,
     require_local_debug_access,
+    set_local_debug_session_cookie,
     validate_local_debug_token,
 )
 from app.shared.infra.models import MessageBuffer, User
@@ -32,7 +32,6 @@ from app.shared.infra.models import MessageBuffer, User
 router = APIRouter()
 router.include_router(local_data_hygiene_router)
 DOGFOOD_FEEDBACK_DIR = Path("workspace_data/local_dogfood_feedback")
-LOCAL_DEBUG_SESSION_MAX_AGE_SECONDS = 8 * 60 * 60
 
 _NOT_CLAIMING = [
     "product_ready",
@@ -235,15 +234,15 @@ async def accurate_intake_local_debug_session(
 ) -> Response:
     token = validate_local_debug_token(request, str(payload.get("token") or ""))
     response = Response(status_code=204)
-    response.set_cookie(
-        key=LOCAL_DEBUG_SESSION_COOKIE,
-        value=token,
-        max_age=LOCAL_DEBUG_SESSION_MAX_AGE_SECONDS,
-        path="/",
-        httponly=True,
-        samesite="strict",
-    )
+    set_local_debug_session_cookie(response, token)
     return response
+
+
+@router.get("/accurate-intake/local-debug-session")
+async def accurate_intake_local_debug_session_probe(
+    _local_debug_access: None = Depends(require_local_debug_access),
+) -> dict[str, Any]:
+    return {"status": "connected", "local_only": True}
 
 
 @router.get("/accurate-intake/debug")
