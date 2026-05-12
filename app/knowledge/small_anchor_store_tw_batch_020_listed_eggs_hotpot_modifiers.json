@@ -1,0 +1,1144 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_onsen_egg_one",
+      "canonical_name": "\u6eab\u6cc9\u86cb",
+      "aliases": [
+        "\u6eab\u6cc9\u86cb 55g",
+        "onsen egg",
+        "soft-boiled egg"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 55,
+        "label": "one onsen egg",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 76,
+      "kcal_range": [
+        55,
+        105
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_3981e367cee7",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 137.4925,
+          "tfda_sample_name": "\u6eab\u6cc9\u86cb"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_de798b7e97e1",
+        "raw_row_hash": "2431d9fb5bf54fd1ac53c8f2709e67df59f80a1a8fa923c18c61763987ae9333"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_boiled_chicken_egg_one",
+      "canonical_name": "\u96de\u6c34\u716e\u86cb",
+      "aliases": [
+        "\u96de\u6c34\u716e\u86cb 55g",
+        "boiled egg",
+        "boiled chicken egg"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 55,
+        "label": "one boiled chicken egg",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 79,
+      "kcal_range": [
+        60,
+        110
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_c0467d1edaa7",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 144.2187,
+          "tfda_sample_name": "\u96de\u6c34\u716e\u86cb"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7b5a1f67b80e",
+        "raw_row_hash": "bec82583643421579774a6f6af0f0330050fadf7a9653ebd81e790501cd00de7"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_boiled_egg_white_one",
+      "canonical_name": "\u96de\u6c34\u716e\u86cb\u767d",
+      "aliases": [
+        "\u96de\u6c34\u716e\u86cb\u767d 35g",
+        "boiled egg white",
+        "egg white one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 35,
+        "label": "one boiled egg white",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 21,
+      "kcal_range": [
+        15,
+        35
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_eb1bd95c4d44",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 60.7781,
+          "tfda_sample_name": "\u96de\u6c34\u716e\u86cb\u767d"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_348b1df1e97f",
+        "raw_row_hash": "fc712af16e1c8ca9551916a4656e73b20657abf38b8d0889432d7506a102b8e5"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_boiled_egg_yolk_one",
+      "canonical_name": "\u96de\u6c34\u716e\u86cb\u9ec3",
+      "aliases": [
+        "\u96de\u6c34\u716e\u86cb\u9ec3 20g",
+        "boiled egg yolk",
+        "egg yolk one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one boiled egg yolk",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 69,
+      "kcal_range": [
+        50,
+        100
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_e84213f6fe95",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 342.5598,
+          "tfda_sample_name": "\u96de\u6c34\u716e\u86cb\u9ec3"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_3d987a7416ca",
+        "raw_row_hash": "91abc9739ccf6ad26971824991a410182ec1221549899edd7ae5270852721529"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_commercial_tea_egg_one",
+      "canonical_name": "\u8336\u8449\u86cb(\u5e02\u552e)",
+      "aliases": [
+        "\u8336\u8449\u86cb(\u5e02\u552e) 55g",
+        "tea egg commercial",
+        "tea egg one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 55,
+        "label": "one commercial tea egg",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 81,
+      "kcal_range": [
+        60,
+        115
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_f96669fa248b",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 146.7182,
+          "tfda_sample_name": "\u8336\u8449\u86cb(\u5e02\u552e)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_c84e94787690",
+        "raw_row_hash": "8b7097f28e2bdd38602af956fb5d6b1db590cf82671d5523377726cd65d300df"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_century_egg_one",
+      "canonical_name": "\u96de\u76ae\u86cb",
+      "aliases": [
+        "\u96de\u76ae\u86cb 55g",
+        "century egg",
+        "preserved egg"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 55,
+        "label": "one century egg",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 78,
+      "kcal_range": [
+        55,
+        110
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_30140cbcbd6b",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 141.8953,
+          "tfda_sample_name": "\u96de\u76ae\u86cb"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_1c32e4f3a9cd",
+        "raw_row_hash": "9d1e7a6bff9c432f4b301a977d5c2cc710889c23b711a7e591328e89bbd57e75"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_braised_egg_one",
+      "canonical_name": "\u6ef7\u86cb\u5e73\u5747\u503c",
+      "aliases": [
+        "\u6ef7\u86cb\u5e73\u5747\u503c 55g",
+        "braised egg",
+        "luwei braised egg"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 55,
+        "label": "one braised egg",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 101,
+      "kcal_range": [
+        75,
+        145
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_651dce4f3f3f",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 183.7698,
+          "tfda_sample_name": "\u6ef7\u86cb\u5e73\u5747\u503c"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_0e4d519eddaa",
+        "raw_row_hash": "94ffa0ac5689a9e0f9dd9d40de8a514efff3afbd416cbe079fc6e617f62c7cd2"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_commercial_braised_egg_one",
+      "canonical_name": "\u96de\u6ef7\u86cb(\u5e02\u552e)",
+      "aliases": [
+        "\u96de\u6ef7\u86cb(\u5e02\u552e) 55g",
+        "commercial braised egg",
+        "braised chicken egg"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 55,
+        "label": "one commercial braised egg",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 105,
+      "kcal_range": [
+        75,
+        150
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_bf9644ad2081",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 190.7914,
+          "tfda_sample_name": "\u96de\u6ef7\u86cb(\u5e02\u552e)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_f7250c2b4866",
+        "raw_row_hash": "a2296a1d777a2e02c85ded67e86a54c06b464a2e7fa598437860817cdfbacfb2"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_iron_egg_one",
+      "canonical_name": "\u96de\u9435\u86cb",
+      "aliases": [
+        "\u96de\u9435\u86cb 30g",
+        "iron egg",
+        "tie dan"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one iron egg",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 86,
+      "kcal_range": [
+        60,
+        125
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_6f195deab294",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 287.5,
+          "tfda_sample_name": "\u96de\u9435\u86cb"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_dc77023e2432",
+        "raw_row_hash": "b3d13aa58b823ab04ec685df1443b1ae146718a6e57596f01230e533f552f15b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_poached_egg_no_oil_one",
+      "canonical_name": "\u8377\u5305\u86cb(\u4e0d\u52a0\u6cb9)",
+      "aliases": [
+        "\u8377\u5305\u86cb(\u4e0d\u52a0\u6cb9) 55g",
+        "poached egg without oil",
+        "fried egg no oil"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 55,
+        "label": "one poached egg without oil",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 89,
+      "kcal_range": [
+        65,
+        125
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_f727190be5ab",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 161.9092,
+          "tfda_sample_name": "\u8377\u5305\u86cb(\u4e0d\u52a0\u6cb9)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_6304e82f2fc9",
+        "raw_row_hash": "c35f47cb0feac7d1efb4330133af44a26787a65217ad741d2c9b53c44dbd5b4d"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_fried_egg_with_oil_one",
+      "canonical_name": "\u8377\u5305\u86cb(\u52a0\u6cb91\u5c0f\u5319)",
+      "aliases": [
+        "\u8377\u5305\u86cb(\u52a0\u6cb91\u5c0f\u5319) 55g",
+        "fried egg with oil",
+        "poached egg with oil"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 55,
+        "label": "one fried egg with oil",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 106,
+      "kcal_range": [
+        75,
+        150
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_4036ae8e8e05",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 192.2388,
+          "tfda_sample_name": "\u8377\u5305\u86cb(\u52a0\u6cb91\u5c0f\u5319)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_af9432bcdf7f",
+        "raw_row_hash": "4c3f5f6d7d69410bcb80e7c67b1634fc14c0c93f006da02a1b1706550f8e70e2"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_steamed_egg_cup",
+      "canonical_name": "\u84b8\u86cb\u5e73\u5747\u503c",
+      "aliases": [
+        "\u84b8\u86cb\u5e73\u5747\u503c 150g",
+        "steamed egg",
+        "egg custard cup"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 150,
+        "label": "one steamed egg cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 97,
+      "kcal_range": [
+        60,
+        150
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_73931ee43ffb",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 64.4478,
+          "tfda_sample_name": "\u84b8\u86cb\u5e73\u5747\u503c"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_34302a05a876",
+        "raw_row_hash": "cbae9033fc72a7657bada531d67c5dd6c6ebe59ee2c5e100f25b8e9e9ad2aeee"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_shacha_powder_15g",
+      "canonical_name": "\u6c99\u8336\u7c89",
+      "aliases": [
+        "\u6c99\u8336\u7c89 15g",
+        "shacha powder",
+        "satay powder 15g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_15g",
+        "portion_quantity": 1,
+        "portion_grams": 15,
+        "label": "one 15g shacha powder serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 72,
+      "kcal_range": [
+        45,
+        105
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_8c4eeae90787",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 476.7576,
+          "tfda_sample_name": "\u6c99\u8336\u7c89"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_b89ab9821206",
+        "raw_row_hash": "5d8911aa4fceae1841a0ff1bbcdd4e94d057aecf50e437942eae90fd3302b5a9"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_curry_cube_20g",
+      "canonical_name": "\u5496\u54e9\u584a",
+      "aliases": [
+        "\u5496\u54e9\u584a 20g",
+        "curry cube",
+        "curry block 20g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_20g",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one 20g curry cube serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 101,
+      "kcal_range": [
+        70,
+        150
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_39f910777a64",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 504.9165,
+          "tfda_sample_name": "\u5496\u54e9\u584a"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_6aae44e9abc8",
+        "raw_row_hash": "e68c6404169e6e69281e21093027660b38f32929537e8e99dbaeae6269f7c5bc"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_fried_shallot_10g",
+      "canonical_name": "\u6cb9\u8525\u9165",
+      "aliases": [
+        "\u6cb9\u8525\u9165 10g",
+        "fried shallot",
+        "crispy shallot 10g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_10g",
+        "portion_quantity": 1,
+        "portion_grams": 10,
+        "label": "one 10g fried shallot serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 49,
+      "kcal_range": [
+        35,
+        70
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_377f72e40fdd",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 488.661,
+          "tfda_sample_name": "\u6cb9\u8525\u9165"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_478766d9d6a9",
+        "raw_row_hash": "2030a6760fb28ea3617e8c866f4b065541d321d2211fd6e0ff706c05a3a892a1"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_coconut_milk_30g",
+      "canonical_name": "\u6930\u6f3f",
+      "aliases": [
+        "\u6930\u6f3f 30g",
+        "coconut milk",
+        "coconut milk 30g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_30g",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one 30g coconut milk serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 62,
+      "kcal_range": [
+        40,
+        95
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_9822f19891c4",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 206.9735,
+          "tfda_sample_name": "\u6930\u6f3f"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_9f86b5458341",
+        "raw_row_hash": "71e0d8afa8e5a063359393f4eec65b901d4cbb6b5c7bcd2ca5c3487206c0b415"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_garlic_crisp_10g",
+      "canonical_name": "\u849c\u982d\u9165",
+      "aliases": [
+        "\u849c\u982d\u9165 10g",
+        "garlic crisp",
+        "fried garlic crisp 10g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_10g",
+        "portion_quantity": 1,
+        "portion_grams": 10,
+        "label": "one 10g garlic crisp serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 44,
+      "kcal_range": [
+        30,
+        65
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_e6f77b85b865",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 435.7631,
+          "tfda_sample_name": "\u849c\u982d\u9165"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_95a063eecd80",
+        "raw_row_hash": "d25f2a4dd41ce55ad30539afde04f5a88d5f009c4544b78ed6a9f37b47dfbf20"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_bonito_powder_5g",
+      "canonical_name": "\u9c39\u9b5a\u7c89",
+      "aliases": [
+        "\u9c39\u9b5a\u7c89 5g",
+        "bonito powder",
+        "katsuobushi powder 5g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_5g",
+        "portion_quantity": 1,
+        "portion_grams": 5,
+        "label": "one 5g bonito powder serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 12,
+      "kcal_range": [
+        5,
+        25
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_c36369e742fb",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 240.079,
+          "tfda_sample_name": "\u9c39\u9b5a\u7c89"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_dc74e06cc8c5",
+        "raw_row_hash": "1d2ceb066419fd43a4f5ef53a4c249a1b1429969caf0b0fffcae69ecd93bcf98"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_pork_broth_cube_10g",
+      "canonical_name": "\u9ad8\u6e6f\u584a(\u6392\u9aa8)",
+      "aliases": [
+        "\u9ad8\u6e6f\u584a(\u6392\u9aa8) 10g",
+        "pork broth cube",
+        "pork stock cube 10g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_10g",
+        "portion_quantity": 1,
+        "portion_grams": 10,
+        "label": "one 10g pork broth cube serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 36,
+      "kcal_range": [
+        20,
+        55
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_5b3674d29ec9",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 362.0485,
+          "tfda_sample_name": "\u9ad8\u6e6f\u584a(\u6392\u9aa8)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7dab7467eee7",
+        "raw_row_hash": "533529ddc3206daa2be56227750c170e46ed3d799f2250fd0ed9824b44e42a02"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_chicken_broth_cube_10g",
+      "canonical_name": "\u9ad8\u6e6f\u584a(\u96de\u8089)",
+      "aliases": [
+        "\u9ad8\u6e6f\u584a(\u96de\u8089) 10g",
+        "chicken broth cube",
+        "chicken stock cube 10g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_10g",
+        "portion_quantity": 1,
+        "portion_grams": 10,
+        "label": "one 10g chicken broth cube serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 34,
+      "kcal_range": [
+        20,
+        55
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_fc19138ea4dc",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 339.139,
+          "tfda_sample_name": "\u9ad8\u6e6f\u584a(\u96de\u8089)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_13637864992b",
+        "raw_row_hash": "9a94ebaf356912b3f319d4eed8b9e8b23223fcf45769cb0ccbccdeb812f1ec6d"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    }
+  ]
+}
