@@ -243,6 +243,8 @@ The launcher prints a descriptor with the friendly `/accurate-intake` URL, stati
 
 The tracked desktop shortcut target is `scripts/open_accurate_intake_desktop_page.ps1`. Create local shortcuts that call this script with `-Page desktop`, `-Page chat`, `-Page today`, `-Page body`, `-Page feedback`, `-Page review`, or `-Page data`. The script opens the friendly `/accurate-intake` routes, reuses `workspace_data/local_dogfood/local_debug_token.txt`, restarts only an ACA-owned stale local server, and verifies automatic local-session support before opening the browser. If the automatic cookie path fails, the token file is still printed as the manual fallback.
 
+To create the standard Windows shortcut folder, run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create_accurate_intake_desktop_shortcuts.ps1`. It creates `ACA 1 Start Home` through `ACA 7 Data Backup Export` shortcuts that call the friendly launcher script, plus `ACA 0 Local Token` for the manual fallback token file. The shortcuts do not embed the token or open static pages directly.
+
 Run the persistent desktop dogfood baseline before treating the desktop path as operational:
 
 ```powershell
