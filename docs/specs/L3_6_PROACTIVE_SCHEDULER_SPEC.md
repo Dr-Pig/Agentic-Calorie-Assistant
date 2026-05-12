@@ -225,6 +225,26 @@ Default adaptation rules:
 
 Suppressed categories must remain user-callable. For example, if a user disables meal reminders, the user may still ask the chat to help log a meal or review the day.
 
+### 4.7A Shared Feedback Event Alignment
+
+Proactive control events must use the shared `FeedbackEvent` contract from L4D when they feed memory/recommendation/rescue/proactive learning loops.
+
+Required proactive interpretation:
+
+- `dismiss` records a reason when provided and suppresses the current candidate until there is a materially new signal.
+- `snooze` records `snooze_until` and suppresses equivalent candidates through that window.
+- `undo` cancels the most recent matching dismiss/snooze/opt-out effect when scope and source checks pass.
+- `opt_out` suppresses the trigger category until explicit re-enable.
+
+Projection boundaries:
+
+- Proactive dismiss/snooze/undo remain user-control events, not durable memory truth.
+- Explicit opt-out may create both a proactive suppression projection and an app-use memory candidate, but each projection must pass its own validator.
+- A memory `confirm` event must not enable proactive delivery or scheduler activation.
+- A proactive feedback event cannot mutate MealThread, FoodDB, BodyBudget, ledger, recommendation offer, or rescue plan truth.
+
+Every proactive candidate that could later become user-facing must expose a dismissal path, a snooze window policy, and the next signal required before re-surfacing. Without that control path it is not eligible for user-facing delivery.
+
 ### 4.8 Channel Sensitivity
 
 Delivery surface changes the interruption cost.

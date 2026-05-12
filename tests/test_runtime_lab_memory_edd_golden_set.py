@@ -18,6 +18,8 @@ REQUIRED_CASE_TYPES = {
     "stale_conflict",
     "scope_leak",
     "prompt_injection_attempt",
+    "source_lookup",
+    "shared_feedback_event",
 }
 
 
@@ -38,12 +40,12 @@ def test_runtime_lab_memory_edd_suite_loads_required_cases_and_splits() -> None:
     assert artifact["lab_isolated"] is True
     assert artifact["manager_context_packet_changed"] is False
     assert artifact["durable_product_memory_written"] is False
-    assert artifact["case_count"] == 10
+    assert artifact["case_count"] == 24
     assert set(artifact["case_types"]) == REQUIRED_CASE_TYPES
     assert artifact["split_counts"] == {
-        "fixture": 6,
-        "holdout": 2,
-        "negative": 2,
+        "fixture": 17,
+        "holdout": 3,
+        "negative": 4,
     }
     assert artifact["suite_contract"]["required_scope_keys"] == [
         "user_id",
@@ -78,6 +80,8 @@ def test_runtime_lab_memory_edd_rubric_is_decision_complete_without_live_claims(
         "no_canonical_mutation",
         "scope_isolation",
         "secret_redaction",
+        "source_lookup_boundary",
+        "feedback_event_projection",
     }
     assert rubric["promotion_legality"]["truth_owner"] == "deterministic_validator"
     assert rubric["retrieval_precision"]["grader_type"] == "hybrid_trace_plus_human_calibrated"
@@ -92,6 +96,11 @@ def test_runtime_lab_memory_edd_rubric_is_decision_complete_without_live_claims(
         "stage_b_dogfood_replay_traces": "deferred_to_PR4",
         "stage_c_env_gated_live_manager_diagnostic": "deferred_to_PR3",
         "stage_d_paired_lab_injection": "deferred_to_PR8",
+        "stage_e_grokfast_extraction_diagnostic": "milestone_required",
+        "stage_f_memory_tool_lookup_diagnostic": "milestone_required",
+        "stage_g_recommendation_with_blockers": "milestone_required",
+        "stage_h_proactive_feedback_projection": "milestone_required",
+        "stage_i_integrated_e2e_lab_loop": "milestone_required",
     }
     assert "not_runtime_activation_evidence" in artifact["non_claims"]
 
@@ -148,13 +157,13 @@ def test_runtime_lab_memory_edd_projection_adds_reviewed_dogfood_cases_only() ->
 
     assert projection["artifact_type"] == "runtime_lab_memory_edd_suite_projection"
     assert projection["status"] == "pass"
-    assert projection["base_case_count"] == 10
+    assert projection["base_case_count"] == 24
     assert projection["reviewed_dogfood_case_count"] == 1
-    assert projection["case_count"] == 11
+    assert projection["case_count"] == 25
     assert projection["split_counts"] == {
-        "fixture": 6,
-        "holdout": 3,
-        "negative": 2,
+        "fixture": 17,
+        "holdout": 4,
+        "negative": 4,
     }
     assert projection["canonical_golden_set_mutated"] is False
     assert projection["reviewed_cases_promoted_to_canonical"] is False
@@ -167,8 +176,8 @@ def test_runtime_lab_memory_edd_projection_adds_reviewed_dogfood_cases_only() ->
     ]
 
     extraction = build_candidate_extraction_artifact_from_edd_suite(projection)
-    assert extraction["candidate_count"] == 8
-    assert extraction["rejection_count"] == 3
+    assert extraction["candidate_count"] == 19
+    assert extraction["rejection_count"] == 6
 
 
 def test_runtime_lab_memory_edd_projection_blocks_missing_truth_refs() -> None:
@@ -188,7 +197,7 @@ def test_runtime_lab_memory_edd_projection_blocks_missing_truth_refs() -> None:
     projection = build_reviewed_dogfood_edd_suite_projection(suite, review)
 
     assert projection["status"] == "blocked"
-    assert projection["case_count"] == 10
+    assert projection["case_count"] == 24
     assert "missing_product_truth_source_refs" in projection["blockers"]
     assert projection["canonical_golden_set_mutated"] is False
 
@@ -287,7 +296,7 @@ def test_runtime_lab_memory_edd_projection_rejects_malformed_review_proposals() 
     projection = build_reviewed_dogfood_edd_suite_projection(suite, review)
 
     assert projection["status"] == "blocked"
-    assert projection["case_count"] == 10
+    assert projection["case_count"] == 24
     assert projection["blockers"] == [
         "duplicate_case_id:explicit_preference_confirm_candidate",
         "explicit_preference_confirm_candidate.missing_source_refs",

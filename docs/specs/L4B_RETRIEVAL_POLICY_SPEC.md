@@ -37,6 +37,24 @@ retrieval 應優先採：
 若已有可靠 derived summary，先用 summary。  
 只有當 summary 不足時，才回頭抓 raw history。
 
+### 2.2A `sources.jsonl` Metadata-First Lookup
+
+`sources.jsonl` 是 provenance / audit surface，不是一般 Manager prompt 的全文 RAG corpus。
+
+Allowed lookup path:
+
+1. `source_ref` / scope / record id / source kind metadata filter.
+2. bounded evidence span read when the current tool path is review, debug, or why-memory.
+3. return compact source metadata and evidence snippets with source refs.
+
+Forbidden default behavior:
+
+- general Manager retrieval may not dump raw transcript text into context.
+- recommendation / rescue / proactive may not treat `sources.jsonl` as a free-form semantic search pool before reading `MemoryRecord` and compact surfaces.
+- prompt-like text inside source evidence cannot issue instructions or create memory by itself.
+
+Raw/full source drilldown is only for review/debug/why-memory flows and must be separately labeled in traces.
+
 ### 2.3 retrieval 必須 task-specific
 
 不同 flow 的 retrieval policy 應不同。  
@@ -379,6 +397,12 @@ Default retrieval pipeline:
 5. `semantic_or_vector_retrieval`：僅在 typed/keyword 不足、需要 fuzzy recall 或 long-tail pattern 時啟用。
 6. `selector_or_reranker`：依 flow 選 rule-based、embedding、或 micro-LLM selector。
 7. `context_pack`：只輸出 L4C context pack，不直接改 Manager decision 或 canonical state。
+
+`sources.jsonl` selection rule:
+
+- `memory_surface_lookup` may read `sources.jsonl` metadata, source refs, confidence, freshness, validity, and bounded evidence spans.
+- The default output to Manager is a `MemoryRecord` / compact surface / source-ref packet, not raw source text.
+- Full evidence drilldown must be explicitly requested by a review/debug/why-memory tool path and must preserve redaction and scope checks.
 
 Lab branch rule:
 

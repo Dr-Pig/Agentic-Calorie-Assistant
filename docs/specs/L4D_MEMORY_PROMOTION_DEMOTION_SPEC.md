@@ -149,6 +149,43 @@ reinforcement_count ≥ 5 → confidence = 0.9
 
 ---
 
+### 3.4A Shared `FeedbackEvent` Confirmation Boundary
+
+Memory confirmation、proactive dismiss/snooze/undo、recommendation/rescue feedback 共用小型 audit/input contract，但 `FeedbackEvent` 本身不直接 mutate memory truth。
+
+```yaml
+FeedbackEvent:
+  target_type: memory_candidate | proactive_candidate | recommendation_offer | rescue_plan
+  target_id: string
+  action: confirm | reject | dismiss | snooze | undo | correct | opt_out
+  reason: optional string
+  snooze_until: optional datetime
+  source_turn_id: string
+  scope_keys:
+    user_id: string
+    workspace_id: string
+    project_id: string
+    surface: string
+```
+
+Promotion interpretation rules:
+
+- `action=confirm` may satisfy Pattern → Confirmed only when the target is a valid `memory_candidate`, target/source/scope checks pass, and the candidate type is promotion-legal.
+- `action=reject` or `correct` may close or repair a candidate, but does not update canonical MealThread / FoodDB / BodyBudget truth by itself.
+- `dismiss` and `snooze` are user-control signals for proactive/recommendation/rescue posture; they never auto-promote memory.
+- `opt_out` may project into a suppression rule candidate and app-use memory candidate, but only through separate proactive and memory validators.
+- `confirm` of a memory candidate never enables proactive delivery, scheduler delivery, or user-facing route activation.
+
+Required validators:
+
+- target id exists and matches `target_type`
+- source turn id exists and belongs to the same scope
+- all scope keys are present
+- action is legal for the target type
+- no canonical mutation is implied by the feedback event alone
+
+---
+
 ### 3.5 Path 5：修正 → Canonical Truth
 
 **觸發條件**：
@@ -389,6 +426,8 @@ L4A Memory Model Spec 的以下章節應引用本文檔：
 - [ ] Golden Order 從 canonical history 正確 materialization
 - [ ] Pattern → Confirmed 只能經由使用者確認完成
 - [ ] LLM 不能自己完成升級
+- [ ] `FeedbackEvent(action=confirm)` only promotes a scoped, source-backed memory candidate after validator approval
+- [ ] `FeedbackEvent(action=dismiss|snooze|opt_out)` does not auto-promote product memory
 
 ### 8.2 Demotion 測試
 

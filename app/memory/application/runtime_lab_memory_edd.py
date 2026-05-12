@@ -35,6 +35,8 @@ REQUIRED_CASE_TYPES = {
     "stale_conflict",
     "scope_leak",
     "prompt_injection_attempt",
+    "source_lookup",
+    "shared_feedback_event",
 }
 
 REQUIRED_RUBRIC_DIMENSIONS = {
@@ -45,14 +47,17 @@ REQUIRED_RUBRIC_DIMENSIONS = {
     "no_canonical_mutation",
     "scope_isolation",
     "secret_redaction",
+    "source_lookup_boundary",
+    "feedback_event_projection",
 }
 
 REQUIRED_PRODUCT_TRUTH_REFS = {
     "docs/specs/L4A_MEMORY_MODEL_SPEC.md",
+    "docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md",
     "docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md",
     "docs/quality/ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md",
 }
-EXPECTED_SPLIT_COUNTS = {"fixture": 6, "holdout": 2, "negative": 2}
+EXPECTED_SPLIT_COUNTS = {"fixture": 17, "holdout": 3, "negative": 4}
 REQUIRED_SCOPE_KEYS = {"user_id", "workspace_id", "project_id", "surface", "run_id"}
 FORBIDDEN_CAPABILITIES = {
     "provider_call",
@@ -120,11 +125,12 @@ def _validate_suite(
     if missing_case_types:
         blockers.append(f"missing_case_types:{','.join(sorted(missing_case_types))}")
 
-    duplicated_case_types = [
-        case_type for case_type, count in case_type_counts.items() if count != 1
+    case_ids = [str(case.get("case_id")) for case in cases]
+    duplicated_case_ids = [
+        case_id for case_id, count in Counter(case_ids).items() if count > 1
     ]
-    if duplicated_case_types:
-        blockers.append(f"case_type_count_not_one:{','.join(sorted(duplicated_case_types))}")
+    if duplicated_case_ids:
+        blockers.append(f"duplicate_case_ids:{','.join(sorted(duplicated_case_ids))}")
 
     if dict(split_counts) != EXPECTED_SPLIT_COUNTS:
         blockers.append(f"split_counts:{dict(split_counts)}")
