@@ -29,6 +29,8 @@ from app.routes import router  # noqa: E402
 from app.runtime.interface.local_debug_auth import (  # noqa: E402
     LOCAL_DEBUG_API_TOKEN_ENV,
     LOCAL_DEBUG_API_TOKEN_HEADER,
+    configured_local_debug_token_for_request,
+    set_local_debug_session_cookie,
 )
 from app.runtime.interface.base_routes import public_provider_readiness  # noqa: E402
 from app.runtime.interface.provider_runtime import (  # noqa: E402
@@ -61,13 +63,13 @@ def _repo_relative(path: Path) -> str:
 
 def _launch_url(*, host: str, port: int, user_id: str) -> str:
     query = urlencode({"user_id": user_id})
-    return f"http://{host}:{port}/static/accurate-intake-desktop.html?{query}"
+    return f"http://{host}:{port}/accurate-intake?{query}"
 
 
 def _entry_page_urls(*, host: str, port: int, user_id: str) -> dict[str, str]:
     query = urlencode({"user_id": user_id})
     return {
-        page: f"http://{host}:{port}/static/accurate-intake-{page}.html?{query}"
+        page: f"http://{host}:{port}/accurate-intake/{page}?{query}"
         for page in DESKTOP_PAGES
     }
 
@@ -120,6 +122,8 @@ def build_launch_descriptor(
         "local_debug_token": local_debug_token,
         "local_debug_header": LOCAL_DEBUG_API_TOKEN_HEADER,
         "local_debug_token_in_url": False,
+        "local_debug_session_auto_cookie": True,
+        "manual_local_debug_token_fallback": True,
         "runtime_truth_changed": False,
         "mutation_legality_changed": False,
         "fooddb_truth_updated": False,
@@ -153,7 +157,11 @@ def build_app_for_desktop_dogfood(db_path: Path) -> FastAPI:
             target = f"/static/accurate-intake-{page}.html"
             if request.url.query:
                 target = f"{target}?{request.url.query}"
-            return RedirectResponse(target, status_code=307)
+            response = RedirectResponse(target, status_code=307)
+            token = configured_local_debug_token_for_request(request)
+            if token:
+                set_local_debug_session_cookie(response, token)
+            return response
 
         return redirect
 

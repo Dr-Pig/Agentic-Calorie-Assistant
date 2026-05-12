@@ -73,6 +73,8 @@ def test_desktop_entry_page_is_local_hub_not_runtime_truth_owner() -> None:
     assert 'id="local-debug-token"' in html
     assert 'id="establish-local-session"' in html
     assert 'localDebugSession: "/accurate-intake/local-debug-session"' in html
+    assert "async function checkLocalDebugSession()" in html
+    assert "checkLocalDebugSession();" in html
     assert "window.establishLocalDebugSessionForSmoke = establishLocalDebugSession;" in html
     assert 'body: JSON.stringify({ token })' in html
     assert "localStorage" not in html
