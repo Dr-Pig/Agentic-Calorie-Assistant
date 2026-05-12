@@ -135,6 +135,14 @@ current_packet_ready_profile:
   self_use_gap: coverage density, not lane architecture
 ```
 
+Build the current-vs-target gap report with:
+
+```powershell
+python scripts/build_fooddb_self_use_v1_coverage_gap.py --build-current-artifact --output artifacts/fooddb_self_use_v1_1000_packet_ready_coverage_gap.json
+```
+
+The generated artifact is report-only. It reads approved packet-ready lane counts and reports the remaining gap to the 1000-record target. It must not create FoodDB truth, promote candidates, change ManagerRuntime semantics, or claim readiness.
+
 ## Self-Use v1 Coverage Target
 
 `1000 packet-ready` means 1000 approved records that can enter the approved packet-ready artifact and be consumed by ManagerRuntime through existing FoodDB packet contracts. It does not mean raw source rows, WebSearch snippets, validator-only candidates, aliases, or modifier-only rules.
