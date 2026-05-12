@@ -9,30 +9,30 @@ from app.nutrition.infrastructure.small_anchor_store_loader import (
 
 
 BATCH_IDS = {
-    "listed_item_cabbage_100g",
-    "listed_item_bok_choy_100g",
-    "listed_item_water_spinach_100g",
-    "listed_item_broccoli_100g",
-    "listed_item_baby_corn_100g",
-    "listed_item_enoki_mushroom_100g",
-    "listed_item_king_oyster_mushroom_100g",
-    "listed_item_fresh_shiitake_100g",
-    "listed_item_mung_bean_sprouts_100g",
-    "listed_item_pork_blood_100g",
-    "listed_item_chicken_breast_100g",
-    "listed_item_skinless_chicken_thigh_100g",
-    "listed_item_shrimp_meat_100g",
-    "listed_item_tilapia_fillet_100g",
-    "listed_item_salmon_slice_100g",
-    "listed_item_winter_melon_150g",
-    "listed_item_spinach_100g",
-    "listed_item_romaine_lettuce_100g",
-    "listed_item_sweet_potato_leaves_100g",
-    "listed_item_green_bell_pepper_100g",
+    "listed_item_milkfish_belly_100g",
+    "listed_item_salmon_sashimi_100g",
+    "listed_item_salmon_belly_100g",
+    "listed_item_white_salmon_slice_100g",
+    "listed_item_red_salmon_slice_100g",
+    "listed_item_sweetfish_100g",
+    "listed_item_silver_fish_100g",
+    "listed_item_crab_leg_meat_100g",
+    "listed_item_snail_meat_100g",
+    "listed_item_char_siu_100g",
+    "listed_item_braised_pork_elbow_100g",
+    "listed_item_preserved_pork_belly_100g",
+    "listed_item_preserved_pork_leg_100g",
+    "listed_item_smoked_pork_liver_100g",
+    "listed_item_spicy_beef_jerky_30g",
+    "listed_item_beef_sausage_one",
+    "listed_item_konjac_garlic_sausage_one",
+    "listed_item_sweet_sour_pork_100g",
+    "listed_item_tuna_patty_100g",
+    "listed_item_scallop_crisp_100g",
 }
 
 
-def test_listed_component_batch_017_loads_daily_basket_components() -> None:
+def test_listed_component_batch_026_loads_seafood_and_protein_components() -> None:
     records = load_small_anchor_seed_records()
     by_id = {str(record.get("anchor_id") or ""): record for record in records}
 
@@ -53,18 +53,24 @@ def test_listed_component_batch_017_loads_daily_basket_components() -> None:
         assert record["kcal_range"][0] <= record["kcal_point"] <= record["kcal_range"][1]
 
 
-def test_listed_component_batch_017_enters_full_current_shell_with_hidden_macros() -> None:
+def test_listed_component_batch_026_enters_full_current_shell_with_hidden_macros() -> None:
     artifact = build_approved_packet_ready_fooddb_artifact(
         artifact_path="artifacts/approved_packet_ready_fooddb_full.json",
         selection_profile="full_current_shell",
     )
     by_id = {str(item["item_id"]): item for item in artifact["packet_ready_items"]}
 
-    item = by_id["listed_item_chicken_breast_100g"]
-
     assert artifact["summary"]["packet_ready_lane_counts"]["listed_component"] == 174
-    assert item["kcal_point"] == 119
-    assert item["kcal_range"] == [90, 160]
-    assert item["macro_visibility_status"] == "hidden_missing_source"
-    assert item["macro_source_basis"] == "unknown"
-    assert item["macro_confidence"] == "unknown"
+    expected = {
+        "listed_item_milkfish_belly_100g": (342, [260, 470]),
+        "listed_item_salmon_sashimi_100g": (222, [170, 310]),
+        "listed_item_spicy_beef_jerky_30g": (100, [70, 150]),
+        "listed_item_beef_sausage_one": (149, [110, 220]),
+    }
+    for item_id, (kcal_point, kcal_range) in expected.items():
+        item = by_id[item_id]
+        assert item["kcal_point"] == kcal_point
+        assert item["kcal_range"] == kcal_range
+        assert item["macro_visibility_status"] == "hidden_missing_source"
+        assert item["macro_source_basis"] == "unknown"
+        assert item["macro_confidence"] == "unknown"
