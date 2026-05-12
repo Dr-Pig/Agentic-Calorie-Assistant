@@ -107,6 +107,9 @@ def test_data_page_is_local_only_export_surface_not_truth_or_readiness_surface()
     assert "Export review bundle packages feedback, traces, and local metadata for later review." in html
     assert "HTTP 403 usually means this page was opened before the local session cookie was established." in html
     assert "function dataErrorMessage(kind, error)" in html
+    assert "function friendlyPageUrl(page)" in html
+    assert 'friendlyPageUrl("data")' in html
+    assert "reconnect_attempted" in html
     assert "error.status = response.status;" in html
     assert 'id="data-action-summary"' in html
     assert 'id="result-operation"' in html
