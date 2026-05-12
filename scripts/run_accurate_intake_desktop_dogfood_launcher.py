@@ -151,6 +151,23 @@ def build_app_for_desktop_dogfood(db_path: Path) -> FastAPI:
     engine, SessionLocal = _session_factory(db_path)
     app = FastAPI()
     app.include_router(router)
+    add_desktop_dogfood_entry_routes(app)
+    app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
+    app.state.accurate_intake_desktop_engine = engine
+
+    def override_get_db():
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+    return app
+
+
+def add_desktop_dogfood_entry_routes(app: FastAPI) -> None:
+    """Install local desktop shortcut routes that set the debug session cookie."""
 
     def redirect_to_static_page(page: str):
         async def redirect(request: Request) -> RedirectResponse:
@@ -172,19 +189,6 @@ def build_app_for_desktop_dogfood(db_path: Path) -> FastAPI:
         endpoint = redirect_to_static_page(page)
         app.add_api_route(f"/accurate-intake/{page}", endpoint, methods=["GET"], include_in_schema=False)
         app.add_api_route(f"/accurate-intake-{page}.html", endpoint, methods=["GET"], include_in_schema=False)
-
-    app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
-    app.state.accurate_intake_desktop_engine = engine
-
-    def override_get_db():
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    return app
 
 
 def close_desktop_dogfood_app(app: FastAPI) -> None:
