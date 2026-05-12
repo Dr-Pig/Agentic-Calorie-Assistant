@@ -142,10 +142,18 @@ best_practice_evidence:
     - https://openai.github.io/openai-agents-python/sessions/
     - https://openai.github.io/openai-agents-python/sandbox/memory/
     - https://openai.github.io/openai-agents-python/guardrails/
+    - https://docs.langchain.com/oss/python/langchain/human-in-the-loop
+    - https://docs.langchain.com/oss/python/langchain/long-term-memory
+    - https://rasa.com/docs/reference/primitives/events/
+    - https://www.microsoft.com/en-us/research/blog/guidelines-for-human-ai-interaction-design/
   adopted_guidance:
     - keep raw conversation/session history separate from durable memory
     - use guardrails and validators to reject unsafe memory effects instead of letting memory silently shape runtime behavior
     - evaluate memory behavior with traceable offline cases before activation
+    - represent human feedback as explicit approve/edit/reject/respond-style decisions rather than silent state mutation
+    - store long-term memory with scoped namespace/key discipline and avoid cross-user/project search by default
+    - treat conversation history as event/audit input and keep projections separate from product truth
+    - support granular feedback and cautious adaptation for proactive behavior
   rejected_guidance:
     - generic vector-memory-first architecture before canonical state, summary views, and promotion rules are stable
     - background memory writers before user review and rollback exist
@@ -180,6 +188,24 @@ semantic_owner:
 - Golden orders are materialized views from canonical history, not promoted memories.
 - Negative preferences and suppression memory must block or reduce suggestions before positive preferences boost them.
 - Temporary preferences need explicit validity windows and expire without demotion rituals.
+
+## Memory Feedback EDD Addendum
+
+This spec update adopts the active memory feedback plan:
+
+- Runtime truth is `MemoryRecordStore`; `user.md`, `review.md`, and `sources.jsonl` are auditable projection/review/provenance surfaces.
+- `memory.md` may exist as an optional promoted-memory report, but it is not the primary runtime truth.
+- Positive and negative preferences share `MemoryRecord`; `polarity` and `strength` determine boost/downrank/block behavior.
+- Confirmed negative `block` / `downrank` rules execute before positive boosts.
+- `FeedbackEvent` is shared audit/input for memory confirmation, proactive dismiss/snooze/undo, recommendation offer feedback, and rescue plan feedback.
+- `FeedbackEvent` never mutates truth by itself; each consumer must interpret it through its own validator/projection.
+- `sources.jsonl` is searchable by source-ref, metadata, and bounded evidence drilldown only. It is not a full-transcript RAG pool for Manager context.
+
+Live test policy:
+
+- Fixture CI remains required for every relevant slice.
+- Grokfast extraction diagnostics, memory tool lookup diagnostics, recommendation blocker checks, proactive feedback projection, and full E2E lab loop are milestone-required.
+- Small spec/fixture PRs must not be blocked on provider/network availability unless the milestone itself explicitly requires a live run.
 
 ## Memory Taxonomy
 
@@ -288,6 +314,11 @@ Build consumers against the summary views, not against memory storage.
 - user-visible memory settings surface
 - cross-session personalization
 - live search or Places lookup for recommendation
+
+Milestone exception:
+
+- env-gated Grokfast diagnostics and E2E lab loop runs may be added as non-claim artifacts in later milestone slices.
+- These diagnostics must emit `mainline_activation_enabled=false` and cannot authorize production route, scheduler, durable product memory, or self-use V1 behavior changes.
 
 ## First Slice Acceptance
 

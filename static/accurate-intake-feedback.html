@@ -111,6 +111,14 @@
       cursor: pointer;
     }
     button:disabled { opacity: 0.55; cursor: wait; }
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 3px solid rgba(15, 118, 110, 0.35);
+      outline-offset: 2px;
+    }
     .status { color: var(--muted); }
     .status[data-state="error"] { color: var(--danger); }
     @media (max-width: 720px) {
@@ -191,13 +199,14 @@
         <input id="message-id" autocomplete="off" />
       </label>
       <label class="wide">Note
-        <textarea id="feedback-text" name="feedback_text" required></textarea>
+        <span id="feedback-text-help" class="subtle">What happened, what did you expect, and what page or meal were you using?</span>
+        <textarea id="feedback-text" name="feedback_text" aria-describedby="feedback-text-help" required></textarea>
       </label>
       <div class="actions wide">
         <button id="submit-feedback" type="submit">Submit</button>
         <a class="action-link" data-nav-target="chat" href="/static/accurate-intake-chat.html">Back to Chat</a>
         <a class="action-link" data-nav-target="review" href="/static/accurate-intake-review.html">Open Review</a>
-        <span id="feedback-status" class="status" aria-live="polite">Not submitted.</span>
+        <span id="feedback-status" class="status" aria-live="polite" role="status">Not submitted.</span>
       </div>
     </form>
   </main>
@@ -250,6 +259,12 @@
       }
       return `/static/accurate-intake-${page}.html?${query.toString()}`;
     }
+    function friendlyPageUrl(page) {
+      const staticUrl = new URL(pageUrl(page), window.location.href);
+      staticUrl.searchParams.set("reconnect_attempted", "1");
+      const route = page === "desktop" ? "/accurate-intake" : `/accurate-intake/${page}`;
+      return `${route}?${staticUrl.searchParams.toString()}`;
+    }
     function updateNavigationLinks() {
       document.querySelectorAll("[data-nav-target]").forEach((link) => {
         const target = link.getAttribute("data-nav-target");
@@ -279,9 +294,22 @@
         }
       });
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const error = new Error(`HTTP ${response.status}`);
+        error.status = response.status;
+        throw error;
       }
       return response.json();
+    }
+    function reconnectThroughFriendlyRoute(error) {
+      if (error.status !== 403 && error.message !== "HTTP 403") {
+        return false;
+      }
+      if (params.get("reconnect_attempted") === "1") {
+        return false;
+      }
+      el("feedback-status").textContent = "Feedback needs the local session. Reopening through ACA 1 Start Home.";
+      window.location.assign(friendlyPageUrl("feedback"));
+      return true;
     }
     async function loadLatestTraceContext() {
       const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
@@ -346,6 +374,9 @@
         el("feedback-status").textContent = `Captured ${payload.feedback_id || "feedback"}.`;
         el("feedback-text").value = "";
       } catch (error) {
+        if (reconnectThroughFriendlyRoute(error)) {
+          return;
+        }
         el("feedback-status").dataset.state = "error";
         el("feedback-status").textContent = `Could not submit feedback: ${error.message}`;
       } finally {
@@ -360,7 +391,10 @@
     });
     updateNavigationLinks();
     updateCurrentUrl();
-    loadLatestTraceContext().catch(() => {
+    loadLatestTraceContext().catch((error) => {
+      if (reconnectThroughFriendlyRoute(error)) {
+        return;
+      }
       el("feedback-status").textContent = "Context not loaded.";
     });
   </script>

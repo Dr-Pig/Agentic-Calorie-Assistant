@@ -1,5 +1,5 @@
 artifact_type: advanced_memory_mechanism_contract
-version: 1
+version: 1.1
 status: active_build_contract
 owner: MemoryRuntimeArchitecture
 consumer: AdvancedRecommendationRescueProactiveMemory
@@ -7,6 +7,7 @@ capability_domain: advanced_memory_mechanism
 current_mainline_unchanged: true
 source_specs:
   - docs/specs/L4A_MEMORY_MODEL_SPEC.md
+  - docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md
   - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md
   - docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md
   - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md
@@ -52,6 +53,87 @@ advanced_lab_execution_policy:
     kimi_selection_status: dormant_reference_only
     production_selected: false
     provider_specific_product_semantics_allowed: false
+memory_feedback_contract:
+  memory_record_store_is_runtime_truth: true
+  human_readable_surfaces:
+    required:
+      - user.md
+      - review.md
+      - sources.jsonl
+    optional_reporting:
+      - memory.md
+  memory_record:
+    required_fields:
+      - id
+      - record_type
+      - family
+      - status
+      - summary
+      - polarity
+      - strength
+      - scope_keys
+      - source_refs
+      - consumers
+      - history
+    compact_record_types:
+      - confirmed_preference
+      - pattern_memory
+      - temporary_preference
+      - negative_preference
+      - suppression_rule
+      - golden_order
+      - recall_summary
+    polarity_values:
+      - positive
+      - negative
+      - neutral
+    strength_values:
+      - boost
+      - downrank
+      - block
+    negative_priority:
+      confirmed_negative_before_positive_boost: true
+      block_excludes_candidates_before_ranking: true
+      downrank_survives_positive_boost: true
+  feedback_event:
+    target_types:
+      - memory_candidate
+      - proactive_candidate
+      - recommendation_offer
+      - rescue_plan
+    actions:
+      - confirm
+      - reject
+      - dismiss
+      - snooze
+      - undo
+      - correct
+      - opt_out
+    required_fields:
+      - target_type
+      - target_id
+      - action
+      - source_turn_id
+      - scope_keys
+    mutates_truth_directly: false
+    confirm_may_satisfy_memory_gate_after_validator: true
+    dismiss_snooze_auto_promote_memory: false
+    confirm_enables_proactive_delivery: false
+  sources_jsonl_policy:
+    searchable_by:
+      - source_ref
+      - metadata
+      - bounded_evidence_span
+    manager_default_raw_transcript_allowed: false
+    full_source_drilldown_paths:
+      - review
+      - debug
+      - why_memory
+  live_milestone_policy:
+    live_grokfast_required_per_small_pr: false
+    live_grokfast_required_at_milestones: true
+    e2e_lab_loop_required_at_milestones: true
+    provider_network_failure_blocks_fixture_pr: false
 memory_layers:
   - id: typed_history
     canonical_name: L1 Typed History

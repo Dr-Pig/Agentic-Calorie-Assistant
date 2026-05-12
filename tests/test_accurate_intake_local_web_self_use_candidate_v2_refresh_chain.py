@@ -9,7 +9,9 @@ from tests.test_accurate_intake_local_web_self_use_candidate_v2_gate_runner impo
     _required_payloads,
 )
 from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE,
     CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS,
     CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
     CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
 )
@@ -1114,7 +1116,8 @@ def test_local_mvp_candidate_bundle_consumes_generated_fixture_full_loop(
         mvp_gate_summary=valid_inputs["mvp_gate_summary"],
     )
 
-    assert bundle["status"] == "pl_ce_local_mvp_candidate_ready_for_human_review"
+    assert bundle["artifact_type"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE
+    assert bundle["status"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS
     assert bundle["blockers"] == []
     fixture_status = bundle["included_artifact_statuses"]["fixture_full_product_loop_e2e"]
     assert fixture_status["present"] is True
@@ -1144,7 +1147,8 @@ def test_refresh_chain_generates_local_mvp_candidate_bundle_before_browser_activ
     )
 
     _assert_refresh_chain_closeout_pass(exit_code, printed)
-    assert bundle["status"] == "pl_ce_local_mvp_candidate_ready_for_human_review"
+    assert bundle["artifact_type"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE
+    assert bundle["status"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS
     assert bundle["local_only"] is True
     assert bundle["diagnostic_only"] is True
     assert bundle["product_readiness_claimed"] is False

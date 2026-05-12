@@ -14,6 +14,12 @@ EXPECTED_TRACE_BY_CASE_ID = {
         "guard: commit allowed",
         "mutation: canonical meal commit",
     ],
+    "generic_common_food_range": [
+        "entry: route_to_intake",
+        "pass2: estimate_nutrition",
+        "synthesis: generic range posture without fake exactness",
+        "mutation: canonical meal commit",
+    ],
     "chinese_chicken_rice_correction_removal_debug": [
         "turn1: estimate and commit new meal",
         "turn2: resolve target, estimate correction, supersede meal version",

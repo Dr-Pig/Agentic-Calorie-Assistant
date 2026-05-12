@@ -357,6 +357,41 @@ durable memory 不應是不可檢查的黑盒。
 - 讓使用者修正與系統自動更新可以被區分
 - 讓 runtime 能分辨「目前有效內容」與「過去曾成立但已被覆寫的內容」
 
+### 5.4 Minimal `MemoryRecord` Envelope
+
+V1 記憶應以 `MemoryRecordStore` 作為 runtime truth，human-readable markdown surfaces 只是 review、projection、或 debug view。
+
+最小 record envelope：
+
+```yaml
+MemoryRecord:
+  id: string
+  record_type:
+    - confirmed_preference
+    - pattern_memory
+    - temporary_preference
+    - negative_preference
+    - suppression_rule
+    - golden_order
+    - recall_summary
+  family: diet_product | app_interaction | proactive_control | conversation_recall
+  status: candidate | pending_review | confirmed | rejected | archived | superseded
+  summary: natural_language
+  polarity: positive | negative | neutral
+  strength: boost | downrank | block
+  scope_keys:
+    user_id: string
+    workspace_id: string
+    project_id: string
+    surface: string
+  source_refs: list
+  consumers: list
+  validity: optional window
+  history: change refs
+```
+
+`summary` 是可讀描述，不是唯一可查欄位。`record_type`、`family`、`polarity`、`strength`、`scope_keys`、`source_refs`、`validity`、`status` 必須能被 deterministic validators 檢查。
+
 ---
 
 ## 6. Preference Memory
@@ -371,6 +406,25 @@ durable memory 不應是不可檢查的黑盒。
 - `location_patterns`
 - `accepted_recommendation_patterns`
 - `ignored_recommendation_patterns`
+
+### 6.1A Preference Polarity And Negative Priority
+
+正向與負向偏好共用 `MemoryRecord` envelope，不建立兩套無法比較的偏好機制。
+
+必要欄位語義：
+
+- `polarity=positive`：可作為 recommendation / rescue / proactive 的 boost 或 explanation context。
+- `polarity=negative`：優先作為 blocker 或 downranker。
+- `strength=block`：使用者明確表示不吃、不要推薦、禁忌、過敏、或等價硬限制。
+- `strength=downrank`：使用者表示不喜歡、不太偏好、太清淡、太麻煩、或只有在沒有更好選項時才接受。
+- `strength=boost`：偏好、常用、喜歡、折扣敏感、飽足感偏好等正向排序訊號。
+
+Confirmed negative 的處理優先於 positive boost：
+
+- `block` 必須先排除候選，除非使用者在同一 turn 明確要求破例且不違反安全 / 健康限制。
+- `downrank` 必須降低排序或要求 explanation，不得被一般 positive preference 直接抵消。
+- positive preference 只能在 remaining allowed pool 內排序，不能覆蓋 negative blocker。
+- 使用者要求「不要記」或語意自我矛盾時，不建立 confirmed memory；可建立 review item 或忽略。
 
 ### 6.2 preference aging
 
@@ -816,6 +870,13 @@ V1 memory substrate 應採最小可審計形狀：
 | `daily/YYYY-MM-DD.md` | short-term evidence summary | 當日 session summary、候選線索、短期觀察 | durable memory、confirmed preference |
 | `review.md` | promotion/rejection queue | stale、contradiction、delete、correction、promotion review items | 自動通過的 approval surface |
 | `conversation_archive` | recall source | 對話留存與 searchable summaries | long-term memory 本身 |
+
+Current memory plan:
+
+- Runtime truth is `MemoryRecordStore`.
+- Required human-readable surfaces are `user.md`, `review.md`, and `sources.jsonl` / `source.md`.
+- `memory.md` is optional/reporting and may summarize promoted memory, but it is not the primary runtime truth.
+- `sources.jsonl` stores provenance and bounded source refs; it is not a raw transcript dump and is not directly injected into Manager context.
 
 Reference adoption rule:
 

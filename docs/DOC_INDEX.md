@@ -38,6 +38,7 @@ For the current default mainline:
 | current shell contract and gate order | [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](quality/CURRENT_SHELL_SYNC_CONTRACT.yaml), [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](quality/MANAGER_RUNTIME_GATE_LEDGER.yaml) |
 | desktop local self-use dogfood boundary | [docs/quality/CURRENT_SHELL_DESKTOP_SELF_USE_DOGFOOD_CONTRACT.md](quality/CURRENT_SHELL_DESKTOP_SELF_USE_DOGFOOD_CONTRACT.md) |
 | FoodDB expansion source quality, macro policy, promotion, and rebuild strategy | [docs/quality/ACCURATE_INTAKE_FOODDB_EXPANSION_SPEC.md](quality/ACCURATE_INTAKE_FOODDB_EXPANSION_SPEC.md) |
+| FoodDB self-use v1 1000 packet-ready coverage target | [docs/quality/FOODDB_SELF_USE_V1_1000_PACKET_READY_COVERAGE_PLAN.md](quality/FOODDB_SELF_USE_V1_1000_PACKET_READY_COVERAGE_PLAN.md) |
 | post-self-use no-runtime capability scaffolds | [docs/quality/POST_SELF_USE_NO_RUNTIME_CAPABILITY_DEVELOPMENT_FLOW.md](quality/POST_SELF_USE_NO_RUNTIME_CAPABILITY_DEVELOPMENT_FLOW.md) |
 | advanced memory mechanism build order and advanced product lab runtime closure | [docs/quality/ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md](quality/ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md), [docs/quality/advanced_memory_mechanism_contract.yaml](quality/advanced_memory_mechanism_contract.yaml) |
 | runtime-lab memory EDD golden set | [docs/quality/runtime_lab_memory_edd_golden_set.yaml](quality/runtime_lab_memory_edd_golden_set.yaml) |

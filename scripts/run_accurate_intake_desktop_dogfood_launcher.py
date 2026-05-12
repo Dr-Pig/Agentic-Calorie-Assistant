@@ -29,6 +29,8 @@ from app.routes import router  # noqa: E402
 from app.runtime.interface.local_debug_auth import (  # noqa: E402
     LOCAL_DEBUG_API_TOKEN_ENV,
     LOCAL_DEBUG_API_TOKEN_HEADER,
+    configured_local_debug_token_for_request,
+    set_local_debug_session_cookie,
 )
 from app.runtime.interface.base_routes import public_provider_readiness  # noqa: E402
 from app.runtime.interface.provider_runtime import (  # noqa: E402
@@ -61,13 +63,13 @@ def _repo_relative(path: Path) -> str:
 
 def _launch_url(*, host: str, port: int, user_id: str) -> str:
     query = urlencode({"user_id": user_id})
-    return f"http://{host}:{port}/static/accurate-intake-desktop.html?{query}"
+    return f"http://{host}:{port}/accurate-intake?{query}"
 
 
 def _entry_page_urls(*, host: str, port: int, user_id: str) -> dict[str, str]:
     query = urlencode({"user_id": user_id})
     return {
-        page: f"http://{host}:{port}/static/accurate-intake-{page}.html?{query}"
+        page: f"http://{host}:{port}/accurate-intake/{page}?{query}"
         for page in DESKTOP_PAGES
     }
 
@@ -120,6 +122,8 @@ def build_launch_descriptor(
         "local_debug_token": local_debug_token,
         "local_debug_header": LOCAL_DEBUG_API_TOKEN_HEADER,
         "local_debug_token_in_url": False,
+        "local_debug_session_auto_cookie": True,
+        "manual_local_debug_token_fallback": True,
         "runtime_truth_changed": False,
         "mutation_legality_changed": False,
         "fooddb_truth_updated": False,
@@ -147,24 +151,7 @@ def build_app_for_desktop_dogfood(db_path: Path) -> FastAPI:
     engine, SessionLocal = _session_factory(db_path)
     app = FastAPI()
     app.include_router(router)
-
-    def redirect_to_static_page(page: str):
-        async def redirect(request: Request) -> RedirectResponse:
-            target = f"/static/accurate-intake-{page}.html"
-            if request.url.query:
-                target = f"{target}?{request.url.query}"
-            return RedirectResponse(target, status_code=307)
-
-        return redirect
-
-    desktop_redirect = redirect_to_static_page("desktop")
-    app.add_api_route("/accurate-intake", desktop_redirect, methods=["GET"], include_in_schema=False)
-    app.add_api_route("/accurate-intake/", desktop_redirect, methods=["GET"], include_in_schema=False)
-    for page in DESKTOP_PAGES:
-        endpoint = redirect_to_static_page(page)
-        app.add_api_route(f"/accurate-intake/{page}", endpoint, methods=["GET"], include_in_schema=False)
-        app.add_api_route(f"/accurate-intake-{page}.html", endpoint, methods=["GET"], include_in_schema=False)
-
+    add_desktop_dogfood_entry_routes(app)
     app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
     app.state.accurate_intake_desktop_engine = engine
 
@@ -177,6 +164,31 @@ def build_app_for_desktop_dogfood(db_path: Path) -> FastAPI:
 
     app.dependency_overrides[get_db] = override_get_db
     return app
+
+
+def add_desktop_dogfood_entry_routes(app: FastAPI) -> None:
+    """Install local desktop shortcut routes that set the debug session cookie."""
+
+    def redirect_to_static_page(page: str):
+        async def redirect(request: Request) -> RedirectResponse:
+            target = f"/static/accurate-intake-{page}.html"
+            if request.url.query:
+                target = f"{target}?{request.url.query}"
+            response = RedirectResponse(target, status_code=307)
+            token = configured_local_debug_token_for_request(request)
+            if token:
+                set_local_debug_session_cookie(response, token)
+            return response
+
+        return redirect
+
+    desktop_redirect = redirect_to_static_page("desktop")
+    app.add_api_route("/accurate-intake", desktop_redirect, methods=["GET"], include_in_schema=False)
+    app.add_api_route("/accurate-intake/", desktop_redirect, methods=["GET"], include_in_schema=False)
+    for page in DESKTOP_PAGES:
+        endpoint = redirect_to_static_page(page)
+        app.add_api_route(f"/accurate-intake/{page}", endpoint, methods=["GET"], include_in_schema=False)
+        app.add_api_route(f"/accurate-intake-{page}.html", endpoint, methods=["GET"], include_in_schema=False)
 
 
 def close_desktop_dogfood_app(app: FastAPI) -> None:

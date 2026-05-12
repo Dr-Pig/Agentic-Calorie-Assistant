@@ -1,0 +1,378 @@
+{
+  "manifest_id": "accurate_intake_mvp_live_diagnostic_18_case_manifest_v1",
+  "artifact_type": "accurate_intake_mvp_live_diagnostic_case_manifest",
+  "version": 1,
+  "owner_lane": "ManagerRuntime",
+  "claim_scope": "fixed_diagnostic_case_selection_and_trace_rubric",
+  "current_shell_scope": "Current Shell v1 desktop local self-use candidate",
+  "case_count": 18,
+  "live_invocation_allowed_by_manifest": false,
+  "readiness_claimed": false,
+  "private_self_use_approved": false,
+  "fooddb_expansion_approved": false,
+  "whole_product_mvp_claimed": false,
+  "best_practice_evidence": {
+    "sources_checked": [
+      {
+        "name": "OpenAI Evaluation best practices",
+        "url": "https://platform.openai.com/docs/guides/evaluation-best-practices",
+        "adopted_guidance": [
+          "use task-specific evals rather than vibe-based checks",
+          "include typical, edge, and adversarial cases",
+          "define pass/fail criteria before running broader evals",
+          "log everything so real dogfood can later grow the eval set"
+        ]
+      },
+      {
+        "name": "OpenAI Trace grading",
+        "url": "https://platform.openai.com/docs/guides/trace-grading",
+        "adopted_guidance": [
+          "grade workflow traces, not just final answers",
+          "label decisions, tool calls, and intermediate steps to locate failure layers"
+        ]
+      },
+      {
+        "name": "Anthropic Demystifying evals for AI agents",
+        "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+        "adopted_guidance": [
+          "agent evals must cover multi-turn tool use and state changes",
+          "use static analysis and browser execution where they are more reliable than a judge model"
+        ]
+      }
+    ],
+    "rejected_guidance": [
+      "do not use an LLM judge as the first manifest validator",
+      "do not generate live cases ad hoc at run time",
+      "do not repeat each early live probe three times before root-cause attribution"
+    ],
+    "conflict_with_repo_habits": [
+      "older artifact bundles tended to collect status evidence before freezing a case selection contract"
+    ],
+    "how_the_design_changed": [
+      "this manifest fixes the 18 cases before live execution",
+      "every case references trace layers so failures can be assigned to Manager, tool, guard, mutation, renderer, or response basis"
+    ]
+  },
+  "semantic_owner": {
+    "user_intent": "Manager pass 1 structured decision",
+    "food_semantics": "Manager synthesis over FoodDB/WebSearch packet evidence",
+    "routing_or_workflow_effect": "Manager pass 1 and pass 2 structured decisions",
+    "mutation_legality": "deterministic guard",
+    "persistence_truth": "domain services and canonical read models",
+    "renderer_truth": "renderer_input_basis from backend/read-model truth",
+    "app_shell_role": "downstream render/browser verifier only"
+  },
+  "deterministic_boundary": {
+    "allowed": [
+      "validate schema",
+      "validate tool arguments",
+      "filter disallowed tool plan",
+      "validate target uniqueness and writeability",
+      "reject unsafe mutation",
+      "compute ledger/read-model truth from committed domain state",
+      "grade trace layer presence and allowed-basis constraints"
+    ],
+    "forbidden": [
+      "infer user intent from keywords",
+      "choose target attachment from raw text",
+      "invent nutrition facts",
+      "invent macro facts",
+      "treat WebSearch snippets as truth",
+      "repair Manager semantics silently after a pass"
+    ]
+  },
+  "trace_layers": [
+    {"layer_id": "provider_profile_and_prompt_versions", "blocking": true},
+    {"layer_id": "current_turn_context_packet", "blocking": true},
+    {"layer_id": "manager_pass_1_decision", "blocking": true},
+    {"layer_id": "requested_tools", "blocking": true},
+    {"layer_id": "filtered_tool_plan", "blocking": true},
+    {"layer_id": "executed_tools", "blocking": true},
+    {"layer_id": "compact_packets", "blocking": true},
+    {"layer_id": "manager_pass_2_synthesis", "blocking": true},
+    {"layer_id": "guard_result", "blocking": true},
+    {"layer_id": "mutation_result", "blocking": true},
+    {"layer_id": "renderer_input_basis", "blocking": true},
+    {"layer_id": "final_response_basis", "blocking": true},
+    {"layer_id": "latency_cost_cache_usage", "blocking": false}
+  ],
+  "case_selection_policy": {
+    "offline_replay_first": true,
+    "single_live_probe_before_full_matrix": true,
+    "initial_live_repetitions_per_case": 1,
+    "broader_repetition_stage": "final_e2e_or_failure_confirmation_only",
+    "case_generation_at_live_time_allowed": false,
+    "prompt_or_contract_change_requires_replay": true
+  },
+  "cases": [
+    {
+      "case_id": "MVP-LIVE-001",
+      "title": "no-plan degraded remaining query",
+      "journeys": ["J"],
+      "case_family": "no_plan_degraded",
+      "turns": [{"turn": 1, "utterance_zh_tw": "我今天還剩多少熱量？"}],
+      "expected_trace_focus": ["current_turn_context_packet", "manager_pass_1_decision", "executed_tools", "final_response_basis"],
+      "expected_outcome": {
+        "workflow_effect": "answer_only",
+        "mutation_allowed": false,
+        "must_not_claim_remaining_or_target": true,
+        "response_basis": "degraded budget/read-model status"
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-002",
+      "title": "active plan remaining query",
+      "journeys": ["A", "E"],
+      "case_family": "active_plan_read",
+      "turns": [{"turn": 1, "utterance_zh_tw": "我今天還可以吃多少？"}],
+      "expected_trace_focus": ["current_turn_context_packet", "requested_tools", "executed_tools", "final_response_basis"],
+      "expected_outcome": {
+        "workflow_effect": "answer_only",
+        "mutation_allowed": false,
+        "remaining_source": "budget read model",
+        "same_truth_required": true
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-003",
+      "title": "chat weight record",
+      "journeys": ["G", "H"],
+      "case_family": "body_observation_write",
+      "turns": [{"turn": 1, "utterance_zh_tw": "我今天體重 84 公斤"}],
+      "expected_trace_focus": ["manager_pass_1_decision", "requested_tools", "guard_result", "mutation_result", "renderer_input_basis"],
+      "expected_outcome": {
+        "workflow_effect": "body_observation_write",
+        "mutation_allowed": true,
+        "mutation_owner": "body service",
+        "manager_tdee_math_allowed": false
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-004",
+      "title": "exact item official-label log with macro",
+      "journeys": ["B"],
+      "case_family": "exact_item_macro_present",
+      "turns": [{"turn": 1, "utterance_zh_tw": "我吃了一個有官方標示的茶葉蛋"}],
+      "expected_trace_focus": ["requested_tools", "compact_packets", "manager_pass_2_synthesis", "guard_result", "mutation_result"],
+      "expected_outcome": {
+        "workflow_effect": "commit",
+        "mutation_allowed": true,
+        "source_exactness_must_be_supported": true,
+        "macro_visible_only_if_packet_has_macro": true
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-005",
+      "title": "generic common food range",
+      "journeys": ["B"],
+      "case_family": "generic_food_range",
+      "turns": [{"turn": 1, "utterance_zh_tw": "我吃了一碗牛肉麵"}],
+      "expected_trace_focus": ["requested_tools", "compact_packets", "manager_pass_2_synthesis", "final_response_basis"],
+      "expected_outcome": {
+        "workflow_effect": "commit_or_commit_with_optional_refinement",
+        "mutation_allowed": true,
+        "fake_exactness_allowed": false,
+        "uncertainty_basis_required": true
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-006",
+      "title": "bubble tea optional clarify first turn",
+      "journeys": ["C"],
+      "case_family": "optional_refinement_first_turn",
+      "turns": [{"turn": 1, "utterance_zh_tw": "我喝了一杯珍珠奶茶"}],
+      "expected_trace_focus": ["manager_pass_1_decision", "compact_packets", "guard_result", "mutation_result", "final_response_basis"],
+      "expected_outcome": {
+        "workflow_effect": "commit_with_refinement_followup",
+        "mutation_allowed": true,
+        "optional_followup_required": true,
+        "pending_context_should_enter_next_turn": true
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-007",
+      "title": "bubble tea refinement attaches to prior drink",
+      "journeys": ["C", "K"],
+      "case_family": "optional_refinement_attach",
+      "turns": [
+        {"turn": 1, "utterance_zh_tw": "我喝了一杯珍珠奶茶"},
+        {"turn": 2, "utterance_zh_tw": "半糖中杯"}
+      ],
+      "expected_trace_focus": ["current_turn_context_packet", "manager_pass_1_decision", "guard_result", "mutation_result", "renderer_input_basis"],
+      "expected_outcome": {
+        "workflow_effect": "correction_or_refinement",
+        "target_attachment": "prior_optional_followup",
+        "old_version_superseded": true,
+        "ledger_delta_trace_required": true
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-008",
+      "title": "bare luwei blocking clarify",
+      "journeys": ["D"],
+      "case_family": "blocking_clarify_bare_basket",
+      "turns": [{"turn": 1, "utterance_zh_tw": "我吃了滷味"}],
+      "expected_trace_focus": ["manager_pass_1_decision", "guard_result", "mutation_result", "final_response_basis"],
+      "expected_outcome": {
+        "workflow_effect": "ask_clarification",
+        "mutation_allowed": false,
+        "pending_followup_saved": true,
+        "ledger_delta": "none"
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-009",
+      "title": "listed luwei commits after pending answer",
+      "journeys": ["D"],
+      "case_family": "blocking_clarify_answer_attach",
+      "turns": [
+        {"turn": 1, "utterance_zh_tw": "我吃了滷味"},
+        {"turn": 2, "utterance_zh_tw": "有豆干、海帶、甜不辣和一顆滷蛋"}
+      ],
+      "expected_trace_focus": ["current_turn_context_packet", "requested_tools", "compact_packets", "guard_result", "mutation_result"],
+      "expected_outcome": {
+        "workflow_effect": "commit",
+        "target_attachment": "pending_followup",
+        "mutation_allowed": true,
+        "component_estimate_required": true
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-010",
+      "title": "overshoot after high-kcal meal",
+      "journeys": ["E"],
+      "case_family": "overshoot_same_truth",
+      "turns": [{"turn": 1, "utterance_zh_tw": "我吃了一份大雞排便當和一杯全糖珍奶"}],
+      "expected_trace_focus": ["guard_result", "mutation_result", "renderer_input_basis", "final_response_basis"],
+      "expected_outcome": {
+        "workflow_effect": "commit",
+        "overshoot_source": "budget read model",
+        "rescue_plan_allowed": false,
+        "chat_today_same_truth_required": true
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-011",
+      "title": "unique correction target",
+      "journeys": ["K"],
+      "case_family": "correction_unique_target",
+      "turns": [
+        {"turn": 1, "utterance_zh_tw": "我吃了一個雞腿便當"},
+        {"turn": 2, "utterance_zh_tw": "剛剛那個飯少一半"}
+      ],
+      "expected_trace_focus": ["current_turn_context_packet", "manager_pass_1_decision", "guard_result", "mutation_result"],
+      "expected_outcome": {
+        "workflow_effect": "correction",
+        "target_attachment": "unique_recent_item",
+        "old_version_superseded": true,
+        "ledger_recomputed": true
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-012",
+      "title": "explicit removal target",
+      "journeys": ["K"],
+      "case_family": "removal_unique_target",
+      "turns": [
+        {"turn": 1, "utterance_zh_tw": "我吃了一顆茶葉蛋"},
+        {"turn": 2, "utterance_zh_tw": "刪掉剛剛那個"}
+      ],
+      "expected_trace_focus": ["current_turn_context_packet", "manager_pass_1_decision", "guard_result", "mutation_result"],
+      "expected_outcome": {
+        "workflow_effect": "remove_item",
+        "target_attachment": "unique_recent_item",
+        "removed_versions_excluded_from_ledger": true
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-013",
+      "title": "ambiguous correction asks target",
+      "journeys": ["K"],
+      "case_family": "ambiguous_target_clarify",
+      "turns": [
+        {"turn": 1, "utterance_zh_tw": "我吃了一杯珍奶和一杯拿鐵"},
+        {"turn": 2, "utterance_zh_tw": "那杯改半糖"}
+      ],
+      "expected_trace_focus": ["current_turn_context_packet", "manager_pass_1_decision", "guard_result", "final_response_basis"],
+      "expected_outcome": {
+        "workflow_effect": "ask_clarification",
+        "mutation_allowed": false,
+        "target_candidates_supplied": true,
+        "deterministic_target_choice_allowed": false
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-014",
+      "title": "query-only food question does not mutate",
+      "journeys": ["B"],
+      "case_family": "query_only_no_mutation",
+      "turns": [{"turn": 1, "utterance_zh_tw": "牛肉麵大概多少熱量？先不要幫我記"}],
+      "expected_trace_focus": ["manager_pass_1_decision", "requested_tools", "guard_result", "mutation_result", "final_response_basis"],
+      "expected_outcome": {
+        "workflow_effect": "answer_only",
+        "mutation_allowed": false,
+        "food_answer_basis_required": true
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-015",
+      "title": "daily target update unsupported no mutation",
+      "journeys": ["A", "J"],
+      "case_family": "unsupported_target_update",
+      "turns": [{"turn": 1, "utterance_zh_tw": "我今天目標改成 1600 大卡"}],
+      "expected_trace_focus": ["manager_pass_1_decision", "guard_result", "mutation_result", "final_response_basis"],
+      "expected_outcome": {
+        "workflow_effect": "unsupported_or_guided_ui_path",
+        "food_mutation_allowed": false,
+        "body_plan_mutation_allowed": false,
+        "manual_target_path_may_be_described": true
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-016",
+      "title": "WebSearch candidate is not runtime truth",
+      "journeys": ["B"],
+      "case_family": "websearch_candidate_boundary",
+      "turns": [{"turn": 1, "utterance_zh_tw": "我吃了某品牌新品雞肉捲，幫我估一下"}],
+      "expected_trace_focus": ["requested_tools", "filtered_tool_plan", "executed_tools", "compact_packets", "manager_pass_2_synthesis"],
+      "expected_outcome": {
+        "workflow_effect": "commit_or_ask_clarification",
+        "websearch_snippet_as_truth_allowed": false,
+        "source_exactness_must_be_supported": true,
+        "mutation_authority_from_packet_allowed": false
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-017",
+      "title": "macro missing stays hidden",
+      "journeys": ["B", "E"],
+      "case_family": "macro_missing_hidden",
+      "turns": [{"turn": 1, "utterance_zh_tw": "我吃了一份早餐店蛋餅"}],
+      "expected_trace_focus": ["compact_packets", "manager_pass_2_synthesis", "renderer_input_basis", "final_response_basis"],
+      "expected_outcome": {
+        "workflow_effect": "commit_or_commit_with_optional_refinement",
+        "macro_invention_allowed": false,
+        "show_macro_false_suppresses_macro_claims": true,
+        "kcal_logging_not_blocked_by_missing_macro": true
+      }
+    },
+    {
+      "case_id": "MVP-LIVE-018",
+      "title": "long-session correction still sees target candidates",
+      "journeys": ["C", "K"],
+      "case_family": "long_session_context_targeting",
+      "turns": [
+        {"turn": 1, "utterance_zh_tw": "我喝了一杯珍珠奶茶"},
+        {"turn": 2, "utterance_zh_tw": "我剛剛在測試很多對話，先不用記"},
+        {"turn": 3, "utterance_zh_tw": "剛剛那杯改半糖"}
+      ],
+      "expected_trace_focus": ["current_turn_context_packet", "manager_pass_1_decision", "guard_result", "mutation_result"],
+      "expected_outcome": {
+        "workflow_effect": "correction_or_refinement",
+        "recent_target_candidate_required": true,
+        "raw_transcript_keyword_router_allowed": false,
+        "ledger_delta_trace_required": true
+      }
+    }
+  ]
+}

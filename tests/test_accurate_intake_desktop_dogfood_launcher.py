@@ -7,6 +7,7 @@ from app.composition import accurate_intake_debug_routes, local_data_hygiene_rou
 from fastapi.testclient import TestClient
 
 from scripts.run_accurate_intake_desktop_dogfood_launcher import (
+    DESKTOP_PAGES,
     build_launch_descriptor,
     build_app_for_desktop_dogfood,
     close_desktop_dogfood_app,
@@ -37,9 +38,7 @@ def test_desktop_dogfood_launch_descriptor_uses_persistent_local_sqlite_and_laun
     assert descriptor["db_path"] == "workspace_data/local_dogfood/accurate_intake.sqlite3"
     assert descriptor["persistent_local_sqlite"] is True
     assert descriptor["reset_db_default"] is False
-    assert descriptor["launch_url"] == (
-        "http://127.0.0.1:8765/static/accurate-intake-desktop.html?user_id=dogfood-user"
-    )
+    assert descriptor["launch_url"] == "http://127.0.0.1:8765/accurate-intake?user_id=dogfood-user"
     assert descriptor["entry_pages"] == [
         "desktop",
         "chat",
@@ -50,17 +49,19 @@ def test_desktop_dogfood_launch_descriptor_uses_persistent_local_sqlite_and_laun
         "data",
     ]
     assert descriptor["entry_page_urls"] == {
-        "desktop": "http://127.0.0.1:8765/static/accurate-intake-desktop.html?user_id=dogfood-user",
-        "chat": "http://127.0.0.1:8765/static/accurate-intake-chat.html?user_id=dogfood-user",
-        "today": "http://127.0.0.1:8765/static/accurate-intake-today.html?user_id=dogfood-user",
-        "body": "http://127.0.0.1:8765/static/accurate-intake-body.html?user_id=dogfood-user",
-        "feedback": "http://127.0.0.1:8765/static/accurate-intake-feedback.html?user_id=dogfood-user",
-        "review": "http://127.0.0.1:8765/static/accurate-intake-review.html?user_id=dogfood-user",
-        "data": "http://127.0.0.1:8765/static/accurate-intake-data.html?user_id=dogfood-user",
+        "desktop": "http://127.0.0.1:8765/accurate-intake/desktop?user_id=dogfood-user",
+        "chat": "http://127.0.0.1:8765/accurate-intake/chat?user_id=dogfood-user",
+        "today": "http://127.0.0.1:8765/accurate-intake/today?user_id=dogfood-user",
+        "body": "http://127.0.0.1:8765/accurate-intake/body?user_id=dogfood-user",
+        "feedback": "http://127.0.0.1:8765/accurate-intake/feedback?user_id=dogfood-user",
+        "review": "http://127.0.0.1:8765/accurate-intake/review?user_id=dogfood-user",
+        "data": "http://127.0.0.1:8765/accurate-intake/data?user_id=dogfood-user",
     }
     assert descriptor["local_debug_token"] == "test-token"
     assert descriptor["local_debug_header"] == "X-Local-Debug-Token"
     assert descriptor["local_debug_token_in_url"] is False
+    assert descriptor["local_debug_session_auto_cookie"] is True
+    assert descriptor["manual_local_debug_token_fallback"] is True
     assert descriptor["provider_status"]["manager_provider"] == {
         "status": "configured",
         "configured": True,
@@ -246,11 +247,145 @@ def test_desktop_dogfood_app_redirects_friendly_page_routes(tmp_path: Path) -> N
         close_desktop_dogfood_app(app)
 
 
+def test_desktop_dogfood_friendly_routes_auto_establish_cookie_without_url_token(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    token = "launcher-token"
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", token)
+    app = build_app_for_desktop_dogfood(tmp_path / "accurate_intake.sqlite3")
+    try:
+        with TestClient(app) as client:
+            home = client.get(
+                "/accurate-intake?user_id=dogfood-user&local_date=2026-05-11",
+                follow_redirects=False,
+            )
+            protected = client.get("/accurate-intake/local-debug-session")
+
+        assert home.status_code == 307
+        assert home.headers["location"] == (
+            "/static/accurate-intake-desktop.html?user_id=dogfood-user&local_date=2026-05-11"
+        )
+        assert "local_debug_token=" not in home.headers["location"]
+        set_cookie = home.headers["set-cookie"]
+        assert "local_debug_session=" in set_cookie
+        assert "HttpOnly" in set_cookie
+        assert "samesite=strict" in set_cookie.lower()
+        assert "Path=/" in set_cookie
+        assert "Domain=" not in set_cookie
+        assert protected.status_code == 200
+        assert protected.json() == {"status": "connected", "local_only": True}
+    finally:
+        close_desktop_dogfood_app(app)
+
+
+def test_all_desktop_shortcut_routes_establish_session_for_protected_dogfood_apis(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    token = "launcher-token"
+    feedback_dir = tmp_path / "feedback"
+    review_path = tmp_path / "review" / "queue.json"
+    data_dir = tmp_path / "data"
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", token)
+    monkeypatch.setattr(accurate_intake_debug_routes, "DOGFOOD_FEEDBACK_DIR", feedback_dir, raising=False)
+    monkeypatch.setattr(
+        accurate_intake_debug_routes,
+        "DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH",
+        review_path,
+        raising=False,
+    )
+    monkeypatch.setattr(local_data_hygiene_routes, "DOGFOOD_FEEDBACK_DIR", feedback_dir, raising=False)
+    monkeypatch.setattr(local_data_hygiene_routes, "DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH", review_path, raising=False)
+    monkeypatch.setattr(local_data_hygiene_routes, "DOGFOOD_BACKUP_DIR", data_dir / "backups", raising=False)
+    monkeypatch.setattr(local_data_hygiene_routes, "DOGFOOD_EXPORT_DIR", data_dir / "exports", raising=False)
+    app = build_app_for_desktop_dogfood(tmp_path / "accurate_intake.sqlite3")
+    try:
+        for page in DESKTOP_PAGES:
+            with TestClient(app) as client:
+                route = "/accurate-intake" if page == "desktop" else f"/accurate-intake/{page}"
+                entry = client.get(
+                    f"{route}?user_id=dogfood-user&local_date=2026-05-11",
+                    follow_redirects=False,
+                )
+                probe = client.get("/accurate-intake/local-debug-session")
+
+                assert entry.status_code == 307
+                assert entry.headers["location"] == (
+                    f"/static/accurate-intake-{page}.html"
+                    "?user_id=dogfood-user&local_date=2026-05-11"
+                )
+                assert "local_debug_token=" not in entry.headers["location"]
+                assert "local_debug_session=" in entry.headers["set-cookie"]
+                assert probe.status_code == 200
+
+                if page == "feedback":
+                    feedback = client.post(
+                        "/accurate-intake/feedback",
+                        json={
+                            "category": "bug",
+                            "feedback_text": "Shortcut route feedback smoke.",
+                            "page": "feedback",
+                            "selected_date": "2026-05-11",
+                            "user_external_id": "dogfood-user",
+                        },
+                    )
+                    assert feedback.status_code == 200
+                if page == "review":
+                    assert client.get("/accurate-intake/review-queue").status_code == 200
+                if page == "data":
+                    assert client.get("/accurate-intake/local-data-hygiene").status_code == 200
+    finally:
+        close_desktop_dogfood_app(app)
+
+
+def test_tracked_desktop_shortcut_script_uses_friendly_routes_and_stale_server_recovery() -> None:
+    script = Path("scripts/open_accurate_intake_desktop_page.ps1").read_text(encoding="utf-8")
+
+    assert '[ValidateSet("desktop", "chat", "today", "body", "feedback", "review", "data")]' in script
+    assert "Test-AcaAutoSession" in script
+    assert "Stop-AcaServerIfOwned" in script
+    assert "run_accurate_intake_desktop_dogfood_launcher.py" in script
+    assert "/accurate-intake/local-debug-session" in script
+    assert 'if ($Page -eq "desktop") { "accurate-intake" } else { "accurate-intake/$Page" }' in script
+    assert "local_debug_token=" not in script
+    assert "-WindowStyle Hidden" in script
+
+
+def test_desktop_shortcut_folder_generator_creates_stable_aca_entrypoints_without_token_leak() -> None:
+    script = Path("scripts/create_accurate_intake_desktop_shortcuts.ps1").read_text(encoding="utf-8")
+
+    expected_shortcuts = {
+        "ACA 0 Local Token.lnk": "notepad.exe",
+        "ACA 1 Start Home.lnk": '-Page "desktop"',
+        "ACA 2 Chat.lnk": '-Page "chat"',
+        "ACA 3 Today UI.lnk": '-Page "today"',
+        "ACA 4 Body.lnk": '-Page "body"',
+        "ACA 5 Feedback.lnk": '-Page "feedback"',
+        "ACA 6 Review.lnk": '-Page "review"',
+        "ACA 7 Data Backup Export.lnk": '-Page "data"',
+    }
+    for shortcut_name, expected_target in expected_shortcuts.items():
+        assert shortcut_name in script
+        assert expected_target in script
+
+    assert "WScript.Shell" in script
+    assert "CreateShortcut" in script
+    assert "open_accurate_intake_desktop_page.ps1" in script
+    assert "workspace_data\\local_dogfood" in script
+    assert "local_debug_token.txt" in script
+    assert "local_debug_token=" not in script
+    assert "/static/accurate-intake" not in script
+
+
 def test_self_use_runbook_documents_desktop_launcher_without_readiness_claim() -> None:
     runbook = Path("docs/quality/ACCURATE_INTAKE_MVP_SELF_USE_RUNBOOK.md").read_text(encoding="utf-8-sig")
 
     assert "run_accurate_intake_desktop_dogfood_launcher.py" in runbook
+    assert "open_accurate_intake_desktop_page.ps1" in runbook
+    assert "create_accurate_intake_desktop_shortcuts.ps1" in runbook
     assert "workspace_data/local_dogfood/accurate_intake.sqlite3" in runbook
+    assert "/accurate-intake" in runbook
     assert "/static/accurate-intake-desktop.html" in runbook
     assert "X-Local-Debug-Token" in runbook
     assert "provider preflight" in runbook
