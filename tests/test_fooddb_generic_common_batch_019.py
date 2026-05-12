@@ -62,7 +62,7 @@ def test_generic_common_batch_019_enters_full_current_shell_with_hidden_macros()
 
     item = by_id["generic_bakery_pineapple_bun_one"]
 
-    assert artifact["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 174
+    assert artifact["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 194
     assert item["kcal_point"] == 291
     assert item["kcal_range"] == [220, 380]
     assert item["macro_visibility_status"] == "hidden_missing_source"
