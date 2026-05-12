@@ -28,6 +28,11 @@ SYSTEM_PROMPT = (
     "human_review_required, rejection_reason, source_refs, and reasoning_notes. "
     "Use the exact allowed enum values from output_contract; map stable positive "
     "preferences to candidate_type=preference and strength=boost. "
+    "For negative dislikes, use candidate_type=negative_preference and "
+    "polarity=negative; use strength=block only for absolute exclusions and "
+    "strength=downrank for softer dislikes. If the user says not to remember a "
+    "subject or reverses the memory request, return candidate_type=none and a "
+    "non-empty rejection_reason. "
     "Do not confirm durable memory, mutate product truth, schedule delivery, or "
     "claim product readiness."
 )
@@ -41,6 +46,7 @@ def run_memory_record_grokfast_extraction_diagnostic(
     live_invoked: bool,
     provider_profile_id: str = ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
     output_path: Path | None = None,
+    case_suite: str = "golden",
 ) -> dict[str, Any]:
     provider_result: dict[str, Any] = {"case_results": []}
     provider_traces: list[dict[str, Any]] = []
@@ -75,6 +81,7 @@ def run_memory_record_grokfast_extraction_diagnostic(
         provider_mode=provider_mode,
         provider_profile_id=provider_profile_id,
         live_invoked=live_invoked,
+        case_suite=case_suite,
     )
     artifact.update(
         {
@@ -102,6 +109,7 @@ def blocked_not_invoked_extraction_artifact(
     reason: str,
     provider_profile_id: str = ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
     output_path: Path | None = None,
+    case_suite: str = "golden",
 ) -> dict[str, Any]:
     artifact = base_extraction_artifact(
         status="blocked",
@@ -109,6 +117,7 @@ def blocked_not_invoked_extraction_artifact(
         provider_mode="not_invoked",
         provider_profile_id=provider_profile_id,
         live_invoked=False,
+        case_suite=case_suite,
     )
     artifact.update(
         {

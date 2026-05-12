@@ -25,15 +25,18 @@ def base_extraction_artifact(
     provider_mode: str,
     provider_profile_id: str,
     live_invoked: bool,
+    case_suite: str = "golden",
 ) -> dict[str, Any]:
     return {
         "artifact_type": ARTIFACT_TYPE,
         "artifact_schema_version": "1.0",
         "status": status,
         "owner": "app/advanced_shadow_lab/product_lab_memory_record_grokfast_extraction.py",
-        "consumer": "memory_live_edd_pr4_operator_review",
+        "consumer": "memory_live_edd_operator_review",
+        "case_suite": case_suite,
         "case_count": len(cases),
         "case_ids": [str(case.get("case_id") or "") for case in cases],
+        "negative_holdout_summary": _negative_holdout_summary(cases),
         "provider_mode": provider_mode,
         "provider_profile_id": provider_profile_id,
         "live_invoked": bool(live_invoked),
@@ -78,4 +81,43 @@ def trace_summary(traces: list[Mapping[str, Any]]) -> dict[str, Any]:
         "provider": str(first.get("provider") or ""),
         "call_count": len(traces),
         "usage_present": any(isinstance(trace.get("usage"), Mapping) for trace in traces),
+    }
+
+
+def _negative_holdout_summary(cases: list[Mapping[str, Any]]) -> dict[str, int]:
+    expected_candidates = [
+        case.get("expected_candidate")
+        for case in cases
+        if isinstance(case.get("expected_candidate"), Mapping)
+    ]
+    return {
+        "case_count": len(
+            [
+                expected
+                for expected in expected_candidates
+                if expected.get("polarity") == "negative"
+                or expected.get("memory_candidate_allowed") is False
+            ]
+        ),
+        "block_case_count": len(
+            [
+                expected
+                for expected in expected_candidates
+                if expected.get("strength") == "block"
+            ]
+        ),
+        "downrank_case_count": len(
+            [
+                expected
+                for expected in expected_candidates
+                if expected.get("strength") == "downrank"
+            ]
+        ),
+        "ignored_case_count": len(
+            [
+                expected
+                for expected in expected_candidates
+                if expected.get("memory_candidate_allowed") is False
+            ]
+        ),
     }

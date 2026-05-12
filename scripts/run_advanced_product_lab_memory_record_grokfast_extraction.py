@@ -22,6 +22,7 @@ from app.advanced_shadow_lab.product_lab_memory_record_grokfast_extraction impor
 )
 from app.advanced_shadow_lab.product_lab_memory_record_grokfast_extraction_cases import (  # noqa: E402
     build_memory_record_grokfast_extraction_cases,
+    build_memory_record_grokfast_negative_holdout_cases,
 )
 from app.advanced_shadow_lab.product_lab_memory_record_live_preflight import (  # noqa: E402
     build_memory_record_live_edd_preflight,
@@ -64,9 +65,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--provider-mode", choices=("fake", "live"), default="fake")
     parser.add_argument("--allow-live-provider", action="store_true")
     parser.add_argument("--provider-profile-id", default=ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID)
+    parser.add_argument(
+        "--case-suite",
+        choices=("golden", "negative-holdout"),
+        default="golden",
+    )
     args = parser.parse_args(argv)
 
-    cases = build_memory_record_grokfast_extraction_cases()
+    cases = _build_cases(str(args.case_suite))
     if args.provider_mode == "live":
         artifact = _live_artifact(args, cases)
     else:
@@ -82,6 +88,7 @@ def main(argv: list[str] | None = None) -> int:
             provider_mode="fake_provider_contract_test",
             live_invoked=False,
             provider_profile_id=ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
+            case_suite=_artifact_case_suite(str(args.case_suite)),
         )
         _attach_preflight(artifact, preflight, args.output)
     print(
@@ -123,6 +130,7 @@ def _live_artifact(args: argparse.Namespace, cases: list[dict[str, Any]]) -> dic
         provider_mode=str(profile["provider_profile_id"]),
         live_invoked=True,
         provider_profile_id=str(profile["provider_profile_id"]),
+        case_suite=_artifact_case_suite(str(args.case_suite)),
     )
     _attach_preflight(artifact, preflight, args.output)
     return artifact
@@ -136,6 +144,7 @@ def _blocked(
     artifact = blocked_not_invoked_extraction_artifact(
         reason=reason,
         provider_profile_id=str(args.provider_profile_id),
+        case_suite=_artifact_case_suite(str(args.case_suite)),
     )
     _attach_preflight(artifact, preflight, args.output)
     return artifact
@@ -175,6 +184,16 @@ def _fake_result(case: dict[str, Any]) -> dict[str, Any]:
         "source_refs": list(case.get("source_refs") or []),
         "reasoning_notes": "fake provider contract output",
     }
+
+
+def _build_cases(case_suite: str) -> list[dict[str, Any]]:
+    if case_suite == "negative-holdout":
+        return build_memory_record_grokfast_negative_holdout_cases()
+    return build_memory_record_grokfast_extraction_cases()
+
+
+def _artifact_case_suite(case_suite: str) -> str:
+    return case_suite.replace("-", "_")
 
 
 def _live_provider(profile: dict[str, object]) -> Any:

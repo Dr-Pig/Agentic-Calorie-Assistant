@@ -46,6 +46,13 @@ def _grade_case(
     _expect_equal(blockers, case_id, "candidate_type", expected, result)
     _expect_optional_equal(blockers, case_id, "polarity", expected, result)
     _expect_optional_equal(blockers, case_id, "strength", expected, result)
+    if expected.get("memory_candidate_allowed") is False:
+        if str(result.get("candidate_type") or "") != "none":
+            blockers.append(f"case:{case_id}.memory_candidate_allowed_mismatch")
+        if expected.get("rejection_reason") and not str(
+            result.get("rejection_reason") or ""
+        ):
+            blockers.append(f"case:{case_id}.rejection_reason_missing")
     if expected.get("promotion_allowed_now") is False and result.get("promotion_allowed_now") is True:
         blockers.append(f"case:{case_id}.promotion_allowed_now_mismatch")
     if expected.get("human_review_required") is True and result.get("human_review_required") is not True:
