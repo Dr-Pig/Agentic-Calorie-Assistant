@@ -249,6 +249,31 @@ def test_build_approved_packet_ready_artifact_uses_macro_complete_exact_card() -
     assert item["macro_confidence"] == "high"
 
 
+def test_build_approved_packet_ready_artifact_preserves_fractional_exact_label_macros() -> None:
+    artifact = build_approved_packet_ready_fooddb_artifact(
+        exact_item_cards=[
+            _macro_complete_card(
+                item_id="exact_test_fractional_macro_label",
+                kcal=42.7,
+                protein_g=5.7,
+                carb_g=0.1,
+                fat_g=0.3,
+            )
+        ],
+        small_anchor_records=[_generic_common_anchor(), _listed_component_anchor()],
+        artifact_path="artifacts/approved_packet_ready_fooddb_min1.json",
+    )
+
+    assert artifact["status"] == "approved_packet_ready_fooddb_artifact_ready"
+    item = artifact["packet_ready_items"][0]
+    assert item["kcal_point"] == 42.7
+    assert item["kcal_range"] == [42.7, 42.7]
+    assert item["protein_g"] == 5.7
+    assert item["carbs_g"] == 0.1
+    assert item["fat_g"] == 0.3
+    assert item["macro_visibility_status"] == "visible"
+
+
 def test_build_approved_packet_ready_artifact_includes_minimal_triad_lanes() -> None:
     artifact = build_approved_packet_ready_fooddb_artifact(
         exact_item_cards=[_macro_complete_card()],
@@ -338,7 +363,7 @@ def test_default_repo_artifact_builds_from_tracked_exact_item_seed() -> None:
         "listed_component": 1,
     }
     assert artifact["summary"]["available_packet_ready_lane_counts"] == {
-        "exact_item_card": 7,
+        "exact_item_card": 17,
         "generic_common_serving": 34,
         "listed_component": 34,
     }
@@ -356,14 +381,14 @@ def test_full_current_shell_profile_includes_all_approved_packet_ready_lanes() -
 
     assert artifact["status"] == "approved_packet_ready_fooddb_artifact_ready"
     assert artifact["summary"]["selection_profile"] == "full_current_shell"
-    assert artifact["summary"]["packet_ready_item_count"] == 75
+    assert artifact["summary"]["packet_ready_item_count"] == 85
     assert artifact["summary"]["packet_ready_lane_counts"] == {
-        "exact_item_card": 7,
+        "exact_item_card": 17,
         "generic_common_serving": 34,
         "listed_component": 34,
     }
     assert artifact["summary"]["available_packet_ready_lane_counts"] == {
-        "exact_item_card": 7,
+        "exact_item_card": 17,
         "generic_common_serving": 34,
         "listed_component": 34,
     }
@@ -448,7 +473,7 @@ def test_approved_packet_ready_fooddb_artifact_cli_can_write_full_current_shell_
     assert exit_code == 0
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
     assert artifact["summary"]["selection_profile"] == "full_current_shell"
-    assert artifact["summary"]["packet_ready_item_count"] == 75
+    assert artifact["summary"]["packet_ready_item_count"] == 85
 
 
 def test_runbook_documents_minimal_fooddb_packet_ready_artifact() -> None:
