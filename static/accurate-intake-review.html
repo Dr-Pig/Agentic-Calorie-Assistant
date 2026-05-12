@@ -192,6 +192,12 @@
       }
       return `/static/accurate-intake-${page}.html?${query.toString()}`;
     }
+    function friendlyPageUrl(page) {
+      const staticUrl = new URL(pageUrl(page), window.location.href);
+      staticUrl.searchParams.set("reconnect_attempted", "1");
+      const route = page === "desktop" ? "/accurate-intake" : `/accurate-intake/${page}`;
+      return `${route}?${staticUrl.searchParams.toString()}`;
+    }
     function updateNavigationLinks() {
       document.querySelectorAll("[data-nav-target]").forEach((link) => {
         const target = link.getAttribute("data-nav-target");
@@ -209,9 +215,22 @@
         headers: { Accept: "application/json", ...localDebugHeaders() }
       });
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const error = new Error(`HTTP ${response.status}`);
+        error.status = response.status;
+        throw error;
       }
       return response.json();
+    }
+    function reconnectThroughFriendlyRoute(error) {
+      if (error.status !== 403 && error.message !== "HTTP 403") {
+        return false;
+      }
+      if (params.get("reconnect_attempted") === "1") {
+        return false;
+      }
+      el("review-status").textContent = "Review needs the local session. Reopening through ACA 1 Start Home.";
+      window.location.assign(friendlyPageUrl("review"));
+      return true;
     }
     function writeText(id, value) {
       el(id).textContent = value === null || value === undefined || value === "" ? "--" : String(value);
@@ -328,6 +347,9 @@
         const payload = await requestJson(endpoint);
         render(payload);
       } catch (error) {
+        if (reconnectThroughFriendlyRoute(error)) {
+          return;
+        }
         el("review-status").dataset.state = "error";
         el("review-status").textContent = `Review queue unavailable: ${error.message}`;
       }
