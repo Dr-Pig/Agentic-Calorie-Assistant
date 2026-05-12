@@ -19,8 +19,8 @@ def test_memory_live_edd_pr_train_records_fourteen_right_sized_prs() -> None:
     assert plan["artifact_type"] == "advanced_product_lab_memory_live_edd_pr_train"
     assert plan["status"] == "active"
     assert plan["planned_pr_count"] == 14
-    assert plan["dynamic_remaining_pr_count"] == 12
-    assert plan["last_completed_pr_number"] == 2
+    assert plan["dynamic_remaining_pr_count"] == 11
+    assert plan["last_completed_pr_number"] == 3
 
     prs = plan["pr_train"]
     assert len(prs) == 14
