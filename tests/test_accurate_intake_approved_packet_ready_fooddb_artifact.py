@@ -364,7 +364,7 @@ def test_default_repo_artifact_builds_from_tracked_exact_item_seed() -> None:
     }
     assert artifact["summary"]["available_packet_ready_lane_counts"] == {
         "exact_item_card": 46,
-        "generic_common_serving": 74,
+        "generic_common_serving": 94,
         "listed_component": 74,
     }
     by_lane = {item["source_lane"]: item for item in artifact["packet_ready_items"]}
@@ -381,15 +381,15 @@ def test_full_current_shell_profile_includes_all_approved_packet_ready_lanes() -
 
     assert artifact["status"] == "approved_packet_ready_fooddb_artifact_ready"
     assert artifact["summary"]["selection_profile"] == "full_current_shell"
-    assert artifact["summary"]["packet_ready_item_count"] == 194
+    assert artifact["summary"]["packet_ready_item_count"] == 214
     assert artifact["summary"]["packet_ready_lane_counts"] == {
         "exact_item_card": 46,
-        "generic_common_serving": 74,
+        "generic_common_serving": 94,
         "listed_component": 74,
     }
     assert artifact["summary"]["available_packet_ready_lane_counts"] == {
         "exact_item_card": 46,
-        "generic_common_serving": 74,
+        "generic_common_serving": 94,
         "listed_component": 74,
     }
     assert artifact["manager_packet_forbidden_inputs"] == [
@@ -422,6 +422,10 @@ def test_full_current_shell_profile_includes_all_approved_packet_ready_lanes() -
     )
     assert by_id["generic_staple_ham_fried_rice_plate"]["kcal_point"] == 648
     assert by_id["generic_staple_ham_fried_rice_plate"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["generic_staple_beef_dumplings_10pc"]["kcal_point"] == 532
+    assert by_id["generic_staple_beef_dumplings_10pc"]["macro_visibility_status"] == (
         "hidden_missing_source"
     )
     assert by_id["listed_item_egg_dumpling"]["kcal_point"] == 55
@@ -499,7 +503,7 @@ def test_approved_packet_ready_fooddb_artifact_cli_can_write_full_current_shell_
     assert exit_code == 0
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
     assert artifact["summary"]["selection_profile"] == "full_current_shell"
-    assert artifact["summary"]["packet_ready_item_count"] == 194
+    assert artifact["summary"]["packet_ready_item_count"] == 214
 
 
 def test_runbook_documents_minimal_fooddb_packet_ready_artifact() -> None:
