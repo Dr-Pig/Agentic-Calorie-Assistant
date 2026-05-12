@@ -21,6 +21,9 @@ def provider_contract_summary(live_diagnostic_artifact: Mapping[str, Any]) -> di
         "live_milestone_status": str(
             live_diagnostic_artifact.get("live_milestone_status") or ""
         ),
+        "live_completion_claim_allowed": (
+            live_diagnostic_artifact.get("live_completion_claim_allowed") is True
+        ),
     }
 
 

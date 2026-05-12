@@ -4,8 +4,8 @@ status: active
 owner: MemoryRuntimeArchitecture
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 14
-dynamic_remaining_pr_count: 14
-last_completed_pr_number: 0
+dynamic_remaining_pr_count: 12
+last_completed_pr_number: 2
 current_mainline: advanced_product_lab_memory_live_edd
 is_detour: false
 mainline_blocker_being_removed: memory_is_simulated_complete_but_live_edd_not_decision_complete
@@ -178,7 +178,19 @@ pr_train:
       - activation_wall
     merge_target: codex/advanced-product-lab
     completion_gate: decision pack distinguishes lab completion from mainline/self-use V1 activation.
-last_merge_evidence: null
+last_merge_evidence:
+  completed_prs:
+    - pr_number: 1
+      pull_request: 1125
+      merge_commit: 9512583b61155226f9800a0cf01a6d40871cfd66
+      result: advanced_lab_synced_and_pr_train_recorded
+    - pr_number: 2
+      pull_request: 1127
+      merge_commit: 6a0f5dc11727ba2c5276714a5ce7820c0d097fd0
+      result: canonical_live_diagnostic_evidence_shape_merged
+  latest_dynamic_estimate_after_merge: 12
 estimate_notes:
   - Initial dynamic estimate is 14 PRs before PR1 merge.
+  - After PR1 merge, remaining estimate moved to 13.
+  - After PR2 merge, remaining estimate moved to 12.
   - Real dogfood calibration remains outside this count until user dogfood traces are available.
