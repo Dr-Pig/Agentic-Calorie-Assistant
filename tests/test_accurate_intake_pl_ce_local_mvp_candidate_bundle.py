@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from app.composition import accurate_intake_pl_ce_local_mvp_candidate_bundle as module
+from app.composition import current_shell_compatibility_ids as cs_ids
 from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (
     build_pl_ce_local_mvp_candidate_bundle_artifact,
 )
@@ -199,8 +200,13 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
 def test_pl_ce_local_mvp_candidate_bundle_is_human_review_candidate_only() -> None:
     artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(_valid_inputs())
 
-    assert artifact["artifact_type"] == "accurate_intake_pl_ce_local_mvp_candidate_bundle"
-    assert artifact["status"] == "pl_ce_local_mvp_candidate_ready_for_human_review"
+    assert artifact["artifact_type"] == cs_ids.CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE
+    assert artifact["status"] == cs_ids.CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS
+    assert artifact["claim_scope"] == cs_ids.CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_CLAIM_SCOPE
+    assert artifact["legacy_artifact_type_aliases"] == list(cs_ids.LEGACY_LOCAL_MVP_ARTIFACT_TYPES)
+    assert artifact["legacy_status_aliases"] == list(cs_ids.LEGACY_LOCAL_MVP_READY_STATUSES)
+    assert artifact["legacy_claim_scope_aliases"] == list(cs_ids.LEGACY_LOCAL_MVP_CLAIM_SCOPES)
+    assert artifact["legacy_group_id_aliases"] == list(cs_ids.LEGACY_LOCAL_MVP_GROUP_IDS)
     assert artifact["activation_gate_status"] == "blocked_pending_human_and_browser_activation"
     assert artifact["required_inputs"] == REQUIRED_INPUTS
     assert artifact["aggregate_only"] is True
@@ -443,7 +449,7 @@ def test_pl_ce_local_mvp_candidate_bundle_allows_context_matrix_known_runtime_ga
 
     artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
 
-    assert artifact["status"] == "pl_ce_local_mvp_candidate_ready_for_human_review"
+    assert artifact["status"] == cs_ids.CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS
     assert artifact["summary"]["context_known_runtime_gap_count"] == 1
     assert artifact["context_engineering_fault_claimed"] is False
 
@@ -497,7 +503,7 @@ def test_pl_ce_local_mvp_candidate_bundle_cli_writes_artifact_from_existing_arti
 
     assert exit_code == 0
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
-    assert artifact["status"] == "pl_ce_local_mvp_candidate_ready_for_human_review"
+    assert artifact["status"] == cs_ids.CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS
     assert artifact["included_artifact_statuses"]["mvp_gate_summary"]["source_artifact_path"]
 
 
