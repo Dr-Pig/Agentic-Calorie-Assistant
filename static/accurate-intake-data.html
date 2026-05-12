@@ -92,6 +92,12 @@
     button:disabled { opacity: 0.55; cursor: wait; }
     .status { color: var(--muted); }
     .status[data-state="error"] { color: var(--danger); }
+    .help-list {
+      margin: 10px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+    .help-list li { margin: 4px 0; }
     .grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -164,8 +170,13 @@
     data-canonical-eval-promotion-allowed="false"
   >
     <section class="panel">
-      <h1>Data</h1>
-      <p class="subtle">Local backup and export for desktop dogfood.</p>
+      <h1>Data backup & export</h1>
+      <p class="subtle">Use this page when you need to inspect, backup, or export your local desktop dogfood data. It does not edit meal, body, budget, Manager, or FoodDB truth.</p>
+      <ul class="help-list">
+        <li>Inspect shows where the local SQLite and review evidence live.</li>
+        <li>Create backup copies the local SQLite file before risky manual changes.</li>
+        <li>Export review bundle packages feedback, traces, and local metadata for later review.</li>
+      </ul>
     </section>
     <section class="panel session-strip" aria-label="Data context">
       <label>User ID
@@ -259,9 +270,17 @@
         }
       });
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const error = new Error(`HTTP ${response.status}`);
+        error.status = response.status;
+        throw error;
       }
       return response.json();
+    }
+    function dataErrorMessage(kind, error) {
+      if (error.status === 403 || error.message === "HTTP 403") {
+        return `${kind} failed: HTTP 403. HTTP 403 usually means this page was opened before the local session cookie was established. Open ACA 1 Start Home, then return to Data.`;
+      }
+      return `${kind} failed: ${error.message}`;
     }
     function setBusy(isBusy) {
       ["inspect-data", "backup-data", "export-data"].forEach((id) => {
@@ -334,7 +353,7 @@
         el("data-status").textContent = `${kind} ${payload.status || "done"}.`;
       } catch (error) {
         el("data-status").dataset.state = "error";
-        el("data-status").textContent = `${kind} failed: ${error.message}`;
+        el("data-status").textContent = dataErrorMessage(kind, error);
       } finally {
         setBusy(false);
       }
