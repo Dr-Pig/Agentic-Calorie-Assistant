@@ -32,6 +32,8 @@ Do not run live provider stages if the deterministic baseline is red.
 
 The upstream runtime gate source is `docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml`.
 Downstream browser or candidate-bundle stages should consume gate IDs from that ledger instead of recreating local names.
+The fixed 18-case diagnostic selection and trace-layer rubric is `docs/quality/accurate_intake_mvp_live_diagnostic_case_manifest.json`; live/offline runs should consume that manifest instead of generating ad hoc cases.
+Offline trace replay over that fixed manifest is built with `python scripts/build_accurate_intake_mvp_live_case_replay.py --trace-artifact artifacts/accurate_intake_mvp_live_diagnostic_full_suite.json --output artifacts/accurate_intake_mvp_live_case_replay.json`; the replay grader checks trace-layer presence and forbidden semantic-oracle flags only, not raw utterance keywords.
 
 ## Staged Live Commands
 
@@ -43,6 +45,8 @@ CLI live diagnostics intentionally reject implicit `--stage all`. Normal live ev
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage provider_health_smoke --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_provider_health.json
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage schema_contract_probe --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_schema_probe.json
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage fake_provider_active_runtime_gate --output artifacts/accurate_intake_mvp_live_diagnostic_fake_runtime_gate.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --manifest-case-id MVP-LIVE-001 --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_manifest_no_plan.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --manifest-case-id MVP-LIVE-005 --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_manifest_generic_range.json
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id explicit_item_removal_seeded --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_seeded_removal.json
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id exact_item_official_label --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_exact_item.json
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id bubble_milk_tea_refinement --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_bubble_refinement.json
@@ -119,6 +123,8 @@ The current PR74-PR84 audit is repo-tracked as:
 - provider health smoke passes.
 - schema contract probe passes.
 - fake-provider active runtime gate passes.
+- manifest no-plan degraded single-turn probe passes as `strict_pass_first_attempt`.
+- manifest generic common-food range single-turn probe passes as `strict_pass_first_attempt`.
 - seeded explicit-removal single-turn probe passes as `strict_pass_first_attempt`.
 - exact-item official-label single-turn probe passes as `strict_pass_first_attempt`.
 - bubble-tea optional-refinement single-case probe passes as `strict_pass_first_attempt`.
@@ -237,6 +243,8 @@ Do not stage:
 - `artifacts/accurate_intake_mvp_live_diagnostic_provider_health.json`
 - `artifacts/accurate_intake_mvp_live_diagnostic_schema_probe.json`
 - `artifacts/accurate_intake_mvp_live_diagnostic_fake_runtime_gate.json`
+- `artifacts/accurate_intake_mvp_live_diagnostic_manifest_no_plan.json`
+- `artifacts/accurate_intake_mvp_live_diagnostic_manifest_generic_range.json`
 - `artifacts/accurate_intake_mvp_live_diagnostic_seeded_removal.json`
 - `artifacts/accurate_intake_mvp_live_diagnostic_exact_item.json`
 - `artifacts/accurate_intake_mvp_live_diagnostic_bubble_refinement.json`

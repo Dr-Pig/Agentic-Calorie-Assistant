@@ -272,12 +272,12 @@
         <label>Date
           <input id="local-date" type="date" />
         </label>
-        <label>Local Access Token
+        <label>Manual Token Fallback
           <input id="local-debug-token" type="password" autocomplete="off" />
         </label>
         <button id="establish-local-session" type="button">Connect</button>
       </div>
-      <div id="entry-status" class="status" aria-live="polite">Session not connected.</div>
+      <div id="entry-status" class="status" aria-live="polite">Checking local session...</div>
     </section>
 
     <section class="panel" aria-label="Provider preflight">
@@ -438,7 +438,7 @@
       const globalToken = typeof window.LOCAL_DEBUG_API_TOKEN === "string" ? window.LOCAL_DEBUG_API_TOKEN.trim() : "";
       const token = inputToken || globalToken;
       if (!token) {
-        setStatus("Local access token required.", "error");
+        setStatus("Manual token required only if automatic local session did not connect.", "error");
         return false;
       }
       el("establish-local-session").disabled = true;
@@ -452,13 +452,31 @@
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
-        setStatus("Session connected.");
+        el("local-debug-token").value = "";
+        setStatus("Local session connected.");
         return true;
       } catch (error) {
         setStatus(`Session failed: ${error.message}`, "error");
         return false;
       } finally {
         el("establish-local-session").disabled = false;
+      }
+    }
+    async function checkLocalDebugSession() {
+      try {
+        const response = await fetch(endpoints.localDebugSession, {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" }
+        });
+        if (response.ok) {
+          setStatus("Local session connected automatically.");
+          return true;
+        }
+        setStatus("Automatic session is not connected. Use manual token fallback if needed.", "error");
+        return false;
+      } catch (error) {
+        setStatus(`Session check unavailable: ${error.message}`, "error");
+        return false;
       }
     }
     window.establishLocalDebugSessionForSmoke = establishLocalDebugSession;
@@ -472,6 +490,7 @@
     updateNavigationLinks();
     updateCurrentUrl();
     loadProviderPreflight();
+    checkLocalDebugSession();
   </script>
 </body>
 </html>

@@ -33,11 +33,13 @@ from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
 from scripts.run_accurate_intake_mvp_manager_style_smoke import (  # noqa: E402
     DeterministicSelfUseManagerProvider,
 )
+from scripts.run_accurate_intake_desktop_dogfood_launcher import (  # noqa: E402
+    add_desktop_dogfood_entry_routes,
+)
 from scripts.run_accurate_intake_product_pages_browser_smoke import (  # noqa: E402
     _capture_fetches,
     _is_visible_product_text_clean,
     _nav_session_query_preserved,
-    _page_url,
     _storage_state,
 )
 
@@ -64,7 +66,9 @@ NOT_CLAIMING = [
 
 REQUIRED_FETCH_ENDPOINTS = (
     "/estimate",
+    "/accurate-intake/local-debug-session",
     "/accurate-intake/chat-history",
+    "/accurate-intake/local-data-hygiene",
     "/today/current-budget",
     "/body-plan/active",
 )
@@ -91,6 +95,8 @@ def _base_report(
         "message_count_requested": message_count,
         "browser_execution_required": browser_execution_required,
         "browser_executed": False,
+        "launcher_friendly_route_used": False,
+        "local_debug_session_cookie_established": False,
         "long_session_message_count": 0,
         "first_cjk_message_rendered": False,
         "middle_cjk_message_rendered": False,
@@ -101,7 +107,10 @@ def _base_report(
         "click_chat_to_today_preserved_session": False,
         "click_today_to_body_preserved_session": False,
         "click_body_to_chat_preserved_session": False,
+        "click_chat_to_data_preserved_session": False,
         "chat_return_preserved_latest_message": False,
+        "data_inspect_summary_rendered": False,
+        "data_reload_preserved_session": False,
         "navigation_fetch_sequence_checked": False,
         "latency_observability_present": False,
         "estimate_post_context_scoped": False,
@@ -122,10 +131,23 @@ def _base_report(
     }
 
 
-def _open_page(browser: Any, *, viewport: dict[str, int], url: str, timeout_ms: int, token: str) -> Any:
+def _friendly_page_url(base_url: str, page_name: str, *, user_external_id: str, local_date: str) -> str:
+    route = "accurate-intake" if page_name == "desktop" else f"accurate-intake/{page_name}"
+    return f"{base_url}/{route}?user_id={user_external_id}&local_date={local_date}"
+
+
+def _open_page(
+    browser: Any,
+    *,
+    viewport: dict[str, int],
+    url: str,
+    timeout_ms: int,
+    token: str | None = None,
+) -> Any:
     page = browser.new_page(viewport=viewport)
     _install_fetch_recorder(page)
-    page.add_init_script(f"window.LOCAL_DEBUG_API_TOKEN = {json.dumps(token)};")
+    if token:
+        page.add_init_script(f"window.LOCAL_DEBUG_API_TOKEN = {json.dumps(token)};")
     page.goto(url, wait_until="networkidle", timeout=timeout_ms)
     return page
 
@@ -161,6 +183,24 @@ def _session_matches(page: Any, *, user_external_id: str, local_date: str, user_
         and page.locator(date_selector).inner_text(timeout=5000).strip() == local_date
         and _nav_session_query_preserved(page, user_external_id=user_external_id, local_date=local_date)
     )
+
+
+def _data_session_matches(page: Any, *, user_external_id: str, local_date: str) -> bool:
+    return (
+        page.locator("#user-id").input_value(timeout=5000).strip() == user_external_id
+        and page.locator("#local-date").input_value(timeout=5000).strip() == local_date
+        and _nav_session_query_preserved(page, user_external_id=user_external_id, local_date=local_date)
+    )
+
+
+def _local_debug_session_cookie_established(page: Any) -> bool:
+    status = page.evaluate(
+        """async () => {
+          const response = await fetch("/accurate-intake/local-debug-session");
+          return response.status;
+        }"""
+    )
+    return status == 200
 
 
 def _fetches_include_required_endpoints(fetch_sequence: list[Any]) -> bool:
@@ -245,6 +285,8 @@ def _timing_observability_present(timing: dict[str, Any]) -> bool:
         "chat_to_today",
         "today_to_body",
         "body_to_chat",
+        "chat_to_data",
+        "reload_data",
         "total_sequence",
     )
     return all(isinstance(timing.get(key), int | float) and timing.get(key) >= 0 for key in required)
@@ -273,11 +315,17 @@ def _run_browser_sequence(
             page = _open_page(
                 browser,
                 viewport=viewport,
-                url=_page_url(base_url, "chat", user_external_id=user_external_id, local_date=local_date),
+                url=_friendly_page_url(
+                    base_url,
+                    "chat",
+                    user_external_id=user_external_id,
+                    local_date=local_date,
+                ),
                 timeout_ms=timeout_ms,
-                token=local_debug_token,
             )
             page.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
+            result["launcher_friendly_route_used"] = True
+            result["local_debug_session_cookie_established"] = _local_debug_session_cookie_established(page)
             for message in messages:
                 result["current_step"] = f"send_{message}"
                 turn_start = time.perf_counter()
@@ -381,6 +429,44 @@ def _run_browser_sequence(
             product_text = page.locator("body").inner_text(timeout=timeout_ms)
             result["visible_debug_trace_leaked"] = not _is_visible_product_text_clean(product_text)
             result["fetch_sequence"].extend(_capture_fetches(page))
+
+            result["current_step"] = "click_data"
+            nav_start = time.perf_counter()
+            page.click('[data-nav-target="data"]')
+            page.wait_for_selector('[data-surface-role="local-data-hygiene"]', timeout=timeout_ms)
+            page.wait_for_function(
+                """() => document.querySelector("#hygiene-status")?.textContent?.trim() !== "--" """,
+                timeout=timeout_ms,
+            )
+            result["click_chat_to_data_preserved_session"] = _data_session_matches(
+                page,
+                user_external_id=user_external_id,
+                local_date=local_date,
+            )
+            result["data_inspect_summary_rendered"] = (
+                page.locator("#hygiene-status").inner_text(timeout=timeout_ms).strip()
+                == "local_operator_data_hygiene_ready"
+                and page.locator("#result-db-path").inner_text(timeout=timeout_ms).strip() != "--"
+            )
+            timing_ms["chat_to_data"] = _elapsed_ms(nav_start)
+            result["fetch_sequence"].extend(_capture_fetches(page))
+
+            result["current_step"] = "reload_data"
+            reload_data_start = time.perf_counter()
+            page.reload(wait_until="networkidle", timeout=timeout_ms)
+            page.wait_for_selector('[data-surface-role="local-data-hygiene"]', timeout=timeout_ms)
+            page.wait_for_function(
+                """() => document.querySelector("#hygiene-status")?.textContent?.trim() !== "--" """,
+                timeout=timeout_ms,
+            )
+            result["data_reload_preserved_session"] = (
+                _data_session_matches(page, user_external_id=user_external_id, local_date=local_date)
+                and page.locator("#hygiene-status").inner_text(timeout=timeout_ms).strip()
+                == "local_operator_data_hygiene_ready"
+            )
+            timing_ms["reload_data"] = _elapsed_ms(reload_data_start)
+            result["fetch_sequence"].extend(_capture_fetches(page))
+
             result["navigation_fetch_sequence_checked"] = _fetches_include_required_endpoints(
                 result["fetch_sequence"]
             )
@@ -407,6 +493,8 @@ def _run_browser_sequence(
                 and result["click_chat_to_today_preserved_session"] is True
                 and result["click_today_to_body_preserved_session"] is True
                 and result["click_body_to_chat_preserved_session"] is True
+                and result["click_chat_to_data_preserved_session"] is True
+                and result["data_reload_preserved_session"] is True
             )
             result["current_step"] = "complete"
             return result
@@ -425,6 +513,11 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
             blockers.append(blocker)
 
     require_true("browser_executed", "browser_not_executed")
+    require_true("launcher_friendly_route_used", "launcher_friendly_route_not_used")
+    require_true(
+        "local_debug_session_cookie_established",
+        "local_debug_session_cookie_not_established",
+    )
     if int(report.get("long_session_message_count") or 0) < int(report.get("message_count_requested") or 0):
         blockers.append("long_session_message_count_too_low")
     for key, blocker in (
@@ -437,7 +530,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         ("click_chat_to_today_preserved_session", "chat_to_today_session_not_preserved"),
         ("click_today_to_body_preserved_session", "today_to_body_session_not_preserved"),
         ("click_body_to_chat_preserved_session", "body_to_chat_session_not_preserved"),
+        ("click_chat_to_data_preserved_session", "chat_to_data_session_not_preserved"),
         ("chat_return_preserved_latest_message", "chat_return_latest_message_missing"),
+        ("data_inspect_summary_rendered", "data_inspect_summary_not_rendered"),
+        ("data_reload_preserved_session", "data_reload_session_not_preserved"),
         ("navigation_fetch_sequence_checked", "navigation_fetch_sequence_not_checked"),
         ("latency_observability_present", "latency_observability_missing"),
         ("estimate_post_context_scoped", "estimate_post_context_not_scoped"),
@@ -521,6 +617,7 @@ def build_product_pages_long_session_navigation_smoke_report(
     provider = DeterministicSelfUseManagerProvider()
     db = SessionLocal()
     app = _build_app(SessionLocal, provider)
+    add_desktop_dogfood_entry_routes(app)
     port = _free_port()
     previous_debug_token = os.environ.get(LOCAL_DEBUG_API_TOKEN_ENV)
     local_debug_token = secrets.token_urlsafe(24)

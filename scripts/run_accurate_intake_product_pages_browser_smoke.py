@@ -322,6 +322,9 @@ def _base_report(
         "today_user_url_state_preserved_after_user_change": False,
         "today_reload_preserved_user_id": False,
         "today_summary_rendered": False,
+        "today_backend_same_truth_checked": False,
+        "today_read_model_render_values": {},
+        "today_read_model_backend_values": {},
         "today_meal_list_rendered": False,
         "today_meal_feedback_context_checked": False,
         "today_meal_feedback_context_values": {},
@@ -353,6 +356,8 @@ def _base_report(
         "body_latest_weight_rendered_from_backend": False,
         "body_weight_history_date_scoped_readback": False,
         "body_budget_read_models_rendered": False,
+        "body_plan_backend_values": {},
+        "body_budget_backend_values": {},
         "body_plan_form_saved": False,
         "body_manual_target_saved": False,
         "body_plan_readback_checked": False,
@@ -377,6 +382,9 @@ def _base_report(
         "data_inspect_values": {},
         "data_backup_values": {},
         "data_export_values": {},
+        "data_action_summary_rendered": False,
+        "data_action_summary_values": {},
+        "data_action_summary_expected_values": {},
         "data_non_claims": dict(DATA_NON_CLAIMS),
         "desktop_no_overflow": False,
         "mobile_no_overflow": False,
@@ -575,6 +583,42 @@ def _data_export_values(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _data_sidecar_summary(payload: dict[str, Any]) -> str:
+    if not payload.get("sidecar_evidence_included"):
+        return "No sidecar evidence included."
+    sidecar_evidence = dict(payload.get("sidecar_evidence") or {})
+    feedback_jsonl = dict(sidecar_evidence.get("feedback_jsonl") or {})
+    review_queue = dict(sidecar_evidence.get("review_queue") or {})
+    return (
+        f"feedback {feedback_jsonl.get('record_count') or 0}; "
+        f"review {review_queue.get('feedback_triage_record_count') or 0}"
+    )
+
+
+def _data_action_summary_values(page: Any, *, timeout_ms: int) -> dict[str, Any]:
+    return {
+        "operation": page.locator("#result-operation").inner_text(timeout=timeout_ms).strip(),
+        "status": page.locator("#result-status").inner_text(timeout=timeout_ms).strip(),
+        "db_path": page.locator("#result-db-path").inner_text(timeout=timeout_ms).strip(),
+        "backup_path": page.locator("#result-backup-path").inner_text(timeout=timeout_ms).strip(),
+        "export_path": page.locator("#result-export-path").inner_text(timeout=timeout_ms).strip(),
+        "manifest_path": page.locator("#result-manifest-path").inner_text(timeout=timeout_ms).strip(),
+        "sidecars": page.locator("#result-sidecars").inner_text(timeout=timeout_ms).strip(),
+    }
+
+
+def _data_action_summary_expected_values(payload: dict[str, Any], *, operation: str) -> dict[str, Any]:
+    return {
+        "operation": operation,
+        "status": str(payload.get("status") or "--"),
+        "db_path": str(payload.get("db_path") or "--"),
+        "backup_path": str(payload.get("backup_path") or "--"),
+        "export_path": str(payload.get("export_path") or "--"),
+        "manifest_path": str(payload.get("manifest_path") or "--"),
+        "sidecars": _data_sidecar_summary(payload),
+    }
+
+
 def _launchpad_navigation_values(page: Any, *, user_external_id: str, local_date: str) -> dict[str, bool]:
     return page.evaluate(
         """({ userExternalId, localDate }) => {
@@ -768,6 +812,133 @@ def _current_budget_macro_fields(payload: dict[str, Any]) -> dict[str, Any]:
         "consumed_fat": payload.get("consumed_fat"),
         "show_macro": payload.get("show_macro"),
         "macro_guard_reason": payload.get("macro_guard_reason"),
+    }
+
+
+BODY_LABELS = {
+    "lose_weight": "Lose weight",
+    "maintain_weight": "Maintain weight",
+    "gain_weight": "Gain weight",
+    "sedentary_with_some_walking": "Mostly sitting, some walking",
+    "mostly_sitting": "Mostly sitting",
+    "standing_or_light_activity": "Standing or light activity",
+}
+
+
+def _display_scalar(value: Any) -> str:
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def _display_or_dash(value: Any) -> str:
+    if value is None or value == "":
+        return "--"
+    return _display_scalar(value)
+
+
+def _display_with_unit(value: Any, unit: str) -> str:
+    rendered = _display_or_dash(value)
+    if rendered == "--":
+        return rendered
+    return f"{rendered} {unit}"
+
+
+def _today_read_model_backend_values(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "budget_kcal": _display_or_dash(payload.get("budget_kcal")),
+        "consumed_kcal": _display_or_dash(payload.get("consumed_kcal")),
+        "remaining_kcal": _display_or_dash(payload.get("remaining_kcal")),
+        "show_macro": payload.get("show_macro"),
+        "macro_guard_reason": payload.get("macro_guard_reason"),
+        "meal_count": len(payload.get("meals") or []),
+    }
+
+
+def _today_read_model_render_values(page: Any, *, timeout_ms: int) -> dict[str, Any]:
+    return {
+        "budget_kcal": page.locator("#budget-kcal").inner_text(timeout=timeout_ms).strip(),
+        "consumed_kcal": page.locator("#consumed-kcal").inner_text(timeout=timeout_ms).strip(),
+        "remaining_kcal": page.locator("#remaining-kcal").inner_text(timeout=timeout_ms).strip(),
+        "macro_state": page.locator("#macro-panel").evaluate("(node) => node.dataset.macroState"),
+        "macro_guard_reason": page.locator("#macro-guard-reason").inner_text(timeout=timeout_ms).strip(),
+        "meal_list_text": page.locator("#meal-list").inner_text(timeout=timeout_ms).strip(),
+    }
+
+
+def _today_read_model_render_matches_backend(
+    *, rendered: dict[str, Any], backend: dict[str, Any], payload: dict[str, Any]
+) -> bool:
+    if rendered.get("budget_kcal") != backend.get("budget_kcal"):
+        return False
+    if rendered.get("consumed_kcal") != backend.get("consumed_kcal"):
+        return False
+    if rendered.get("remaining_kcal") != backend.get("remaining_kcal"):
+        return False
+    expected_macro_state = "visible" if payload.get("show_macro") is True else "guarded"
+    if rendered.get("macro_state") != expected_macro_state:
+        return False
+    meals = payload.get("meals") or []
+    meal_list_text = str(rendered.get("meal_list_text") or "")
+    for meal in meals:
+        title = str(meal.get("meal_title") or "Meal")
+        kcal = _display_or_dash(meal.get("total_kcal"))
+        if title not in meal_list_text or f"{kcal} kcal" not in meal_list_text:
+            return False
+    if not meals and "No meals logged" not in meal_list_text:
+        return False
+    return True
+
+
+def _body_read_model_payloads(page: Any, *, user_external_id: str, local_date: str) -> dict[str, Any]:
+    payload = page.evaluate(
+        """async ({ userExternalId, localDate }) => {
+          const userParams = new URLSearchParams({ user_id: userExternalId });
+          const readModelParams = new URLSearchParams({ user_id: userExternalId, local_date: localDate });
+          const [plan, deficit, effective, weekly] = await Promise.all([
+            fetch(`/body-plan/active?${userParams.toString()}`).then((response) => response.json()),
+            fetch(`/today/deficit-summary?${readModelParams.toString()}`).then((response) => response.json()),
+            fetch(`/today/effective-budget?${readModelParams.toString()}`).then((response) => response.json()),
+            fetch(`/today/weekly-progress?${readModelParams.toString()}`).then((response) => response.json())
+          ]);
+          return { plan, deficit, effective, weekly };
+        }""",
+        {"userExternalId": user_external_id, "localDate": local_date},
+    )
+    return payload if isinstance(payload, dict) else {}
+
+
+def _body_plan_backend_values(plan: dict[str, Any]) -> dict[str, Any]:
+    is_active = plan.get("plan_status") == "active"
+    daily_target = plan.get("daily_budget_kcal") or plan.get("recommended_target_kcal")
+    return {
+        "daily_target": _display_with_unit(daily_target if is_active else None, "kcal"),
+        "tdee": _display_with_unit(plan.get("estimated_tdee") if is_active else None, "kcal"),
+        "current_weight": _display_with_unit(plan.get("current_weight_kg"), "kg"),
+        "target_weight": _display_with_unit(plan.get("target_weight_kg"), "kg"),
+        "activity": BODY_LABELS.get(str(plan.get("activity_level") or ""), str(plan.get("activity_level") or "--")),
+        "goal": BODY_LABELS.get(str(plan.get("goal_type") or ""), str(plan.get("goal_type") or "--")),
+    }
+
+
+def _body_budget_backend_values(
+    *, deficit: dict[str, Any], effective: dict[str, Any], weekly: dict[str, Any]
+) -> dict[str, Any]:
+    weekly_consumed = weekly.get("total_consumed_kcal")
+    weekly_estimated_deficit = weekly.get("estimated_weekly_deficit_kcal")
+    weekly_progress = (
+        "--"
+        if weekly_consumed is None
+        else f"{_display_scalar(weekly_consumed)} kcal consumed / "
+        f"{_display_or_dash(weekly_estimated_deficit)} kcal estimated deficit"
+    )
+    return {
+        "active_target": _display_with_unit(deficit.get("active_daily_target_kcal"), "kcal"),
+        "consumed": _display_with_unit(deficit.get("consumed_kcal"), "kcal"),
+        "remaining": _display_with_unit(deficit.get("remaining_kcal"), "kcal"),
+        "estimated_deficit": _display_with_unit(deficit.get("estimated_daily_deficit_kcal"), "kcal"),
+        "effective_budget": _display_with_unit(effective.get("runtime_effective_budget_kcal"), "kcal"),
+        "weekly_progress": weekly_progress,
     }
 
 
@@ -1900,6 +2071,9 @@ def _run_data_hygiene_sequence(
         "data_inspect_values": {},
         "data_backup_values": {},
         "data_export_values": {},
+        "data_action_summary_rendered": False,
+        "data_action_summary_values": {},
+        "data_action_summary_expected_values": {},
         "data_non_claims": dict(DATA_NON_CLAIMS),
         "page_text": "",
     }
@@ -1937,6 +2111,14 @@ def _run_data_hygiene_sequence(
     export_payload = json.loads(data_page.locator("#data-result").inner_text(timeout=timeout_ms))
     result["data_export_values"] = _data_export_values(export_payload)
     result["data_export_created"] = result["data_export_values"] == EXPECTED_DATA_EXPORT_VALUES
+    result["data_action_summary_values"] = _data_action_summary_values(data_page, timeout_ms=timeout_ms)
+    result["data_action_summary_expected_values"] = _data_action_summary_expected_values(
+        export_payload,
+        operation="export",
+    )
+    result["data_action_summary_rendered"] = (
+        result["data_action_summary_values"] == result["data_action_summary_expected_values"]
+    )
     result["page_text"] = data_page.locator("body").inner_text(timeout=timeout_ms)
     result["fetch_sequence"].extend(_capture_fetches(data_page))
     data_page.close()
@@ -2671,6 +2853,20 @@ def _run_browser_sequence(
                 arg=cjk_message,
                 timeout=timeout_ms,
             )
+            today_current_payload = _current_budget_payload(
+                today,
+                user_external_id=user_external_id,
+                local_date=local_date,
+            )
+            today_render_values = _today_read_model_render_values(today, timeout_ms=timeout_ms)
+            today_backend_values = _today_read_model_backend_values(today_current_payload)
+            result["today_read_model_render_values"] = today_render_values
+            result["today_read_model_backend_values"] = today_backend_values
+            result["today_backend_same_truth_checked"] = _today_read_model_render_matches_backend(
+                rendered=today_render_values,
+                backend=today_backend_values,
+                payload=today_current_payload,
+            )
             nav_checks.append(
                 _nav_session_query_preserved(today, user_external_id=user_external_id, local_date=local_date)
             )
@@ -2678,7 +2874,9 @@ def _run_browser_sequence(
             desktop_overflows.append(_overflow_state(today))
             storage_keys["localStorageKeys"].extend(_storage_state(today).get("localStorageKeys", []))
             storage_keys["sessionStorageKeys"].extend(_storage_state(today).get("sessionStorageKeys", []))
-            page_texts.append(today_text)
+            today_text_after = today.locator("body").inner_text(timeout=timeout_ms)
+            result["today_no_debug_trace"] = _is_visible_product_text_clean(today_text_after)
+            page_texts.append(today_text_after)
             today.close()
 
             result["current_step"] = "open_body"
@@ -2834,23 +3032,28 @@ def _run_browser_sequence(
                 "effective_budget": body.locator("#body-effective-budget").inner_text(timeout=timeout_ms).strip(),
                 "weekly_progress": body.locator("#body-weekly-progress").inner_text(timeout=timeout_ms).strip(),
             }
+            body_payloads = _body_read_model_payloads(
+                body,
+                user_external_id=user_external_id,
+                local_date=local_date,
+            )
+            body_plan_backend_values = _body_plan_backend_values(
+                dict(body_payloads.get("plan") or {})
+            )
+            body_budget_backend_values = _body_budget_backend_values(
+                deficit=dict(body_payloads.get("deficit") or {}),
+                effective=dict(body_payloads.get("effective") or {}),
+                weekly=dict(body_payloads.get("weekly") or {}),
+            )
             result["body_plan_read_model_values"] = body_plan_values
             result["body_budget_read_model_values"] = body_budget_values
-            result["body_plan_read_model_fields_rendered"] = (
-                body_plan_values["daily_target"] == "1550 kcal"
-                and body_plan_values["tdee"] == "1819 kcal"
-                and body_plan_values["current_weight"] == "70 kg"
-                and body_plan_values["target_weight"] == "65 kg"
-                and body_plan_values["activity"] == "light"
-                and body_plan_values["goal"] == "Lose weight"
-            )
+            result["body_plan_backend_values"] = body_plan_backend_values
+            result["body_budget_backend_values"] = body_budget_backend_values
+            result["body_plan_read_model_fields_rendered"] = {
+                field: value for field, value in body_plan_values.items() if field != "weight_history"
+            } == body_plan_backend_values
             result["body_budget_read_models_rendered"] = (
-                body_budget_values["active_target"] == "1550 kcal"
-                and body_budget_values["consumed"] == "400 kcal"
-                and body_budget_values["remaining"] == "1150 kcal"
-                and body_budget_values["estimated_deficit"] == "269 kcal"
-                and body_budget_values["effective_budget"] == "1550 kcal"
-                and "400 kcal consumed" in body_budget_values["weekly_progress"]
+                body_budget_values == body_budget_backend_values
             )
             result["body_latest_weight_rendered_from_backend"] = f"{local_date} | 70.4 kg" in body_plan_values[
                 "weight_history"
@@ -2942,6 +3145,11 @@ def _run_browser_sequence(
             result["data_inspect_values"] = data_result["data_inspect_values"]
             result["data_backup_values"] = data_result["data_backup_values"]
             result["data_export_values"] = data_result["data_export_values"]
+            result["data_action_summary_rendered"] = data_result["data_action_summary_rendered"]
+            result["data_action_summary_values"] = data_result["data_action_summary_values"]
+            result["data_action_summary_expected_values"] = data_result[
+                "data_action_summary_expected_values"
+            ]
             result["data_non_claims"] = data_result["data_non_claims"]
             result["fetch_sequence"].extend(data_result["fetch_sequence"])
 
@@ -3072,6 +3280,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     )
     require_true("today_reload_preserved_user_id", "today_reload_did_not_preserve_user_id")
     require_true("today_summary_rendered", "today_summary_not_rendered")
+    require_true("today_backend_same_truth_checked", "today_backend_same_truth_not_checked")
     require_true("today_meal_list_rendered", "today_meal_list_not_rendered")
     require_true(
         "macro_present_exact_item_browser_checked",
@@ -3133,6 +3342,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("data_inspected", "data_hygiene_not_inspected")
     require_true("data_backup_created", "data_backup_not_created")
     require_true("data_export_created", "data_export_not_created")
+    require_true("data_action_summary_rendered", "data_action_summary_not_rendered")
     require_true("desktop_no_overflow", "desktop_overflow_detected")
     require_true("mobile_no_overflow", "mobile_overflow_detected")
     require_true("mobile_populated_state_checked", "mobile_populated_state_not_checked")
@@ -3159,20 +3369,24 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     for field, expected_value in LAUNCHPAD_NON_CLAIMS.items():
         if launchpad_non_claims.get(field) != expected_value:
             blockers.append(f"launchpad_non_claim_overclaim:{field}")
+    today_render_values = dict(report.get("today_read_model_render_values") or {})
+    today_backend_values = dict(report.get("today_read_model_backend_values") or {})
+    if not today_render_values:
+        blockers.append("today_read_model_render_values_missing")
+    if not today_backend_values:
+        blockers.append("today_read_model_backend_values_missing")
+    for field in ("budget_kcal", "consumed_kcal", "remaining_kcal"):
+        if today_render_values and today_backend_values and today_render_values.get(field) != today_backend_values.get(field):
+            blockers.append(f"today_read_model_value_mismatch:{field}")
     body_values = dict(report.get("body_plan_read_model_values") or browser.get("body_plan_read_model_values") or {})
     local_date = str(report.get("local_date") or DEFAULT_LOCAL_DATE)
     if not body_values:
         blockers.append("body_read_model_values_missing")
-    expected_body_values = {
-        "daily_target": "1550 kcal",
-        "tdee": "1819 kcal",
-        "current_weight": "70 kg",
-        "target_weight": "65 kg",
-        "activity": "light",
-        "goal": "Lose weight",
-    }
+    expected_body_values = dict(report.get("body_plan_backend_values") or {})
+    if not expected_body_values:
+        blockers.append("body_plan_backend_values_missing")
     for field, expected_value in expected_body_values.items():
-        if body_values and body_values.get(field) != expected_value:
+        if body_values and field != "weight_history" and body_values.get(field) != expected_value:
             blockers.append(f"body_read_model_value_mismatch:{field}")
     if body_values:
         if f"{local_date} | 70.4 kg" not in str(body_values.get("weight_history") or ""):
@@ -3198,18 +3412,12 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     body_budget_values = dict(report.get("body_budget_read_model_values") or browser.get("body_budget_read_model_values") or {})
     if not body_budget_values:
         blockers.append("body_budget_read_model_values_missing")
-    expected_body_budget_values = {
-        "active_target": "1550 kcal",
-        "consumed": "400 kcal",
-        "remaining": "1150 kcal",
-        "estimated_deficit": "269 kcal",
-        "effective_budget": "1550 kcal",
-    }
+    expected_body_budget_values = dict(report.get("body_budget_backend_values") or {})
+    if not expected_body_budget_values:
+        blockers.append("body_budget_backend_values_missing")
     for field, expected_value in expected_body_budget_values.items():
         if body_budget_values and body_budget_values.get(field) != expected_value:
             blockers.append(f"body_budget_read_model_value_mismatch:{field}")
-    if body_budget_values and "400 kcal consumed" not in str(body_budget_values.get("weekly_progress") or ""):
-        blockers.append("body_budget_read_model_value_mismatch:weekly_progress")
     macro_values = dict(report.get("macro_present_exact_item_values") or {})
     for field, expected_value in EXPECTED_MACRO_EXACT_ITEM_VALUES.items():
         if macro_values.get(field) != expected_value:
@@ -3283,6 +3491,15 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     for field, expected_value in EXPECTED_DATA_EXPORT_VALUES.items():
         if data_export_values.get(field) != expected_value:
             blockers.append(f"data_export_value_mismatch:{field}")
+    data_action_summary_values = dict(report.get("data_action_summary_values") or {})
+    data_action_summary_expected = dict(report.get("data_action_summary_expected_values") or {})
+    if not data_action_summary_values:
+        blockers.append("data_action_summary_values_missing")
+    if not data_action_summary_expected:
+        blockers.append("data_action_summary_expected_values_missing")
+    for field, expected_value in data_action_summary_expected.items():
+        if data_action_summary_values and data_action_summary_values.get(field) != expected_value:
+            blockers.append(f"data_action_summary_value_mismatch:{field}")
     data_non_claims = dict(report.get("data_non_claims") or {})
     for field, expected_value in DATA_NON_CLAIMS.items():
         if data_non_claims.get(field) != expected_value:

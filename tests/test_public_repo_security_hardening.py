@@ -74,6 +74,7 @@ def test_sensitive_routes_are_closed_when_local_debug_token_is_not_configured(mo
         ("GET", "/accurate-intake/debug"),
         ("GET", "/accurate-intake/chat-history"),
         ("GET", "/accurate-intake/debug/surface"),
+        ("GET", "/accurate-intake/local-debug-session"),
         ("POST", "/accurate-intake/feedback"),
         ("GET", "/accurate-intake/local-data-hygiene"),
         ("POST", "/accurate-intake/local-data-hygiene/backup"),
@@ -108,11 +109,14 @@ def test_sensitive_routes_accept_server_set_local_debug_session_cookie(monkeypat
 
     establish = client.post("/accurate-intake/local-debug-session", json={"token": token})
     missing_header = client.get("/logs")
+    probe = client.get("/accurate-intake/local-debug-session")
 
     assert establish.status_code == 204
     assert "local_debug_session" in client.cookies
     assert missing_header.status_code == 200
     assert "items" in missing_header.json()
+    assert probe.status_code == 200
+    assert probe.json() == {"status": "connected", "local_only": True}
 
 
 def test_local_debug_session_cookie_is_http_only_and_strict(monkeypatch) -> None:

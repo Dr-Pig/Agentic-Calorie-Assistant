@@ -15,6 +15,7 @@ def _live_artifact(
     stage_id: str,
     status: str,
     case_ids: list[str] | None = None,
+    manifest_case_ids: list[str] | None = None,
     result_kind: str = "strict_pass_first_attempt",
     retry_policy_applied: bool = False,
     failure_layer: str | None = None,
@@ -51,6 +52,7 @@ def _live_artifact(
                 "retry_policy_applied": retry_policy_applied,
                 "result_kind": result_kind,
                 "case_ids": case_ids or [],
+                "manifest_case_ids": manifest_case_ids or [],
             }
         ],
         "summary": {
@@ -167,6 +169,8 @@ def test_live_stage_manifest_default_sources_match_runbook_stage_artifacts() -> 
         "accurate_intake_mvp_live_diagnostic_provider_health.json",
         "accurate_intake_mvp_live_diagnostic_schema_probe.json",
         "accurate_intake_mvp_live_diagnostic_fake_runtime_gate.json",
+        "accurate_intake_mvp_live_diagnostic_manifest_no_plan.json",
+        "accurate_intake_mvp_live_diagnostic_manifest_generic_range.json",
         "accurate_intake_mvp_live_diagnostic_seeded_removal.json",
         "accurate_intake_mvp_live_diagnostic_exact_item.json",
         "accurate_intake_mvp_live_diagnostic_bubble_refinement.json",
@@ -180,6 +184,24 @@ def test_live_stage_manifest_summarizes_required_single_case_coverage_and_result
         ("health.json", _live_artifact(stage_id="provider_health_smoke", status="pass")),
         ("schema.json", _live_artifact(stage_id="schema_contract_probe", status="pass")),
         ("fake.json", _live_artifact(stage_id="fake_provider_active_runtime_gate", status="pass")),
+        (
+            "no_plan.json",
+            _live_artifact(
+                stage_id="single_case_live_probe",
+                status="pass",
+                case_ids=["no_plan_consumed_without_budget_target"],
+                manifest_case_ids=["MVP-LIVE-001"],
+            ),
+        ),
+        (
+            "generic.json",
+            _live_artifact(
+                stage_id="single_case_live_probe",
+                status="pass",
+                case_ids=["generic_common_food_range"],
+                manifest_case_ids=["MVP-LIVE-005"],
+            ),
+        ),
         (
             "seeded.json",
             _live_artifact(
@@ -236,33 +258,50 @@ def test_live_stage_manifest_summarizes_required_single_case_coverage_and_result
     assert summary["missing_required_single_case_ids"] == []
     assert summary["has_missing_required_stage"] is False
     assert summary["result_kind_counts"] == {
-        "strict_pass_first_attempt": 7,
+        "strict_pass_first_attempt": 9,
         "pass_after_retry": 1,
     }
     assert summary["has_retry_dependent_stage"] is True
     assert summary["single_case_probe_results"] == [
         {
+            "case_ids": ["no_plan_consumed_without_budget_target"],
+            "manifest_case_ids": ["MVP-LIVE-001"],
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
+        },
+        {
+            "case_ids": ["generic_common_food_range"],
+            "manifest_case_ids": ["MVP-LIVE-005"],
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
+        },
+        {
             "case_ids": ["explicit_item_removal_seeded"],
+            "manifest_case_ids": [],
             "status": "pass",
             "result_kind": "strict_pass_first_attempt",
         },
         {
             "case_ids": ["exact_item_official_label"],
+            "manifest_case_ids": [],
             "status": "pass",
             "result_kind": "strict_pass_first_attempt",
         },
         {
             "case_ids": ["bubble_milk_tea_refinement"],
+            "manifest_case_ids": [],
             "status": "pass",
             "result_kind": "strict_pass_first_attempt",
         },
         {
             "case_ids": ["luwei_bare_to_listed_basket"],
+            "manifest_case_ids": [],
             "status": "pass",
             "result_kind": "strict_pass_first_attempt",
         },
         {
             "case_ids": ["chinese_chicken_rice_correction_removal_debug"],
+            "manifest_case_ids": [],
             "status": "pass",
             "result_kind": "pass_after_retry",
         },
@@ -294,6 +333,8 @@ def test_live_stage_manifest_records_case_order_trace_layers_model_and_timeout_p
         "provider_health_smoke",
         "schema_contract_probe",
         "fake_provider_active_runtime_gate",
+        "no_plan_consumed_without_budget_target",
+        "generic_common_food_range",
         "explicit_item_removal_seeded",
         "exact_item_official_label",
         "bubble_milk_tea_refinement",
@@ -347,6 +388,8 @@ def test_live_stage_manifest_records_case_order_trace_layers_model_and_timeout_p
     ]
     summary = manifest["stage_summary"]
     assert summary["missing_required_single_case_ids"] == [
+        "no_plan_consumed_without_budget_target",
+        "generic_common_food_range",
         "exact_item_official_label",
         "bubble_milk_tea_refinement",
         "luwei_bare_to_listed_basket",

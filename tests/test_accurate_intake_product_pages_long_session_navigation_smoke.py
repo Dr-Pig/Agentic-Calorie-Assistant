@@ -9,6 +9,8 @@ def _passing_report() -> dict[str, object]:
     message_count = 32
     return {
         "browser_executed": True,
+        "launcher_friendly_route_used": True,
+        "local_debug_session_cookie_established": True,
         "message_count_requested": message_count,
         "long_session_message_count": message_count,
         "first_cjk_message_rendered": True,
@@ -20,7 +22,10 @@ def _passing_report() -> dict[str, object]:
         "click_chat_to_today_preserved_session": True,
         "click_today_to_body_preserved_session": True,
         "click_body_to_chat_preserved_session": True,
+        "click_chat_to_data_preserved_session": True,
         "chat_return_preserved_latest_message": True,
+        "data_inspect_summary_rendered": True,
+        "data_reload_preserved_session": True,
         "navigation_fetch_sequence_checked": True,
         "latency_observability_present": True,
         "estimate_post_context_scoped": True,
@@ -33,11 +38,15 @@ def _passing_report() -> dict[str, object]:
             "chat_to_today": 140,
             "today_to_body": 130,
             "body_to_chat": 150,
+            "chat_to_data": 140,
+            "reload_data": 120,
             "total_sequence": 3800,
         },
         "fetch_counts_by_endpoint": {
             "/estimate": message_count,
+            "/accurate-intake/local-debug-session": 1,
             "/accurate-intake/chat-history": 2,
+            "/accurate-intake/local-data-hygiene": 2,
             "/today/current-budget": 1,
             "/body-plan/active": 1,
         },
@@ -51,6 +60,7 @@ def _passing_report() -> dict[str, object]:
         "product_readiness_claimed": False,
         "private_self_use_approved": False,
         "fetch_sequence": [
+            {"url": "/accurate-intake/local-debug-session", "method": "GET"},
             {"url": "/accurate-intake/chat-history?user_id=u", "method": "GET"},
             *[
                 {
@@ -60,6 +70,7 @@ def _passing_report() -> dict[str, object]:
                 }
                 for _ in range(message_count)
             ],
+            {"url": "/accurate-intake/local-data-hygiene", "method": "GET"},
             {"url": "/today/current-budget?user_id=u", "method": "GET"},
             {"url": "/body-plan/active?user_id=u", "method": "GET"},
         ],
@@ -121,7 +132,10 @@ def test_long_session_navigation_validator_rejects_shallow_or_broken_navigation(
     report["click_chat_to_today_preserved_session"] = False
     report["click_today_to_body_preserved_session"] = False
     report["click_body_to_chat_preserved_session"] = False
+    report["click_chat_to_data_preserved_session"] = False
     report["chat_return_preserved_latest_message"] = False
+    report["data_inspect_summary_rendered"] = False
+    report["data_reload_preserved_session"] = False
     report["navigation_fetch_sequence_checked"] = False
 
     status, blockers = module._validate(report)
@@ -134,12 +148,17 @@ def test_long_session_navigation_validator_rejects_shallow_or_broken_navigation(
     assert "chat_to_today_session_not_preserved" in blockers
     assert "today_to_body_session_not_preserved" in blockers
     assert "body_to_chat_session_not_preserved" in blockers
+    assert "chat_to_data_session_not_preserved" in blockers
     assert "chat_return_latest_message_missing" in blockers
+    assert "data_inspect_summary_not_rendered" in blockers
+    assert "data_reload_session_not_preserved" in blockers
     assert "navigation_fetch_sequence_not_checked" in blockers
 
 
 def test_long_session_navigation_validator_rejects_missing_scope_or_latency_observability() -> None:
     report = _passing_report()
+    report["launcher_friendly_route_used"] = False
+    report["local_debug_session_cookie_established"] = False
     report["latency_observability_present"] = False
     report["estimate_post_context_scoped"] = False
     report["chat_history_fetch_context_scoped"] = False
@@ -151,6 +170,8 @@ def test_long_session_navigation_validator_rejects_missing_scope_or_latency_obse
 
     assert status == "fail"
     assert "latency_observability_missing" in blockers
+    assert "launcher_friendly_route_not_used" in blockers
+    assert "local_debug_session_cookie_not_established" in blockers
     assert "estimate_post_context_not_scoped" in blockers
     assert "chat_history_fetch_context_not_scoped" in blockers
     assert "current_day_session_scope_not_checked" in blockers

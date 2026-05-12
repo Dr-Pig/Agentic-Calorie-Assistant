@@ -73,6 +73,8 @@ def test_desktop_entry_page_is_local_hub_not_runtime_truth_owner() -> None:
     assert 'id="local-debug-token"' in html
     assert 'id="establish-local-session"' in html
     assert 'localDebugSession: "/accurate-intake/local-debug-session"' in html
+    assert "async function checkLocalDebugSession()" in html
+    assert "checkLocalDebugSession();" in html
     assert "window.establishLocalDebugSessionForSmoke = establishLocalDebugSession;" in html
     assert 'body: JSON.stringify({ token })' in html
     assert "localStorage" not in html
@@ -96,9 +98,19 @@ def test_data_page_is_local_only_export_surface_not_truth_or_readiness_surface()
     assert 'id="backup-data"' in html
     assert 'id="export-data"' in html
     assert 'id="data-status"' in html
-    assert "Inspect DB" in html
-    assert "Create backup" in html
+    assert "Inspect local data" in html
+    assert "Backup local SQLite" in html
     assert "Export review bundle" in html
+    assert "Data backup & export" in html
+    assert "Inspect local data shows where the local SQLite and review evidence live." in html
+    assert "Backup local SQLite copies the local database before risky manual changes." in html
+    assert "Export review bundle packages feedback, traces, and local metadata for later review." in html
+    assert "HTTP 403 usually means this page was opened before the local session cookie was established." in html
+    assert "function dataErrorMessage(kind, error)" in html
+    assert "function friendlyPageUrl(page)" in html
+    assert 'friendlyPageUrl("data")' in html
+    assert "reconnect_attempted" in html
+    assert "error.status = response.status;" in html
     assert 'id="data-action-summary"' in html
     assert 'id="result-operation"' in html
     assert 'id="result-db-path"' in html
@@ -426,6 +438,9 @@ def test_feedback_page_is_local_only_trace_linked_capture_without_frontend_seman
     assert 'el("meal-title-context").textContent = params.get("meal_title") || "No meal selected";' in html
     assert 'meal_id: el("meal-id").value.trim() || null' in html
     assert 'function sourcePage()' in html
+    assert "function friendlyPageUrl(page)" in html
+    assert 'friendlyPageUrl("feedback")' in html
+    assert "reconnect_attempted" in html
     assert 'page: sourcePage()' in html
     assert 'source_page: sourcePage()' in html
     assert 'feedback_route: window.location.pathname' in html
@@ -443,6 +458,30 @@ def test_feedback_page_is_local_only_trace_linked_capture_without_frontend_seman
         "fooddb_truth_updated=true",
         "product_readiness_claimed=true",
         "private_self_use_approved=true",
+    ]
+    for fragment in forbidden:
+        assert fragment not in html
+
+
+def test_review_page_recovers_missing_local_session_without_truth_promotion() -> None:
+    html = _html(REVIEW)
+
+    assert 'data-page-id="accurate-intake-review-page-v1"' in html
+    assert 'data-surface-role="dogfood-review-queue"' in html
+    assert 'data-feedback-is-product-truth="false"' in html
+    assert "function friendlyPageUrl(page)" in html
+    assert 'friendlyPageUrl("review")' in html
+    assert "reconnect_attempted" in html
+    assert "function reconnectThroughFriendlyRoute(error)" in html
+    assert "Review queue unavailable" in html
+
+    forbidden = [
+        "fooddb_truth_updated=true",
+        "product_readiness_claimed=true",
+        "private_self_use_approved=true",
+        "feedback_can_create_product_truth = true",
+        "feedback_can_create_fooddb_truth = true",
+        "feedback_can_create_eval_truth = true",
     ]
     for fragment in forbidden:
         assert fragment not in html
