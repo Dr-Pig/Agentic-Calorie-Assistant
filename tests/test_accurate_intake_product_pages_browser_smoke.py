@@ -103,6 +103,23 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "today_user_url_state_preserved_after_user_change": True,
         "today_reload_preserved_user_id": True,
         "today_summary_rendered": True,
+        "today_backend_same_truth_checked": True,
+        "today_read_model_render_values": {
+            "budget_kcal": "1550",
+            "consumed_kcal": "400",
+            "remaining_kcal": "1150",
+            "macro_state": "guarded",
+            "macro_guard_reason": "no_macro_data",
+            "meal_list_text": "??LINE 400 kcal",
+        },
+        "today_read_model_backend_values": {
+            "budget_kcal": "1550",
+            "consumed_kcal": "400",
+            "remaining_kcal": "1150",
+            "show_macro": False,
+            "macro_guard_reason": "no_macro_data",
+            "meal_count": 1,
+        },
         "today_meal_list_rendered": True,
         "today_meal_feedback_context_checked": True,
         "today_meal_feedback_context_values": {
@@ -279,6 +296,25 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
             "sidecar_evidence_can_create_fooddb_truth": False,
             "sidecar_evidence_can_create_eval_truth": False,
         },
+        "data_action_summary_rendered": True,
+        "data_action_summary_values": {
+            "operation": "export",
+            "status": "pass",
+            "db_path": "C:\\dogfood\\accurate-intake.sqlite3",
+            "backup_path": "--",
+            "export_path": "C:\\dogfood\\exports\\review.zip",
+            "manifest_path": "C:\\dogfood\\exports\\manifest.json",
+            "sidecars": "feedback 2; review 1",
+        },
+        "data_action_summary_expected_values": {
+            "operation": "export",
+            "status": "pass",
+            "db_path": "C:\\dogfood\\accurate-intake.sqlite3",
+            "backup_path": "--",
+            "export_path": "C:\\dogfood\\exports\\review.zip",
+            "manifest_path": "C:\\dogfood\\exports\\manifest.json",
+            "sidecars": "feedback 2; review 1",
+        },
         "data_non_claims": {
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
@@ -302,7 +338,23 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
             "goal": "Lose weight",
             "weight_history": f"{local_date} | 70.4 kg",
         },
+        "body_plan_backend_values": {
+            "daily_target": "1550 kcal",
+            "tdee": "1819 kcal",
+            "current_weight": "70 kg",
+            "target_weight": "65 kg",
+            "activity": "light",
+            "goal": "Lose weight",
+        },
         "body_budget_read_model_values": {
+            "active_target": "1550 kcal",
+            "consumed": "400 kcal",
+            "remaining": "1150 kcal",
+            "estimated_deficit": "269 kcal",
+            "effective_budget": "1550 kcal",
+            "weekly_progress": "400 kcal consumed",
+        },
+        "body_budget_backend_values": {
             "active_target": "1550 kcal",
             "consumed": "400 kcal",
             "remaining": "1150 kcal",
@@ -479,6 +531,20 @@ def test_product_pages_browser_smoke_validator_requires_today_meal_feedback_cont
     assert "today_meal_feedback_context_mismatch:report_link_present" in blockers
 
 
+def test_product_pages_browser_smoke_validator_rejects_today_backend_drift() -> None:
+    report = _passing_report()
+    rendered = dict(report["today_read_model_render_values"])
+    rendered["remaining_kcal"] = "999"
+    report["today_read_model_render_values"] = rendered
+    report["today_backend_same_truth_checked"] = False
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "today_backend_same_truth_not_checked" in blockers
+    assert "today_read_model_value_mismatch:remaining_kcal" in blockers
+
+
 def test_product_pages_browser_smoke_validator_requires_data_hygiene_loop() -> None:
     report = _passing_report()
     report["data_page_loaded"] = False
@@ -493,6 +559,20 @@ def test_product_pages_browser_smoke_validator_requires_data_hygiene_loop() -> N
     assert "data_hygiene_not_inspected" in blockers
     assert "data_backup_not_created" in blockers
     assert "data_export_not_created" in blockers
+
+
+def test_product_pages_browser_smoke_validator_rejects_data_action_summary_drift() -> None:
+    report = _passing_report()
+    values = dict(report["data_action_summary_values"])
+    values["status"] = "stale"
+    report["data_action_summary_values"] = values
+    report["data_action_summary_rendered"] = False
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "data_action_summary_not_rendered" in blockers
+    assert "data_action_summary_value_mismatch:status" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_data_truth_or_import_claims() -> None:
