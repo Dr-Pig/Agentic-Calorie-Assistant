@@ -126,8 +126,8 @@ The current baseline is useful for pipeline validation but too narrow for realis
 
 ```yaml
 current_packet_ready_profile:
-  packet_ready_records: 558
-  exact_brand_item_macro_complete: 110
+  packet_ready_records: 566
+  exact_brand_item_macro_complete: 118
   generic_common_serving_anchor: 214
   listed_component_anchor: 234
   source_evidence_only_tfda_rows: 848
