@@ -24,6 +24,7 @@ def test_memory_record_closeout_plan_records_completed_lab_chain() -> None:
     assert plan["completion_evidence"] == [
         "advanced_product_lab_memory_record_closure_pack",
         "advanced_product_lab_activation_wall_audit",
+        "advanced_product_lab_live_edd_decision_pack",
         "runtime_lab_closure_alignment",
     ]
     assert plan["remaining_before_real_user_activation"] == [

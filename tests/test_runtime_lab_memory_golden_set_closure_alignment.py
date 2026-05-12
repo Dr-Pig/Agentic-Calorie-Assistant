@@ -26,6 +26,7 @@ def test_runtime_lab_memory_golden_set_tracks_closure_artifacts() -> None:
         "advanced_product_lab_memory_record_holdout_report",
         "advanced_product_lab_memory_record_closure_pack",
         "advanced_product_lab_activation_wall_audit",
+        "advanced_product_lab_live_edd_decision_pack",
     ]
     assert alignment["next_required_slice"] == (
         "real_dogfood_trace_calibration_when_available"

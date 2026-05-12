@@ -16,6 +16,7 @@ required_final_runner: scripts/run_advanced_product_lab_memory_record_closure_pi
 completion_evidence:
   - advanced_product_lab_memory_record_closure_pack
   - advanced_product_lab_activation_wall_audit
+  - advanced_product_lab_live_edd_decision_pack
   - runtime_lab_closure_alignment
 legacy_lab_memory_path_policy:
   primary_runtime_lab_path: MemoryRecord
