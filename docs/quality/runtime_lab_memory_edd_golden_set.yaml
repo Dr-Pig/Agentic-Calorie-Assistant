@@ -1,5 +1,5 @@
 artifact_type: runtime_lab_memory_edd_golden_set
-version: 1.1
+version: 1.2
 status: active_fixture_contract
 owner: MemoryRuntimeArchitecture
 consumer: runtime_lab_memory_slices
@@ -84,6 +84,37 @@ live_tests:
   stage_g_recommendation_with_blockers: milestone_required
   stage_h_proactive_feedback_projection: milestone_required
   stage_i_integrated_e2e_lab_loop: milestone_required
+runtime_lab_closure_alignment:
+  status: active_runtime_lab_alignment
+  complete_lab_allowed: true
+  mainline_activation_enabled: false
+  required_artifacts:
+    - advanced_product_lab_memory_record_dogfood_summary
+    - advanced_product_lab_memory_record_readiness_report
+    - advanced_product_lab_memory_record_integrated_e2e_artifact
+    - advanced_product_lab_memory_record_live_diagnostic_artifact
+    - advanced_product_lab_memory_record_holdout_report
+    - advanced_product_lab_memory_record_closure_pack
+    - advanced_product_lab_activation_wall_audit
+  negative_holdout_contract:
+    case_count: 6
+    ignored_case_ids:
+      - negative-dessert-ignored
+    strength_by_record_id:
+      negative-bitter-melon: block
+      negative-spicy: block
+      negative-vegetarian: downrank
+      negative-bland: downrank
+      negative-eggplant: downrank
+    confirmed_negative_before_positive_boost: true
+    new_memory_mechanism_required: false
+  merge_back_policy:
+    lab_enabled_may_be_true: true
+    mainline_activation_enabled_must_be_false: true
+    self_use_v1_affected_must_be_false: true
+    durable_product_memory_written_must_be_false: true
+    production_scheduler_delivery_allowed_must_be_false: true
+  next_required_slice: lab_debt_retirement_plan
 rubric:
   - dimension_id: extraction
     grader_type: deterministic_trace_contract
