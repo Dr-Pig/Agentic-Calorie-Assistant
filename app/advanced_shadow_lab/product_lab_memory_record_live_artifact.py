@@ -5,6 +5,9 @@ from typing import Any, Mapping
 
 from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAGS
 from app.advanced_shadow_lab.model_profiles import advanced_lab_model_profile_policy
+from app.advanced_shadow_lab.product_lab_memory_record_live_evidence import (
+    attach_live_evidence_status,
+)
 from app.shared.infra.json_artifacts import write_json_artifact
 
 
@@ -98,6 +101,7 @@ def blocked_not_invoked_artifact(
             "blockers": [reason],
         }
     )
+    attach_live_evidence_status(artifact)
     write_json_artifact(output_path, artifact)
     return artifact
 

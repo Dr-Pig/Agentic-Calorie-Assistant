@@ -91,6 +91,14 @@ def test_memory_record_closure_pack_aggregates_complete_lab_chain(
         "activation_wall_audit",
         "lab_debt_retirement_plan",
     ]
+    assert pack["provider_contract_diagnostic"]["diagnostic_evidence_class"] == (
+        "fake_contract"
+    )
+    assert pack["provider_contract_diagnostic"]["fake_contract_pass"] is True
+    assert pack["provider_contract_diagnostic"]["live_grokfast_diagnostic_pass"] is False
+    assert pack["provider_contract_diagnostic"]["live_milestone_status"] == (
+        "not_satisfied_fake_contract"
+    )
     assert "raw_user_utterance" not in json.dumps(pack, ensure_ascii=False)
 
 
