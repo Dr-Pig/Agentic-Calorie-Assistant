@@ -96,6 +96,7 @@ runtime_lab_closure_alignment:
     - advanced_product_lab_memory_record_holdout_report
     - advanced_product_lab_memory_record_closure_pack
     - advanced_product_lab_activation_wall_audit
+    - advanced_product_lab_live_edd_decision_pack
   negative_holdout_contract:
     case_count: 6
     ignored_case_ids:
