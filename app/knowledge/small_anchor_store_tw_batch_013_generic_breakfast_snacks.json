@@ -1,0 +1,1344 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_breakfast_shaobing_one",
+      "canonical_name": "燒餅",
+      "aliases": [
+        "燒餅",
+        "shaobing one",
+        "sesame flatbread one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 90,
+        "label": "one 90g shaobing serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 291,
+      "kcal_range": [
+        220,
+        390
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R2700401_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 323.0,
+          "tfda_integrated_code": "R2700401",
+          "tfda_sample_name": "燒餅"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R2700401",
+        "nutrient": "熱量",
+        "raw_row_hash": "2a2b272e65da00c67ae90dcba14a1c848fc24201458eee8a2fb7ad7c5053b5d3"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_hot_dog_2pc",
+      "canonical_name": "熱狗",
+      "aliases": [
+        "熱狗",
+        "hot dog 2 pieces",
+        "two hot dogs"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 54,
+        "label": "two 27g hot dog pieces",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 139,
+      "kcal_range": [
+        100,
+        200
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R5300501_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 257.0,
+          "tfda_integrated_code": "R5300501",
+          "tfda_sample_name": "熱狗"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R5300501",
+        "nutrient": "熱量",
+        "raw_row_hash": "46cbfba76f505c3a997e1d45eaac1b4dc24736912d9fd9f20f8255ab8ac051d1"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_baked_pudding_cup",
+      "canonical_name": "烤布丁",
+      "aliases": [
+        "烤布丁",
+        "baked pudding cup",
+        "baked pudding"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 126,
+        "label": "one 126g baked pudding cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 174,
+      "kcal_range": [
+        130,
+        230
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q2102201_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 138.0,
+          "tfda_integrated_code": "Q2102201",
+          "tfda_sample_name": "烤布丁"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q2102201",
+        "nutrient": "熱量",
+        "raw_row_hash": "ccb3f58659198eae28fe2375cac7a9c74dee31d8e58d5de37fdd44d308d0130f"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_yellow_pudding_cup",
+      "canonical_name": "黃布丁",
+      "aliases": [
+        "黃布丁",
+        "yellow pudding cup",
+        "pudding cup"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g yellow pudding cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 110,
+      "kcal_range": [
+        80,
+        160
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q2102301_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 110.0,
+          "tfda_integrated_code": "Q2102301",
+          "tfda_sample_name": "黃布丁"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q2102301",
+        "nutrient": "熱量",
+        "raw_row_hash": "6023850f901c2f64aecfe5b7a0bc7383a3b53d7c99d32d1373178434286792fe"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_grass_jelly_honey_cup",
+      "canonical_name": "仙草蜜",
+      "aliases": [
+        "仙草蜜",
+        "grass jelly honey drink cup",
+        "grass jelly drink"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 500,
+        "label": "one 500g grass jelly honey drink cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 175,
+      "kcal_range": [
+        120,
+        250
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_O0200201_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 35.0,
+          "tfda_integrated_code": "O0200201",
+          "tfda_sample_name": "仙草蜜"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "O0200201",
+        "nutrient": "熱量",
+        "raw_row_hash": "3fb5bd06043c1cf0fac95da858c98329f9eb361d5c9b2660b708f62112d368ca"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_customizable_drink",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_apple_black_tea_cup",
+      "canonical_name": "紅茶(蘋果)",
+      "aliases": [
+        "紅茶(蘋果)",
+        "apple black tea cup",
+        "apple black tea"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 500,
+        "label": "one 500g apple black tea cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 185,
+      "kcal_range": [
+        130,
+        260
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_O0700701_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 37.0,
+          "tfda_integrated_code": "O0700701",
+          "tfda_sample_name": "紅茶(蘋果)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "O0700701",
+        "nutrient": "熱量",
+        "raw_row_hash": "5f98a3a3eda8712767d698755ea3abf95e12ac8fe76269d3bdf1fffa0907a4f5"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_customizable_drink",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_sweet_green_tea_cup",
+      "canonical_name": "綠茶",
+      "aliases": [
+        "綠茶",
+        "sweet green tea cup",
+        "green tea cup"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 500,
+        "label": "one 500g sweet green tea cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 110,
+      "kcal_range": [
+        70,
+        180
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_O0701401_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 22.0,
+          "tfda_integrated_code": "O0701401",
+          "tfda_sample_name": "綠茶"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "O0701401",
+        "nutrient": "熱量",
+        "raw_row_hash": "074c8695398fefab6e20ac95948d3f07d6530aae1b28f4651da4f845d9175c95"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_customizable_drink",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_yakult_green_tea_cup",
+      "canonical_name": "多多綠茶(全糖)",
+      "aliases": [
+        "多多綠茶(全糖)",
+        "yakult green tea cup",
+        "yogurt green tea cup"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 500,
+        "label": "one 500g yakult green tea cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 245,
+      "kcal_range": [
+        170,
+        340
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_O0702701_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 49.0,
+          "tfda_integrated_code": "O0702701",
+          "tfda_sample_name": "多多綠茶(全糖)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "O0702701",
+        "nutrient": "熱量",
+        "raw_row_hash": "170d65104c40a5b398b3756cac8ad617f7e6f093baecdf30a8b4fca94ec25270"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "high_variance_customizable_drink_or_meal",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_two_in_one_coffee_packet",
+      "canonical_name": "咖啡沖泡包(二合一)",
+      "aliases": [
+        "咖啡沖泡包(二合一)",
+        "two-in-one coffee packet",
+        "2 in 1 coffee packet"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "packet",
+        "portion_quantity": 1,
+        "portion_grams": 12,
+        "label": "one 12g two-in-one coffee packet before added water",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 59,
+      "kcal_range": [
+        45,
+        80
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_O0900201_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 491.0,
+          "tfda_integrated_code": "O0900201",
+          "tfda_sample_name": "咖啡沖泡包(二合一)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "O0900201",
+        "nutrient": "熱量",
+        "raw_row_hash": "c18259b20dc7ba446d16a8145f3ccbd3eddbb100663d106680e56b93f086ee75"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "low_fixed_packet",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_bulk_rice_milk_cup",
+      "canonical_name": "米漿(散裝)",
+      "aliases": [
+        "米漿(散裝)",
+        "rice milk cup",
+        "bulk rice milk cup"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 350,
+        "label": "one 350g rice milk cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 217,
+      "kcal_range": [
+        160,
+        300
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R1300101_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 62.0,
+          "tfda_integrated_code": "R1300101",
+          "tfda_sample_name": "米漿(散裝)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R1300101",
+        "nutrient": "熱量",
+        "raw_row_hash": "1c18ffc4cd486d9458db6a995f0e2a5371e3a42c5bfdd0c9c23f6ca4e939bb87"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_customizable_drink",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_brown_rice_milk_cup",
+      "canonical_name": "糙米漿",
+      "aliases": [
+        "糙米漿",
+        "brown rice milk cup",
+        "brown rice drink cup"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 350,
+        "label": "one 350g brown rice milk cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 249,
+      "kcal_range": [
+        180,
+        340
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R1300301_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 71.0,
+          "tfda_integrated_code": "R1300301",
+          "tfda_sample_name": "糙米漿"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R1300301",
+        "nutrient": "熱量",
+        "raw_row_hash": "5c296150e7d246bccf6707b7141184d241bcdee01ed9b048ad5847cebf635082"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_customizable_drink",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_black_soy_milk_cup",
+      "canonical_name": "黑豆漿",
+      "aliases": [
+        "黑豆漿",
+        "black soy milk cup",
+        "black soybean milk cup"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 350,
+        "label": "one 350g black soy milk cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 137,
+      "kcal_range": [
+        100,
+        210
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R5000401_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 39.0,
+          "tfda_integrated_code": "R5000401",
+          "tfda_sample_name": "黑豆漿"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R5000401",
+        "nutrient": "熱量",
+        "raw_row_hash": "b853ad817d3158fceb61655d219d769bf81756c82e4bee750a7f14bf30c78b49"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_customizable_drink",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_soy_milk_yogurt_cup",
+      "canonical_name": "豆漿優酪乳",
+      "aliases": [
+        "豆漿優酪乳",
+        "soy milk yogurt drink cup",
+        "soy yogurt drink cup"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 350,
+        "label": "one 350g soy milk yogurt drink cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 245,
+      "kcal_range": [
+        180,
+        330
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R5000501_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 70.0,
+          "tfda_integrated_code": "R5000501",
+          "tfda_sample_name": "豆漿優酪乳"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R5000501",
+        "nutrient": "熱量",
+        "raw_row_hash": "6d7a7c72dd0f25f47cabd12181e810911133ef33cf5980325541e0f3071b3156"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_customizable_drink",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_coffee_jelly_cup",
+      "canonical_name": "咖啡凍",
+      "aliases": [
+        "咖啡凍",
+        "coffee jelly cup",
+        "coffee jelly"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 200,
+        "label": "one 200g coffee jelly cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 150,
+      "kcal_range": [
+        100,
+        220
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q2100201_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 75.0,
+          "tfda_integrated_code": "Q2100201",
+          "tfda_sample_name": "咖啡凍"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q2100201",
+        "nutrient": "熱量",
+        "raw_row_hash": "6a7939cecd5aa0ade0b05e76a7bddf18204e5c3257b4eb75a1a1fdba372061cd"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_yokan_one",
+      "canonical_name": "羊羹",
+      "aliases": [
+        "羊羹",
+        "yokan one piece",
+        "sweet bean jelly one piece"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 45,
+        "label": "one 45g yokan piece",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 130,
+      "kcal_range": [
+        95,
+        180
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q2106101_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 289.0,
+          "tfda_integrated_code": "Q2106101",
+          "tfda_sample_name": "羊羹"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q2106101",
+        "nutrient": "熱量",
+        "raw_row_hash": "c181df124a4e55506625514e911e7036b748244976b065c32c3aa2d8ff842ec3"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "low_fixed_snack",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_salted_peanuts_serving",
+      "canonical_name": "鹽酥花生仁",
+      "aliases": [
+        "鹽酥花生仁",
+        "salted peanuts serving",
+        "salted peanuts 30g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one 30g salted peanuts serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 167,
+      "kcal_range": [
+        130,
+        220
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R7101501_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 557.0,
+          "tfda_integrated_code": "R7101501",
+          "tfda_sample_name": "鹽酥花生仁"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R7101501",
+        "nutrient": "熱量",
+        "raw_row_hash": "a9fbe83196e670497243f24f969f7277024970ff8d8b809d09d27290d847f361"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "low_fixed_snack",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_salted_broad_beans_serving",
+      "canonical_name": "鹽酥蠶豆",
+      "aliases": [
+        "鹽酥蠶豆",
+        "salted broad beans serving",
+        "salted broad beans 30g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one 30g salted broad beans serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 144,
+      "kcal_range": [
+        105,
+        200
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R4900701_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 481.0,
+          "tfda_integrated_code": "R4900701",
+          "tfda_sample_name": "鹽酥蠶豆"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R4900701",
+        "nutrient": "熱量",
+        "raw_row_hash": "e60e65f43eb9797a3443fe06825c8a32407ba50b46ca846050bc628f4df7ff2e"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "low_fixed_snack",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_bakery_pineapple_bun_one",
+      "canonical_name": "菠蘿麵包",
+      "aliases": [
+        "菠蘿麵包",
+        "pineapple bun one",
+        "bolo bun one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 77,
+        "label": "one 77g pineapple bun",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 291,
+      "kcal_range": [
+        220,
+        380
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q1000801_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 378.0,
+          "tfda_integrated_code": "Q1000801",
+          "tfda_sample_name": "菠蘿麵包"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q1000801",
+        "nutrient": "熱量",
+        "raw_row_hash": "de4a7a47190e7455ee0c3a45c6335660a5e120fe775e73b5706a5c90eaf7de54"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_bakery_raisin_custard_bread_one",
+      "canonical_name": "葡萄乾奶酥麵包",
+      "aliases": [
+        "葡萄乾奶酥麵包",
+        "raisin custard bread one",
+        "raisin milk custard bread one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 88,
+        "label": "one 88g raisin custard bread",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 263,
+      "kcal_range": [
+        200,
+        350
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q1000901_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 306.0,
+          "tfda_integrated_code": "Q1000901",
+          "tfda_sample_name": "葡萄乾奶酥麵包"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q1000901",
+        "nutrient": "熱量",
+        "raw_row_hash": "cc1d23a55a9893a7fcf444d9c84b5d32cffbe55f1bcf42157262ed545a0f6b3d"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_bakery_croissant_one",
+      "canonical_name": "可頌",
+      "aliases": [
+        "可頌",
+        "croissant one",
+        "plain croissant one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 39,
+        "label": "one 39g croissant",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 175,
+      "kcal_range": [
+        130,
+        240
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q0700101_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 452.0,
+          "tfda_integrated_code": "Q0700101",
+          "tfda_sample_name": "可頌"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q0700101",
+        "nutrient": "熱量",
+        "raw_row_hash": "4cd237586c3646cb94a7c289b76d7fbdca7e4476d5d5cb41416c0ed9a5e4243d"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_dataset_8543_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    }
+  ]
+}
