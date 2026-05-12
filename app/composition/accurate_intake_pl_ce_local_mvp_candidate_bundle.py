@@ -16,6 +16,7 @@ from app.composition.accurate_intake_local_candidate_bundle_validators import (
     runtime_replay_blockers,
     validate_input_artifacts,
 )
+from app.composition import current_shell_compatibility_ids as cs_ids
 
 
 REQUIRED_INPUTS = (
@@ -99,15 +100,23 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
         )
     )
     blockers.extend(fixture_full_product_loop_blockers(fixture_full_product_loop))
-    status = "pl_ce_local_mvp_candidate_ready_for_human_review" if not blockers else "blocked"
+    status = (
+        cs_ids.CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS
+        if not blockers
+        else "blocked"
+    )
     return _json_safe(
         {
             "artifact_schema_version": "1.0",
-            "artifact_type": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
+            "artifact_type": cs_ids.CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE,
             "status": status,
             "activation_gate_status": "blocked_pending_human_and_browser_activation",
             "generated_at_utc": datetime.now(UTC).isoformat(),
-            "claim_scope": "pl_ce_local_mvp_candidate_bundle",
+            "claim_scope": cs_ids.CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_CLAIM_SCOPE,
+            "legacy_artifact_type_aliases": list(cs_ids.LEGACY_LOCAL_MVP_ARTIFACT_TYPES),
+            "legacy_status_aliases": list(cs_ids.LEGACY_LOCAL_MVP_READY_STATUSES),
+            "legacy_claim_scope_aliases": list(cs_ids.LEGACY_LOCAL_MVP_CLAIM_SCOPES),
+            "legacy_group_id_aliases": list(cs_ids.LEGACY_LOCAL_MVP_GROUP_IDS),
             "required_inputs": list(REQUIRED_INPUTS),
             "blockers": blockers,
             "activation_gap_signals": activation_gap_signals,
