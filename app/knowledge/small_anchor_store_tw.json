@@ -7513,6 +7513,756 @@
         "runtime_value_source": "tfda_per_100g_scaled_by_common_serving_portion_policy",
         "external_source_role": "source_evidence_only_not_common_serving"
       }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_egg_dumpling",
+      "canonical_name": "蛋餃",
+      "aliases": [
+        "蛋餃",
+        "火鍋蛋餃",
+        "冷凍蛋餃"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one hot pot egg dumpling",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 55,
+      "kcal_range": [
+        40,
+        80
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_1ec4020f2e40",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 182.0735,
+          "canonical_name": "冷凍蛋餃"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_1ec4020f2e40",
+        "raw_row_hash": "7316f6ba3bbfc37f5e22027cf17f7d34538cd93ccbe4a40964461bc1a9542f5e"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus listed-component portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_batch",
+        "not_exact_card",
+        "component_only"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_shaomai",
+      "canonical_name": "燒賣",
+      "aliases": [
+        "燒賣",
+        "火鍋燒賣",
+        "冷凍燒賣"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one shaomai piece",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 55,
+      "kcal_range": [
+        40,
+        80
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_e1e0dd04c618",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 183.3872,
+          "canonical_name": "冷凍燒賣"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_e1e0dd04c618",
+        "raw_row_hash": "57a3b22952e8a9da0493a54fbeac8aa3712e4d89fd8a54b6bec3142db8f609a3"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus listed-component portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_batch",
+        "not_exact_card",
+        "component_only"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_fish_dumpling",
+      "canonical_name": "魚餃",
+      "aliases": [
+        "魚餃",
+        "火鍋魚餃",
+        "冷凍魚餃"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 25,
+        "label": "one fish dumpling",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 70,
+      "kcal_range": [
+        50,
+        95
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_bc3bb3f66f2c",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 277.4837,
+          "canonical_name": "冷凍魚餃"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_bc3bb3f66f2c",
+        "raw_row_hash": "7fc26e5b72e7aa2f1272f468b0e024114acc6db24188060310eb89141dc8e4a4"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus listed-component portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_batch",
+        "not_exact_card",
+        "component_only"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_shrimp_dumpling",
+      "canonical_name": "蝦餃",
+      "aliases": [
+        "蝦餃",
+        "火鍋蝦餃",
+        "冷凍蝦餃"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 25,
+        "label": "one shrimp dumpling",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 68,
+      "kcal_range": [
+        50,
+        95
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_a2803656678a",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 273.3348,
+          "canonical_name": "冷凍蝦餃"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_a2803656678a",
+        "raw_row_hash": "97b070c38913efff5d1bae5fc3e2f40f527698936d3b6d571fe501e542240074"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus listed-component portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_batch",
+        "not_exact_card",
+        "component_only"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_crystal_dumpling",
+      "canonical_name": "水晶餃",
+      "aliases": [
+        "水晶餃",
+        "火鍋水晶餃",
+        "冷凍水晶餃"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 25,
+        "label": "one crystal dumpling",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 47,
+      "kcal_range": [
+        35,
+        70
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_d4637ac7bbaa",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 188.7357,
+          "canonical_name": "冷凍,水晶餃"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_d4637ac7bbaa",
+        "raw_row_hash": "093da0f94bbd6813f50d8a4b800ccbd0e959ca175e5fd096e9e06621a007e830"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus listed-component portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_batch",
+        "not_exact_card",
+        "component_only"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_squid_dumpling",
+      "canonical_name": "花枝餃",
+      "aliases": [
+        "花枝餃",
+        "火鍋花枝餃",
+        "冷凍花枝餃"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 25,
+        "label": "one squid dumpling",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 44,
+      "kcal_range": [
+        35,
+        65
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_fb9c4d675b91",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 176.9609,
+          "canonical_name": "冷凍花枝餃"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_fb9c4d675b91",
+        "raw_row_hash": "4922f48cc50658ae48388e84cb299d9b4a1d3c20fe0cf2432f2bc24d51610f59"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus listed-component portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_batch",
+        "not_exact_card",
+        "component_only"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_mushroom_dumpling",
+      "canonical_name": "香菇餃",
+      "aliases": [
+        "香菇餃",
+        "火鍋香菇餃",
+        "冷凍香菇餃"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 25,
+        "label": "one mushroom dumpling",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 58,
+      "kcal_range": [
+        40,
+        85
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_6db440b1d582",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 230.5814,
+          "canonical_name": "冷凍香菇餃"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_6db440b1d582",
+        "raw_row_hash": "bd6044019823ad275dd45e953888501809a34b3377927dd7bb6a49fd818a3e27"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus listed-component portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_batch",
+        "not_exact_card",
+        "component_only"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_crab_stick",
+      "canonical_name": "蟹味棒",
+      "aliases": [
+        "蟹味棒",
+        "火鍋蟹味棒",
+        "冷凍蟹味棒"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "stick",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one crab stick",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 24,
+      "kcal_range": [
+        15,
+        40
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_292edb21b413",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 117.7915,
+          "canonical_name": "冷凍蟹味棒"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_292edb21b413",
+        "raw_row_hash": "3371f967eab52455f3451393ee766c43fa452659b98ad7a9f5144c7c182a4e51"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus listed-component portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_batch",
+        "not_exact_card",
+        "component_only"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "low_variance_packaged_component",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_udon_noodle",
+      "canonical_name": "烏龍麵",
+      "aliases": [
+        "烏龍麵",
+        "火鍋烏龍麵",
+        "冷凍烏龍麵"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g udon component serving",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 126,
+      "kcal_range": [
+        90,
+        180
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_1ad9def46830",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 125.7064,
+          "canonical_name": "冷凍烏龍麵"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_1ad9def46830",
+        "raw_row_hash": "fe7698ea4f77b1613311d61057e5db99edd0fddb26dbb7794bfb6e29f81c22db"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus listed-component portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_batch",
+        "not_exact_card",
+        "component_only"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "portion_sensitive_starch_component",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_japanese_fried_tofu_skin",
+      "canonical_name": "日式炸豆皮",
+      "aliases": [
+        "日式炸豆皮",
+        "炸豆皮",
+        "火鍋豆皮"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 25,
+        "label": "one fried tofu skin piece",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 96,
+      "kcal_range": [
+        75,
+        130
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_957eb0f621ec",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 383.2854,
+          "canonical_name": "日式炸豆皮"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_957eb0f621ec",
+        "raw_row_hash": "a30d4badb7a10952047157fa4ab9311814d94b938aa0b218a85277429b454830"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus listed-component portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_batch",
+        "not_exact_card",
+        "component_only"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
     }
   ]
 }
