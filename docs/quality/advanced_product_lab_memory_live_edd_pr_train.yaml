@@ -4,8 +4,8 @@ status: active
 owner: MemoryRuntimeArchitecture
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 14
-dynamic_remaining_pr_count: 10
-last_completed_pr_number: 4
+dynamic_remaining_pr_count: 9
+last_completed_pr_number: 5
 current_mainline: advanced_product_lab_memory_live_edd
 is_detour: false
 mainline_blocker_being_removed: memory_is_simulated_complete_but_live_edd_not_decision_complete
@@ -196,11 +196,16 @@ last_merge_evidence:
       pull_request: 1132
       merge_commit: 9c12fc62ee1dccc815c42bc611a459e7e3268157
       result: grokfast_memory_extraction_golden_set_merged
-  latest_dynamic_estimate_after_merge: 10
+    - pr_number: 5
+      pull_request: 1134
+      merge_commit: 7a6a3bd877a99fa6fa30638b0862a202a2f9b450
+      result: grokfast_negative_preference_holdouts_merged
+  latest_dynamic_estimate_after_merge: 9
 estimate_notes:
   - Initial dynamic estimate is 14 PRs before PR1 merge.
   - After PR1 merge, remaining estimate moved to 13.
   - After PR2 merge, remaining estimate moved to 12.
   - After PR3 merge, remaining estimate moved to 11.
   - After PR4 merge, remaining estimate moved to 10.
+  - After PR5 merge, remaining estimate moved to 9.
   - Real dogfood calibration remains outside this count until user dogfood traces are available.
