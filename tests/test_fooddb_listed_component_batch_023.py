@@ -56,7 +56,7 @@ def test_listed_component_batch_023_enters_full_current_shell_with_hidden_macros
     )
     by_id = {str(item["item_id"]): item for item in artifact["packet_ready_items"]}
 
-    assert artifact["summary"]["packet_ready_lane_counts"]["listed_component"] == 194
+    assert artifact["summary"]["packet_ready_lane_counts"]["listed_component"] == 214
     expected = {
         "listed_item_pumpkin_100g": (69, [45, 100]),
         "listed_item_pork_large_intestine_100g": (198, [150, 280]),
