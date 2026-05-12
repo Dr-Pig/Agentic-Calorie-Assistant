@@ -1,0 +1,1144 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_five_spice_dried_tofu_100g",
+      "canonical_name": "\u4e94\u9999\u8c46\u5e72",
+      "aliases": [
+        "\u4e94\u9999\u8c46\u5e72 five spice dried tofu 100g",
+        "five spice dried tofu 100g",
+        "spiced dried tofu 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 100,
+        "portion_grams": 100,
+        "label": "five spice dried tofu 100g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 192,
+      "kcal_range": [
+        140,
+        270
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_399e1bac7499",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 192.358,
+          "tfda_sample_name": "\u4e94\u9999\u8c46\u5e72"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_b095b8c3e84f",
+        "raw_row_hash": "b5400071cb30aae35d371cfb5be512de70e5ef410fc9bc87fba7212f302b8671"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_crab_stick_50g",
+      "canonical_name": "\u51b7\u51cd\u87f9\u5473\u68d2",
+      "aliases": [
+        "\u51b7\u51cd\u87f9\u5473\u68d2 crab stick 50g",
+        "crab stick 50g",
+        "imitation crab stick 50g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 50,
+        "portion_grams": 50,
+        "label": "crab stick 50g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 59,
+      "kcal_range": [
+        40,
+        90
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_292edb21b413",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 117.7915,
+          "tfda_sample_name": "\u51b7\u51cd\u87f9\u5473\u68d2"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_5bc9cfb98e92",
+        "raw_row_hash": "3371f967eab52455f3451393ee766c43fa452659b98ad7a9f5144c7c182a4e51"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_milkfish_ball_100g",
+      "canonical_name": "\u51b7\u51cd\u8671\u76ee\u9b5a\u4e38",
+      "aliases": [
+        "\u51b7\u51cd\u8671\u76ee\u9b5a\u4e38 milkfish balls 100g",
+        "milkfish balls 100g",
+        "milkfish ball serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 100,
+        "portion_grams": 100,
+        "label": "milkfish balls 100g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 203,
+      "kcal_range": [
+        150,
+        285
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_a721bd05495e",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 202.7474,
+          "tfda_sample_name": "\u51b7\u51cd\u8671\u76ee\u9b5a\u4e38"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_6137f110559b",
+        "raw_row_hash": "174667e21ae9a43263e404b9cb11e76d6f5082f6dfdefda6f903341c9e5104a0"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_clam_ball_100g",
+      "canonical_name": "\u51b7\u51cd\u6587\u86e4\u4e38",
+      "aliases": [
+        "\u51b7\u51cd\u6587\u86e4\u4e38 clam balls 100g",
+        "clam balls 100g",
+        "clam ball serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 100,
+        "portion_grams": 100,
+        "label": "clam balls 100g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 211,
+      "kcal_range": [
+        155,
+        295
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_e1182e101571",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 210.6188,
+          "tfda_sample_name": "\u51b7\u51cd\u6587\u86e4\u4e38"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_9fe0fc55dba1",
+        "raw_row_hash": "813914418f3212626be5ddb51d79905b3319b09de48a0a5fa3930fb525ae3874"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_swordfish_ball_100g",
+      "canonical_name": "\u51b7\u51cd\u65d7\u9b5a\u4e38",
+      "aliases": [
+        "\u51b7\u51cd\u65d7\u9b5a\u4e38 swordfish balls 100g",
+        "swordfish balls 100g",
+        "swordfish ball serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 100,
+        "portion_grams": 100,
+        "label": "swordfish balls 100g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 158,
+      "kcal_range": [
+        115,
+        225
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_120e2dc3fd74",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 157.9898,
+          "tfda_sample_name": "\u51b7\u51cd\u65d7\u9b5a\u4e38"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_edeface9bafb",
+        "raw_row_hash": "e004a9b94e3a21ba36f65f6226a0042d402a60011020e8bb98888adf07c0694b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_cod_ball_100g",
+      "canonical_name": "\u51b7\u51cd\u9c48\u9b5a\u4e38",
+      "aliases": [
+        "\u51b7\u51cd\u9c48\u9b5a\u4e38 cod balls 100g",
+        "cod balls 100g",
+        "cod ball serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 100,
+        "portion_grams": 100,
+        "label": "cod balls 100g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 99,
+      "kcal_range": [
+        70,
+        145
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_792977867371",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 98.8567,
+          "tfda_sample_name": "\u51b7\u51cd\u9c48\u9b5a\u4e38"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_4743baf9f356",
+        "raw_row_hash": "78107d6512c24680aae8dedbc1d2fcd3d1676fb80510cdfd5e06550322a0922e"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_shrimp_ball_100g",
+      "canonical_name": "\u51b7\u51cd\u8766\u4e38",
+      "aliases": [
+        "\u51b7\u51cd\u8766\u4e38 shrimp balls 100g",
+        "shrimp balls 100g",
+        "shrimp ball serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 100,
+        "portion_grams": 100,
+        "label": "shrimp balls 100g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 123,
+      "kcal_range": [
+        90,
+        180
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_60796ff2a706",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 122.7462,
+          "tfda_sample_name": "\u51b7\u51cd\u8766\u4e38"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7fafb6357874",
+        "raw_row_hash": "5cb574a930fc1c6c5ffe0406e05e2db5311ce08d107c3f3eaa258a42ec7ae3b9"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_egg_dumpling_3pc",
+      "canonical_name": "\u51b7\u51cd\u86cb\u9903",
+      "aliases": [
+        "\u51b7\u51cd\u86cb\u9903 three egg dumplings",
+        "egg dumpling 3 pieces",
+        "frozen egg dumplings 3pc"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 3,
+        "portion_grams": 75,
+        "label": "three egg dumplings",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 137,
+      "kcal_range": [
+        95,
+        205
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_1ec4020f2e40",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 182.0735,
+          "tfda_sample_name": "\u51b7\u51cd\u86cb\u9903"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_6c59915969aa",
+        "raw_row_hash": "7316f6ba3bbfc37f5e22027cf17f7d34538cd93ccbe4a40964461bc1a9542f5e"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_fish_dumpling_3pc",
+      "canonical_name": "\u51b7\u51cd\u9b5a\u9903",
+      "aliases": [
+        "\u51b7\u51cd\u9b5a\u9903 three fish dumplings",
+        "fish dumpling 3 pieces",
+        "frozen fish dumplings 3pc"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 3,
+        "portion_grams": 75,
+        "label": "three fish dumplings",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 208,
+      "kcal_range": [
+        150,
+        305
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_bc3bb3f66f2c",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 277.4837,
+          "tfda_sample_name": "\u51b7\u51cd\u9b5a\u9903"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_167abc852f6e",
+        "raw_row_hash": "7fc26e5b72e7aa2f1272f468b0e024114acc6db24188060310eb89141dc8e4a4"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_yan_dumpling_3pc",
+      "canonical_name": "\u51b7\u51cd\u71d5\u9903",
+      "aliases": [
+        "\u51b7\u51cd\u71d5\u9903 three yan dumplings",
+        "yan dumpling 3 pieces",
+        "frozen yan dumplings 3pc"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 3,
+        "portion_grams": 75,
+        "label": "three yan dumplings",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 241,
+      "kcal_range": [
+        175,
+        350
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_78cc16022d2f",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 321.4981,
+          "tfda_sample_name": "\u51b7\u51cd\u71d5\u9903"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_ad6bddca4cd7",
+        "raw_row_hash": "5527cd22e55063d228cd7932f2194bfaf956ba0753ee637ecaf83e2572911565"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_bamboo_shoot_slices_100g",
+      "canonical_name": "\u6842\u7af9\u7b4d\u7247",
+      "aliases": [
+        "\u6842\u7af9\u7b4d\u7247 bamboo shoot slices 100g",
+        "bamboo shoot slices 100g",
+        "bamboo shoots 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 100,
+        "portion_grams": 100,
+        "label": "bamboo shoot slices 100g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 14,
+      "kcal_range": [
+        10,
+        25
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_5c2735a484aa",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 14.2082,
+          "tfda_sample_name": "\u6842\u7af9\u7b4d\u7247"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_1f8039839431",
+        "raw_row_hash": "907bcaad77623c89eb15d2d89d7cda9d73504166d3caa0decdadcad38548a414"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_canned_corn_kernels_80g",
+      "canonical_name": "\u7389\u7c73\u7c92\u7f50\u982d",
+      "aliases": [
+        "\u7389\u7c73\u7c92\u7f50\u982d canned corn kernels 80g",
+        "canned corn kernels 80g",
+        "corn kernels 80g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 80,
+        "portion_grams": 80,
+        "label": "canned corn kernels 80g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 66,
+      "kcal_range": [
+        45,
+        95
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_f7d6cdc32ed1",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 82.7096,
+          "tfda_sample_name": "\u7389\u7c73\u7c92\u7f50\u982d"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_cb6e609cd69d",
+        "raw_row_hash": "b76c9bcdc9a96e5b6148a285b951c2c71942e998849b3c3c2270ebdfd036cda9"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_pickled_cucumber_50g",
+      "canonical_name": "\u82b1\u74dc\u7f50\u982d",
+      "aliases": [
+        "\u82b1\u74dc\u7f50\u982d pickled cucumber 50g",
+        "pickled cucumber 50g",
+        "canned pickled cucumber 50g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 50,
+        "portion_grams": 50,
+        "label": "pickled cucumber 50g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 43,
+      "kcal_range": [
+        30,
+        65
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_1e7874c5e995",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 86.7205,
+          "tfda_sample_name": "\u82b1\u74dc\u7f50\u982d"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_5316b38a6199",
+        "raw_row_hash": "4bbb917228decf527b8be58581e113916aa4374a3c0cf77323d85679d0aba9f4"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_peanut_gluten_can_60g",
+      "canonical_name": "\u82b1\u751f\u9eb5\u7b4b\u7f50\u982d",
+      "aliases": [
+        "\u82b1\u751f\u9eb5\u7b4b\u7f50\u982d peanut gluten 60g",
+        "peanut gluten 60g",
+        "canned peanut gluten 60g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 60,
+        "portion_grams": 60,
+        "label": "peanut gluten 60g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 122,
+      "kcal_range": [
+        85,
+        175
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_c8e0221197a5",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 203.629,
+          "tfda_sample_name": "\u82b1\u751f\u9eb5\u7b4b\u7f50\u982d"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_595846d136dc",
+        "raw_row_hash": "be5887d0d3b0d8ee25f21eb6991a255b0aae335251dcf3cf62012d58c0f4fd56"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_mushroom_gluten_can_60g",
+      "canonical_name": "\u9999\u83c7\u9eb5\u7b4b\u7f50\u982d",
+      "aliases": [
+        "\u9999\u83c7\u9eb5\u7b4b\u7f50\u982d mushroom gluten 60g",
+        "mushroom gluten 60g",
+        "canned mushroom gluten 60g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 60,
+        "portion_grams": 60,
+        "label": "mushroom gluten 60g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 115,
+      "kcal_range": [
+        80,
+        165
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_875faa588a86",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 191.4,
+          "tfda_sample_name": "\u9999\u83c7\u9eb5\u7b4b\u7f50\u982d"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_2c22dafda5c4",
+        "raw_row_hash": "888c2e5632d90341d0263a77a243d95bbeb3ad01cd9b58bcc6f80b66b22b84a9"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_bamboo_shoot_tuna_can_80g",
+      "canonical_name": "\u9999\u7b4d\u9baa\u9b5a\u7f50\u982d",
+      "aliases": [
+        "\u9999\u7b4d\u9baa\u9b5a\u7f50\u982d bamboo shoot tuna 80g",
+        "bamboo shoot tuna 80g",
+        "canned bamboo shoot tuna 80g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 80,
+        "portion_grams": 80,
+        "label": "bamboo shoot tuna 80g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 206,
+      "kcal_range": [
+        150,
+        290
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_f90d500eb546",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 257.7,
+          "tfda_sample_name": "\u9999\u7b4d\u9baa\u9b5a\u7f50\u982d"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_2d2cfd276e62",
+        "raw_row_hash": "2e620eae89cf63eb728fe7f4aecb7c1526c79247eeee12d57fd69ce14b1cb3f0"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_sauerkraut_50g",
+      "canonical_name": "\u9178\u7518\u85cd\u83dc",
+      "aliases": [
+        "\u9178\u7518\u85cd\u83dc sauerkraut 50g",
+        "sauerkraut 50g",
+        "pickled cabbage 50g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 50,
+        "portion_grams": 50,
+        "label": "sauerkraut 50g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 9,
+      "kcal_range": [
+        5,
+        20
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_24d069eac94e",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 17.7281,
+          "tfda_sample_name": "\u9178\u7518\u85cd\u83dc"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_6e8893187b14",
+        "raw_row_hash": "07ecc750af80226fb18def657894ecf7f4e1c07b25797473895236eb98189f70"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_golden_kimchi_50g",
+      "canonical_name": "\u9ec3\u91d1\u6ce1\u83dc",
+      "aliases": [
+        "\u9ec3\u91d1\u6ce1\u83dc golden kimchi 50g",
+        "golden kimchi 50g",
+        "taiwan golden kimchi 50g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 50,
+        "portion_grams": 50,
+        "label": "golden kimchi 50g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 54,
+      "kcal_range": [
+        35,
+        80
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_24b1f8f54a6d",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 107.5818,
+          "tfda_sample_name": "\u9ec3\u91d1\u6ce1\u83dc"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_beedce034d52",
+        "raw_row_hash": "5e97d51b7000d119d560943de0c40c7a727fbfc151d8fc605c9adbffeda8fd58"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_korean_kimchi_50g",
+      "canonical_name": "\u97d3\u5f0f\u6ce1\u83dc",
+      "aliases": [
+        "\u97d3\u5f0f\u6ce1\u83dc korean kimchi 50g",
+        "korean kimchi 50g",
+        "kimchi 50g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 50,
+        "portion_grams": 50,
+        "label": "korean kimchi 50g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 15,
+      "kcal_range": [
+        10,
+        25
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_66ebf7244f19",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 29.5603,
+          "tfda_sample_name": "\u97d3\u5f0f\u6ce1\u83dc"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_47f14d36dd71",
+        "raw_row_hash": "4b48725aaeac43618e033e31d19b68c0885d307ba1dce050291c00f3b130fa7c"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_mushroom_dumpling_3pc",
+      "canonical_name": "\u51b7\u51cd\u9999\u83c7\u9903",
+      "aliases": [
+        "\u51b7\u51cd\u9999\u83c7\u9903 three mushroom dumplings",
+        "mushroom dumpling 3 pieces",
+        "frozen mushroom dumplings 3pc"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 3,
+        "portion_grams": 75,
+        "label": "three mushroom dumplings",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 173,
+      "kcal_range": [
+        125,
+        260
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_6db440b1d582",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 230.5814,
+          "tfda_sample_name": "\u51b7\u51cd\u9999\u83c7\u9903"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_a055550e7e51",
+        "raw_row_hash": "bd6044019823ad275dd45e953888501809a34b3377927dd7bb6a49fd818a3e27"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    }
+  ]
+}
