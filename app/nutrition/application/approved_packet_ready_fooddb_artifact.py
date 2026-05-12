@@ -162,10 +162,10 @@ def _missing_lane_blockers(lane_counts: dict[str, int]) -> list[str]:
 def _packet_ready_item(card: dict[str, Any]) -> dict[str, Any]:
     item_id = _text(card.get("item_id") or card.get("card_id") or card.get("id"))
     title = _text(card.get("title"))
-    protein = _whole_number(card.get("protein_g"))
-    carbs = _whole_number(card.get("carb_g") or card.get("carbs_g"))
-    fat = _whole_number(card.get("fat_g"))
-    kcal = _whole_number(card.get("kcal") or card.get("label_kcal"))
+    protein = _positive_number(card.get("protein_g"))
+    carbs = _positive_number(card.get("carb_g") or card.get("carbs_g"))
+    fat = _positive_number(card.get("fat_g"))
+    kcal = _positive_number(card.get("kcal") or card.get("label_kcal"))
     source_file = "app/knowledge/exact_item_cards_tw.json"
     return {
         "source_lane": "exact_item_card",
@@ -247,10 +247,10 @@ def _packet_ready_anchor_item(
 
 def _card_has_complete_macro(card: dict[str, Any]) -> bool:
     return (
-        _whole_number(card.get("kcal") or card.get("label_kcal")) > 0
-        and _whole_number(card.get("protein_g")) > 0
-        and _whole_number(card.get("carb_g") or card.get("carbs_g")) > 0
-        and _whole_number(card.get("fat_g")) > 0
+        _positive_number(card.get("kcal") or card.get("label_kcal")) > 0
+        and _positive_number(card.get("protein_g")) > 0
+        and _positive_number(card.get("carb_g") or card.get("carbs_g")) > 0
+        and _positive_number(card.get("fat_g")) > 0
     )
 
 
@@ -298,6 +298,14 @@ def _whole_number(value: Any) -> int:
         return max(0, int(round(float(value))))
     except (TypeError, ValueError):
         return 0
+
+
+def _positive_number(value: Any) -> int | float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return 0
+    return 0 if number <= 0 else int(number) if number.is_integer() else round(number, 3)
 
 
 def _text(value: Any) -> str:
