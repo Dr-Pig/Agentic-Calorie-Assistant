@@ -166,7 +166,7 @@ def _packet_ready_item(card: dict[str, Any]) -> dict[str, Any]:
     carbs = _positive_number(card.get("carb_g") or card.get("carbs_g"))
     fat = _positive_number(card.get("fat_g"))
     kcal = _positive_number(card.get("kcal") or card.get("label_kcal"))
-    source_file = "app/knowledge/exact_item_cards_tw.json"
+    source_file = _text(card.get("_fooddb_source_file")) or "app/knowledge/exact_item_cards_tw.json"
     return {
         "source_lane": "exact_item_card",
         "item_id": item_id,

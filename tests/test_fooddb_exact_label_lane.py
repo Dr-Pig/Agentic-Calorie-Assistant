@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.nutrition.infrastructure.exact_item_card_loader import (
+    load_exact_item_card_seed_records,
+)
 from app.nutrition.infrastructure.exact_item_search import resolve_exact_item_fts
 
 
@@ -14,8 +17,12 @@ def _cards() -> list[dict[str, object]]:
     return [dict(card) for card in payload["cards"]]
 
 
+def _all_cards() -> list[dict[str, object]]:
+    return [dict(card) for card in load_exact_item_card_seed_records()]
+
+
 def test_exact_label_lane_adds_official_label_macro_cards() -> None:
-    by_id = {str(card["item_id"]): card for card in _cards()}
+    by_id = {str(card["item_id"]): card for card in _all_cards()}
 
     for item_id in {
         "exact_chungabern_mini_scallion_pancake_90g",
@@ -34,6 +41,11 @@ def test_exact_label_lane_adds_official_label_macro_cards() -> None:
         "exact_chungabern_cabbage_pork_dumpling_18g",
         "exact_kaz_sweet_potato_crisps_40g",
         "exact_aisin_crispy_fish_chunk_100g",
+        "exact_weichuan_prince_cup_noodle_pork_52g",
+        "exact_weichuan_prince_cup_noodle_seafood_52g",
+        "exact_weichuan_prince_cup_noodle_beef_51g",
+        "exact_chungabern_scallion_pork_pie_30g",
+        "exact_i3fresh_beef_tripe_tendon_hotpot_120g",
     }:
         card = by_id[item_id]
         assert card["source_class"] in {
@@ -144,6 +156,36 @@ def test_exact_label_lane_cards_resolve_with_visible_macros() -> None:
             "exact_aisin_crispy_fish_chunk_100g",
             192.0,
             {"protein_g": 17.5, "carb_g": 11.6, "fat_g": 8.4},
+        ),
+        (
+            "味王 王子杯麵 蔥蔥肉燥湯麵 52g",
+            "exact_weichuan_prince_cup_noodle_pork_52g",
+            262.0,
+            {"protein_g": 4.5, "carb_g": 30.8, "fat_g": 13.4},
+        ),
+        (
+            "王子杯麵鮮鮮海味52g",
+            "exact_weichuan_prince_cup_noodle_seafood_52g",
+            253.0,
+            {"protein_g": 5.0, "carb_g": 29.5, "fat_g": 12.8},
+        ),
+        (
+            "濃濃牛肉湯麵51g",
+            "exact_weichuan_prince_cup_noodle_beef_51g",
+            243.0,
+            {"protein_g": 4.7, "carb_g": 29.3, "fat_g": 11.9},
+        ),
+        (
+            "蔥阿伯蔥肉餡餅30公克",
+            "exact_chungabern_scallion_pork_pie_30g",
+            59.0,
+            {"protein_g": 2.7, "carb_g": 7.3, "fat_g": 2.2},
+        ),
+        (
+            "牛三寶老饕牛肉爐120公克",
+            "exact_i3fresh_beef_tripe_tendon_hotpot_120g",
+            106.0,
+            {"protein_g": 13.8, "carb_g": 4.4, "fat_g": 3.6},
         ),
     ]
 
