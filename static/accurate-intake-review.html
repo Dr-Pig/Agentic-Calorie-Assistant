@@ -50,6 +50,10 @@
       border-color: #8fc8bf;
       color: #0b5f59;
     }
+    a:focus-visible {
+      outline: 3px solid rgba(15, 118, 110, 0.35);
+      outline-offset: 2px;
+    }
     main {
       width: min(1100px, calc(100vw - 32px));
       margin: 24px auto;
@@ -150,7 +154,7 @@
   >
     <section class="panel">
       <h1>Review Queue</h1>
-      <p id="review-status" class="subtle" aria-live="polite">Loading.</p>
+      <p id="review-status" class="subtle" aria-live="polite" role="status">Loading.</p>
     </section>
     <section class="panel grid" aria-label="Review queue summary">
       <div class="metric"><span>Status</span><strong id="queue-status">--</strong></div>
@@ -168,6 +172,7 @@
     </section>
     <section class="panel">
       <h2>Policy</h2>
+      <p class="meta">feedback is triage input, not product truth; manual review is required before any eval or FoodDB change.</p>
       <p id="promotion-policy" class="meta">--</p>
     </section>
   </main>

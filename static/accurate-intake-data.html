@@ -50,6 +50,12 @@
       border-color: #8fc8bf;
       color: #0b5f59;
     }
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid rgba(15, 118, 110, 0.35);
+      outline-offset: 2px;
+    }
     main {
       width: min(980px, calc(100vw - 32px));
       margin: 24px auto;
@@ -173,8 +179,8 @@
       <h1>Data backup & export</h1>
       <p class="subtle">Use this page when you need to inspect, backup, or export your local desktop dogfood data. It does not edit meal, body, budget, Manager, or FoodDB truth.</p>
       <ul class="help-list">
-        <li>Inspect shows where the local SQLite and review evidence live.</li>
-        <li>Create backup copies the local SQLite file before risky manual changes.</li>
+        <li>Inspect local data shows where the local SQLite and review evidence live.</li>
+        <li>Backup local SQLite copies the local database before risky manual changes.</li>
         <li>Export review bundle packages feedback, traces, and local metadata for later review.</li>
       </ul>
     </section>
@@ -187,10 +193,10 @@
       </label>
     </section>
     <section class="panel actions" aria-label="Data actions">
-      <button id="inspect-data" type="button">Inspect DB</button>
-      <button id="backup-data" type="button">Create backup</button>
+      <button id="inspect-data" type="button">Inspect local data</button>
+      <button id="backup-data" type="button">Backup local SQLite</button>
       <button id="export-data" type="button">Export review bundle</button>
-      <span id="data-status" class="status" aria-live="polite">Not checked.</span>
+      <span id="data-status" class="status" aria-live="polite" role="status">Not checked.</span>
     </section>
     <section class="panel grid" aria-label="Data summary">
       <div class="metric"><span>Status</span><strong id="hygiene-status">--</strong></div>
@@ -201,7 +207,7 @@
       <div class="metric"><span>Local only</span><strong id="local-only">--</strong></div>
     </section>
     <section class="panel">
-      <h2>Latest result</h2>
+      <h2>Latest action result</h2>
       <div id="data-action-summary" class="result-summary" aria-live="polite">
         <div class="result-row"><span>Operation</span><strong id="result-operation">--</strong></div>
         <div class="result-row"><span>Status</span><strong id="result-status">--</strong></div>
