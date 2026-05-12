@@ -6763,6 +6763,756 @@
         "runtime_value_source": "tfda_per_100g_scaled_by_common_meal_portion_policy",
         "external_source_role": "source_evidence_only_not_common_serving"
       }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_staple_meat_floss_triangle_rice_ball",
+      "canonical_name": "肉鬆三角飯糰",
+      "aliases": [
+        "三角飯糰",
+        "肉鬆飯糰",
+        "便利商店肉鬆飯糰"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "rice_ball",
+        "portion_quantity": 1,
+        "portion_grams": 110,
+        "label": "one meat floss triangle rice ball",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 235,
+      "kcal_range": [
+        190,
+        300
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_8c546ba01c11",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 214.9107,
+          "canonical_name": "三角飯糰(肉鬆)"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_8c546ba01c11",
+        "raw_row_hash": "c5fc7cee8796a4e7259fd1099753fe2ea36720b1170bdfc8e7124a296cd57ee5"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus common-serving portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "generic_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_common_serving_batch",
+        "policy_version": "fooddb_tfda_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_staple_sticky_rice_roll",
+      "canonical_name": "糯米飯糰",
+      "aliases": [
+        "傳統飯糰",
+        "早餐飯糰",
+        "糯米飯糰"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "rice_roll",
+        "portion_quantity": 1,
+        "portion_grams": 180,
+        "label": "one sticky rice breakfast roll",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 600,
+      "kcal_range": [
+        480,
+        760
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_979e75d1b98d",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 333.0,
+          "canonical_name": "糯米飯糰"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_979e75d1b98d",
+        "raw_row_hash": "168ee5fa00686dd4afd99ed6c74ad9698aaaf44ce4f3295092fd566c421b1811"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus common-serving portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "generic_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_common_serving_batch",
+        "policy_version": "fooddb_tfda_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "high_variance_customizable_item",
+        "range_basis": "tfda_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "bakery_pork_floss_bread",
+      "canonical_name": "肉鬆麵包",
+      "aliases": [
+        "肉鬆麵包",
+        "肉鬆餐包",
+        "台式肉鬆麵包"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "bread_piece",
+        "portion_quantity": 1,
+        "portion_grams": 70,
+        "label": "one pork floss bread",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 295,
+      "kcal_range": [
+        240,
+        380
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_e72a8e7593cc",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 422.831,
+          "canonical_name": "肉鬆麵包"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_e72a8e7593cc",
+        "raw_row_hash": "be450d9603c33692dca7b2818239df8ed7d683c2dcbc4b16ff1d3f8fa319a3bf"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus common-serving portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "generic_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_common_serving_batch",
+        "policy_version": "fooddb_tfda_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "bakery_raisin_milk_crisp_bread",
+      "canonical_name": "葡萄乾奶酥麵包",
+      "aliases": [
+        "奶酥麵包",
+        "葡萄乾奶酥麵包",
+        "台式奶酥麵包"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "bread_piece",
+        "portion_quantity": 1,
+        "portion_grams": 80,
+        "label": "one raisin milk crisp bread",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 240,
+      "kcal_range": [
+        200,
+        330
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_f36d78796854",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 299.4493,
+          "canonical_name": "葡萄乾奶酥麵包"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_f36d78796854",
+        "raw_row_hash": "91cdb17df1b5f8b7e51060da0de9c0de3a500769411a97cb7aafc06cdc9f438d"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus common-serving portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "generic_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_common_serving_batch",
+        "policy_version": "fooddb_tfda_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "dessert_cheesecake_slice",
+      "canonical_name": "乳酪蛋糕切片",
+      "aliases": [
+        "乳酪蛋糕",
+        "起司蛋糕切片",
+        "cheesecake slice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cake_slice",
+        "portion_quantity": 1,
+        "portion_grams": 90,
+        "label": "one cheesecake slice",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 265,
+      "kcal_range": [
+        220,
+        360
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_ca1b9f035cd0",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 294.2182,
+          "canonical_name": "乳酪蛋糕"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_ca1b9f035cd0",
+        "raw_row_hash": "765f91f532d07577e514fbf5c087daab16ec0c5e1073c21658454fd13a546c75"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus common-serving portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "generic_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_common_serving_batch",
+        "policy_version": "fooddb_tfda_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "dessert_honey_castella_piece",
+      "canonical_name": "蜂蜜蛋糕切片",
+      "aliases": [
+        "蜂蜜蛋糕",
+        "蜂蜜蛋糕切片",
+        "原味蜂蜜蛋糕"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cake_piece",
+        "portion_quantity": 1,
+        "portion_grams": 70,
+        "label": "one honey castella piece",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 240,
+      "kcal_range": [
+        190,
+        320
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_d1ffff8cb77c",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 345.1932,
+          "canonical_name": "蜂蜜蛋糕(原味)"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_d1ffff8cb77c",
+        "raw_row_hash": "3587ca17e6651216155b96038d5930627d5107afccc8ec8099b627bc0ecb0036"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus common-serving portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "generic_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_common_serving_batch",
+        "policy_version": "fooddb_tfda_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "snack_char_siu_bun",
+      "canonical_name": "叉燒包",
+      "aliases": [
+        "叉燒包",
+        "港式叉燒包",
+        "冷凍叉燒包子"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "bun",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one char siu bun",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 260,
+      "kcal_range": [
+        220,
+        340
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_07a1da95d370",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 262.1713,
+          "canonical_name": "冷凍叉燒包子"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_07a1da95d370",
+        "raw_row_hash": "25066acb58c158375aebc1b6236d032a2c757475f1b80c152967136cf87bc33b"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus common-serving portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "generic_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_common_serving_batch",
+        "policy_version": "fooddb_tfda_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "snack_beef_bun",
+      "canonical_name": "牛肉包",
+      "aliases": [
+        "牛肉包",
+        "牛肉包子",
+        "冷凍牛肉包子"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "bun",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one beef bun",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 265,
+      "kcal_range": [
+        220,
+        350
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_2dbb47e9046d",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 265.1276,
+          "canonical_name": "冷凍牛肉包子"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_2dbb47e9046d",
+        "raw_row_hash": "97ff6b8e35536d9f33725c5f0e075b4c67438247ae76f2842c64f4d699d8b8ad"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus common-serving portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "generic_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_common_serving_batch",
+        "policy_version": "fooddb_tfda_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "street_food_oyster_omelet",
+      "canonical_name": "蚵仔煎",
+      "aliases": [
+        "蚵仔煎",
+        "夜市蚵仔煎",
+        "牡蠣煎"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "plate",
+        "portion_quantity": 1,
+        "portion_grams": 240,
+        "label": "one oyster omelet plate",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 460,
+      "kcal_range": [
+        360,
+        620
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_dd533da5826f",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 191.214,
+          "canonical_name": "蚵仔煎"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_dd533da5826f",
+        "raw_row_hash": "2a239ed16c7f603f1c6b30020126d723a44683e061aa1f25b94592d3be634ecf"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus common-serving portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "generic_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_common_serving_batch",
+        "policy_version": "fooddb_tfda_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "high_variance_customizable_item",
+        "range_basis": "tfda_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "dessert_peanut_tofu_pudding",
+      "canonical_name": "花生豆花",
+      "aliases": [
+        "花生豆花",
+        "豆花加花生",
+        "甜豆花"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "bowl",
+        "portion_quantity": 1,
+        "portion_grams": 300,
+        "label": "one peanut tofu pudding bowl",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 175,
+      "kcal_range": [
+        130,
+        260
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_289052478254",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 58.5071,
+          "canonical_name": "豆花(花生)"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_289052478254",
+        "raw_row_hash": "4ac550db5c1b3f40f1320100e3a0f8387435000e0ed7cb6778bc5e7c66e23d37"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus common-serving portion policy",
+      "reviewed_date": "2026-05-12",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "generic_common_serving_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "tfda_common_serving_batch",
+        "policy_version": "fooddb_tfda_common_serving_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_common_serving_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_common_serving_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
     }
   ]
 }
