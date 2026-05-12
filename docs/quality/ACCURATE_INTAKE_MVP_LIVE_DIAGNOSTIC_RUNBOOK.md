@@ -32,6 +32,7 @@ Do not run live provider stages if the deterministic baseline is red.
 
 The upstream runtime gate source is `docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml`.
 Downstream browser or candidate-bundle stages should consume gate IDs from that ledger instead of recreating local names.
+The fixed 18-case diagnostic selection and trace-layer rubric is `docs/quality/accurate_intake_mvp_live_diagnostic_case_manifest.json`; live/offline runs should consume that manifest instead of generating ad hoc cases.
 
 ## Staged Live Commands
 
