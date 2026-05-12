@@ -48,7 +48,7 @@ def test_generic_common_batch_004_enters_full_current_shell_with_hidden_macros()
 
     item = by_id["generic_drink_oolong_milk_tea_half_sugar_cup"]
 
-    assert artifact["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 154
+    assert artifact["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 174
     assert item["kcal_point"] == 312
     assert item["kcal_range"] == [230, 420]
     assert item["macro_visibility_status"] == "hidden_missing_source"
