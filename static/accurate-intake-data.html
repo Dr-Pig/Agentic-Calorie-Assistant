@@ -247,6 +247,14 @@
       }
       return `/static/accurate-intake-${page}.html?${query.toString()}`;
     }
+    function friendlyPageUrl(page) {
+      const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
+      if (page === "data") {
+        query.set("reconnect_attempted", "1");
+      }
+      const route = page === "desktop" ? "/accurate-intake" : `/accurate-intake/${page}`;
+      return `${route}?${query.toString()}`;
+    }
     function updateNavigationLinks() {
       document.querySelectorAll("[data-nav-target]").forEach((link) => {
         const target = link.getAttribute("data-nav-target");
@@ -287,6 +295,17 @@
         return `${kind} failed: HTTP 403. HTTP 403 usually means this page was opened before the local session cookie was established. Open ACA 1 Start Home, then return to Data.`;
       }
       return `${kind} failed: ${error.message}`;
+    }
+    function reconnectThroughFriendlyRoute(kind, error) {
+      if (error.status !== 403 && error.message !== "HTTP 403") {
+        return false;
+      }
+      if (params.get("reconnect_attempted") === "1") {
+        return false;
+      }
+      el("data-status").textContent = `${kind} needs the local session. Reopening Data through ACA 1 Start Home.`;
+      window.location.assign(friendlyPageUrl("data"));
+      return true;
     }
     function setBusy(isBusy) {
       ["inspect-data", "backup-data", "export-data"].forEach((id) => {
@@ -359,6 +378,9 @@
         render(payload, kind);
         el("data-status").textContent = `${kind} ${payload.status || "done"}.`;
       } catch (error) {
+        if (reconnectThroughFriendlyRoute(kind, error)) {
+          return;
+        }
         el("data-status").dataset.state = "error";
         el("data-status").textContent = dataErrorMessage(kind, error);
       } finally {
