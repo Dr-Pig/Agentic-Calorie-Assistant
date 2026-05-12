@@ -98,12 +98,12 @@ def test_data_page_is_local_only_export_surface_not_truth_or_readiness_surface()
     assert 'id="backup-data"' in html
     assert 'id="export-data"' in html
     assert 'id="data-status"' in html
-    assert "Inspect DB" in html
-    assert "Create backup" in html
+    assert "Inspect local data" in html
+    assert "Backup local SQLite" in html
     assert "Export review bundle" in html
     assert "Data backup & export" in html
-    assert "Inspect shows where the local SQLite and review evidence live." in html
-    assert "Create backup copies the local SQLite file before risky manual changes." in html
+    assert "Inspect local data shows where the local SQLite and review evidence live." in html
+    assert "Backup local SQLite copies the local database before risky manual changes." in html
     assert "Export review bundle packages feedback, traces, and local metadata for later review." in html
     assert "HTTP 403 usually means this page was opened before the local session cookie was established." in html
     assert "function dataErrorMessage(kind, error)" in html

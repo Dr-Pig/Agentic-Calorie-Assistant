@@ -111,6 +111,14 @@
       cursor: pointer;
     }
     button:disabled { opacity: 0.55; cursor: wait; }
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 3px solid rgba(15, 118, 110, 0.35);
+      outline-offset: 2px;
+    }
     .status { color: var(--muted); }
     .status[data-state="error"] { color: var(--danger); }
     @media (max-width: 720px) {
@@ -191,13 +199,14 @@
         <input id="message-id" autocomplete="off" />
       </label>
       <label class="wide">Note
-        <textarea id="feedback-text" name="feedback_text" required></textarea>
+        <span id="feedback-text-help" class="subtle">What happened, what did you expect, and what page or meal were you using?</span>
+        <textarea id="feedback-text" name="feedback_text" aria-describedby="feedback-text-help" required></textarea>
       </label>
       <div class="actions wide">
         <button id="submit-feedback" type="submit">Submit</button>
         <a class="action-link" data-nav-target="chat" href="/static/accurate-intake-chat.html">Back to Chat</a>
         <a class="action-link" data-nav-target="review" href="/static/accurate-intake-review.html">Open Review</a>
-        <span id="feedback-status" class="status" aria-live="polite">Not submitted.</span>
+        <span id="feedback-status" class="status" aria-live="polite" role="status">Not submitted.</span>
       </div>
     </form>
   </main>
