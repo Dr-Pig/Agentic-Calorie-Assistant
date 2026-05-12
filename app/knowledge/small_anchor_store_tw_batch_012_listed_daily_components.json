@@ -1,0 +1,1164 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_cabbage_100g",
+      "canonical_name": "甘藍平均值",
+      "aliases": [
+        "甘藍平均值",
+        "cabbage 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g cabbage portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 23,
+      "kcal_range": [
+        10,
+        40
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_E30001_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 23.0,
+          "tfda_integrated_code": "E30001",
+          "tfda_sample_name": "甘藍平均值"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "E30001",
+        "nutrient": "熱量",
+        "raw_row_hash": "78397b9094f2ad503bb85a9c799fa0b2b6c282f91fca912a248a2782cf27ac00"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_bok_choy_100g",
+      "canonical_name": "青江菜(土植)(3月取樣)",
+      "aliases": [
+        "青江菜(土植)(3月取樣)",
+        "bok choy 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g bok choy portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 13,
+      "kcal_range": [
+        8,
+        30
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_E3201202_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 13.0,
+          "tfda_integrated_code": "E3201202",
+          "tfda_sample_name": "青江菜(土植)(3月取樣)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "E3201202",
+        "nutrient": "熱量",
+        "raw_row_hash": "515ab021058cb335a8f352714f797934a8bfdd23724c274ace2babe35a282630"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_water_spinach_100g",
+      "canonical_name": "蕹菜(土植)(1月取樣)",
+      "aliases": [
+        "蕹菜(土植)(1月取樣)",
+        "water spinach 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g water spinach portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 22,
+      "kcal_range": [
+        12,
+        35
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_E5600101_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 22.0,
+          "tfda_integrated_code": "E5600101",
+          "tfda_sample_name": "蕹菜(土植)(1月取樣)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "E5600101",
+        "nutrient": "熱量",
+        "raw_row_hash": "44f060fde8a2231b237f6b3ce0484849512c5b36bd5f99e4976ad286818abef5"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_broccoli_100g",
+      "canonical_name": "青花菜(2021年取樣)",
+      "aliases": [
+        "青花菜(2021年取樣)",
+        "broccoli 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g broccoli portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 38,
+      "kcal_range": [
+        25,
+        55
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_E5800402_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 38.0,
+          "tfda_integrated_code": "E5800402",
+          "tfda_sample_name": "青花菜(2021年取樣)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "E5800402",
+        "nutrient": "熱量",
+        "raw_row_hash": "8470b93f01a58a96d4563655390baae0432276713da5d86bd1cd4e087a1599b6"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_baby_corn_100g",
+      "canonical_name": "玉米筍",
+      "aliases": [
+        "玉米筍",
+        "baby corn 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g baby corn portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 33,
+      "kcal_range": [
+        20,
+        50
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_E1300201_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 33.0,
+          "tfda_integrated_code": "E1300201",
+          "tfda_sample_name": "玉米筍"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "E1300201",
+        "nutrient": "熱量",
+        "raw_row_hash": "e880a55a9186bb7d0d0becfa24192bdbdeb1392563e205931d3a6c98947414bb"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_enoki_mushroom_100g",
+      "canonical_name": "金針菇",
+      "aliases": [
+        "金針菇",
+        "enoki mushroom 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g enoki mushroom portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 37,
+      "kcal_range": [
+        25,
+        55
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_G1600101_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 37.0,
+          "tfda_integrated_code": "G1600101",
+          "tfda_sample_name": "金針菇"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "G1600101",
+        "nutrient": "熱量",
+        "raw_row_hash": "de3ede68e1a4ad29cb687c7d3a8f007a359de4a841b513b8056c1ef011b65063"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_king_oyster_mushroom_100g",
+      "canonical_name": "杏鮑菇平均值",
+      "aliases": [
+        "杏鮑菇平均值",
+        "king oyster mushroom 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g king oyster mushroom portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 41,
+      "kcal_range": [
+        25,
+        60
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_G13002_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 41.0,
+          "tfda_integrated_code": "G13002",
+          "tfda_sample_name": "杏鮑菇平均值"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "G13002",
+        "nutrient": "熱量",
+        "raw_row_hash": "8827ecb6b73aeb343be91b2c41744bdcf8f53267adc688820ac3360efde910ca"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_fresh_shiitake_100g",
+      "canonical_name": "香菇平均值",
+      "aliases": [
+        "香菇平均值",
+        "fresh shiitake 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g fresh shiitake portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 39,
+      "kcal_range": [
+        25,
+        60
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_G08001_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 39.0,
+          "tfda_integrated_code": "G08001",
+          "tfda_sample_name": "香菇平均值"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "G08001",
+        "nutrient": "熱量",
+        "raw_row_hash": "4fab6733d2e99cec514739ec61db41f37ca345f93fbb4662f3cd4ac030f92b90"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_mung_bean_sprouts_100g",
+      "canonical_name": "綠豆芽",
+      "aliases": [
+        "綠豆芽",
+        "mung bean sprouts 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g mung bean sprout portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 24,
+      "kcal_range": [
+        15,
+        45
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_E7700701_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 24.0,
+          "tfda_integrated_code": "E7700701",
+          "tfda_sample_name": "綠豆芽"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "E7700701",
+        "nutrient": "熱量",
+        "raw_row_hash": "04f3b657fe6c67dbdbc06b2b9af76dc1c4a92438f0af80bfe06b7fca0566e6fe"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_pork_blood_100g",
+      "canonical_name": "豬血",
+      "aliases": [
+        "豬血",
+        "pork blood 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g pork blood portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 29,
+      "kcal_range": [
+        20,
+        50
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_I0320601_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 29.0,
+          "tfda_integrated_code": "I0320601",
+          "tfda_sample_name": "豬血"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "I0320601",
+        "nutrient": "熱量",
+        "raw_row_hash": "ac59e4fc701f101be3aeb5b8a345c3b2be755e6d6e00862e8abee042e5368b02"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_chicken_breast_100g",
+      "canonical_name": "去皮清肉平均值",
+      "aliases": [
+        "去皮清肉平均值",
+        "chicken breast 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g chicken breast portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 119,
+      "kcal_range": [
+        90,
+        160
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_I04024_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 119.0,
+          "tfda_integrated_code": "I04024",
+          "tfda_sample_name": "去皮清肉平均值"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "I04024",
+        "nutrient": "熱量",
+        "raw_row_hash": "4d0dcfc6e844ced9548065b69d4dea0c872082a2309c343d07e68058f0f8302a"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_skinless_chicken_thigh_100g",
+      "canonical_name": "去皮去骨雞腿(肉雞)",
+      "aliases": [
+        "去皮去骨雞腿(肉雞)",
+        "skinless chicken thigh 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g skinless chicken thigh portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 165,
+      "kcal_range": [
+        130,
+        220
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_I0404501_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 165.0,
+          "tfda_integrated_code": "I0404501",
+          "tfda_sample_name": "去皮去骨雞腿(肉雞)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "I0404501",
+        "nutrient": "熱量",
+        "raw_row_hash": "a5d75251f27c181e612ff9503b38db101a6136d4761e395157bb0d41613ebdc0"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_shrimp_meat_100g",
+      "canonical_name": "大頭蝦仁",
+      "aliases": [
+        "大頭蝦仁",
+        "shrimp meat 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g shrimp meat portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 40,
+      "kcal_range": [
+        30,
+        70
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_J2200101_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 40.0,
+          "tfda_integrated_code": "J2200101",
+          "tfda_sample_name": "大頭蝦仁"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "J2200101",
+        "nutrient": "熱量",
+        "raw_row_hash": "d5beb1854771f0a7e3aac67835e39f11655d9c808cbdc65b2f6b667924a24b5d"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_tilapia_fillet_100g",
+      "canonical_name": "台灣鯛魚片(生)",
+      "aliases": [
+        "台灣鯛魚片(生)",
+        "tilapia fillet 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g tilapia fillet portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 110,
+      "kcal_range": [
+        80,
+        150
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_J0412002_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 110.0,
+          "tfda_integrated_code": "J0412002",
+          "tfda_sample_name": "台灣鯛魚片(生)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "J0412002",
+        "nutrient": "熱量",
+        "raw_row_hash": "260801abaf69b741845382df9f30868f81b4103f389c70b49258f10152f66209"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_salmon_slice_100g",
+      "canonical_name": "大西洋鮭魚切片(中段)",
+      "aliases": [
+        "大西洋鮭魚切片(中段)",
+        "salmon slice 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g salmon slice portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 174,
+      "kcal_range": [
+        130,
+        230
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_J0402402_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 174.0,
+          "tfda_integrated_code": "J0402402",
+          "tfda_sample_name": "大西洋鮭魚切片(中段)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "J0402402",
+        "nutrient": "熱量",
+        "raw_row_hash": "c89f181ddda6222afdaa1c1e1047e28086650d67cd2b01a8f7a199635b632400"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_winter_melon_150g",
+      "canonical_name": "冬瓜平均值",
+      "aliases": [
+        "冬瓜平均值",
+        "winter melon 150g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 150,
+        "label": "one 150g winter melon portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 16,
+      "kcal_range": [
+        10,
+        35
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_E62001_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 11.0,
+          "tfda_integrated_code": "E62001",
+          "tfda_sample_name": "冬瓜平均值"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "E62001",
+        "nutrient": "熱量",
+        "raw_row_hash": "73bb002dd161fddf863a4c439638979295f0a39ef26192c728608e2e5608adab"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_spinach_100g",
+      "canonical_name": "菠菜",
+      "aliases": [
+        "菠菜",
+        "spinach 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g spinach portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 18,
+      "kcal_range": [
+        12,
+        35
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_E5000101_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 18.0,
+          "tfda_integrated_code": "E5000101",
+          "tfda_sample_name": "菠菜"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "E5000101",
+        "nutrient": "熱量",
+        "raw_row_hash": "448bec8d47630d2f4e4dd3acc78b71fb6e02227159dff3c04317b2de8680b016"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_romaine_lettuce_100g",
+      "canonical_name": "蘿美萵苣",
+      "aliases": [
+        "蘿美萵苣",
+        "romaine lettuce 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g romaine lettuce portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 13,
+      "kcal_range": [
+        8,
+        30
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_E5300104_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 13.0,
+          "tfda_integrated_code": "E5300104",
+          "tfda_sample_name": "蘿美萵苣"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "E5300104",
+        "nutrient": "熱量",
+        "raw_row_hash": "712111966fa1b0ff2d806a15eff716f804b34d70466e25f718e076ff40980e09"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_sweet_potato_leaves_100g",
+      "canonical_name": "甘藷葉",
+      "aliases": [
+        "甘藷葉",
+        "sweet potato leaves 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g sweet potato leaves portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 28,
+      "kcal_range": [
+        18,
+        45
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_E3100101_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 28.0,
+          "tfda_integrated_code": "E3100101",
+          "tfda_sample_name": "甘藷葉"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "E3100101",
+        "nutrient": "熱量",
+        "raw_row_hash": "c33e765cc212a134b390695da74e4334fc6875c640f1442b08ec6430f798d8e7"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_green_bell_pepper_100g",
+      "canonical_name": "甜椒平均值(青皮)",
+      "aliases": [
+        "甜椒平均值(青皮)",
+        "green bell pepper 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g green bell pepper portion",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 29,
+      "kcal_range": [
+        18,
+        45
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_E75001_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 29.0,
+          "tfda_integrated_code": "E75001",
+          "tfda_sample_name": "甜椒平均值(青皮)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "E75001",
+        "nutrient": "熱量",
+        "raw_row_hash": "640d099669a94ad3369b6c66fed0d3bab6047cfb46cdafb621997b10ff05e6d7"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_listed_component_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    }
+  ]
+}
