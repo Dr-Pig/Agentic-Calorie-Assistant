@@ -9,30 +9,30 @@ from app.nutrition.infrastructure.small_anchor_store_loader import (
 
 
 BATCH_IDS = {
-    "listed_item_milkfish_belly_100g",
-    "listed_item_salmon_sashimi_100g",
-    "listed_item_salmon_belly_100g",
-    "listed_item_white_salmon_slice_100g",
-    "listed_item_red_salmon_slice_100g",
-    "listed_item_sweetfish_100g",
-    "listed_item_silver_fish_100g",
-    "listed_item_crab_leg_meat_100g",
-    "listed_item_snail_meat_100g",
-    "listed_item_char_siu_100g",
-    "listed_item_braised_pork_elbow_100g",
-    "listed_item_preserved_pork_belly_100g",
-    "listed_item_preserved_pork_leg_100g",
-    "listed_item_smoked_pork_liver_100g",
-    "listed_item_spicy_beef_jerky_30g",
-    "listed_item_beef_sausage_one",
-    "listed_item_konjac_garlic_sausage_one",
-    "listed_item_sweet_sour_pork_100g",
-    "listed_item_tuna_patty_100g",
-    "listed_item_scallop_crisp_100g",
+    "listed_item_chicken_sausage_small_one",
+    "listed_item_chicken_floss_30g",
+    "listed_item_pork_aspic_100g",
+    "listed_item_fish_paste_100g",
+    "listed_item_mackerel_fish_floss_30g",
+    "listed_item_fish_floss_30g",
+    "listed_item_duck_shang_100g",
+    "listed_item_tea_duck_100g",
+    "listed_item_cooked_goose_leg_meat_100g",
+    "listed_modifier_beef_sauce_20g",
+    "listed_modifier_beef_steak_sauce_20g",
+    "listed_modifier_lamb_stew_sauce_30g",
+    "listed_modifier_pork_rib_sauce_20g",
+    "listed_modifier_fried_chicken_powder_15g",
+    "listed_modifier_steamed_pork_powder_15g",
+    "listed_item_duck_egg_one",
+    "listed_item_red_duck_egg_one",
+    "listed_item_duck_egg_white_one",
+    "listed_item_duck_egg_yolk_one",
+    "listed_item_goose_egg_one",
 }
 
 
-def test_listed_component_batch_026_loads_seafood_and_protein_components() -> None:
+def test_listed_component_batch_033_loads_protein_and_modifier_components() -> None:
     records = load_small_anchor_seed_records()
     by_id = {str(record.get("anchor_id") or ""): record for record in records}
 
@@ -53,7 +53,7 @@ def test_listed_component_batch_026_loads_seafood_and_protein_components() -> No
         assert record["kcal_range"][0] <= record["kcal_point"] <= record["kcal_range"][1]
 
 
-def test_listed_component_batch_026_enters_full_current_shell_with_hidden_macros() -> None:
+def test_listed_component_batch_033_enters_full_current_shell_with_hidden_macros() -> None:
     artifact = build_approved_packet_ready_fooddb_artifact(
         artifact_path="artifacts/approved_packet_ready_fooddb_full.json",
         selection_profile="full_current_shell",
@@ -62,10 +62,10 @@ def test_listed_component_batch_026_enters_full_current_shell_with_hidden_macros
 
     assert artifact["summary"]["packet_ready_lane_counts"]["listed_component"] == 234
     expected = {
-        "listed_item_milkfish_belly_100g": (342, [260, 470]),
-        "listed_item_salmon_sashimi_100g": (222, [170, 310]),
-        "listed_item_spicy_beef_jerky_30g": (100, [70, 150]),
-        "listed_item_beef_sausage_one": (149, [110, 220]),
+        "listed_item_chicken_sausage_small_one": (160, [115, 230]),
+        "listed_item_duck_shang_100g": (304, [230, 425]),
+        "listed_modifier_fried_chicken_powder_15g": (48, [35, 70]),
+        "listed_item_duck_egg_one": (131, [95, 185]),
     }
     for item_id, (kcal_point, kcal_range) in expected.items():
         item = by_id[item_id]

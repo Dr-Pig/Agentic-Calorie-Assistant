@@ -62,7 +62,7 @@ def test_listed_component_batch_020_enters_full_current_shell_with_hidden_macros
 
     item = by_id["listed_item_boiled_egg_one"]
 
-    assert artifact["summary"]["packet_ready_lane_counts"]["listed_component"] == 214
+    assert artifact["summary"]["packet_ready_lane_counts"]["listed_component"] == 234
     assert item["kcal_point"] == 79
     assert item["kcal_range"] == [60, 110]
     assert item["macro_visibility_status"] == "hidden_missing_source"
