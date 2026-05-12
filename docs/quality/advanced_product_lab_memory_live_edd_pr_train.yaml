@@ -4,8 +4,8 @@ status: active
 owner: MemoryRuntimeArchitecture
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 14
-dynamic_remaining_pr_count: 1
-last_completed_pr_number: 13
+dynamic_remaining_pr_count: 0
+last_completed_pr_number: 14
 current_mainline: advanced_product_lab_memory_live_edd
 is_detour: false
 mainline_blocker_being_removed: memory_is_simulated_complete_but_live_edd_not_decision_complete
@@ -232,7 +232,11 @@ last_merge_evidence:
       pull_request: 1148
       merge_commit: d65df4964f02ff3c95ec87eb067ec9cade21d809
       result: live_failure_taxonomy_and_attribution_report_merged
-  latest_dynamic_estimate_after_merge: 1
+    - pr_number: 14
+      pull_request: 1151
+      merge_commit: a6fe03ffd7b8c23376853c9ac6fa570d4bd89e79
+      result: live_edd_decision_pack_and_activation_wall_regression_merged
+  latest_dynamic_estimate_after_merge: 0
 estimate_notes:
   - Initial dynamic estimate is 14 PRs before PR1 merge.
   - After PR1 merge, remaining estimate moved to 13.
@@ -248,4 +252,6 @@ estimate_notes:
   - After PR11 merge, remaining estimate moved to 3.
   - After PR12 merge, remaining estimate moved to 2.
   - After PR13 merge, remaining estimate moved to 1.
+  - After PR14 merge, remaining estimate moved to 0.
+  - The 14-PR Memory Live EDD train is closed; real dogfood calibration is the next separate phase.
   - Real dogfood calibration remains outside this count until user dogfood traces are available.
