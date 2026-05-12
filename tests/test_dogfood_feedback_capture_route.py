@@ -250,6 +250,29 @@ def test_feedback_page_collects_operation_context_for_submit_request() -> None:
     assert "referrer: document.referrer" in page
 
 
+def test_feedback_review_and_data_pages_expose_dogfood_ui_affordances() -> None:
+    feedback = Path("static/accurate-intake-feedback.html").read_text(encoding="utf-8")
+    review = Path("static/accurate-intake-review.html").read_text(encoding="utf-8")
+    data = Path("static/accurate-intake-data.html").read_text(encoding="utf-8")
+
+    for page in (feedback, review, data):
+        assert ":focus-visible" in page
+        assert 'role="status"' in page
+
+    assert 'aria-describedby="feedback-text-help"' in feedback
+    assert 'id="feedback-text-help"' in feedback
+    assert "What happened, what did you expect, and what page or meal were you using?" in feedback
+
+    assert "繚" not in review
+    assert "feedback is triage input, not product truth" in review
+    assert "manual review is required before any eval or FoodDB change" in review
+
+    assert "Inspect local data" in data
+    assert "Backup local SQLite" in data
+    assert "Export review bundle" in data
+    assert "Latest action result" in data
+
+
 def test_feedback_page_prefills_meal_context_from_today_diary_without_semantic_inference() -> None:
     today = Path("static/accurate-intake-today.html").read_text(encoding="utf-8")
     feedback = Path("static/accurate-intake-feedback.html").read_text(encoding="utf-8")
