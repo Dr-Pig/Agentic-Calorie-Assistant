@@ -25,6 +25,8 @@ DEFAULT_STAGE_ARTIFACTS = (
     ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_provider_health.json",
     ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_schema_probe.json",
     ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_fake_runtime_gate.json",
+    ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_manifest_no_plan.json",
+    ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_manifest_generic_range.json",
     ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_seeded_removal.json",
     ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_exact_item.json",
     ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_bubble_refinement.json",
@@ -37,6 +39,8 @@ REQUIRED_STAGE_IDS = (
     "fake_provider_active_runtime_gate",
 )
 REQUIRED_SINGLE_CASE_IDS = (
+    "no_plan_consumed_without_budget_target",
+    "generic_common_food_range",
     "explicit_item_removal_seeded",
     "exact_item_official_label",
     "bubble_milk_tea_refinement",
@@ -69,40 +73,56 @@ LIVE_DIAGNOSTIC_CASE_ORDER = (
     {
         "order": 4,
         "stage_id": "single_case_live_probe",
+        "case_id": "no_plan_consumed_without_budget_target",
+        "manifest_case_id": "MVP-LIVE-001",
+        "purpose": "no-plan degraded answer without invented budget target or remaining",
+        "live_provider_allowed": True,
+    },
+    {
+        "order": 5,
+        "stage_id": "single_case_live_probe",
+        "case_id": "generic_common_food_range",
+        "manifest_case_id": "MVP-LIVE-005",
+        "purpose": "generic common-food range posture without fake exactness",
+        "live_provider_allowed": True,
+    },
+    {
+        "order": 6,
+        "stage_id": "single_case_live_probe",
         "case_id": "explicit_item_removal_seeded",
         "purpose": "target attachment and remove-item guard on seeded canonical state",
         "live_provider_allowed": True,
     },
     {
-        "order": 5,
+        "order": 7,
         "stage_id": "single_case_live_probe",
         "case_id": "exact_item_official_label",
         "purpose": "exact-item evidence posture without fake source exactness",
         "live_provider_allowed": True,
     },
     {
-        "order": 6,
+        "order": 8,
         "stage_id": "single_case_live_probe",
         "case_id": "bubble_milk_tea_refinement",
         "purpose": "optional refinement attach/supersede and macro honesty posture",
         "live_provider_allowed": True,
     },
     {
-        "order": 7,
+        "order": 9,
         "stage_id": "single_case_live_probe",
         "case_id": "luwei_bare_to_listed_basket",
         "purpose": "blocking clarify before listed-basket component estimate",
         "live_provider_allowed": True,
     },
     {
-        "order": 8,
+        "order": 10,
         "stage_id": "single_case_live_probe",
         "case_id": "chinese_chicken_rice_correction_removal_debug",
         "purpose": "multi-turn log, correction, removal, and same-truth read",
         "live_provider_allowed": True,
     },
     {
-        "order": 9,
+        "order": 11,
         "stage_id": "full_suite_live_diagnostic",
         "case_id": "full_suite_live_diagnostic",
         "purpose": "full fixed matrix only after strict staged gates and offline replay",
@@ -256,6 +276,7 @@ def stage_summary_from_stages(stages: list[dict[str, Any]]) -> dict[str, Any]:
     single_case_results = [
         {
             "case_ids": [str(item) for item in _list(stage.get("case_ids"))],
+            "manifest_case_ids": [str(item) for item in _list(stage.get("manifest_case_ids"))],
             "status": str(stage.get("status") or ""),
             "result_kind": _optional_string(stage.get("result_kind")),
         }
@@ -338,6 +359,7 @@ def _manifest_stage(
             "result_kind": _optional_string(stage.get("result_kind")),
             "retry_attempts": [_dict(item) for item in _list(stage.get("retry_attempts"))],
             "case_ids": [str(item) for item in _list(stage.get("case_ids"))],
+            "manifest_case_ids": [str(item) for item in _list(stage.get("manifest_case_ids"))],
             "summary": _dict(stage.get("summary")),
         }
     )

@@ -63,6 +63,10 @@ ORDERED_STAGE_IDS = (
 DEFAULT_PROVIDER_REQUEST_TIMEOUT_MS = 180_000
 DEFAULT_CASE_TIMEOUT_GRACE_MS = 15_000
 DEFAULT_PROVIDER_REQUEST_RETRY_COUNT = 0
+INITIAL_MANIFEST_SINGLE_TURN_CASES = {
+    "MVP-LIVE-001": "no_plan_consumed_without_budget_target",
+    "MVP-LIVE-005": "generic_common_food_range",
+}
 
 _FORBIDDEN_CLAIMS = [
     "product_ready",
@@ -111,6 +115,8 @@ class LiveCase:
     user_external_id: str
     body_plan_seeded: bool
     steps: tuple[LiveStep, ...]
+    manifest_case_id: str | None = None
+    case_family: str | None = None
     seed_kind: str | None = None
     turn_limit_max_turn: int | None = None
     original_turn_count: int | None = None
@@ -256,6 +262,8 @@ class AccurateIntakeLiveDiagnosticProvider:
                 step.get("diagnostic_stage_id") or user_payload.get("diagnostic_stage_id")
             ),
             "diagnostic_case_id": _optional_string(step.get("case_id")),
+            "diagnostic_manifest_case_id": _optional_string(step.get("manifest_case_id")),
+            "diagnostic_case_family": _optional_string(step.get("case_family")),
             "diagnostic_turn": _optional_int(step.get("turn")),
             "diagnostic_turn_kind": _optional_string(step.get("turn_kind") or step.get("kind")),
             "manager_round_index": _optional_int(user_payload.get("round_index")),
@@ -600,6 +608,7 @@ def run_diagnostic(
     live_invoked: bool = True,
     stage: str = STAGE_ALL,
     case_id: str | None = None,
+    manifest_case_id: str | None = None,
     max_turn: int | None = None,
     offline_replay_artifact_path: Path | None = DEFAULT_OFFLINE_REPLAY_ARTIFACT,
 ) -> dict[str, Any]:
@@ -723,7 +732,11 @@ def run_diagnostic(
                 break
             single_cases = _run_case_batch(
                 db_path=_stage_db_path(db_path, stage_id),
-                cases=_single_case_probe_inventory(case_id=case_id, max_turn=max_turn),
+                cases=_single_case_probe_inventory(
+                    case_id=case_id,
+                    manifest_case_id=manifest_case_id,
+                    max_turn=max_turn,
+                ),
                 provider=provider,
                 profile=profile,
                 local_date=local_date,
@@ -1142,6 +1155,7 @@ def _runtime_gate_stage_result(
         retry_policy_applied=retry_policy_applied,
         result_kind=_stage_result_kind(status=status, retry_policy_applied=retry_policy_applied),
         case_ids=[str(case.get("case_id") or "") for case in stage_cases],
+        manifest_case_ids=[str(case.get("manifest_case_id") or "") for case in stage_cases if case.get("manifest_case_id")],
         summary=summary,
     )
 
@@ -1196,6 +1210,8 @@ async def _run_case(
                     **dict(step.script),
                     "diagnostic_stage_id": stage_id,
                     "case_id": case.case_id,
+                    "manifest_case_id": case.manifest_case_id,
+                    "case_family": case.case_family,
                     "turn": step.turn,
                     "turn_kind": step.kind,
                     "kind": step.kind,
@@ -1231,6 +1247,8 @@ async def _run_case(
     verdict, blockers, failure_layer = _validate_case(case=case, turns=turns, debug_surface=debug_surface)
     case_result = {
         "case_id": case.case_id,
+        "manifest_case_id": case.manifest_case_id,
+        "case_family": case.case_family,
         "description": case.description,
         "verdict": verdict,
         "blockers": blockers,
@@ -1368,6 +1386,8 @@ def _case_inventory() -> list[LiveCase]:
             description="No-plan query can discuss consumed state but must not invent remaining or target.",
             user_external_id="live-diag-no-plan",
             body_plan_seeded=False,
+            manifest_case_id="MVP-LIVE-001",
+            case_family="no_plan_degraded",
             steps=(
                 LiveStep(
                     1,
@@ -1428,6 +1448,29 @@ def _exact_item_official_label_case() -> LiveCase:
     )
 
 
+def _generic_common_food_range_case() -> LiveCase:
+    return LiveCase(
+        case_id="generic_common_food_range",
+        description="Generic common-food single-turn commit preserves range posture without fake exactness.",
+        user_external_id="live-diag-generic-range",
+        body_plan_seeded=True,
+        manifest_case_id="MVP-LIVE-005",
+        case_family="generic_food_range",
+        steps=(
+            LiveStep(
+                1,
+                "generic_common_food_commit",
+                "\u6211\u5403\u4e86\u4e00\u7897\u725b\u8089\u9eb5",
+                {
+                    "entry_intent": "log_meal",
+                    "semantic_intent": "log_meal",
+                    "final_action": "commit",
+                },
+            ),
+        ),
+    )
+
+
 def _limit_case_turns(case: LiveCase, *, max_turn: int | None) -> LiveCase:
     if max_turn is None:
         return case
@@ -1444,14 +1487,44 @@ def _limit_case_turns(case: LiveCase, *, max_turn: int | None) -> LiveCase:
     )
 
 
-def _single_case_probe_inventory(*, case_id: str | None = None, max_turn: int | None = None) -> list[LiveCase]:
-    cases = [_seeded_explicit_removal_case(), _exact_item_official_label_case(), *_case_inventory()]
-    selected = str(case_id or "explicit_item_removal_seeded")
+def _single_case_probe_inventory(
+    *,
+    case_id: str | None = None,
+    manifest_case_id: str | None = None,
+    max_turn: int | None = None,
+) -> list[LiveCase]:
+    if case_id and manifest_case_id:
+        raise ValueError("Use either case_id or manifest_case_id for a single-case live diagnostic, not both.")
+    cases = [
+        _seeded_explicit_removal_case(),
+        _exact_item_official_label_case(),
+        _generic_common_food_range_case(),
+        *_case_inventory(),
+    ]
+    selected = (
+        _runtime_case_id_for_manifest_case_id(manifest_case_id)
+        if manifest_case_id
+        else str(case_id or "explicit_item_removal_seeded")
+    )
     for case in cases:
         if case.case_id == selected:
             return [_limit_case_turns(case, max_turn=max_turn)]
     supported = ", ".join(case.case_id for case in cases)
     raise ValueError(f"Unsupported Accurate Intake live diagnostic case_id: {selected}. Supported: {supported}")
+
+
+def _runtime_case_id_for_manifest_case_id(manifest_case_id: str | None) -> str:
+    selected = str(manifest_case_id or "").strip()
+    if not selected:
+        return "explicit_item_removal_seeded"
+    runtime_case_id = INITIAL_MANIFEST_SINGLE_TURN_CASES.get(selected)
+    if runtime_case_id:
+        return runtime_case_id
+    supported = ", ".join(sorted(INITIAL_MANIFEST_SINGLE_TURN_CASES))
+    raise ValueError(
+        f"Unsupported Accurate Intake live diagnostic manifest_case_id: {selected}. "
+        f"Initial single-turn manifest support: {supported}"
+    )
 
 
 def _validate_case(
@@ -1765,6 +1838,8 @@ def _case_error(
     attempt_count = sum(max(1, int(item.get("attempt_count") or 1)) for item in invocations) or 1
     return {
         "case_id": case.case_id,
+        "manifest_case_id": case.manifest_case_id,
+        "case_family": case.case_family,
         "description": case.description,
         "verdict": "fail",
         "blockers": ["runtime_error"],
@@ -2501,6 +2576,11 @@ def main() -> int:
         help="Explicitly allow the live CLI to run every stage in one process. Prefer staged single-case artifacts.",
     )
     parser.add_argument("--case-id", default=None)
+    parser.add_argument(
+        "--manifest-case-id",
+        default=None,
+        help="Select an initial single-turn live probe by fixed 18-case manifest id.",
+    )
     parser.add_argument("--max-turn", type=int, default=None)
     parser.add_argument("--offline-replay-artifact", default=str(DEFAULT_OFFLINE_REPLAY_ARTIFACT))
     args = parser.parse_args()
@@ -2523,6 +2603,7 @@ def main() -> int:
         provider_request_retry_jitter_ms=int(args.provider_request_retry_jitter_ms),
         stage=str(args.stage),
         case_id=str(args.case_id) if args.case_id else None,
+        manifest_case_id=str(args.manifest_case_id) if args.manifest_case_id else None,
         max_turn=args.max_turn,
         offline_replay_artifact_path=Path(args.offline_replay_artifact) if args.offline_replay_artifact else None,
     )

@@ -35,9 +35,15 @@ def build_commit_request_candidate(
 ) -> CommitRequestCandidate:
     macro_persistence_allowed = payload_authorizes_macro_persistence(payload)
     payload_protein_g, payload_carb_g, payload_fat_g = canonical_macro_values_from_payload(payload)
+    trace_contract = payload.trace_contract or {}
+    correction_target_ref = trace_contract.get("correction_target_ref")
+    correction_target_name = ""
+    if isinstance(correction_target_ref, dict):
+        correction_target_name = str(correction_target_ref.get("canonical_name") or "").strip()
+    component_estimates = list(payload.component_estimates)
     items = [
         MealItemPayload(
-            name=item.name,
+            name=correction_target_name if correction_target_name and len(component_estimates) == 1 else item.name,
             quantity_hint=item.quantity_hint,
             source=item.source,
             evidence_role=item.evidence_role,
@@ -50,12 +56,12 @@ def build_commit_request_candidate(
             evidence_ids=list(item.evidence_ids),
             classification={},
         )
-        for item in payload.component_estimates
+        for item in component_estimates
     ]
     if not items:
         items = [
             MealItemPayload(
-                name=payload.meal_title or raw_input,
+                name=correction_target_name or payload.meal_title or raw_input,
                 quantity_hint=(payload.quantity_hints[0] if payload.quantity_hints else None),
                 source="llm",
                 evidence_role="unknown",
@@ -69,14 +75,12 @@ def build_commit_request_candidate(
                 classification={},
             )
         ]
-    trace_contract = payload.trace_contract or {}
     trace_ref = {
         "request_id": request_id or payload.request_id,
         "route_target": payload.route_target,
         "best_answer_source": payload.best_answer_source,
     }
     resolved_meal_thread_id = meal_thread_id
-    correction_target_ref = trace_contract.get("correction_target_ref")
     if isinstance(correction_target_ref, dict):
         trace_ref["correction_target_ref"] = dict(correction_target_ref)
         if resolved_meal_thread_id is None and correction_target_ref.get("meal_thread_id") is not None:

@@ -85,6 +85,20 @@ def test_manifest_case_replay_blocks_missing_manifest_case() -> None:
     assert replay["cases"][-1]["blockers"] == ["case_missing", *_missing_layer_blockers(manifest)]
 
 
+def test_manifest_case_replay_accepts_runtime_case_with_manifest_id() -> None:
+    manifest = _manifest()
+    source = _trace_artifact(manifest)
+    source_case = source["cases"][0]
+    source_case["manifest_case_id"] = source_case["case_id"]
+    source_case["case_id"] = "no_plan_consumed_without_budget_target"
+
+    replay = build_live_case_replay(manifest=manifest, trace_artifact=source)
+
+    assert replay["cases"][0]["case_id"] == "MVP-LIVE-001"
+    assert replay["cases"][0]["status"] == "pass"
+    assert replay["summary"]["strict_trace_replay_passed"] is True
+
+
 def test_manifest_case_replay_blocks_semantic_keyword_oracle_shortcuts() -> None:
     manifest = _manifest()
     source = _trace_artifact(manifest)

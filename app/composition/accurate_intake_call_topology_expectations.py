@@ -12,6 +12,7 @@ from app.composition.accurate_intake_trace_expectation_primitives import (
 
 EXPECTED_CALL_TOPOLOGY_BY_CASE_ID = {
     "exact_item_official_label": {1: ["turn_entry_or_read_only", "intake_execution", "intake_execution"]},
+    "generic_common_food_range": {1: ["turn_entry_or_read_only", "intake_execution"]},
     "explicit_item_removal_seeded": {1: ["turn_entry_or_read_only", "intake_execution"]},
     "chinese_chicken_rice_correction_removal_debug": {
         1: ["turn_entry_or_read_only", "intake_execution"],

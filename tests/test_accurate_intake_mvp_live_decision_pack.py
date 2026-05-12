@@ -103,9 +103,41 @@ def _clean_required_stage_manifest(*, include_full_suite: bool = False) -> dict[
             "stage_id": "single_case_live_probe",
             "status": "pass",
             "result_kind": "strict_pass_first_attempt",
-            "case_ids": ["explicit_item_removal_seeded"],
+            "case_ids": ["no_plan_consumed_without_budget_target"],
             "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
             "model": "grok-4-fast",
+        },
+        {
+            "stage_id": "single_case_live_probe",
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
+            "case_ids": ["generic_common_food_range"],
+            "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+            "model": "grok-4-fast",
+        },
+                {
+                    "stage_id": "single_case_live_probe",
+                    "status": "pass",
+                    "result_kind": "strict_pass_first_attempt",
+                    "case_ids": ["no_plan_consumed_without_budget_target"],
+                    "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                    "model": "grok-4-fast",
+                },
+                {
+                    "stage_id": "single_case_live_probe",
+                    "status": "pass",
+                    "result_kind": "strict_pass_first_attempt",
+                    "case_ids": ["generic_common_food_range"],
+                    "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                    "model": "grok-4-fast",
+                },
+                {
+                    "stage_id": "single_case_live_probe",
+                    "status": "pass",
+                    "result_kind": "strict_pass_first_attempt",
+                    "case_ids": ["explicit_item_removal_seeded"],
+                    "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                    "model": "grok-4-fast",
         },
         {
             "stage_id": "single_case_live_probe",
@@ -367,6 +399,22 @@ def test_accurate_intake_live_decision_pack_uses_clean_stage_manifest_over_stale
                 "stage_id": "single_case_live_probe",
                 "status": "pass",
                 "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["no_plan_consumed_without_budget_target"],
+                "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                "model": "grok-4-fast",
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["generic_common_food_range"],
+                "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                "model": "grok-4-fast",
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
                 "case_ids": ["explicit_item_removal_seeded"],
                 "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
                 "model": "grok-4-fast",
@@ -411,7 +459,7 @@ def test_accurate_intake_live_decision_pack_uses_clean_stage_manifest_over_stale
     assert pack["selected_option"] == "offline_shadow_replay"
     assert pack["selection_reason"] == "clean_stage_manifest_requires_replay_before_private_self_use_candidate"
     assert pack["stage_summary"]["source"] == "stage_manifest"
-    assert pack["stage_summary"]["result_kind_counts"] == {"strict_pass_first_attempt": 8}
+    assert pack["stage_summary"]["result_kind_counts"] == {"strict_pass_first_attempt": 10}
     assert pack["private_self_use_candidate_prepared"] is False
 
 
@@ -488,6 +536,18 @@ def test_accurate_intake_live_decision_pack_blocks_missing_required_single_case(
                 "stage_id": "single_case_live_probe",
                 "status": "pass",
                 "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["no_plan_consumed_without_budget_target"],
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["generic_common_food_range"],
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
                 "case_ids": ["explicit_item_removal_seeded"],
             },
             {
@@ -528,6 +588,18 @@ def test_accurate_intake_live_decision_pack_blocks_full_suite_when_offline_repla
             {"stage_id": "provider_health_smoke", "status": "pass", "result_kind": "strict_pass_first_attempt"},
             {"stage_id": "schema_contract_probe", "status": "pass", "result_kind": "strict_pass_first_attempt"},
             {"stage_id": "fake_provider_active_runtime_gate", "status": "pass", "result_kind": "strict_pass_first_attempt"},
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["no_plan_consumed_without_budget_target"],
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["generic_common_food_range"],
+            },
             {
                 "stage_id": "single_case_live_probe",
                 "status": "pass",

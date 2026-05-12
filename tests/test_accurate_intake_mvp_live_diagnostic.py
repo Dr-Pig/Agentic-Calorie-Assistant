@@ -883,6 +883,89 @@ def test_accurate_intake_live_single_case_probe_supports_exact_item_official_lab
     assert case["raw_text_routing_used"] is False
 
 
+def test_accurate_intake_live_single_case_probe_supports_manifest_no_plan(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    report = module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+        provider_override=module.ScriptedAccurateIntakeLiveProvider(),
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+        stage="single_case_live_probe",
+        manifest_case_id="MVP-LIVE-001",
+    )
+
+    case = report["cases"][0]
+    assert report["stages"][-1]["case_ids"] == ["no_plan_consumed_without_budget_target"]
+    assert report["stages"][-1]["manifest_case_ids"] == ["MVP-LIVE-001"]
+    assert case["case_id"] == "no_plan_consumed_without_budget_target"
+    assert case["manifest_case_id"] == "MVP-LIVE-001"
+    assert case["case_family"] == "no_plan_degraded"
+    assert case["case_contract_status"] == "strict_pass"
+    assert case["turns"][0]["state_delta"]["canonical_commit"] is False
+    assert case["turns"][0]["remaining_budget"]["daily_target_kcal"] is None
+    assert case["turns"][0]["remaining_budget"]["remaining_kcal"] is None
+    assert case["provider_invocations"][0]["diagnostic_manifest_case_id"] == "MVP-LIVE-001"
+
+
+def test_accurate_intake_live_single_case_probe_supports_manifest_generic_range(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    report = module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+        provider_override=module.ScriptedAccurateIntakeLiveProvider(),
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+        stage="single_case_live_probe",
+        manifest_case_id="MVP-LIVE-005",
+    )
+
+    case = report["cases"][0]
+    assert report["stages"][-1]["case_ids"] == ["generic_common_food_range"]
+    assert report["stages"][-1]["manifest_case_ids"] == ["MVP-LIVE-005"]
+    assert case["case_id"] == "generic_common_food_range"
+    assert case["manifest_case_id"] == "MVP-LIVE-005"
+    assert case["case_family"] == "generic_food_range"
+    assert case["case_contract_status"] == "strict_pass"
+    assert case["turns"][0]["state_delta"]["canonical_commit"] is True
+    grade = case["trace_expectation_grade"]
+    assert grade["expectation_id"] == "generic_common_food_range.trace.v1"
+    assert grade["required_status"] == "pass"
+    assert {check["check_id"]: check["status"] for check in grade["checks"]} == {
+        "manifest_case_mapped": "pass",
+        "single_turn_only": "pass",
+        "call_topology_matches_expected": "pass",
+        "estimate_nutrition_used": "pass",
+        "target_resolution_not_used": "pass",
+        "commit_final_present": "pass",
+        "canonical_commit_recorded": "pass",
+        "same_truth_pass": "pass",
+    }
+    assert case["provider_invocations"][0]["diagnostic_manifest_case_id"] == "MVP-LIVE-005"
+
+
+def test_accurate_intake_live_rejects_mixed_runtime_and_manifest_case_selection(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    try:
+        module.run_diagnostic(
+            output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+            db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+            provider_override=module.ScriptedAccurateIntakeLiveProvider(),
+            provider_mode="fake_provider_contract_test",
+            live_invoked=False,
+            stage="single_case_live_probe",
+            case_id="no_plan_consumed_without_budget_target",
+            manifest_case_id="MVP-LIVE-001",
+        )
+    except ValueError as exc:
+        assert "Use either case_id or manifest_case_id" in str(exc)
+    else:
+        raise AssertionError("mixed case selectors should fail before running a diagnostic")
+
+
 def test_accurate_intake_live_single_case_probe_bubble_refinement_inventory_contract(tmp_path: Path) -> None:
     module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
 
