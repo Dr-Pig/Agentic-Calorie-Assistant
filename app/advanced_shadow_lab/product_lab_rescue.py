@@ -57,6 +57,7 @@ def run_product_lab_rescue(
         "artifact_schema_version": "1.0",
         "status": "blocked" if blockers else "pass",
         "source_shadow_chain_status": str(chain.get("status") or ""),
+        "source_shadow_chain_artifact": chain,
         "source_lifecycle_status": str(lifecycle.get("status") or ""),
         "proposal_card": proposal_card,
         "guardrail_math": _guardrail_math(option),
