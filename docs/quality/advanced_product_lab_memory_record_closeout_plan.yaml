@@ -1,0 +1,46 @@
+artifact_type: advanced_product_lab_memory_record_closeout_plan
+version: 1
+status: active_closeout
+owner: MemoryRuntimeArchitecture
+consumer: advanced_product_lab_followup_planning
+artifact_classification: merge_safe
+retirement_trigger: approved_advanced_product_lab_activation_plan
+train_closed_for_simulated_lab: true
+mainline_activation_enabled: false
+mainline_runtime_connected: false
+self_use_v1_affected: false
+durable_product_memory_written: false
+canonical_product_mutation_allowed: false
+production_scheduler_delivery_allowed: false
+required_final_runner: scripts/run_advanced_product_lab_memory_record_closure_pipeline.py
+completion_evidence:
+  - advanced_product_lab_memory_record_closure_pack
+  - advanced_product_lab_activation_wall_audit
+  - runtime_lab_closure_alignment
+legacy_lab_memory_path_policy:
+  primary_runtime_lab_path: MemoryRecord
+  delete_now: false
+  legacy_paths:
+    - app/advanced_shadow_lab/product_lab_memory.py
+    - app/advanced_shadow_lab/product_lab_memory_context.py
+    - app/advanced_shadow_lab/product_lab_memory_tools.py
+  retirement_trigger: approved_memory_record_only_activation_plan
+  retirement_requires:
+    - no_remaining_tests_import_legacy_lab_memory_store
+    - memory_record_pipeline_covers_equivalent_fixture_cases
+    - activation_wall_audit_remains_pass
+  must_not_block_mainline_dormancy: true
+remaining_before_real_user_activation:
+  - real_dogfood_trace_calibration
+  - optional_env_gated_grokfast_live_diagnostic
+  - explicit_activation_pr_with_rollback
+next_allowed_work:
+  - ingest_real_dogfood_traces_when_available
+  - calibrate_memory_recommendation_rescue_proactive_against_real_feedback
+  - draft_activation_pr_only_after_user_approval
+non_claims:
+  - not_self_use_v1_activation
+  - not_durable_memory_activation
+  - not_scheduler_delivery
+  - not_canonical_mutation
+  - not_production_readiness
