@@ -1,0 +1,1124 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_milkfish_belly_100g",
+      "canonical_name": "????",
+      "aliases": [
+        "????100g",
+        "milkfish belly 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g milkfish belly component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 342,
+      "kcal_range": [
+        260,
+        470
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_7f7ea826e7dd",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 341.8283,
+          "tfda_sample_name": "虱目魚腹肉(虱目魚肚)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_f23f062955e2",
+        "raw_row_hash": "fb4360b896f635c1efd857b0f29b3d88b578b43a0a0a94a73448209e99ec95ae"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_salmon_sashimi_100g",
+      "canonical_name": "?????",
+      "aliases": [
+        "?????100g",
+        "salmon sashimi 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g salmon sashimi component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 222,
+      "kcal_range": [
+        170,
+        310
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_bf89af0046a3",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 221.8494,
+          "tfda_sample_name": "大西洋鮭魚生魚片"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_4aba875acf5b",
+        "raw_row_hash": "67edad21bae8fd2237b9aecd3d6895b28314e820085fd9891217eb706dbc8f11"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_salmon_belly_100g",
+      "canonical_name": "????",
+      "aliases": [
+        "????100g",
+        "salmon belly 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g salmon belly component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 349,
+      "kcal_range": [
+        260,
+        500
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_3f58160f1d65",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 349.1797,
+          "tfda_sample_name": "大西洋鮭魚腹肉"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_c922ff948a28",
+        "raw_row_hash": "f540e12939a5fa35a928849acbe968204e9e4ee4b934f0eb10a8857f5b5fa239"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_white_salmon_slice_100g",
+      "canonical_name": "??????",
+      "aliases": [
+        "??????100g",
+        "white salmon slice 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g white salmon slice component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 151,
+      "kcal_range": [
+        110,
+        230
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_f84da5445b95",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 151.2298,
+          "tfda_sample_name": "白肉鮭魚切片"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_33f891b37348",
+        "raw_row_hash": "ebfed9c342c42877e86480aef74c7c834e0084b4242df9fc9dd7672e6a306247"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_red_salmon_slice_100g",
+      "canonical_name": "??????",
+      "aliases": [
+        "??????100g",
+        "red salmon slice 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g red salmon slice component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 158,
+      "kcal_range": [
+        120,
+        240
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_d08953d10e3f",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 157.8501,
+          "tfda_sample_name": "紅肉鮭魚切片"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_b9e54f1a10ce",
+        "raw_row_hash": "235c74d192d61fcdd22d529e95cea0ce6773e5198cca94d592169356beb0ef3b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_sweetfish_100g",
+      "canonical_name": "??",
+      "aliases": [
+        "??100g",
+        "sweetfish 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g sweetfish component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 147,
+      "kcal_range": [
+        110,
+        230
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_43734ca27ad6",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 146.8377,
+          "tfda_sample_name": "香魚"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_1ed2f8f3df2a",
+        "raw_row_hash": "f86466f19ac76ea67b3baf2473734159f1332733170960820628ab978867e777"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_silver_fish_100g",
+      "canonical_name": "??",
+      "aliases": [
+        "??100g",
+        "silver fish 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g silver fish component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 69,
+      "kcal_range": [
+        45,
+        110
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_4eef1cf55d5b",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 69.3265,
+          "tfda_sample_name": "銀魚"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_97a78bcde9ec",
+        "raw_row_hash": "417a6e49bebe729912f083be469520bd61d68cdf4e9d134e9633c0385fdd9190"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_crab_leg_meat_100g",
+      "canonical_name": "???",
+      "aliases": [
+        "???100g",
+        "crab leg meat 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g crab leg meat component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 53,
+      "kcal_range": [
+        35,
+        90
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_b5cd0571828b",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 52.6282,
+          "tfda_sample_name": "蟹腳肉"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_ac9f15c2e91a",
+        "raw_row_hash": "b731a256d5b8439e3c09067cac97309011ecb6e4b1f9b514901beaf1834ffbad"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_snail_meat_100g",
+      "canonical_name": "???",
+      "aliases": [
+        "???100g",
+        "snail meat 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g snail meat component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 78,
+      "kcal_range": [
+        50,
+        120
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_01cb9f74f96b",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 77.5601,
+          "tfda_sample_name": "蝸牛肉"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_5ed2c6469690",
+        "raw_row_hash": "f448f0e3683c0369fe6caeead7650aa80f110fc4dc9257271a11913f19781878"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_char_siu_100g",
+      "canonical_name": "???",
+      "aliases": [
+        "???100g",
+        "char siu 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g char siu component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 253,
+      "kcal_range": [
+        190,
+        360
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_0b6bf40ef0bf",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 252.5617,
+          "tfda_sample_name": "叉燒肉"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_f849e0b2cd51",
+        "raw_row_hash": "bd91de5152c3d0c6e97dae982031985182f62fd93354419ebf15cec22a89b4f7"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_braised_pork_elbow_100g",
+      "canonical_name": "???",
+      "aliases": [
+        "???100g",
+        "braised pork elbow 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g braised pork elbow component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 134,
+      "kcal_range": [
+        95,
+        200
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_a02aff646bc7",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 133.9852,
+          "tfda_sample_name": "醬肘子"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_5628e5d906bb",
+        "raw_row_hash": "2c63cf9c87b2ee4c69416a11309b101ac8812c55f7b9c60d91dc401509cee26c"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_preserved_pork_belly_100g",
+      "canonical_name": "?????",
+      "aliases": [
+        "?????100g",
+        "preserved pork belly 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g preserved pork belly component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 525,
+      "kcal_range": [
+        400,
+        700
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_3f4acdc0df2e",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 524.6003,
+          "tfda_sample_name": "臘肉(五花肉)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_b629b45243f6",
+        "raw_row_hash": "58de9e12f8dc17987733ae9061d51f381b15e0878c79be4a584352ed87242223"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_preserved_pork_leg_100g",
+      "canonical_name": "????",
+      "aliases": [
+        "????100g",
+        "preserved pork leg 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g preserved pork leg component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 377,
+      "kcal_range": [
+        280,
+        520
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_5235b56be3b5",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 376.9395,
+          "tfda_sample_name": "臘肉(腿肉)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_9fb019e32277",
+        "raw_row_hash": "d4e8f528846e1169001e676cc48460d25955c9bea01ab62909100e777234c067"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_smoked_pork_liver_100g",
+      "canonical_name": "????",
+      "aliases": [
+        "????100g",
+        "smoked pork liver 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g smoked pork liver component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 167,
+      "kcal_range": [
+        120,
+        240
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_1d16f4cd538f",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 166.5452,
+          "tfda_sample_name": "醃燻豬肝"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_da4e642958a9",
+        "raw_row_hash": "a13c22ba2875f7ce8d970b49c18bafb1e455c24f4405d8b8e2e3f03f9f04ac99"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_spicy_beef_jerky_30g",
+      "canonical_name": "?????",
+      "aliases": [
+        "?????30g",
+        "spicy beef jerky 30g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "portion",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one 30g spicy beef jerky component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 100,
+      "kcal_range": [
+        70,
+        150
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_03803039346b",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 334.9235,
+          "tfda_sample_name": "片狀肉乾(牛肉,辣味)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_c629e2a9af9e",
+        "raw_row_hash": "a184149201489e63e85749377b035bc9bfb3dc291dde46b5efb03d1171c81f14"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_beef_sausage_one",
+      "canonical_name": "????",
+      "aliases": [
+        "??????",
+        "beef sausage one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 50,
+        "label": "one beef sausage component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 149,
+      "kcal_range": [
+        110,
+        220
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_aba1ee24642d",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 298.0708,
+          "tfda_sample_name": "牛肉香腸"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_5c6d123c6bed",
+        "raw_row_hash": "a1a7fa049a7ca0fcf520a9f4d54526fa5fb31ab4bd8a69de82fe630b81c8ee08"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_konjac_garlic_sausage_one",
+      "canonical_name": "??????",
+      "aliases": [
+        "????????",
+        "konjac garlic sausage one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 50,
+        "label": "one konjac garlic sausage component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 144,
+      "kcal_range": [
+        100,
+        210
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_0715474f3373",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 288.7356,
+          "tfda_sample_name": "蒟蒻香腸(蒜味)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_db9120db80a4",
+        "raw_row_hash": "2060d55881873dfec1218fa461c509842d4916ff029942cda1f4b5e036f891f5"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_sweet_sour_pork_100g",
+      "canonical_name": "???",
+      "aliases": [
+        "???100g",
+        "sweet sour pork 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g sweet-sour pork component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 181,
+      "kcal_range": [
+        130,
+        270
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_7f42486fae0b",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 181.3,
+          "tfda_sample_name": "冷凍咕咾肉"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_cfc0d745bdf9",
+        "raw_row_hash": "9e666f9f5cd451894b0e2a745661af05d93ea5dc07a4fcd8748e2b36c7506266"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_tuna_patty_100g",
+      "canonical_name": "??",
+      "aliases": [
+        "??100g",
+        "tuna patty 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g tuna patty component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 143,
+      "kcal_range": [
+        100,
+        220
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_9f7ed54252d0",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 143.3,
+          "tfda_sample_name": "冷凍鮪排"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_735ffe13612c",
+        "raw_row_hash": "049fa044dc6a7ba648edc039776c2969a8b51f07e8df519913f6dca0f4c788d4"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_scallop_crisp_100g",
+      "canonical_name": "???",
+      "aliases": [
+        "???100g",
+        "scallop crisp 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving_100g",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one 100g scallop crisp component",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 144,
+      "kcal_range": [
+        100,
+        220
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_6cba7395a291",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 144.0722,
+          "tfda_sample_name": "冷凍干貝酥"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_ca2911476cb1",
+        "raw_row_hash": "6ec28b1f9505696bcb836101f1dacb13062aa5447bd44b2dad1a3a6113a30503"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    }
+  ]
+}
