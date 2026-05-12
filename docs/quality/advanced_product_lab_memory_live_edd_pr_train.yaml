@@ -4,8 +4,8 @@ status: active
 owner: MemoryRuntimeArchitecture
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 14
-dynamic_remaining_pr_count: 8
-last_completed_pr_number: 6
+dynamic_remaining_pr_count: 7
+last_completed_pr_number: 7
 current_mainline: advanced_product_lab_memory_live_edd
 is_detour: false
 mainline_blocker_being_removed: memory_is_simulated_complete_but_live_edd_not_decision_complete
@@ -204,7 +204,11 @@ last_merge_evidence:
       pull_request: 1137
       merge_commit: f310237867d19384ca14d55e00eef058b6db6759
       result: memory_tool_lookup_live_diagnostic_merged
-  latest_dynamic_estimate_after_merge: 8
+    - pr_number: 7
+      pull_request: 1138
+      merge_commit: d7e7f69a6328e005d8bb3bcf432d1ab7dfe0a97c
+      result: source_poisoning_and_prompt_injection_holdouts_merged
+  latest_dynamic_estimate_after_merge: 7
 estimate_notes:
   - Initial dynamic estimate is 14 PRs before PR1 merge.
   - After PR1 merge, remaining estimate moved to 13.
@@ -213,4 +217,5 @@ estimate_notes:
   - After PR4 merge, remaining estimate moved to 10.
   - After PR5 merge, remaining estimate moved to 9.
   - After PR6 merge, remaining estimate moved to 8.
+  - After PR7 merge, remaining estimate moved to 7.
   - Real dogfood calibration remains outside this count until user dogfood traces are available.
