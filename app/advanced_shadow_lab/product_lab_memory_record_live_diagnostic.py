@@ -7,6 +7,9 @@ from typing import Any, Mapping
 from app.advanced_shadow_lab.product_lab_live_output_guard import (
     product_lab_live_output_guard,
 )
+from app.advanced_shadow_lab.product_lab_memory_record_live_evidence import (
+    attach_live_evidence_status,
+)
 from app.advanced_shadow_lab.product_lab_memory_record_live_artifact import (
     ARTIFACT_TYPE,
     base_live_artifact,
@@ -90,6 +93,7 @@ def run_memory_record_live_diagnostic(
             "blockers": all_blockers,
         }
     )
+    attach_live_evidence_status(artifact)
     if output_path:
         write_json_artifact(output_path, artifact)
     return artifact

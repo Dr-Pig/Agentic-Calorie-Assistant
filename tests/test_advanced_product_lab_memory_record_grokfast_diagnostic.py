@@ -21,6 +21,7 @@ from app.advanced_shadow_lab.product_lab_memory_record_session import (
 from app.advanced_shadow_lab.product_lab_simulated_scenario import (
     build_product_lab_simulated_turns,
 )
+from app.advanced_shadow_lab.model_profiles import ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID
 
 
 def test_memory_record_grokfast_diagnostic_fake_provider_contract(
@@ -58,6 +59,11 @@ def test_memory_record_grokfast_diagnostic_fake_provider_contract(
     assert artifact["durable_product_memory_written"] is False
     assert artifact["canonical_product_mutation_allowed"] is False
     assert artifact["user_facing_behavior_changed"] is False
+    assert artifact["diagnostic_evidence_class"] == "fake_contract"
+    assert artifact["fake_contract_pass"] is True
+    assert artifact["live_grokfast_diagnostic_pass"] is False
+    assert artifact["live_milestone_status"] == "not_satisfied_fake_contract"
+    assert artifact["live_completion_claim_allowed"] is False
 
 
 def test_memory_record_grokfast_diagnostic_payload_is_bounded(
@@ -95,6 +101,56 @@ def test_memory_record_grokfast_diagnostic_payload_is_bounded(
     )
     assert "integrated_chain_artifact" not in provider.user_payload
     assert "raw_user_utterance" not in json.dumps(provider.user_payload)
+
+
+def test_memory_record_grokfast_diagnostic_live_pass_has_canonical_evidence_shape(
+    tmp_path: Path,
+) -> None:
+    from app.advanced_shadow_lab.product_lab_memory_record_live_diagnostic import (
+        run_memory_record_live_diagnostic,
+    )
+
+    artifact = run_memory_record_live_diagnostic(
+        integrated_e2e_artifact=_integrated(tmp_path),
+        provider=_CapturingProvider(),
+        provider_mode=ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
+        provider_profile_id=ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
+        live_invoked=True,
+    )
+
+    assert artifact["status"] == "pass"
+    assert artifact["live_invoked"] is True
+    assert artifact["live_provider_used"] is True
+    assert artifact["diagnostic_evidence_class"] == "live_grokfast"
+    assert artifact["fake_contract_pass"] is False
+    assert artifact["live_grokfast_diagnostic_pass"] is True
+    assert artifact["live_milestone_status"] == "satisfied_live_grokfast"
+    assert artifact["live_completion_claim_allowed"] is True
+    assert artifact["mainline_activation_enabled"] is False
+    assert artifact["durable_product_memory_written"] is False
+
+
+def test_memory_record_grokfast_blocked_not_invoked_is_canonical_non_live(
+    tmp_path: Path,
+) -> None:
+    from app.advanced_shadow_lab.product_lab_memory_record_live_diagnostic import (
+        blocked_not_invoked_artifact,
+    )
+
+    artifact = blocked_not_invoked_artifact(
+        output_path=tmp_path / "blocked.json",
+        provider_profile_id=ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID,
+        reason="live_gate_not_enabled",
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["provider_mode"] == "not_invoked"
+    assert artifact["live_invoked"] is False
+    assert artifact["diagnostic_evidence_class"] == "blocked_not_invoked"
+    assert artifact["fake_contract_pass"] is False
+    assert artifact["live_grokfast_diagnostic_pass"] is False
+    assert artifact["live_milestone_status"] == "blocked_not_invoked"
+    assert artifact["live_completion_claim_allowed"] is False
 
 
 def _integrated(tmp_path: Path) -> dict[str, object]:

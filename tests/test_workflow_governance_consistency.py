@@ -115,8 +115,11 @@ def test_required_repo_hygiene_runs_pr_diff_quality_gate() -> None:
 
     assert "Run PR diff quality gate" in workflow
     assert "github.event_name == 'pull_request' || github.event_name == 'merge_group'" in workflow
-    assert "git fetch --no-tags origin main" in workflow
-    assert 'BASE_SHA="$(git merge-base origin/main HEAD)"' in workflow
+    assert "BASE_BRANCH: ${{ github.base_ref || github.event.merge_group.base_ref || 'main' }}" in workflow
+    assert 'BASE_BRANCH="${BASE_BRANCH#refs/heads/}"' in workflow
+    assert 'git fetch --no-tags origin "$BASE_BRANCH"' in workflow
+    assert 'BASE_SHA="$(git merge-base "origin/$BASE_BRANCH" HEAD)"' in workflow
+    assert "git merge-base origin/main HEAD" not in workflow
     assert "python scripts/merge_governance/pre_pr_quality_gate.py" in workflow
     assert "--skip-boundary-checks" in workflow
 

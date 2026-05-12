@@ -4,6 +4,9 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAGS
+from app.advanced_shadow_lab.product_lab_memory_record_provider_summary import (
+    provider_contract_summary,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -85,7 +88,9 @@ def build_memory_record_closure_pack(
             "holdout": str(source_holdout_path or ""),
         },
         "capabilities_closed": _capabilities_closed(readiness_report, status),
-        "provider_contract_diagnostic": _provider_summary(live_diagnostic_artifact),
+        "provider_contract_diagnostic": provider_contract_summary(
+            live_diagnostic_artifact
+        ),
         "holdout_case_count": int(holdout_report.get("holdout_case_count") or 0),
         "blockers": blockers,
         "next_allowed_slices": [
@@ -176,17 +181,6 @@ def _stage_artifact_types(
     return {
         stage: str(artifact.get("artifact_type") or "")
         for stage, artifact in stage_artifacts.items()
-    }
-
-
-def _provider_summary(live_diagnostic_artifact: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        "provider_mode": str(live_diagnostic_artifact.get("provider_mode") or ""),
-        "provider_profile_id": str(
-            live_diagnostic_artifact.get("provider_profile_id") or ""
-        ),
-        "live_invoked": bool(live_diagnostic_artifact.get("live_invoked")),
-        "live_provider_used": bool(live_diagnostic_artifact.get("live_provider_used")),
     }
 
 
