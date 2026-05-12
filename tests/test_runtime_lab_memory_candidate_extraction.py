@@ -67,8 +67,8 @@ def test_candidate_extraction_golden_suite_matches_expected_case_outcomes() -> N
 
     assert artifact["artifact_type"] == "runtime_lab_memory_candidate_extraction"
     assert artifact["status"] == "pass"
-    assert artifact["candidate_count"] == 7
-    assert artifact["rejection_count"] == 3
+    assert artifact["candidate_count"] == 18
+    assert artifact["rejection_count"] == 6
     assert artifact["runtime_connected"] is False
     assert artifact["lab_isolated"] is True
     assert artifact["runtime_effect_allowed"] is False
@@ -93,7 +93,32 @@ def test_candidate_extraction_golden_suite_matches_expected_case_outcomes() -> N
     assert by_case["stale_conflicting_pattern_requires_review"][
         "candidate_type"
     ] == "contradiction_review"
+    assert by_case["profile_positive_large_satiety_fewer_meals"][
+        "candidate_type"
+    ] == "preference"
+    assert by_case["profile_positive_eating_out_no_cooking"][
+        "candidate_type"
+    ] == "preference"
+    assert by_case["negative_bitter_melon_block"][
+        "candidate_type"
+    ] == "negative_preference"
+    assert by_case["negative_spicy_block"]["candidate_type"] == "negative_preference"
+    assert by_case["negative_vegetarian_meal_type_downrank"][
+        "candidate_type"
+    ] == "negative_preference"
+    assert by_case["feedback_event_confirm_memory_candidate_scoped"][
+        "candidate_type"
+    ] == "feedback_event"
+    assert by_case["feedback_event_dismiss_proactive_not_memory_promotion"][
+        "candidate_type"
+    ] == "feedback_event"
     assert by_case["correction_updates_canonical_not_memory"]["outcome"] == "rejected"
+    assert by_case[
+        "negative_dessert_ignored_after_user_says_do_not_remember"
+    ]["outcome"] == "rejected"
+    assert by_case["source_lookup_metadata_first_bounded_evidence"][
+        "outcome"
+    ] == "rejected"
     assert by_case["missing_scope_rejects_memory_use"]["rejection_reason"] == (
         "missing_scope_keys"
     )
