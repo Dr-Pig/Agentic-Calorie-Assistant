@@ -38,11 +38,7 @@ def build_live_case_replay(
     trace_artifact: dict[str, Any],
 ) -> dict[str, Any]:
     manifest_cases = [_dict(item) for item in _list(manifest.get("cases"))]
-    source_cases_by_id = {
-        str(case.get("case_id") or ""): _dict(case)
-        for case in _list(trace_artifact.get("cases"))
-        if str(_dict(case).get("case_id") or "")
-    }
+    source_cases_by_id = _source_cases_by_manifest_or_runtime_id(trace_artifact)
     trace_layers = [str(item.get("layer_id")) for item in _list(manifest.get("trace_layers"))]
     case_grades = [
         _grade_case(manifest_case, source_cases_by_id.get(str(manifest_case.get("case_id") or "")), trace_layers)
@@ -133,6 +129,17 @@ def _grade_case(
         "missing_focus_layers": missing_focus_layers,
         "blockers": blockers,
     }
+
+
+def _source_cases_by_manifest_or_runtime_id(trace_artifact: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    indexed: dict[str, dict[str, Any]] = {}
+    for raw_case in _list(trace_artifact.get("cases")):
+        case = _dict(raw_case)
+        for key in ("manifest_case_id", "case_id"):
+            case_id = str(case.get(key) or "")
+            if case_id:
+                indexed.setdefault(case_id, case)
+    return indexed
 
 
 def _present_layers(source_case: dict[str, Any], required_trace_layers: list[str]) -> list[str]:

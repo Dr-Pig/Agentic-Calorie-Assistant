@@ -64,6 +64,23 @@ def _grade_exact_item(case: dict[str, Any]) -> dict[str, Any]:
     return _grade(case_id, checks)
 
 
+def _grade_generic_common_food_range(case: dict[str, Any]) -> dict[str, Any]:
+    case_id = "generic_common_food_range"
+    turn = _turn(case, 1)
+    tool_names = _tools(case)
+    checks = [
+        _check("manifest_case_mapped", case.get("manifest_case_id") == "MVP-LIVE-005", {"manifest_case_id": case.get("manifest_case_id")}),
+        _check("single_turn_only", len(_turns(case)) == 1, {"turn_count": len(_turns(case))}),
+        call_topology_check(case_id, case),
+        _check("estimate_nutrition_used", "estimate_nutrition" in tool_names, {"tool_names": tool_names}),
+        _check("target_resolution_not_used", "resolve_correction_target" not in tool_names, {"tool_names": tool_names}),
+        _check("commit_final_present", _final(turn) == "commit", {"final_action": _final(turn)}),
+        _check("canonical_commit_recorded", _delta(turn).get("canonical_commit") is True, {"state_delta": _delta(turn)}),
+        _check("same_truth_pass", _same_truth(case) == "pass", {"same_truth_status": _same_truth(case)}),
+    ]
+    return _grade(case_id, checks)
+
+
 def _grade_chicken_rice(case: dict[str, Any]) -> dict[str, Any]:
     case_id = "chinese_chicken_rice_correction_removal_debug"
     turn_count = len(_turns(case))
@@ -210,6 +227,7 @@ def _read_only_checks(case_id: str, case: dict[str, Any]) -> list[dict[str, Any]
 _GRADERS_BY_CASE_ID: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "explicit_item_removal_seeded": _grade_seeded_removal,
     "exact_item_official_label": _grade_exact_item,
+    "generic_common_food_range": _grade_generic_common_food_range,
     "chinese_chicken_rice_correction_removal_debug": _grade_chicken_rice,
     "bubble_milk_tea_refinement": _grade_bubble_tea,
     "luwei_bare_to_listed_basket": _grade_luwei,
