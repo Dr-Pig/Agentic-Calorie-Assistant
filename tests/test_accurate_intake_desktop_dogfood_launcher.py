@@ -352,11 +352,38 @@ def test_tracked_desktop_shortcut_script_uses_friendly_routes_and_stale_server_r
     assert "-WindowStyle Hidden" in script
 
 
+def test_desktop_shortcut_folder_generator_creates_stable_aca_entrypoints_without_token_leak() -> None:
+    script = Path("scripts/create_accurate_intake_desktop_shortcuts.ps1").read_text(encoding="utf-8")
+
+    expected_shortcuts = {
+        "ACA 0 Local Token.lnk": "notepad.exe",
+        "ACA 1 Start Home.lnk": '-Page "desktop"',
+        "ACA 2 Chat.lnk": '-Page "chat"',
+        "ACA 3 Today UI.lnk": '-Page "today"',
+        "ACA 4 Body.lnk": '-Page "body"',
+        "ACA 5 Feedback.lnk": '-Page "feedback"',
+        "ACA 6 Review.lnk": '-Page "review"',
+        "ACA 7 Data Backup Export.lnk": '-Page "data"',
+    }
+    for shortcut_name, expected_target in expected_shortcuts.items():
+        assert shortcut_name in script
+        assert expected_target in script
+
+    assert "WScript.Shell" in script
+    assert "CreateShortcut" in script
+    assert "open_accurate_intake_desktop_page.ps1" in script
+    assert "workspace_data\\local_dogfood" in script
+    assert "local_debug_token.txt" in script
+    assert "local_debug_token=" not in script
+    assert "/static/accurate-intake" not in script
+
+
 def test_self_use_runbook_documents_desktop_launcher_without_readiness_claim() -> None:
     runbook = Path("docs/quality/ACCURATE_INTAKE_MVP_SELF_USE_RUNBOOK.md").read_text(encoding="utf-8-sig")
 
     assert "run_accurate_intake_desktop_dogfood_launcher.py" in runbook
     assert "open_accurate_intake_desktop_page.ps1" in runbook
+    assert "create_accurate_intake_desktop_shortcuts.ps1" in runbook
     assert "workspace_data/local_dogfood/accurate_intake.sqlite3" in runbook
     assert "/accurate-intake" in runbook
     assert "/static/accurate-intake-desktop.html" in runbook
