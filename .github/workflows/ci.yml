@@ -38,9 +38,12 @@ jobs:
 
       - name: Run PR diff quality gate
         if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        env:
+          BASE_BRANCH: ${{ github.base_ref || github.event.merge_group.base_ref || 'main' }}
         run: |
-          git fetch --no-tags origin main
-          BASE_SHA="$(git merge-base origin/main HEAD)"
+          BASE_BRANCH="${BASE_BRANCH#refs/heads/}"
+          git fetch --no-tags origin "$BASE_BRANCH"
+          BASE_SHA="$(git merge-base "origin/$BASE_BRANCH" HEAD)"
           python scripts/merge_governance/pre_pr_quality_gate.py --base-ref "$BASE_SHA" --head-ref HEAD --output artifacts/pre_pr_quality_gate_ci.json --skip-boundary-checks
 
       - name: Run repo hygiene and architecture hooks
@@ -102,11 +105,14 @@ jobs:
 
       - name: Select product pages browser E2E mode
         id: browser_mode
+        env:
+          BASE_BRANCH: ${{ github.base_ref || github.event.merge_group.base_ref || 'main' }}
         run: |
           BASE_SHA=""
           if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.event_name }}" = "merge_group" ]; then
-            git fetch --no-tags origin main
-            BASE_SHA="$(git merge-base origin/main HEAD)"
+            BASE_BRANCH="${BASE_BRANCH#refs/heads/}"
+            git fetch --no-tags origin "$BASE_BRANCH"
+            BASE_SHA="$(git merge-base "origin/$BASE_BRANCH" HEAD)"
           fi
           python scripts/select_product_pages_browser_e2e_mode.py --base-ref "$BASE_SHA" --head-ref HEAD --event-name "${{ github.event_name }}" --output artifacts/product_pages_browser_e2e_selection_ci.json --github-output "$GITHUB_OUTPUT"
 
