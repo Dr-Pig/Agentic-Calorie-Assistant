@@ -9,20 +9,30 @@ from app.nutrition.infrastructure.small_anchor_store_loader import (
 
 
 BATCH_IDS = {
-    "generic_staple_ham_fried_rice_plate",
-    "generic_staple_shrimp_fried_rice_plate",
-    "generic_breakfast_white_mantou_one",
-    "generic_breakfast_taro_mantou_one",
-    "generic_breakfast_nut_mantou_one",
-    "generic_snack_sauerkraut_pork_bun_one",
-    "generic_snack_vegetable_bun_one",
-    "generic_dessert_sesame_tangyuan_bowl",
-    "generic_dessert_peanut_tangyuan_bowl",
-    "generic_dessert_peanut_soup_bowl",
+    "generic_staple_puli_rice_noodle_serving",
+    "generic_staple_thin_rice_noodle_serving",
+    "generic_staple_zhuoshui_rice_noodle_serving",
+    "generic_staple_long_wheat_noodle_serving",
+    "generic_staple_red_wheat_noodle_serving",
+    "generic_noodle_chicken_thread_noodle_pack",
+    "generic_noodle_pot_yi_noodle_pack",
+    "generic_noodle_dry_egg_noodle_serving",
+    "generic_noodle_frozen_udon_serving",
+    "generic_dim_sum_flower_roll_one",
+    "generic_dim_sum_milk_custard_silver_roll_one",
+    "generic_staple_beef_pie_one",
+    "generic_staple_pork_pie_one",
+    "generic_dessert_sweet_fermented_rice_bowl",
+    "generic_dessert_purple_fermented_rice_bowl",
+    "generic_snack_lemon_dried_fruit_serving",
+    "generic_drink_oat_milk_cup",
+    "generic_drink_three_in_one_coffee_packet",
+    "generic_drink_papaya_milk_cup",
+    "generic_drink_unsweetened_fresh_milk_tea_cup",
 }
 
 
-def test_generic_common_batch_008_loads_tfda_backed_common_meals() -> None:
+def test_generic_common_batch_025_loads_tfda_backed_everyday_staples() -> None:
     records = load_small_anchor_seed_records()
     by_id = {str(record.get("anchor_id") or ""): record for record in records}
 
@@ -44,18 +54,24 @@ def test_generic_common_batch_008_loads_tfda_backed_common_meals() -> None:
         assert record["kcal_range"][0] <= record["kcal_point"] <= record["kcal_range"][1]
 
 
-def test_generic_common_batch_008_enters_full_current_shell_with_hidden_macros() -> None:
+def test_generic_common_batch_025_enters_full_current_shell_with_hidden_macros() -> None:
     artifact = build_approved_packet_ready_fooddb_artifact(
         artifact_path="artifacts/approved_packet_ready_fooddb_full.json",
         selection_profile="full_current_shell",
     )
     by_id = {str(item["item_id"]): item for item in artifact["packet_ready_items"]}
 
-    item = by_id["generic_staple_ham_fried_rice_plate"]
-
     assert artifact["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 194
-    assert item["kcal_point"] == 648
-    assert item["kcal_range"] == [520, 820]
-    assert item["macro_visibility_status"] == "hidden_missing_source"
-    assert item["macro_source_basis"] == "unknown"
-    assert item["macro_confidence"] == "unknown"
+    expected = {
+        "generic_noodle_frozen_udon_serving": (251, [190, 340]),
+        "generic_staple_beef_pie_one": (334, [260, 460]),
+        "generic_drink_papaya_milk_cup": (206, [150, 300]),
+        "generic_drink_unsweetened_fresh_milk_tea_cup": (133, [90, 210]),
+    }
+    for item_id, (kcal_point, kcal_range) in expected.items():
+        item = by_id[item_id]
+        assert item["kcal_point"] == kcal_point
+        assert item["kcal_range"] == kcal_range
+        assert item["macro_visibility_status"] == "hidden_missing_source"
+        assert item["macro_source_basis"] == "unknown"
+        assert item["macro_confidence"] == "unknown"

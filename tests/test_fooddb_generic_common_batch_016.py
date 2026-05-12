@@ -62,7 +62,7 @@ def test_generic_common_batch_016_enters_full_current_shell_with_hidden_macros()
 
     item = by_id["generic_staple_white_rice_bowl"]
 
-    assert artifact["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 174
+    assert artifact["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 194
     assert item["kcal_point"] == 366
     assert item["kcal_range"] == [300, 450]
     assert item["macro_visibility_status"] == "hidden_missing_source"
