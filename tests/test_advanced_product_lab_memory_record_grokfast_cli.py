@@ -70,6 +70,13 @@ def test_memory_record_grokfast_diagnostic_blocks_without_live_gate(
     assert artifact["live_invoked"] is False
     assert artifact["live_provider_used"] is False
     assert artifact["blockers"] == ["live_gate_not_enabled"]
+    assert artifact["live_edd_preflight"]["reviewed_preflight_status"] == (
+        "blocked_not_invoked_preflight"
+    )
+    assert artifact["live_edd_gate"]["reviewed_live_status"] == (
+        "blocked_not_invoked_reviewed"
+    )
+    assert artifact["live_edd_gate"]["live_milestone_complete"] is False
     assert artifact["mainline_runtime_connected"] is False
     assert artifact["canonical_product_mutation_allowed"] is False
 
@@ -142,6 +149,13 @@ def test_memory_record_grokfast_diagnostic_cli_fake_mode_writes_artifact(
     assert artifact["status"] == "pass"
     assert artifact["source_integrated_e2e_path"] == str(integrated_path)
     assert artifact["provider_profile_id"] == ADVANCED_LAB_DIAGNOSTIC_PROFILE_ID
+    assert artifact["live_edd_preflight"]["reviewed_preflight_status"] == (
+        "fake_contract_preflight_passed_non_live"
+    )
+    assert artifact["live_edd_gate"]["reviewed_live_status"] == (
+        "fake_contract_reviewed_non_live"
+    )
+    assert artifact["live_edd_gate"]["live_milestone_complete"] is False
 
 
 def _integrated(tmp_path: Path) -> dict[str, object]:

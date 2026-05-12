@@ -99,6 +99,9 @@ def test_memory_record_closure_pack_aggregates_complete_lab_chain(
     assert pack["provider_contract_diagnostic"]["live_milestone_status"] == (
         "not_satisfied_fake_contract"
     )
+    assert pack["provider_contract_diagnostic"]["live_completion_claim_allowed"] is False
+    assert pack["live_edd_milestone_status"] == "not_satisfied_fake_contract"
+    assert pack["live_edd_milestone_complete"] is False
     assert "raw_user_utterance" not in json.dumps(pack, ensure_ascii=False)
 
 

@@ -71,6 +71,7 @@ def build_memory_record_closure_pack(
     }
     blockers = _blockers(stage_artifacts)
     status = "blocked" if blockers else "pass"
+    provider_summary = provider_contract_summary(live_diagnostic_artifact)
     return {
         "artifact_type": "advanced_product_lab_memory_record_closure_pack",
         "artifact_schema_version": "1.0",
@@ -88,8 +89,11 @@ def build_memory_record_closure_pack(
             "holdout": str(source_holdout_path or ""),
         },
         "capabilities_closed": _capabilities_closed(readiness_report, status),
-        "provider_contract_diagnostic": provider_contract_summary(
-            live_diagnostic_artifact
+        "provider_contract_diagnostic": provider_summary,
+        "live_edd_milestone_status": provider_summary["live_milestone_status"],
+        "live_edd_milestone_complete": (
+            provider_summary["live_completion_claim_allowed"] is True
+            and provider_summary["live_grokfast_diagnostic_pass"] is True
         ),
         "holdout_case_count": int(holdout_report.get("holdout_case_count") or 0),
         "blockers": blockers,
