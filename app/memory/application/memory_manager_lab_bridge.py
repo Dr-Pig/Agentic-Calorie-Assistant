@@ -120,6 +120,9 @@ def _entry(entry: Mapping[str, Any]) -> dict[str, Any]:
         "strength": str(entry.get("strength") or ""),
         "subject_keys": _string_list(entry.get("subject_keys")),
         "source_refs": _string_list(entry.get("source_refs")),
+        "store_name": str(entry.get("store_name") or ""),
+        "item_names": _string_list(entry.get("item_names")),
+        "estimated_kcal": _int_or_none(entry.get("estimated_kcal")),
         "surface_role": "lab_memory_manager_context_summary",
     }
 
@@ -168,6 +171,10 @@ def _has_entries(pack: Mapping[str, Any]) -> bool:
 
 def _string_list(value: Any) -> list[str]:
     return [str(item) for item in value] if isinstance(value, list) else []
+
+
+def _int_or_none(value: Any) -> int | None:
+    return value if isinstance(value, int) else None
 
 
 def _dedupe(values: list[str]) -> list[str]:

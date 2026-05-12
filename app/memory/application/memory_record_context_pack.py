@@ -103,6 +103,9 @@ def _entry(normalized: Mapping[str, Any], original: Mapping[str, Any]) -> dict[s
         "strength": str(normalized.get("strength") or ""),
         "source_refs": [str(ref) for ref in normalized.get("source_refs", []) if ref],
         "subject_keys": _string_list(original.get("subject_keys")),
+        "store_name": str(original.get("store_name") or ""),
+        "item_names": _string_list(original.get("item_names")),
+        "estimated_kcal": _int_or_none(original.get("estimated_kcal")),
         "surface_role": "memory_record_summary",
     }
 
@@ -168,6 +171,10 @@ def _token_estimate(entry: Mapping[str, Any]) -> int:
 
 def _string_list(value: Any) -> list[str]:
     return [str(item) for item in value] if isinstance(value, list) else []
+
+
+def _int_or_none(value: Any) -> int | None:
+    return value if isinstance(value, int) else None
 
 
 def _dedupe(values: list[str]) -> list[str]:
