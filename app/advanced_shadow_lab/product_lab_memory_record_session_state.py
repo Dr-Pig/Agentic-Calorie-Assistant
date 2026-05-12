@@ -10,7 +10,7 @@ from app.advanced_shadow_lab.product_lab_memory_record_session_artifact import (
     memory_record_session_artifact,
     public_write,
 )
-from app.advanced_shadow_lab.product_lab_memory_record_session_support import (
+from app.advanced_shadow_lab.product_lab_memory_record_session_memory import (
     memory_context_pack,
     memory_write,
     tool_call,
