@@ -76,7 +76,7 @@ def _record(signal: Mapping[str, Any], *, session_id: str) -> dict[str, Any]:
         "status": "confirmed",
         "summary": str(signal.get("summary") or ""),
         "polarity": "negative" if record_type == "negative_preference" else "positive",
-        "strength": "block" if record_type == "negative_preference" else "boost",
+        "strength": _strength(signal, record_type),
         "scope_keys": scope(session_id),
         "source_refs": [str(ref) for ref in signal.get("source_object_refs") or []],
         "consumers": _shadow_consumers(signal),
@@ -139,6 +139,13 @@ def _shadow_consumers(signal: Mapping[str, Any]) -> list[str]:
         for item in signal.get("intended_consumers") or []
         if str(item) in mapped
     ] or ["recommendation_shadow"]
+
+
+def _strength(signal: Mapping[str, Any], record_type: str) -> str:
+    explicit = str(signal.get("strength") or "")
+    if explicit in {"boost", "downrank", "block"}:
+        return explicit
+    return "block" if record_type == "negative_preference" else "boost"
 
 
 __all__ = [
