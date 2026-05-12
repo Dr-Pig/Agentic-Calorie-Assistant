@@ -1,0 +1,184 @@
+artifact_type: advanced_product_lab_memory_live_edd_pr_train
+version: 1
+status: active
+owner: MemoryRuntimeArchitecture
+consumer: advanced_product_lab_followup_planning
+planned_pr_count: 14
+dynamic_remaining_pr_count: 14
+last_completed_pr_number: 0
+current_mainline: advanced_product_lab_memory_live_edd
+is_detour: false
+mainline_blocker_being_removed: memory_is_simulated_complete_but_live_edd_not_decision_complete
+strategic_verdict: mainline
+branch_strategy:
+  target_branch: codex/advanced-product-lab
+  short_branch_prefix: codex/advanced-memory-live-edd-pr
+  merge_mainline: main_remains_dormant
+  lab_runtime_surface_may_be_complete: true
+  live_grokfast_diagnostics_allowed: true
+  kimi_live_calls_allowed: false
+  mainline_activation_enabled: false
+  self_use_v1_affected: false
+required_artifact_flags:
+  lab_enabled: true
+  mainline_activation_enabled: false
+  mainline_runtime_connected: false
+  self_use_v1_affected: false
+  production_scheduler_delivery_allowed: false
+  durable_product_memory_written: false
+  canonical_product_mutation_allowed: false
+  production_db_migration_allowed: false
+  kimi_live_calls_allowed: false
+dynamic_estimate_protocol:
+  update_after_each_merge: true
+  estimate_may_increase: true
+  estimate_may_decrease: true
+  do_not_use_chat_memory_as_only_plan: true
+  update_fields:
+    - dynamic_remaining_pr_count
+    - last_completed_pr_number
+    - last_merge_evidence
+    - estimate_notes
+  persistent_truth_files:
+    - docs/quality/advanced_product_lab_memory_live_edd_pr_train.yaml
+    - docs/quality/runtime_lab_memory_edd_golden_set.yaml
+    - docs/quality/advanced_product_lab_memory_record_closeout_plan.yaml
+live_edd_milestones:
+  - milestone_id: grokfast_extraction_diagnostic
+    provider_profile: builderspace-grok-4-fast
+    blocks_completion: true
+  - milestone_id: memory_tool_lookup_diagnostic
+    provider_profile: builderspace-grok-4-fast
+    blocks_completion: true
+  - milestone_id: recommendation_with_blockers
+    provider_profile: builderspace-grok-4-fast
+    blocks_completion: true
+  - milestone_id: rescue_memory_context_diagnostic
+    provider_profile: builderspace-grok-4-fast
+    blocks_completion: true
+  - milestone_id: proactive_feedback_projection
+    provider_profile: builderspace-grok-4-fast
+    blocks_completion: true
+  - milestone_id: integrated_e2e_lab_loop
+    provider_profile: builderspace-grok-4-fast
+    blocks_completion: true
+  - milestone_id: failure_taxonomy_and_decision_pack
+    provider_profile: builderspace-grok-4-fast
+    blocks_completion: true
+pr_train:
+  - pr_number: 1
+    slice_id: sync_advanced_lab_with_main_memory_closeout
+    goal: Sync the long-lived advanced product lab branch with the latest main memory closeout train and persist this 14-PR live EDD plan.
+    slice_mode:
+      - wrapper_evidence_wiring
+      - contract_guard
+    merge_target: codex/advanced-product-lab
+    completion_gate: plan file and sync merge are reviewed without enabling mainline runtime activation.
+  - pr_number: 2
+    slice_id: canonicalize_manual_grokfast_artifact_shape
+    goal: Promote manual Grokfast diagnostic output into canonical artifact shape without treating it as product readiness.
+    slice_mode:
+      - live_diagnostic
+      - wrapper_evidence_wiring
+    merge_target: codex/advanced-product-lab
+    completion_gate: fake contract pass and live Grokfast pass are distinguishable fields.
+  - pr_number: 3
+    slice_id: live_edd_preflight_and_gate
+    goal: Add explicit live EDD preflight and gate so fake closure cannot satisfy live milestone completion.
+    slice_mode:
+      - contract_guard
+      - live_diagnostic
+    merge_target: codex/advanced-product-lab
+    completion_gate: blocked, fake, and live modes produce separate reviewed statuses.
+  - pr_number: 4
+    slice_id: grokfast_memory_extraction_golden_set
+    goal: Run Grokfast memory extraction diagnostic over the approved golden set.
+    slice_mode:
+      - live_diagnostic
+      - eval
+    merge_target: codex/advanced-product-lab
+    completion_gate: extraction output is trace-backed and does not harden product semantics from provider behavior alone.
+  - pr_number: 5
+    slice_id: grokfast_negative_preference_holdouts
+    goal: Add live negative preference extraction coverage for block/downrank/ignored dessert cases.
+    slice_mode:
+      - live_diagnostic
+      - holdout
+    merge_target: codex/advanced-product-lab
+    completion_gate: confirmed negative blockers remain higher priority than positive boosts.
+  - pr_number: 6
+    slice_id: memory_tool_lookup_live_diagnostic
+    goal: Exercise MemoryRecord-first lookup and bounded sources.jsonl evidence drilldown through a live diagnostic path.
+    slice_mode:
+      - live_diagnostic
+      - retrieval
+    merge_target: codex/advanced-product-lab
+    completion_gate: raw transcript dumping and full-source prompt injection remain blocked.
+  - pr_number: 7
+    slice_id: live_source_poisoning_and_prompt_injection_holdouts
+    goal: Add adversarial live/replay holdouts for source poisoning, prompt injection, and cross-scope leakage.
+    slice_mode:
+      - security_holdout
+      - eval
+    merge_target: codex/advanced-product-lab
+    completion_gate: poisoned source text cannot override MemoryRecord scope or canonical product truth.
+  - pr_number: 8
+    slice_id: feedback_event_memory_projection_live
+    goal: Validate live FeedbackEvent memory confirmation, rejection, and correction projection.
+    slice_mode:
+      - live_diagnostic
+      - feedback_projection
+    merge_target: codex/advanced-product-lab
+    completion_gate: FeedbackEvent remains audit/input and does not mutate memory truth without validator projection.
+  - pr_number: 9
+    slice_id: feedback_event_proactive_control_projection_live
+    goal: Validate proactive dismiss, snooze, undo, opt-out, reason, and next-signal projection.
+    slice_mode:
+      - live_diagnostic
+      - proactive_control
+    merge_target: codex/advanced-product-lab
+    completion_gate: no proactive user-facing delivery escapes the lab activation wall.
+  - pr_number: 10
+    slice_id: recommendation_live_blocker_diagnostic
+    goal: Validate recommendation behavior with negative preference blockers and positive boosts under live Grokfast diagnostics.
+    slice_mode:
+      - live_diagnostic
+      - recommendation
+    merge_target: codex/advanced-product-lab
+    completion_gate: recommendations respect confirmed negative blocks before synthesis.
+  - pr_number: 11
+    slice_id: rescue_memory_context_live_diagnostic
+    goal: Validate rescue behavior with scoped memory context, correction, and no-canonical-mutation boundaries.
+    slice_mode:
+      - live_diagnostic
+      - rescue
+    merge_target: codex/advanced-product-lab
+    completion_gate: rescue can use memory as context but cannot rewrite meal, budget, or ledger truth.
+  - pr_number: 12
+    slice_id: integrated_memory_recommendation_rescue_proactive_live_e2e
+    goal: Run integrated lab E2E with memory, recommendation, rescue, proactive feedback, and chat-first UX.
+    slice_mode:
+      - live_diagnostic
+      - e2e
+    merge_target: codex/advanced-product-lab
+    completion_gate: lab loop is complete while mainline activation flags remain false.
+  - pr_number: 13
+    slice_id: live_failure_taxonomy_and_attribution_report
+    goal: Build failure taxonomy and attribution report for live Grokfast, retrieval, projection, and E2E outcomes.
+    slice_mode:
+      - quality_report
+      - decision_unlock
+    merge_target: codex/advanced-product-lab
+    completion_gate: live failures create attribution and follow-up cases, not unreviewed prompt or schema hardening.
+  - pr_number: 14
+    slice_id: live_edd_decision_pack_and_activation_wall_regression
+    goal: Produce final live EDD decision pack and rerun activation-wall regression.
+    slice_mode:
+      - closure
+      - activation_wall
+    merge_target: codex/advanced-product-lab
+    completion_gate: decision pack distinguishes lab completion from mainline/self-use V1 activation.
+last_merge_evidence: null
+estimate_notes:
+  - Initial dynamic estimate is 14 PRs before PR1 merge.
+  - Real dogfood calibration remains outside this count until user dogfood traces are available.
