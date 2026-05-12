@@ -14,4 +14,6 @@ def test_small_anchor_loader_includes_runtime_batch_files() -> None:
     assert by_id["generic_meal_hawaiian_pizza_slice"]["source_refs"][0][
         "runtime_role"
     ] == "source_evidence_only"
+    assert by_id["listed_item_chicken_nugget"]["composition_posture"] == "listed_item_component"
+    assert by_id["listed_item_chicken_nugget"]["runtime_usage_boundary"] == "listed_component_only"
     assert by_id["dessert_grass_jelly_bowl"].get("macro_visibility_candidate") is None
