@@ -18,6 +18,7 @@ class FoodDBPacketSmokeCase:
     raw_input: str
     expected_behavior: str
     case_family: str
+    retrieval_query_text: str | None = None
 
 
 FOODDB_PACKET_SMOKE_CASES: tuple[FoodDBPacketSmokeCase, ...] = (
@@ -109,11 +110,13 @@ def _case_result(
     *,
     retrieval_records: tuple[IndexedFoodRecord, ...],
 ) -> dict[str, Any]:
-    retrieval_result = retrieve_fooddb_candidates(case.raw_input, retrieval_records=retrieval_records, limit=8)
-    packet = _manager_evidence_packet(case=case, retrieval_result=retrieval_result)
+    retrieval_query_text = case.retrieval_query_text or case.raw_input
+    retrieval_result = retrieve_fooddb_candidates(retrieval_query_text, retrieval_records=retrieval_records, limit=8)
+    packet = _manager_evidence_packet(case=case, retrieval_result=retrieval_result, retrieval_query_text=retrieval_query_text)
     return {
         "case_id": case.case_id,
         "raw_user_input": case.raw_input,
+        "retrieval_query_text": retrieval_query_text,
         "case_family": case.case_family,
         "manager_expected_behavior": case.expected_behavior,
         "manager_evidence_packet": packet,
@@ -124,6 +127,7 @@ def _manager_evidence_packet(
     *,
     case: FoodDBPacketSmokeCase,
     retrieval_result: dict[str, Any],
+    retrieval_query_text: str,
 ) -> dict[str, Any]:
     packet = build_food_evidence_recall_packet(
         packet_id=case.case_id,
@@ -133,6 +137,7 @@ def _manager_evidence_packet(
         packet_type="fooddb_manager_evidence_packet_v1",
     )
     packet["case_id"] = case.case_id
+    packet["retrieval_query_text"] = retrieval_query_text
     return packet
 
 
