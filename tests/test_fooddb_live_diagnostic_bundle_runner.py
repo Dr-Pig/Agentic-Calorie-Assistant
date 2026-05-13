@@ -200,6 +200,171 @@ def test_fooddb_live_diagnostic_bundle_can_scope_fixture_to_single_case(
     assert [case["case_id"] for case in diagnostic["cases"]] == ["generic_macro_hidden_boba"]
 
 
+def test_fooddb_live_diagnostic_bundle_builds_live_single_case_stage_gate(
+    tmp_path: Path,
+) -> None:
+    def _fake_packet_smoke(argv: list[str]) -> int:
+        output_path = Path(argv[argv.index("--output") + 1])
+        case_ids: list[str] = []
+        for index, token in enumerate(argv):
+            if token == "--case-id":
+                case_ids.append(argv[index + 1])
+        output_path.write_text(
+            __import__("json").dumps(
+                {
+                    "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
+                    "status": "pass",
+                    "live_provider_used": True,
+                    "runtime_truth_changed": False,
+                    "runtime_mutation_attempted": False,
+                    "readiness_claimed": False,
+                    "self_use_approved": False,
+                    "production_selected": False,
+                    "selected_case_ids": case_ids,
+                    "summary": {
+                        "case_count": len(case_ids),
+                        "pass_count": len(case_ids),
+                        "fail_count": 0,
+                        "selected_case_count": len(case_ids),
+                        "failure_families": [],
+                    },
+                    "cases": [
+                        {
+                            "case_id": case_id,
+                            "status": "pass",
+                            "failure_families": [],
+                        }
+                        for case_id in case_ids
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return 0
+
+    with patch(
+        "scripts.run_accurate_intake_fooddb_live_diagnostic_bundle.run_grokfast_fooddb_packet_smoke",
+        side_effect=_fake_packet_smoke,
+    ):
+        exit_code = main(
+            [
+                "--mode",
+                "live",
+                "--allow-live",
+                "--live-stage",
+                "single-case",
+                "--case-id",
+                "boba_large_half_sugar",
+                "--output-dir",
+                str(tmp_path),
+            ]
+        )
+
+    assert exit_code == 0
+    manifest = read_json_artifact(
+        tmp_path / "accurate_intake_fooddb_live_diagnostic_bundle_manifest.json"
+    )
+    stage_gate = read_json_artifact(
+        tmp_path / "accurate_intake_fooddb_live_diagnostic_stage_gate.json"
+    )
+
+    assert manifest["bundle_status"] == "pass"
+    assert manifest["live_stage"] == "single-case"
+    assert manifest["stage_gate_status"] == "fooddb_live_single_case_probe_pass"
+    assert manifest["selected_case_ids"] == ["boba_large_half_sugar"]
+    assert stage_gate["status"] == "fooddb_live_single_case_probe_pass"
+
+
+def test_fooddb_live_diagnostic_bundle_blocks_full_matrix_without_single_case_gate(
+    tmp_path: Path,
+) -> None:
+    def _fake_packet_smoke(argv: list[str]) -> int:
+        output_path = Path(argv[argv.index("--output") + 1])
+        case_ids: list[str] = []
+        for index, token in enumerate(argv):
+            if token == "--case-id":
+                case_ids.append(argv[index + 1])
+        output_path.write_text(
+            __import__("json").dumps(
+                {
+                    "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
+                    "status": "pass",
+                    "live_provider_used": True,
+                    "runtime_truth_changed": False,
+                    "runtime_mutation_attempted": False,
+                    "readiness_claimed": False,
+                    "self_use_approved": False,
+                    "production_selected": False,
+                    "selected_case_ids": case_ids,
+                    "summary": {
+                        "case_count": len(case_ids),
+                        "pass_count": len(case_ids),
+                        "fail_count": 0,
+                        "selected_case_count": len(case_ids),
+                        "failure_families": [],
+                    },
+                    "cases": [
+                        {
+                            "case_id": case_id,
+                            "status": "pass",
+                            "failure_families": [],
+                        }
+                        for case_id in case_ids
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return 0
+
+    with patch(
+        "scripts.run_accurate_intake_fooddb_live_diagnostic_bundle.run_grokfast_fooddb_packet_smoke",
+        side_effect=_fake_packet_smoke,
+    ):
+        exit_code = main(
+            [
+                "--mode",
+                "live",
+                "--allow-live",
+                "--live-stage",
+                "full-matrix",
+                "--case-id",
+                "boba_large_half_sugar",
+                "--case-id",
+                "boba_typo",
+                "--case-id",
+                "bare_luwei",
+                "--case-id",
+                "listed_luwei_components",
+                "--case-id",
+                "chicken_bento_less_rice",
+                "--case-id",
+                "exact_item_official_label",
+                "--case-id",
+                "food_query_no_mutation",
+                "--case-id",
+                "macro_missing_hidden",
+                "--output-dir",
+                str(tmp_path),
+            ]
+        )
+
+    assert exit_code == 1
+    manifest = read_json_artifact(
+        tmp_path / "accurate_intake_fooddb_live_diagnostic_bundle_manifest.json"
+    )
+    stage_gate = read_json_artifact(
+        tmp_path / "accurate_intake_fooddb_live_diagnostic_stage_gate.json"
+    )
+
+    assert manifest["bundle_status"] == "blocked_or_failed"
+    assert manifest["live_stage"] == "full-matrix"
+    assert manifest["stage_gate_status"] == "blocked"
+    assert (
+        "single_case_stage_gate_required_before_full_matrix" in stage_gate["blockers"]
+    )
+
+
 def test_fooddb_live_diagnostic_bundle_manifest_uses_post_contract_status_packet(
     tmp_path: Path,
 ) -> None:

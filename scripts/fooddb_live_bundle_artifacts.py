@@ -24,6 +24,7 @@ def build_fooddb_live_bundle_artifact_paths(output_dir: Path) -> dict[str, Path]
         "live_runner_readiness": output_dir
         / "accurate_intake_grokfast_fooddb_live_runner_readiness_packet.json",
         "diagnostic": output_dir / "accurate_intake_grokfast_fooddb_packet_smoke.json",
+        "stage_gate": output_dir / "accurate_intake_fooddb_live_diagnostic_stage_gate.json",
         "report": output_dir / "accurate_intake_fooddb_live_diagnostic_report.json",
         "manager_contract_probe": output_dir / "accurate_intake_fooddb_manager_contract_probe.json",
         "manager_contract_repair_pack": output_dir
