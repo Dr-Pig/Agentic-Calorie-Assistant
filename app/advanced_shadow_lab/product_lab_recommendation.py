@@ -14,6 +14,10 @@ from app.advanced_shadow_lab.product_lab_recommendation_handoff import (
 from app.advanced_shadow_lab.product_lab_recommendation_provider import (
     FixtureProductLabRecommendationProvider,
 )
+from app.recommendation.application.turn_plan_input_adapter import (
+    build_recommendation_planning_input,
+    inactive_recommendation_planning_input_adapter,
+)
 
 
 PHYSICAL_NODE_ORDER = [
@@ -55,11 +59,18 @@ def run_product_lab_recommendation(
     turn: Mapping[str, Any],
     fixture_inputs: Mapping[str, Any],
     memory_context_pack: Mapping[str, Any],
+    manager_turn_plan: Mapping[str, Any] | None = None,
+    tool_arguments: Mapping[str, Any] | None = None,
     provider: FixtureProductLabRecommendationProvider | None = None,
 ) -> dict[str, Any]:
     active_provider = provider or FixtureProductLabRecommendationProvider()
+    planning_input_adapter = _planning_input_adapter(
+        manager_turn_plan=manager_turn_plan,
+        tool_arguments=tool_arguments,
+        memory_context_pack=memory_context_pack,
+    )
     planning = active_provider.plan(
-        turn=turn,
+        turn=_turn_with_planning_input(turn, planning_input_adapter),
         fixture_inputs=fixture_inputs,
         memory_context_pack=memory_context_pack,
     )
@@ -77,6 +88,7 @@ def run_product_lab_recommendation(
     )
     blockers = [
         *_blockers("graph_contract", graph_contract),
+        *_blockers("planning_input_adapter", planning_input_adapter),
         *_blockers("planning", planning),
         *_blockers("candidate_retrieval_guard_scoring", retrieval_guard_scoring),
         *_blockers("offer_synthesis", offer_synthesis),
@@ -103,6 +115,7 @@ def run_product_lab_recommendation(
         "logical_stage_trace": [dict(row) for row in LOGICAL_STAGE_TRACE],
         "graph_contract": graph_contract,
         "provider_profile": active_provider.profile(),
+        "planning_input_adapter": planning_input_adapter,
         "planning": planning,
         "retrieval_guard_scoring": retrieval_guard_scoring,
         "offer_synthesis": offer_synthesis,
@@ -138,6 +151,32 @@ def _intake_handoff(primary: Mapping[str, Any]) -> dict[str, Any]:
         "requires_explicit_user_intake_action": True,
         "canonical_commit_requested": False,
     }
+
+
+def _planning_input_adapter(
+    *,
+    manager_turn_plan: Mapping[str, Any] | None,
+    tool_arguments: Mapping[str, Any] | None,
+    memory_context_pack: Mapping[str, Any],
+) -> dict[str, Any]:
+    if manager_turn_plan is None:
+        return inactive_recommendation_planning_input_adapter()
+    return build_recommendation_planning_input(
+        manager_turn_plan=manager_turn_plan,
+        tool_arguments=tool_arguments or {},
+        memory_context_pack=memory_context_pack,
+    )
+
+
+def _turn_with_planning_input(
+    turn: Mapping[str, Any],
+    planning_input_adapter: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    planning_input = _mapping(planning_input_adapter.get("planning_input"))
+    user_goal = str(planning_input.get("user_goal") or "")
+    if planning_input_adapter.get("status") != "pass" or not user_goal:
+        return turn
+    return {**dict(turn), "semantic_intent_fixture": user_goal}
 
 
 def _blockers(prefix: str, artifact: Mapping[str, Any]) -> list[str]:

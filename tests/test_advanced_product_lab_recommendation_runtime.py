@@ -96,6 +96,77 @@ def test_product_lab_recommendation_runtime_uses_three_nodes_and_memory_candidat
     assert "no_send" not in serialized
 
 
+def test_product_lab_recommendation_can_use_manager_turn_plan_as_planning_input(
+    tmp_path: Path,
+) -> None:
+    from app.advanced_shadow_lab.product_lab_recommendation import (
+        run_product_lab_recommendation,
+    )
+    from app.shared.contracts.manager_turn_plan import (
+        CapabilityRequest,
+        ManagerTurnPlan,
+        ToolCallCandidate,
+    )
+
+    artifact = run_product_lab_recommendation(
+        turn={
+            "session_id": "rec-session",
+            "turn_id": "t2",
+            "semantic_intent_fixture": "raw_fixture_should_not_own_goal",
+            "user_utterance": "raw text is not a recommendation oracle",
+        },
+        fixture_inputs=build_product_lab_fixture_inputs(),
+        memory_context_pack=_memory_pack(tmp_path),
+        manager_turn_plan=ManagerTurnPlan(
+            primary_workflow="manager_owned_recommendation_goal",
+            secondary_intents=["query_budget"],
+            requested_capabilities=[
+                CapabilityRequest(
+                    capability_id="recommendation",
+                    request_mode="required",
+                    priority=1,
+                )
+            ],
+            candidate_tool_calls=[
+                ToolCallCandidate(
+                    tool_name="recommendation.run",
+                    capability_id="recommendation",
+                )
+            ],
+            ordering_constraints=[],
+            mutation_posture="proposal_only",
+            clarification_posture="none",
+            response_obligations=["chat_first_surface_only"],
+            omission_candidates=[],
+            scope_keys={
+                "user_id": "user-1",
+                "workspace_id": "ws-1",
+                "project_id": "project-1",
+                "surface": "chat",
+            },
+        ),
+        tool_arguments={
+            "scope_keys": {
+                "user_id": "user-1",
+                "workspace_id": "ws-1",
+                "project_id": "project-1",
+                "surface": "chat",
+            },
+            "memory_context_call_id": "memory-search-1",
+        },
+    )
+
+    assert artifact["status"] == "pass"
+    assert artifact["planning_input_adapter"]["status"] == "pass"
+    assert artifact["planning_input_adapter"]["manager_turn_plan_used"] is True
+    assert artifact["planning"]["recommendation_context_result"]["user_goal"] == (
+        "manager_owned_recommendation_goal"
+    )
+    assert artifact["planning"]["recommendation_context_result"][
+        "raw_user_text_semantic_inference_performed"
+    ] is False
+
+
 def test_product_lab_recommendation_guard_blocks_hard_constraints(
     tmp_path: Path,
 ) -> None:
