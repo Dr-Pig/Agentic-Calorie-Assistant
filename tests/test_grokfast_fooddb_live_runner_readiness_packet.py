@@ -153,12 +153,14 @@ def _case_matrix() -> dict:
             "not_runtime_mutation_gate",
         ],
         "summary": {
-            "case_count": 5,
+            "case_count": 8,
             "modifier_guard_cases": 2,
             "bare_basket_cases": 1,
             "listed_basket_cases": 1,
+            "query_only_cases": 1,
+            "macro_hidden_cases": 1,
             "websearch_cases": 0,
-            "exact_card_cases": 0,
+            "exact_card_cases": 1,
         },
         "cases": [
             {"case_id": "boba_large_half_sugar"},
@@ -166,6 +168,9 @@ def _case_matrix() -> dict:
             {"case_id": "bare_luwei"},
             {"case_id": "listed_luwei_components"},
             {"case_id": "chicken_bento_less_rice"},
+            {"case_id": "exact_item_official_label"},
+            {"case_id": "food_query_no_mutation"},
+            {"case_id": "macro_missing_hidden"},
         ],
     }
 
