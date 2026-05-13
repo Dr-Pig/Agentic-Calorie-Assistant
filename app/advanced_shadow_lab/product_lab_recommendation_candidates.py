@@ -17,8 +17,8 @@ from app.advanced_shadow_lab.product_lab_recommendation_candidate_quality import
     reviewed_candidate,
     sort_key,
 )
-from app.advanced_shadow_lab.product_lab_recommendation_candidate_sources import (
-    recommendation_source_candidates,
+from app.recommendation.application.candidate_source_port import (
+    normalize_recommendation_candidate_sources,
 )
 from app.recommendation.application.three_node_shadow_policy import (
     filter_reason_codes,
@@ -32,10 +32,15 @@ def build_candidate_retrieval_guard_scoring(
     memory_context_pack: Mapping[str, Any],
 ) -> dict[str, Any]:
     payload = _mapping(fixture_inputs.get("recommendation_payload"))
-    source_candidates = recommendation_source_candidates(
+    candidate_source_port = normalize_recommendation_candidate_sources(
         payload=payload,
         memory_context_pack=memory_context_pack,
     )
+    source_candidates = [
+        dict(candidate)
+        for candidate in candidate_source_port.get("candidate_sources") or []
+        if isinstance(candidate, Mapping)
+    ]
     qualified: list[dict[str, Any]] = []
     filtered: list[dict[str, Any]] = []
     quality_rejected: list[dict[str, Any]] = []
@@ -90,6 +95,18 @@ def build_candidate_retrieval_guard_scoring(
         "node": "candidate_retrieval_guard_scoring",
         "owner": "deterministic",
         "deterministic_guard_only": True,
+        "llm_semantic_authority": False,
+        "candidate_source_port_used": True,
+        "candidate_source_port_status": str(candidate_source_port.get("status") or ""),
+        "candidate_source_port_artifact": candidate_source_port,
+        "hard_blocker_families": [
+            "premeal_constraint",
+            "budget",
+            "negative_preference",
+            "rescue_conflict",
+            "availability",
+            "memory_action",
+        ],
         "source_candidate_ids": [
             str(candidate.get("candidate_id") or "") for candidate in source_candidates
         ],
@@ -108,6 +125,7 @@ def build_candidate_retrieval_guard_scoring(
         "filtered_candidates": filtered,
         "candidate_reviews": candidate_reviews,
         "quality_signals": [quality_signal(candidate) for candidate in qualified],
+        "scoring_trace": _scoring_trace(qualified),
         "pool_decision": pool["pool_decision"],
         "primary_candidate_id": pool["primary_candidate_id"],
         "backup_candidate_ids": pool["backup_candidate_ids"],
@@ -122,7 +140,9 @@ def build_candidate_retrieval_guard_scoring(
         "memory_action_projection": memory_action_projection,
         "memory_action_omission_traces": _memory_action_omission_traces(filtered),
         "candidate_spec_obeyed": bool(planning.get("candidate_spec")),
-        "blockers": [],
+        "may_mutate_canonical_state": False,
+        "canonical_product_mutation_allowed": False,
+        "blockers": [str(item) for item in candidate_source_port.get("blockers") or []],
     }
 
 
@@ -138,6 +158,19 @@ def _memory_action_omission_traces(
         for item in filtered
         for reason in item.get("reason_codes") or []
         if str(reason).startswith("memory_")
+    ]
+
+
+def _scoring_trace(candidates: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "candidate_id": str(candidate.get("candidate_id") or ""),
+            "source_node": "candidate_retrieval_guard_scoring",
+            "score_owner": "deterministic",
+            "quality_score": int(candidate.get("quality_score") or 0),
+            "quality_tier": str(candidate.get("quality_tier") or ""),
+        }
+        for candidate in candidates
     ]
 
 
