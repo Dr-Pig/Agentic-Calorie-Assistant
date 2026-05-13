@@ -17,6 +17,9 @@ from app.advanced_shadow_lab.product_lab_recommendation_candidate_quality import
     reviewed_candidate,
     sort_key,
 )
+from app.advanced_shadow_lab.product_lab_recommendation_allowed_pool_trace import (
+    build_allowed_pool_trace,
+)
 from app.recommendation.application.candidate_source_port import (
     normalize_recommendation_candidate_sources,
 )
@@ -101,6 +104,7 @@ def build_candidate_retrieval_guard_scoring(
         )
     qualified.sort(key=sort_key)
     pool = pool_decision(qualified)
+    scoring_trace = _scoring_trace(qualified)
     return {
         "node": "candidate_retrieval_guard_scoring",
         "owner": "deterministic",
@@ -109,14 +113,7 @@ def build_candidate_retrieval_guard_scoring(
         "candidate_source_port_used": True,
         "candidate_source_port_status": str(candidate_source_port.get("status") or ""),
         "candidate_source_port_artifact": candidate_source_port,
-        "hard_blocker_families": [
-            "premeal_constraint",
-            "budget",
-            "negative_preference",
-            "rescue_conflict",
-            "availability",
-            "memory_action",
-        ],
+        "hard_blocker_families": ["premeal_constraint", "budget", "negative_preference", "rescue_conflict", "availability", "memory_action"],
         "source_candidate_ids": [
             str(candidate.get("candidate_id") or "") for candidate in source_candidates
         ],
@@ -135,7 +132,14 @@ def build_candidate_retrieval_guard_scoring(
         "filtered_candidates": filtered,
         "candidate_reviews": candidate_reviews,
         "quality_signals": [quality_signal(candidate) for candidate in qualified],
-        "scoring_trace": _scoring_trace(qualified),
+        "scoring_trace": scoring_trace,
+        "allowed_pool_trace": build_allowed_pool_trace(
+            allowed_candidates=qualified,
+            filtered_candidates=filtered,
+            quality_rejected_candidates=quality_rejected,
+            candidate_reviews=candidate_reviews,
+            scoring_trace=scoring_trace,
+        ),
         "hard_blocker_trace": hard_blocker_trace,
         "soft_penalty_trace": soft_penalty_trace,
         "pool_decision": pool["pool_decision"],
