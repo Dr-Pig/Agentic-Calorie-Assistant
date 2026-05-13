@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.recommendation.application.offer_synthesis_chat_first_packet import (
+    backup_options,
+    explanation_card,
+    recommendation_control_model,
+)
+
 
 def empty_ranking() -> dict[str, Any]:
     return {
@@ -44,6 +50,13 @@ def ux_packet(
         "primary_candidate": dict(public_primary),
         "backup_candidates": [dict(candidate) for candidate in public_backups],
         "explanation": explanation,
+        "explanation_card": explanation_card(
+            primary_candidate=public_primary,
+            explanation=explanation,
+            backup_count=len(public_backups),
+        ),
+        "backup_options": backup_options(public_backups),
+        "control_model": recommendation_control_model(),
         "pre_meal_planning_packet": _premeal_packet(
             primary_candidate=primary_candidate,
             context=_mapping(retrieval_guard_scoring.get("pre_meal_planning_context")),

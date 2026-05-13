@@ -52,6 +52,11 @@ def recommendation_offer(packet: Mapping[str, Any]) -> dict[str, Any]:
         "primary_candidate_id": str(ux.get("primary_candidate_id") or ""),
         "backup_candidate_ids": [str(item) for item in ux.get("backup_candidate_ids") or []],
         "candidate_snapshot": dict(_mapping(handoff.get("candidate_snapshot"))),
+        "explanation_card": dict(_mapping(ux.get("explanation_card"))),
+        "backup_options": [
+            dict(item) for item in ux.get("backup_options") or [] if isinstance(item, Mapping)
+        ],
+        "control_model": dict(_mapping(ux.get("control_model"))),
         "pre_meal_planning": dict(_mapping(ux.get("pre_meal_planning_packet"))),
         "swap_suggestion": dict(_mapping(ux.get("swap_suggestion_packet"))),
         "offer_actions": [dict(item) for item in ux.get("actions") or [] if isinstance(item, Mapping)],
