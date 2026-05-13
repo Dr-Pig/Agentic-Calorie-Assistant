@@ -17,6 +17,7 @@ from app.advanced_shadow_lab.product_lab_proactive_candidate import (
 from app.advanced_shadow_lab.product_lab_proactive_gate import (
     review_product_lab_proactive_candidates,
 )
+from app.advanced_shadow_lab import product_lab_proactive_rescue_feedback as rf
 
 
 def run_product_lab_proactive(
@@ -29,9 +30,14 @@ def run_product_lab_proactive(
     weekly_insight_artifact: Mapping[str, Any] | None = None,
     action_state: Mapping[str, Any] | None = None,
     prior_control_journal: list[Mapping[str, Any]] | None = None,
+    rescue_feedback_memory_projection: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     current_action_state = action_state or {}
-    rescue_omission = rescue_omission_trace(current_action_state)
+    feedback_projection = rescue_feedback_memory_projection or {}
+    rescue_omission = (
+        rescue_omission_trace(current_action_state)
+        or rf.rescue_feedback_omission_trace(feedback_projection)
+    )
     specs = [
         _recommendation_candidate(recommendation_artifact, fixture_inputs),
         pending_intake_followup_candidate(
@@ -99,6 +105,7 @@ def run_product_lab_proactive(
             str(rescue_artifact.get("artifact_type") or ""),
             str((weekly_insight_artifact or {}).get("artifact_type") or ""),
             str(current_action_state.get("artifact_type") or ""),
+            str(feedback_projection.get("artifact_type") or ""),
         ],
         "lab_chat_delivery_allowed": not bool(blockers),
         "scheduler_delivery_allowed": False,

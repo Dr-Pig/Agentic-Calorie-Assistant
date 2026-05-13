@@ -76,7 +76,7 @@ def _review_candidate(
 ) -> dict[str, Any]:
     trigger = str(candidate.get("trigger_type") or "")
     reasons = [
-        *context_reasons(turn=turn, context=context),
+        *context_reasons(turn=turn, context=context, trigger=trigger),
         *permission_reasons(trigger=trigger, context=context),
         *_control_reasons(control_state),
         *proactive_memory_suppression_reasons(
