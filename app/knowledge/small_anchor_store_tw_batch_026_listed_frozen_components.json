@@ -1,0 +1,1144 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_silver_roll_custard_one",
+      "canonical_name": "\u51b7\u51cd\u9280\u7d72\u5377(\u5976\u9ec3)",
+      "aliases": [
+        "\u51b7\u51cd\u9280\u7d72\u5377(\u5976\u9ec3) silver roll custard one",
+        "silver roll custard one",
+        "one custard silver roll"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 90,
+        "label": "one custard silver roll",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 251,
+      "kcal_range": [
+        175,
+        330
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_2f51c84b4906",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 278.5476,
+          "tfda_sample_name": "\u51b7\u51cd\u9280\u7d72\u5377(\u5976\u9ec3)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_2ab8fc587756",
+        "raw_row_hash": "c751dbb63dcbbc87a1a38dbaaae7619d02a4dbbab4e9d3f6fb097ab2c8c54e57"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_shumai_3pc",
+      "canonical_name": "\u51b7\u51cd\u71d2\u8ce3",
+      "aliases": [
+        "\u51b7\u51cd\u71d2\u8ce3 frozen shumai 3 pieces",
+        "frozen shumai 3 pieces",
+        "three shumai"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 3,
+        "portion_grams": 90,
+        "label": "three shumai",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 165,
+      "kcal_range": [
+        120,
+        235
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_e1e0dd04c618",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 183.3872,
+          "tfda_sample_name": "\u51b7\u51cd\u71d2\u8ce3"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_165a68466cf4",
+        "raw_row_hash": "57a3b22952e8a9da0493a54fbeac8aa3712e4d89fd8a54b6bec3142db8f609a3"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_crystal_bun_one",
+      "canonical_name": "\u51b7\u51cd\u6c34\u6676\u5305",
+      "aliases": [
+        "\u51b7\u51cd\u6c34\u6676\u5305 frozen crystal bun one",
+        "frozen crystal bun one",
+        "one crystal bun"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 80,
+        "label": "one crystal bun",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 166,
+      "kcal_range": [
+        120,
+        250
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_a594dcf24ffd",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 208.088,
+          "tfda_sample_name": "\u51b7\u51cd\u6c34\u6676\u5305"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_f2cd375783e6",
+        "raw_row_hash": "08760d6ac052facba55f0503442dd0fee6c8db9fff4f71aefa933078aad1a754"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_crystal_dumpling_3pc",
+      "canonical_name": "\u51b7\u51cd,\u6c34\u6676\u9903",
+      "aliases": [
+        "\u51b7\u51cd,\u6c34\u6676\u9903 frozen crystal dumpling 3 pieces",
+        "frozen crystal dumpling 3 pieces",
+        "three crystal dumplings"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 3,
+        "portion_grams": 90,
+        "label": "three crystal dumplings",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 170,
+      "kcal_range": [
+        125,
+        240
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_d4637ac7bbaa",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 188.7357,
+          "tfda_sample_name": "\u51b7\u51cd,\u6c34\u6676\u9903"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_19ff59d659d6",
+        "raw_row_hash": "093da0f94bbd6813f50d8a4b800ccbd0e959ca175e5fd096e9e06621a007e830"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_vegetarian_chicken_nuggets_100g",
+      "canonical_name": "\u51b7\u51cd\u7d20\u96de\u584a",
+      "aliases": [
+        "\u51b7\u51cd\u7d20\u96de\u584a vegetarian chicken nuggets 100g",
+        "vegetarian chicken nuggets 100g",
+        "vegetarian chicken nuggets 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 100,
+        "portion_grams": 100,
+        "label": "vegetarian chicken nuggets 100g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 203,
+      "kcal_range": [
+        150,
+        290
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_bc09dfd9db4b",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 203.3432,
+          "tfda_sample_name": "\u51b7\u51cd\u7d20\u96de\u584a"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_237f96d14b4b",
+        "raw_row_hash": "67aaefceeffc107a5d29c67e731fae179432380e29dbc1cfa4bd9f7d5487c376"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_small_sausage_3pc",
+      "canonical_name": "\u51b7\u51cd\u5c0f\u9999\u8178",
+      "aliases": [
+        "\u51b7\u51cd\u5c0f\u9999\u8178 frozen small sausage 3 pieces",
+        "frozen small sausage 3 pieces",
+        "three small sausages"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 3,
+        "portion_grams": 90,
+        "label": "three small sausages",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 223,
+      "kcal_range": [
+        165,
+        310
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_cd57909e6e08",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 248.0356,
+          "tfda_sample_name": "\u51b7\u51cd\u5c0f\u9999\u8178"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_e94e0ed01d1f",
+        "raw_row_hash": "293272470ef1d44756497d1eb3fce253e863e540a50aba45badfa22d13d52306"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_beef_patty_one",
+      "canonical_name": "\u51b7\u51cd\u725b\u8089\u6f22\u5821\u8089",
+      "aliases": [
+        "\u51b7\u51cd\u725b\u8089\u6f22\u5821\u8089 frozen beef patty one",
+        "frozen beef patty one",
+        "one beef patty"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "patty",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one beef patty",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 246,
+      "kcal_range": [
+        180,
+        350
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_fb24585dedff",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 246.3508,
+          "tfda_sample_name": "\u51b7\u51cd\u725b\u8089\u6f22\u5821\u8089"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_91a0e0326f3a",
+        "raw_row_hash": "5d82fee8fd208b845a282037cb72b7b2cb401c641d1a06fda2ec2d0c6313888f"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_chicken_nuggets_100g",
+      "canonical_name": "\u51b7\u51cd\u96de\u584a",
+      "aliases": [
+        "\u51b7\u51cd\u96de\u584a frozen chicken nuggets 100g",
+        "frozen chicken nuggets 100g",
+        "chicken nuggets 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 100,
+        "portion_grams": 100,
+        "label": "chicken nuggets 100g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 228,
+      "kcal_range": [
+        165,
+        320
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_812b67bc10c8",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 227.6755,
+          "tfda_sample_name": "\u51b7\u51cd\u96de\u584a"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_4bef7bb86a57",
+        "raw_row_hash": "6aa97b9f82fdcd1c79b134615c543e697cfdc78a8507d7377a55021db301ecaa"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_squid_steak_one",
+      "canonical_name": "\u51b7\u51cd\u82b1\u679d\u6392",
+      "aliases": [
+        "\u51b7\u51cd\u82b1\u679d\u6392 frozen squid steak one",
+        "frozen squid steak one",
+        "one squid steak"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 80,
+        "label": "one squid steak",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 148,
+      "kcal_range": [
+        105,
+        210
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_8fdfb7840563",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 184.5315,
+          "tfda_sample_name": "\u51b7\u51cd\u82b1\u679d\u6392"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_8c96e4115ab7",
+        "raw_row_hash": "e217b554304dc87e861a53ebf82d2a8b18c297ab6a81a60283218afe5f083b5e"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_tuna_cutlet_one",
+      "canonical_name": "\u51b7\u51cd\u9baa\u6392",
+      "aliases": [
+        "\u51b7\u51cd\u9baa\u6392 frozen tuna cutlet one",
+        "frozen tuna cutlet one",
+        "one tuna cutlet"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one tuna cutlet",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 143,
+      "kcal_range": [
+        105,
+        205
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_9f7ed54252d0",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 143.3,
+          "tfda_sample_name": "\u51b7\u51cd\u9baa\u6392"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_735ffe13612c",
+        "raw_row_hash": "049fa044dc6a7ba648edc039776c2969a8b51f07e8df519913f6dca0f4c788d4"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_shrimp_pancake_one",
+      "canonical_name": "\u51b7\u51cd\u8766\u9905",
+      "aliases": [
+        "\u51b7\u51cd\u8766\u9905 frozen shrimp pancake one",
+        "frozen shrimp pancake one",
+        "one shrimp pancake"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 80,
+        "label": "one shrimp pancake",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 99,
+      "kcal_range": [
+        70,
+        140
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_027be721e1e3",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 123.3,
+          "tfda_sample_name": "\u51b7\u51cd\u8766\u9905"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_878885d8ebcf",
+        "raw_row_hash": "eb120753da20ece1f6b5e4b90860512338a1eda46ed9cad7e88a56b608a0dddb"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_scallop_crisp_one",
+      "canonical_name": "\u51b7\u51cd\u5e72\u8c9d\u9165",
+      "aliases": [
+        "\u51b7\u51cd\u5e72\u8c9d\u9165 frozen scallop crisp one",
+        "frozen scallop crisp one",
+        "one scallop crisp"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 80,
+        "label": "one scallop crisp",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 115,
+      "kcal_range": [
+        85,
+        165
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_6cba7395a291",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 144.0722,
+          "tfda_sample_name": "\u51b7\u51cd\u5e72\u8c9d\u9165"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_ca2911476cb1",
+        "raw_row_hash": "6ec28b1f9505696bcb836101f1dacb13062aa5447bd44b2dad1a3a6113a30503"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_squid_chunks_100g",
+      "canonical_name": "\u51b7\u51cd\u82b1\u679d\u584a",
+      "aliases": [
+        "\u51b7\u51cd\u82b1\u679d\u584a frozen squid chunks 100g",
+        "frozen squid chunks 100g",
+        "squid chunks 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 100,
+        "portion_grams": 100,
+        "label": "squid chunks 100g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 179,
+      "kcal_range": [
+        130,
+        255
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_92b4dbf62d71",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 178.6994,
+          "tfda_sample_name": "\u51b7\u51cd\u82b1\u679d\u584a"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_2185c3968db9",
+        "raw_row_hash": "75db3fb376281c6c2b774cce6054c7406aed7d573d85641cdf14aa13ddcfb40c"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_swordfish_chunks_100g",
+      "canonical_name": "\u51b7\u51cd\u65d7\u9b5a\u584a",
+      "aliases": [
+        "\u51b7\u51cd\u65d7\u9b5a\u584a frozen swordfish chunks 100g",
+        "frozen swordfish chunks 100g",
+        "swordfish chunks 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 100,
+        "portion_grams": 100,
+        "label": "swordfish chunks 100g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 178,
+      "kcal_range": [
+        130,
+        255
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_380a56b8c474",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 177.9772,
+          "tfda_sample_name": "\u51b7\u51cd\u65d7\u9b5a\u584a"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_6823cd2edff0",
+        "raw_row_hash": "f12cd8a3646bca311c314d4abf833b6f66940a529dfd9c1f0f3f9aec3d8ab588"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_oyster_roll_one",
+      "canonical_name": "\u51b7\u51cd\u86b5\u6372",
+      "aliases": [
+        "\u51b7\u51cd\u86b5\u6372 frozen oyster roll one",
+        "frozen oyster roll one",
+        "one oyster roll"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "roll",
+        "portion_quantity": 1,
+        "portion_grams": 80,
+        "label": "one oyster roll",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 167,
+      "kcal_range": [
+        120,
+        230
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_7bd09444383c",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 208.8843,
+          "tfda_sample_name": "\u51b7\u51cd\u86b5\u6372"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_e75ddbe9c6ee",
+        "raw_row_hash": "b0e7ce1e6e6b509d18488438ddb714f4ed8ae09169764a32af44adfa4be04556"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_fish_roll_one",
+      "canonical_name": "\u51b7\u51cd\u9b5a\u6372",
+      "aliases": [
+        "\u51b7\u51cd\u9b5a\u6372 frozen fish roll one",
+        "frozen fish roll one",
+        "one fish roll"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "roll",
+        "portion_quantity": 1,
+        "portion_grams": 80,
+        "label": "one fish roll",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 100,
+      "kcal_range": [
+        70,
+        145
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_21a5751a7ec4",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 124.9,
+          "tfda_sample_name": "\u51b7\u51cd\u9b5a\u6372"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_2d1358bb8f52",
+        "raw_row_hash": "94fb8f28ecf19bf64dfa1c442c39623dafeea48e334673827dde4cc941783422"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_shrimp_roll_one",
+      "canonical_name": "\u51b7\u51cd\u8766\u6372",
+      "aliases": [
+        "\u51b7\u51cd\u8766\u6372 frozen shrimp roll one",
+        "frozen shrimp roll one",
+        "one shrimp roll"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "roll",
+        "portion_quantity": 1,
+        "portion_grams": 80,
+        "label": "one shrimp roll",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 122,
+      "kcal_range": [
+        85,
+        175
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_66facfccb690",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 153.0409,
+          "tfda_sample_name": "\u51b7\u51cd\u8766\u6372"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_5f279bafa6ea",
+        "raw_row_hash": "22b2eac1a6a34de4241dafa0076ab8da0c90e7ad2e76a93b19675bebc559837a"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_squid_rings_100g",
+      "canonical_name": "\u51b7\u51cd\u9b77\u9b5a\u5708",
+      "aliases": [
+        "\u51b7\u51cd\u9b77\u9b5a\u5708 frozen squid rings 100g",
+        "frozen squid rings 100g",
+        "squid rings 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 100,
+        "portion_grams": 100,
+        "label": "squid rings 100g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 143,
+      "kcal_range": [
+        105,
+        205
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_0ab63d5598ab",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 143.2,
+          "tfda_sample_name": "\u51b7\u51cd\u9b77\u9b5a\u5708"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7f58c3966182",
+        "raw_row_hash": "ccbee63677ed0ca8b01623299c869df82e300e472f5b45f53d857012e1e144fb"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_squid_dumpling_3pc",
+      "canonical_name": "\u51b7\u51cd\u82b1\u679d\u9903",
+      "aliases": [
+        "\u51b7\u51cd\u82b1\u679d\u9903 frozen squid dumpling 3 pieces",
+        "frozen squid dumpling 3 pieces",
+        "three squid dumplings"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 3,
+        "portion_grams": 75,
+        "label": "three squid dumplings",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 133,
+      "kcal_range": [
+        95,
+        185
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_fb9c4d675b91",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 176.9609,
+          "tfda_sample_name": "\u51b7\u51cd\u82b1\u679d\u9903"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_efa367d3f5fe",
+        "raw_row_hash": "4922f48cc50658ae48388e84cb299d9b4a1d3c20fe0cf2432f2bc24d51610f59"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_frozen_squid_paste_100g",
+      "canonical_name": "\u51b7\u51cd\u82b1\u679d\u6f3f",
+      "aliases": [
+        "\u51b7\u51cd\u82b1\u679d\u6f3f frozen squid paste 100g",
+        "frozen squid paste 100g",
+        "squid paste 100g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 100,
+        "portion_grams": 100,
+        "label": "squid paste 100g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 223,
+      "kcal_range": [
+        165,
+        315
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_3c11236f3b64",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 222.9256,
+          "tfda_sample_name": "\u51b7\u51cd\u82b1\u679d\u6f3f"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_bf3a1c719435",
+        "raw_row_hash": "071ba6586dafce6f9add2a1fabcb163a3698f084fc8a1867544d590e15b16e4b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    }
+  ]
+}

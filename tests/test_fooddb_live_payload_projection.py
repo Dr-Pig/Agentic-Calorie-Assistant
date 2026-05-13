@@ -3,11 +3,17 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.nutrition.application.approved_packet_ready_fooddb_artifact import (
+    build_approved_packet_ready_fooddb_artifact,
+)
 from app.nutrition.application.fooddb_live_payload_projection import (
     build_compact_fooddb_live_projection,
 )
 from app.nutrition.application.fooddb_manager_packet_smoke import (
     build_fooddb_manager_packet_smoke,
+)
+from app.nutrition.application.fooddb_real_manager_e2e import (
+    build_fooddb_real_manager_e2e,
 )
 from app.nutrition.application.fooddb_retrieval_policy import (
     build_runtime_retrieval_records_from_small_anchor_payload,
@@ -22,6 +28,15 @@ def _packet_case(case_id: str) -> dict:
     return next(case for case in packet_artifact["cases"] if case["case_id"] == case_id)
 
 
+def _real_manager_e2e_case(case_id: str) -> dict:
+    artifact = build_approved_packet_ready_fooddb_artifact(
+        artifact_path="artifacts/approved_packet_ready_fooddb_full.json",
+        selection_profile="full_current_shell",
+    )
+    real_manager_e2e = build_fooddb_real_manager_e2e(approved_packet_ready_artifact=artifact)
+    return next(case for case in real_manager_e2e["cases"] if case["case_id"] == case_id)
+
+
 def test_fooddb_live_payload_projection_compacts_modifier_case_packet() -> None:
     projection = build_compact_fooddb_live_projection(packet_case=_packet_case("chicken_bento_less_rice"))
     packet = projection["fooddb_evidence_packet"]
@@ -34,6 +49,7 @@ def test_fooddb_live_payload_projection_compacts_modifier_case_packet() -> None:
     assert packet["retrieval_boundary"] == "single_or_composite_candidate_recall"
     assert packet["manager_may_use_for"] == [
         "grounded_food_evidence",
+        "macro_visibility_honesty",
         "followup_or_uncertainty_decision",
         "disambiguation",
     ]
@@ -41,6 +57,7 @@ def test_fooddb_live_payload_projection_compacts_modifier_case_packet() -> None:
         "runtime_mutation",
         "creating_fooddb_truth",
         "inventing_source",
+        "inventing_macro",
     ]
     assert evidence_item["anchor_id"] == "generic_meal_chicken_bento"
     assert evidence_item["canonical_name"] == "雞腿便當"
@@ -145,3 +162,31 @@ def test_fooddb_live_payload_projection_keeps_tool_results_read_only() -> None:
         }
     ]
     assert "adapter_diagnostics" not in str(tool_result)
+
+
+def test_fooddb_live_payload_projection_preserves_exact_macro_visible_fields() -> None:
+    projection = build_compact_fooddb_live_projection(
+        packet_case=_real_manager_e2e_case("exact_macro_visible_chocolate_milk")
+    )
+
+    evidence_item = projection["fooddb_evidence_packet"]["evidence_items"][0]
+
+    assert evidence_item["source_lane"] == "exact_item_card"
+    assert evidence_item["macro_visibility_status"] == "visible"
+    assert evidence_item["protein_g"] == 12
+    assert evidence_item["carbs_g"] == 48
+    assert evidence_item["fat_g"] == 6
+
+
+def test_fooddb_live_payload_projection_preserves_macro_hidden_without_macro_values() -> None:
+    payload = build_live_manager_payload(
+        packet_case=_real_manager_e2e_case("generic_macro_hidden_boba")
+    )
+
+    evidence_item = payload["fooddb_evidence_packet"]["evidence_items"][0]
+
+    assert evidence_item["source_lane"] == "generic_common_serving"
+    assert evidence_item["macro_visibility_status"] == "hidden_missing_source"
+    assert "protein_g" not in evidence_item
+    assert "carbs_g" not in evidence_item
+    assert "fat_g" not in evidence_item

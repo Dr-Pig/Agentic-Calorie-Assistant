@@ -363,9 +363,9 @@ def test_default_repo_artifact_builds_from_tracked_exact_item_seed() -> None:
         "listed_component": 1,
     }
     assert artifact["summary"]["available_packet_ready_lane_counts"] == {
-        "exact_item_card": 62,
-        "generic_common_serving": 114,
-        "listed_component": 94,
+        "exact_item_card": 250,
+        "generic_common_serving": 400,
+        "listed_component": 350,
     }
     by_lane = {item["source_lane"]: item for item in artifact["packet_ready_items"]}
     assert by_lane["exact_item_card"]["macro_visibility_status"] == "visible"
@@ -381,16 +381,16 @@ def test_full_current_shell_profile_includes_all_approved_packet_ready_lanes() -
 
     assert artifact["status"] == "approved_packet_ready_fooddb_artifact_ready"
     assert artifact["summary"]["selection_profile"] == "full_current_shell"
-    assert artifact["summary"]["packet_ready_item_count"] == 270
+    assert artifact["summary"]["packet_ready_item_count"] == 1000
     assert artifact["summary"]["packet_ready_lane_counts"] == {
-        "exact_item_card": 62,
-        "generic_common_serving": 114,
-        "listed_component": 94,
+        "exact_item_card": 250,
+        "generic_common_serving": 400,
+        "listed_component": 350,
     }
     assert artifact["summary"]["available_packet_ready_lane_counts"] == {
-        "exact_item_card": 62,
-        "generic_common_serving": 114,
-        "listed_component": 94,
+        "exact_item_card": 250,
+        "generic_common_serving": 400,
+        "listed_component": 350,
     }
     assert artifact["manager_packet_forbidden_inputs"] == [
         "raw_source_rows",
@@ -403,6 +403,30 @@ def test_full_current_shell_profile_includes_all_approved_packet_ready_lanes() -
 
     by_id = {item["item_id"]: item for item in artifact["packet_ready_items"]}
     assert by_id["exact_yuhofang_sweet_potato_crisps_60g"]["macro_visibility_status"] == "visible"
+    assert by_id["generic_drink_guava_juice_300ml"]["source_refs"][0]["source_evidence_id"] == (
+        "tfda_per100g_2f20784934e5"
+    )
+    assert by_id["generic_drink_guava_juice_300ml"]["macro_visibility_status"] == "hidden_missing_source"
+    assert by_id["generic_drink_boba_milk_tea_half_sugar_700ml"]["source_refs"][0]["source_evidence_id"] == (
+        "tfda_per100g_4a1a20da8abc"
+    )
+    assert by_id["generic_drink_boba_milk_tea_half_sugar_700ml"]["macro_visibility_status"] == "hidden_missing_source"
+    assert by_id["generic_snack_dark_chocolate_85_serving"]["source_refs"][0]["source_evidence_id"] == (
+        "tfda_per100g_4c40318f3188"
+    )
+    assert by_id["generic_snack_dark_chocolate_85_serving"]["macro_visibility_status"] == "hidden_missing_source"
+    assert by_id["generic_ready_retort_rice_porridge_bowl"]["source_refs"][0]["source_evidence_id"] == (
+        "tfda_per100g_3f3360c98a6b"
+    )
+    assert by_id["generic_ready_retort_rice_porridge_bowl"]["macro_visibility_status"] == "hidden_missing_source"
+    assert by_id["generic_sauce_satay_tbsp"]["source_refs"][0]["source_evidence_id"] == (
+        "tfda_per100g_b6d1810164e4"
+    )
+    assert by_id["generic_sauce_satay_tbsp"]["macro_visibility_status"] == "hidden_missing_source"
+    assert by_id["generic_spread_black_sesame_bread_spread_tbsp"]["source_refs"][0]["source_evidence_id"] == (
+        "tfda_per100g_ca15997d367b"
+    )
+    assert by_id["generic_spread_black_sesame_bread_spread_tbsp"]["macro_visibility_status"] == "hidden_missing_source"
     assert by_id["exact_weichuan_prince_cup_noodle_pork_52g"]["source_provenance"]["source_file"] == (
         "app/knowledge/exact_item_cards_tw_batch_002.json"
     )
@@ -423,13 +447,172 @@ def test_full_current_shell_profile_includes_all_approved_packet_ready_lanes() -
         "app/knowledge/exact_item_cards_tw_batch_007.json"
     )
     assert by_id["exact_lamole_focaccia_crackers_25g"]["macro_visibility_status"] == "visible"
+    assert by_id["exact_ovaltine_malt_drink_powder_30g"]["source_provenance"][
+        "source_file"
+    ] == "app/knowledge/exact_item_cards_tw_batch_008.json"
+    assert by_id["exact_ovaltine_malt_drink_powder_30g"]["macro_visibility_status"] == "visible"
+    assert by_id["exact_popochacha_clam_chili_ramen_115g"]["source_provenance"][
+        "source_file"
+    ] == "app/knowledge/exact_item_cards_tw_batch_009.json"
+    assert by_id["exact_popochacha_clam_chili_ramen_115g"]["macro_visibility_status"] == "visible"
+    assert by_id["exact_wayne_mocha_coffee_320ml"]["source_provenance"]["source_file"] == (
+        "app/knowledge/exact_item_cards_tw_batch_010.json"
+    )
+    assert by_id["exact_wayne_mocha_coffee_320ml"]["macro_visibility_status"] == "visible"
+    assert by_id["exact_quaker_complete_nutrition_plant_protein_250ml"]["source_provenance"][
+        "source_file"
+    ] == "app/knowledge/exact_item_cards_tw_batch_011.json"
+    assert (
+        by_id["exact_quaker_complete_nutrition_plant_protein_250ml"][
+            "macro_visibility_status"
+        ]
+        == "visible"
+    )
+    assert by_id["exact_ferrero_rocher_milk_chocolate_bar_18g"]["source_provenance"][
+        "source_file"
+    ] == "app/knowledge/exact_item_cards_tw_batch_012.json"
+    assert (
+        by_id["exact_ferrero_rocher_milk_chocolate_bar_18g"][
+            "macro_visibility_status"
+        ]
+        == "visible"
+    )
+    assert by_id["exact_so_good_high_protein_almond_milk_unsweetened_200ml"][
+        "source_provenance"
+    ]["source_file"] == "app/knowledge/exact_item_cards_tw_batch_013.json"
+    assert (
+        by_id["exact_so_good_high_protein_almond_milk_unsweetened_200ml"][
+            "macro_visibility_status"
+        ]
+        == "visible"
+    )
+    assert by_id["exact_skyflakes_cream_sandwich_crackers_30g"]["source_provenance"][
+        "source_file"
+    ] == "app/knowledge/exact_item_cards_tw_batch_014.json"
+    assert (
+        by_id["exact_skyflakes_cream_sandwich_crackers_30g"][
+            "macro_visibility_status"
+        ]
+        == "visible"
+    )
+    assert by_id["exact_imei_cream_puffs_milk_65g"]["source_provenance"][
+        "source_file"
+    ] == "app/knowledge/exact_item_cards_tw_batch_015.json"
+    assert by_id["exact_imei_cream_puffs_milk_65g"]["macro_visibility_status"] == (
+        "visible"
+    )
+    assert by_id["exact_red_cow_whey_protein_cocoa_35g"]["source_provenance"][
+        "source_file"
+    ] == "app/knowledge/exact_item_cards_tw_batch_016.json"
+    assert by_id["exact_red_cow_whey_protein_cocoa_35g"]["macro_visibility_status"] == (
+        "visible"
+    )
+    assert by_id["exact_unipresident_ab_yogurt_drink_strawberry_300_6ml"][
+        "source_provenance"
+    ]["source_file"] == "app/knowledge/exact_item_cards_tw_batch_017.json"
+    assert by_id["exact_unipresident_ab_yogurt_drink_strawberry_300_6ml"][
+        "macro_visibility_status"
+    ] == "visible"
+    assert by_id["exact_mr_brown_deep_roast_latte_240ml"][
+        "source_provenance"
+    ]["source_file"] == "app/knowledge/exact_item_cards_tw_batch_018.json"
+    assert by_id["exact_mr_brown_deep_roast_latte_240ml"][
+        "macro_visibility_status"
+    ] == "visible"
+    assert by_id["exact_teasers_salted_caramel_chocolate_50g"][
+        "source_provenance"
+    ]["source_file"] == "app/knowledge/exact_item_cards_tw_batch_019.json"
+    assert by_id["exact_teasers_salted_caramel_chocolate_50g"][
+        "macro_visibility_status"
+    ] == "visible"
+    assert by_id["exact_paldo_kimchi_ramen_120g"]["source_provenance"][
+        "source_file"
+    ] == "app/knowledge/exact_item_cards_tw_batch_020.json"
+    assert by_id["exact_paldo_kimchi_ramen_120g"]["macro_visibility_status"] == (
+        "visible"
+    )
+    assert by_id["exact_knorr_mentaiko_pasta_sauce_140g"][
+        "source_provenance"
+    ]["source_file"] == "app/knowledge/exact_item_cards_tw_batch_021.json"
+    assert by_id["exact_knorr_mentaiko_pasta_sauce_140g"][
+        "macro_visibility_status"
+    ] == "visible"
+    assert by_id["exact_sanxing_spicy_grilled_eel_53g"]["source_provenance"][
+        "source_file"
+    ] == "app/knowledge/exact_item_cards_tw_batch_022.json"
+    assert by_id["exact_sanxing_spicy_grilled_eel_53g"][
+        "macro_visibility_status"
+    ] == "visible"
+    assert by_id["exact_weiwei_a_black_garlic_tonkotsu_noodle_99g"][
+        "source_provenance"
+    ]["source_file"] == "app/knowledge/exact_item_cards_tw_batch_023.json"
+    assert by_id["exact_weiwei_a_black_garlic_tonkotsu_noodle_99g"][
+        "macro_visibility_status"
+    ] == "visible"
+    assert by_id["exact_klim_family_triple_calcium_milk_powder_42g"][
+        "source_provenance"
+    ]["source_file"] == "app/knowledge/exact_item_cards_tw_batch_024.json"
+    assert by_id["exact_klim_family_triple_calcium_milk_powder_42g"][
+        "macro_visibility_status"
+    ] == "visible"
+    assert by_id["exact_milka_oreo_chocolate_sandwich_18_4g"][
+        "source_provenance"
+    ]["source_file"] == "app/knowledge/exact_item_cards_tw_batch_025.json"
+    assert by_id["exact_milka_oreo_chocolate_sandwich_18_4g"][
+        "macro_visibility_status"
+    ] == "visible"
+    assert by_id["exact_asahi_jurokucha_soy_milk_tea_265ml"][
+        "source_provenance"
+    ]["source_file"] == "app/knowledge/exact_item_cards_tw_batch_026.json"
+    assert by_id["exact_asahi_jurokucha_soy_milk_tea_265ml"][
+        "macro_visibility_status"
+    ] == "visible"
     assert by_id["generic_staple_meat_floss_triangle_rice_ball"]["kcal_point"] == 235
     assert by_id["generic_staple_meat_floss_triangle_rice_ball"]["kcal_range"] == [190, 300]
     assert by_id["generic_staple_meat_floss_triangle_rice_ball"]["macro_visibility_status"] == (
         "hidden_missing_source"
     )
+    assert by_id["generic_market_frozen_ham_fried_rice_pack"]["source_refs"][0][
+        "source_evidence_id"
+    ] == "tfda_per100g_e8b714605f7d"
+    assert (
+        by_id["generic_market_frozen_ham_fried_rice_pack"][
+            "macro_visibility_status"
+        ]
+        == "hidden_missing_source"
+    )
+    assert by_id["generic_dessert_cheesecake_slice"]["source_refs"][0][
+        "source_evidence_id"
+    ] == "tfda_per100g_ca1b9f035cd0"
+    assert by_id["generic_dessert_cheesecake_slice"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
     assert by_id["generic_staple_ham_fried_rice_plate"]["kcal_point"] == 648
     assert by_id["generic_staple_ham_fried_rice_plate"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["generic_bakery_pineapple_bun_one"]["kcal_point"] == 291
+    assert by_id["generic_bakery_pineapple_bun_one"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["generic_street_coffin_bread_one"]["kcal_point"] == 522
+    assert by_id["generic_street_coffin_bread_one"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["generic_noodle_frozen_udon_serving"]["kcal_point"] == 251
+    assert by_id["generic_noodle_frozen_udon_serving"]["source_refs"][0]["source_evidence_id"] == (
+        "tfda_per100g_1ad9def46830"
+    )
+    assert by_id["generic_noodle_frozen_udon_serving"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["generic_instant_noodle_beef_pack"]["source_provenance"]["source_file"] == (
+        "app/knowledge/tfda_per100g_source_evidence_tw.json"
+    )
+    assert by_id["generic_instant_noodle_beef_pack"]["source_refs"][0]["source_evidence_id"] == (
+        "tfda_per100g_d43809a16565"
+    )
+    assert by_id["generic_instant_noodle_beef_pack"]["macro_visibility_status"] == (
         "hidden_missing_source"
     )
     assert by_id["generic_staple_beef_dumplings_10pc"]["kcal_point"] == 532
@@ -441,6 +624,19 @@ def test_full_current_shell_profile_includes_all_approved_packet_ready_lanes() -
     assert by_id["generic_staple_meat_zongzi_one"]["macro_visibility_status"] == (
         "hidden_missing_source"
     )
+    assert by_id["generic_staple_white_rice_bowl"]["kcal_point"] == 366
+    assert by_id["generic_staple_white_rice_bowl"]["source_provenance"]["source_url"] == (
+        "https://data.gov.tw/dataset/8543"
+    )
+    assert by_id["generic_staple_white_rice_bowl"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["generic_drink_cola_can"]["source_refs"][0]["source_evidence_id"] == (
+        "tfda_per100g_1ef4d8a3cdff"
+    )
+    assert by_id["generic_drink_cola_can"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
     assert by_id["listed_item_egg_dumpling"]["kcal_point"] == 55
     assert by_id["listed_item_egg_dumpling"]["source_lane"] == "listed_component"
     assert by_id["listed_item_egg_dumpling"]["macro_visibility_status"] == "hidden_missing_source"
@@ -449,6 +645,82 @@ def test_full_current_shell_profile_includes_all_approved_packet_ready_lanes() -
     assert by_id["listed_item_small_dried_tofu_piece"]["kcal_point"] == 62
     assert by_id["listed_item_small_dried_tofu_piece"]["kcal_range"] == [45, 85]
     assert by_id["listed_item_small_dried_tofu_piece"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["listed_item_boiled_egg_one"]["kcal_point"] == 79
+    assert by_id["listed_item_boiled_egg_one"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["listed_item_pork_large_intestine_100g"]["kcal_point"] == 198
+    assert by_id["listed_item_pork_large_intestine_100g"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["listed_item_salmon_sashimi_100g"]["kcal_point"] == 222
+    assert by_id["listed_item_salmon_sashimi_100g"]["source_refs"][0]["source_evidence_id"] == (
+        "tfda_per100g_bf89af0046a3"
+    )
+    assert by_id["listed_item_salmon_sashimi_100g"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["listed_item_chicken_breast_100g"]["kcal_point"] == 119
+    assert by_id["listed_item_chicken_breast_100g"]["source_provenance"]["source_url"] == (
+        "https://data.gov.tw/dataset/8543"
+    )
+    assert by_id["listed_item_chicken_breast_100g"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["listed_modifier_curry_cube_20g"]["source_refs"][0]["source_evidence_id"] == (
+        "tfda_per100g_39f910777a64"
+    )
+    assert by_id["listed_modifier_curry_cube_20g"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["listed_item_white_cutlassfish_100g"]["source_refs"][0][
+        "source_evidence_id"
+    ] == "tfda_per100g_316868e6ad0c"
+    assert by_id["listed_item_white_cutlassfish_100g"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["listed_item_chicken_sausage_small_one"]["source_refs"][0][
+        "source_evidence_id"
+    ] == "tfda_per100g_77ad9523ab48"
+    assert by_id["listed_item_chicken_sausage_small_one"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["listed_item_milkfish_ball_100g"]["source_refs"][0][
+        "source_evidence_id"
+    ] == "tfda_per100g_a721bd05495e"
+    assert by_id["listed_item_milkfish_ball_100g"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["listed_item_tea_egg_one"]["source_refs"][0]["source_evidence_id"] == (
+        "tfda_per100g_948e3e0b62f9"
+    )
+    assert by_id["listed_item_tea_egg_one"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["listed_item_taiwan_tilapia_fillet_100g"]["source_refs"][0][
+        "source_evidence_id"
+    ] == "tfda_per100g_7bdcd1b3f43b"
+    assert by_id["listed_item_taiwan_tilapia_fillet_100g"][
+        "macro_visibility_status"
+    ] == "hidden_missing_source"
+    assert by_id["listed_item_canned_corn_sauce_100g"]["source_refs"][0][
+        "source_evidence_id"
+    ] == "tfda_per100g_bbf88fb4da7f"
+    assert by_id["listed_item_canned_corn_sauce_100g"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["listed_modifier_five_spice_powder_5g"]["source_refs"][0][
+        "source_evidence_id"
+    ] == "tfda_per100g_e3d91ad4f37e"
+    assert by_id["listed_modifier_five_spice_powder_5g"]["macro_visibility_status"] == (
+        "hidden_missing_source"
+    )
+    assert by_id["listed_item_frozen_chicken_nuggets_100g"]["source_refs"][0][
+        "source_evidence_id"
+    ] == "tfda_per100g_812b67bc10c8"
+    assert by_id["listed_item_frozen_chicken_nuggets_100g"]["macro_visibility_status"] == (
         "hidden_missing_source"
     )
     assert by_id["custom_drink_boba_milk_tea"]["source_lane"] == "generic_common_serving"
@@ -521,7 +793,7 @@ def test_approved_packet_ready_fooddb_artifact_cli_can_write_full_current_shell_
     assert exit_code == 0
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
     assert artifact["summary"]["selection_profile"] == "full_current_shell"
-    assert artifact["summary"]["packet_ready_item_count"] == 270
+    assert artifact["summary"]["packet_ready_item_count"] == 1000
 
 
 def test_runbook_documents_minimal_fooddb_packet_ready_artifact() -> None:

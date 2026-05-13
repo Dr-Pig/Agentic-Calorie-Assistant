@@ -1,0 +1,1144 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_black_plum_juice_300ml",
+      "canonical_name": "\u70cf\u6885\u6c41",
+      "aliases": [
+        "\u70cf\u6885\u6c41 black plum juice 300ml",
+        "black plum juice 300ml",
+        "300ml black plum juice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 300,
+        "portion_grams": 300,
+        "label": "300ml black plum juice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 172,
+      "kcal_range": [
+        120,
+        230
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_909c3df787fd",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 57.3576,
+          "tfda_sample_name": "\u70cf\u6885\u6c41"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_4a042441a270",
+        "raw_row_hash": "7898b76bb7a46853f9e8e12a5ae61921006e54013dd8adb4bdcf60a70619ba6e"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_black_date_tea_500ml",
+      "canonical_name": "\u9ed1\u68d7\u8336",
+      "aliases": [
+        "\u9ed1\u68d7\u8336 black date tea 500ml",
+        "black date tea 500ml",
+        "500ml black date tea"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 500,
+        "portion_grams": 500,
+        "label": "500ml black date tea",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 232,
+      "kcal_range": [
+        160,
+        310
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_762392fe70f2",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 46.4,
+          "tfda_sample_name": "\u9ed1\u68d7\u8336"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_48619db80645",
+        "raw_row_hash": "a024c6692e0531281bea3e2080e5c187c459ff26877829202110b3280eb54eed"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_starfruit_juice_300ml",
+      "canonical_name": "\u694a\u6843\u6c41(\u975e\u539f\u6c41)",
+      "aliases": [
+        "\u694a\u6843\u6c41(\u975e\u539f\u6c41) starfruit juice 300ml",
+        "starfruit juice 300ml",
+        "300ml starfruit juice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 300,
+        "portion_grams": 300,
+        "label": "300ml starfruit juice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 145,
+      "kcal_range": [
+        100,
+        195
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_39429ff7e84d",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 48.38,
+          "tfda_sample_name": "\u694a\u6843\u6c41(\u975e\u539f\u6c41)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7226d01774f4",
+        "raw_row_hash": "31aeea824488f3b6964b1244f34106f51acb641236f9da94ee038abe24268dd1"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_grapefruit_juice_300ml",
+      "canonical_name": "\u8461\u8404\u67da\u6c41(\u975e\u539f\u6c41)",
+      "aliases": [
+        "\u8461\u8404\u67da\u6c41(\u975e\u539f\u6c41) grapefruit juice 300ml",
+        "grapefruit juice 300ml",
+        "300ml grapefruit juice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 300,
+        "portion_grams": 300,
+        "label": "300ml grapefruit juice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 121,
+      "kcal_range": [
+        80,
+        170
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_1e7bb84636ba",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 40.35,
+          "tfda_sample_name": "\u8461\u8404\u67da\u6c41(\u975e\u539f\u6c41)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_1519e8845762",
+        "raw_row_hash": "d941fde46f1859f933de9f3965cda5b72c231a2169e96c246583b24bd468a476"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_pineapple_juice_300ml",
+      "canonical_name": "\u9cf3\u68a8\u6c41(\u975e\u539f\u6c41)",
+      "aliases": [
+        "\u9cf3\u68a8\u6c41(\u975e\u539f\u6c41) pineapple juice 300ml",
+        "pineapple juice 300ml",
+        "300ml pineapple juice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 300,
+        "portion_grams": 300,
+        "label": "300ml pineapple juice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 142,
+      "kcal_range": [
+        100,
+        195
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_13d31d86a962",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 47.25,
+          "tfda_sample_name": "\u9cf3\u68a8\u6c41(\u975e\u539f\u6c41)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_586819f712d4",
+        "raw_row_hash": "ab31137060a71e3dd85e3616cd3b175a81b01dbd69af0a092330d64279eb8bdb"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_lemon_juice_300ml",
+      "canonical_name": "\u6ab8\u6aac\u6c41(\u975e\u539f\u6c41)",
+      "aliases": [
+        "\u6ab8\u6aac\u6c41(\u975e\u539f\u6c41) lemon juice 300ml",
+        "lemon juice 300ml",
+        "300ml lemon juice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 300,
+        "portion_grams": 300,
+        "label": "300ml lemon juice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 98,
+      "kcal_range": [
+        55,
+        145
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_ca8f775ddaf0",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 32.5246,
+          "tfda_sample_name": "\u6ab8\u6aac\u6c41(\u975e\u539f\u6c41)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_c57da5357c6f",
+        "raw_row_hash": "9465236001cf0a2a751407a4ec9673eb6067922422a9d7798e4bca88b562513b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_apple_juice_300ml",
+      "canonical_name": "\u860b\u679c\u6c41(\u975e\u539f\u6c41)",
+      "aliases": [
+        "\u860b\u679c\u6c41(\u975e\u539f\u6c41) apple juice 300ml",
+        "apple juice 300ml",
+        "300ml apple juice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 300,
+        "portion_grams": 300,
+        "label": "300ml apple juice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 141,
+      "kcal_range": [
+        95,
+        190
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_0efd081d8634",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 46.948,
+          "tfda_sample_name": "\u860b\u679c\u6c41(\u975e\u539f\u6c41)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_0f8c4e0500e9",
+        "raw_row_hash": "ae61ca31bf0a8d792e5cfb9201185620d4b12176b77dcce71d530891717b41cd"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_mixed_fruit_vinegar_300ml",
+      "canonical_name": "\u679c\u6c41\u918b\u98f2\u6599(\u7d9c\u5408)",
+      "aliases": [
+        "\u679c\u6c41\u918b\u98f2\u6599(\u7d9c\u5408) mixed fruit vinegar drink 300ml",
+        "mixed fruit vinegar drink 300ml",
+        "300ml mixed fruit vinegar drink"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 300,
+        "portion_grams": 300,
+        "label": "300ml mixed fruit vinegar drink",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 112,
+      "kcal_range": [
+        70,
+        165
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_2c4a87a4d3d6",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 37.25,
+          "tfda_sample_name": "\u679c\u6c41\u918b\u98f2\u6599(\u7d9c\u5408)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_18bb0b410945",
+        "raw_row_hash": "7475aff4620e0bd5a9ce78421fb62dfcbd320db7a245b68cdb84b95e16480a9b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_low_sugar_sarsaparilla_can",
+      "canonical_name": "\u6c99\u58eb(\u4f4e\u7cd6)",
+      "aliases": [
+        "\u6c99\u58eb(\u4f4e\u7cd6) low sugar sarsaparilla can",
+        "low sugar sarsaparilla can",
+        "one 330ml low sugar sarsaparilla can"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "can",
+        "portion_quantity": 1,
+        "portion_grams": 330,
+        "label": "one 330ml low sugar sarsaparilla can",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 143,
+      "kcal_range": [
+        95,
+        190
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_badf148e4b51",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 43.4148,
+          "tfda_sample_name": "\u6c99\u58eb(\u4f4e\u7cd6)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_15187e4e10ea",
+        "raw_row_hash": "becdef56bf58ca984467e020fd7a9431944b5b8e527640732c6172b50897c89b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_mixed_soda_can",
+      "canonical_name": "\u6c7d\u6c34(\u7d9c\u5408\u53e3\u5473)",
+      "aliases": [
+        "\u6c7d\u6c34(\u7d9c\u5408\u53e3\u5473) mixed flavor soda can",
+        "mixed flavor soda can",
+        "one 330ml mixed flavor soda can"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "can",
+        "portion_quantity": 1,
+        "portion_grams": 330,
+        "label": "one 330ml mixed flavor soda can",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 140,
+      "kcal_range": [
+        100,
+        190
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_9fa12288cbaa",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 42.34,
+          "tfda_sample_name": "\u6c7d\u6c34(\u7d9c\u5408\u53e3\u5473)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_d13c15a361a9",
+        "raw_row_hash": "073f67d8be6c8fdf80b730a79fa30aecf6f9273173d0ef1146e6da046dbf360b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_vitamin_soda_can",
+      "canonical_name": "\u6c7d\u6c34(\u7dad\u751f\u7d20\u5f37\u5316)",
+      "aliases": [
+        "\u6c7d\u6c34(\u7dad\u751f\u7d20\u5f37\u5316) vitamin fortified soda can",
+        "vitamin fortified soda can",
+        "one 330ml vitamin fortified soda can"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "can",
+        "portion_quantity": 1,
+        "portion_grams": 330,
+        "label": "one 330ml vitamin fortified soda can",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 151,
+      "kcal_range": [
+        110,
+        205
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_179eec3d1e3b",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 45.88,
+          "tfda_sample_name": "\u6c7d\u6c34(\u7dad\u751f\u7d20\u5f37\u5316)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7fd730bd5335",
+        "raw_row_hash": "d4e180a2d7de7de73ced8604b61a2ab4989e0fe655c9f36df0b1a6f6ee395c84"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_unsweetened_coffee_can",
+      "canonical_name": "\u7121\u7cd6\u5496\u5561\u98f2\u6599",
+      "aliases": [
+        "\u7121\u7cd6\u5496\u5561\u98f2\u6599 unsweetened coffee drink can",
+        "unsweetened coffee drink can",
+        "one 360ml unsweetened coffee drink can"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "can",
+        "portion_quantity": 1,
+        "portion_grams": 360,
+        "label": "one 360ml unsweetened coffee drink can",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 13,
+      "kcal_range": [
+        0,
+        35
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_21e5fb43e94a",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 3.686,
+          "tfda_sample_name": "\u7121\u7cd6\u5496\u5561\u98f2\u6599"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_f6f265a4c262",
+        "raw_row_hash": "16fd2a4864a2f497c24331db26dea4999da92deaef26670cc39d42d163df3869"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_apple_black_tea_500ml",
+      "canonical_name": "\u7d05\u8336(\u860b\u679c)",
+      "aliases": [
+        "\u7d05\u8336(\u860b\u679c) apple black tea 500ml",
+        "apple black tea 500ml",
+        "500ml apple black tea"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 500,
+        "portion_grams": 500,
+        "label": "500ml apple black tea",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 183,
+      "kcal_range": [
+        120,
+        260
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_d2b35efbb56e",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 36.68,
+          "tfda_sample_name": "\u7d05\u8336(\u860b\u679c)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_5c3280e988a2",
+        "raw_row_hash": "ca7ba1f221ec9cef94584912ab439faf79220c080197a5121cdadbd205f5c31c"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_oolong_tea_half_sugar_700ml",
+      "canonical_name": "\u70cf\u9f8d\u8336(\u53bb\u51b0,\u534a\u7cd6)",
+      "aliases": [
+        "\u70cf\u9f8d\u8336(\u53bb\u51b0,\u534a\u7cd6) oolong tea half sugar 700ml",
+        "oolong tea half sugar 700ml",
+        "700ml half sugar oolong tea"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 700,
+        "portion_grams": 700,
+        "label": "700ml half sugar oolong tea",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 148,
+      "kcal_range": [
+        90,
+        240
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_b5cae8bc1960",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 21.0873,
+          "tfda_sample_name": "\u70cf\u9f8d\u8336(\u53bb\u51b0,\u534a\u7cd6)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_424af700a8da",
+        "raw_row_hash": "5fa92fae680eda16235f6edac90cfb0893a090e76a585a04dd14292d6ef66b4a"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_oolong_tea_full_sugar_700ml",
+      "canonical_name": "\u70cf\u9f8d\u8336(\u53bb\u51b0,\u5168\u7cd6)",
+      "aliases": [
+        "\u70cf\u9f8d\u8336(\u53bb\u51b0,\u5168\u7cd6) oolong tea full sugar 700ml",
+        "oolong tea full sugar 700ml",
+        "700ml full sugar oolong tea"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 700,
+        "portion_grams": 700,
+        "label": "700ml full sugar oolong tea",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 250,
+      "kcal_range": [
+        170,
+        350
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_e45cdd4d0972",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 35.6678,
+          "tfda_sample_name": "\u70cf\u9f8d\u8336(\u53bb\u51b0,\u5168\u7cd6)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_93ece08f26ea",
+        "raw_row_hash": "6fb372dd4a3e70417226826d511fdaf85672778fa8cfabab1f702ff1e3b56e6b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_oolong_milk_tea_full_sugar_700ml",
+      "canonical_name": "\u70cf\u9f8d\u5976\u8336(\u53bb\u51b0,\u5168\u7cd6)",
+      "aliases": [
+        "\u70cf\u9f8d\u5976\u8336(\u53bb\u51b0,\u5168\u7cd6) oolong milk tea full sugar 700ml",
+        "oolong milk tea full sugar 700ml",
+        "700ml full sugar oolong milk tea"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 700,
+        "portion_grams": 700,
+        "label": "700ml full sugar oolong milk tea",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 524,
+      "kcal_range": [
+        390,
+        660
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_09a7223c205a",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 74.7962,
+          "tfda_sample_name": "\u70cf\u9f8d\u5976\u8336(\u53bb\u51b0,\u5168\u7cd6)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_8aad8f084345",
+        "raw_row_hash": "adb2b502b531b8392213312cb9cba9ff0bf3612577a99ccd8ea72ceeea25ffe3"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_boba_milk_tea_half_sugar_700ml",
+      "canonical_name": "\u73cd\u73e0\u5976\u8336(\u53bb\u51b0,\u534a\u7cd6)",
+      "aliases": [
+        "\u73cd\u73e0\u5976\u8336(\u53bb\u51b0,\u534a\u7cd6) boba milk tea half sugar 700ml",
+        "boba milk tea half sugar 700ml",
+        "700ml half sugar boba milk tea"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 700,
+        "portion_grams": 700,
+        "label": "700ml half sugar boba milk tea",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 585,
+      "kcal_range": [
+        430,
+        760
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_4a1a20da8abc",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 83.5089,
+          "tfda_sample_name": "\u73cd\u73e0\u5976\u8336(\u53bb\u51b0,\u534a\u7cd6)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_942814bed59a",
+        "raw_row_hash": "2e245aa1566a93e93cb0b91bf19212cb4d10f148ed520d52c423bf31ec1ed17a"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_boba_milk_tea_full_sugar_700ml",
+      "canonical_name": "\u73cd\u73e0\u5976\u8336(\u53bb\u51b0,\u5168\u7cd6)",
+      "aliases": [
+        "\u73cd\u73e0\u5976\u8336(\u53bb\u51b0,\u5168\u7cd6) boba milk tea full sugar 700ml",
+        "boba milk tea full sugar 700ml",
+        "700ml full sugar boba milk tea"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 700,
+        "portion_grams": 700,
+        "label": "700ml full sugar boba milk tea",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 658,
+      "kcal_range": [
+        490,
+        850
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_a4e4ebad6332",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 94.0235,
+          "tfda_sample_name": "\u73cd\u73e0\u5976\u8336(\u53bb\u51b0,\u5168\u7cd6)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_566a9a2fcdcf",
+        "raw_row_hash": "8cff3e9f5a0394c9988667b14887ae25f2bf5e23ab5957bdbd8eb56b2b6b0284"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_jasmine_tea_500ml",
+      "canonical_name": "\u8309\u8389\u82b1\u8336",
+      "aliases": [
+        "\u8309\u8389\u82b1\u8336 jasmine tea 500ml",
+        "jasmine tea 500ml",
+        "500ml jasmine tea"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 500,
+        "portion_grams": 500,
+        "label": "500ml jasmine tea",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 142,
+      "kcal_range": [
+        90,
+        220
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_06f1728be9f9",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 28.48,
+          "tfda_sample_name": "\u8309\u8389\u82b1\u8336"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_196cf96b20d3",
+        "raw_row_hash": "6e01aab1a4636a89144981969727c50e874a7bcfe466db808e837269f4bf5677"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_chrysanthemum_tea_500ml",
+      "canonical_name": "\u83ca\u82b1\u8336",
+      "aliases": [
+        "\u83ca\u82b1\u8336 chrysanthemum tea 500ml",
+        "chrysanthemum tea 500ml",
+        "500ml chrysanthemum tea"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 500,
+        "portion_grams": 500,
+        "label": "500ml chrysanthemum tea",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 148,
+      "kcal_range": [
+        95,
+        225
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_2b1eb7f84968",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 29.64,
+          "tfda_sample_name": "\u83ca\u82b1\u8336"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7f53cfdcedee",
+        "raw_row_hash": "9a0fb67448209e02b3f6806e82ee92ddae71de7553087bd9a1c27858924c3c43"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    }
+  ]
+}

@@ -104,6 +104,33 @@ def test_memory_layers_and_promotion_rules_follow_canonical_specs() -> None:
     }
 
 
+def test_reusable_personal_meal_alignment_is_recorded_without_runtime_activation() -> None:
+    contract = _contract()
+    spec = SPEC_PATH.read_text(encoding="utf-8-sig")
+
+    assert "Reusable Personal Meal" in spec
+    assert "PersonalMealTemplateSummary" in spec
+    assert "FoodDB truth replacement" in spec
+
+    record_types = contract["memory_feedback_contract"]["memory_record"][
+        "compact_record_types"
+    ]
+    derived_summaries = {
+        view["id"]: view for view in contract["derived_summary_views"]
+    }
+    rules = contract["promotion_rules"]
+
+    assert "reusable_personal_meal" in record_types
+    assert "personal_meal_template_summary" in derived_summaries
+    assert rules["reusable_personal_meal_min_repeats"] == 3
+    assert rules["reusable_personal_meal_requires_user_confirmation"] is True
+    assert rules["reusable_personal_meal_silent_autocommit_allowed"] is False
+    assert (
+        rules["reusable_personal_meal_recipe_drift_requires_supersede_or_reestimate"]
+        is True
+    )
+
+
 def test_consumer_dependency_order_keeps_memory_first_and_proactive_no_send_last() -> None:
     contract = _contract()
     boundaries = contract["consumer_boundaries"]

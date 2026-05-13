@@ -1,0 +1,1164 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_green_bean_pastry_one",
+      "canonical_name": "綠豆凸",
+      "aliases": [
+        "綠豆凸",
+        "green bean pastry one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 70,
+        "label": "one green bean pastry",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 270,
+      "kcal_range": [
+        210,
+        360
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q0300301_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 386.0,
+          "tfda_integrated_code": "Q0300301",
+          "tfda_sample_name": "綠豆凸"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q0300301",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "84e2325cb67f79545aad32ccf00eaad3551c3ebe720e65f03b154e2f4037bec5"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_sun_cake_one",
+      "canonical_name": "太陽餅",
+      "aliases": [
+        "太陽餅",
+        "sun cake one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 60,
+        "label": "one sun cake",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 275,
+      "kcal_range": [
+        210,
+        380
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q0500101_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 459.0,
+          "tfda_integrated_code": "Q0500101",
+          "tfda_sample_name": "太陽餅"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q0500101",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "9f9da7ba768860b1c93371120be273c44d4a271c955b327839b9fee929c7e3b9"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_egg_yolk_pastry_one",
+      "canonical_name": "蛋黃酥",
+      "aliases": [
+        "蛋黃酥",
+        "egg yolk pastry one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 65,
+        "label": "one egg yolk pastry",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 297,
+      "kcal_range": [
+        230,
+        420
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q0500401_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 457.0,
+          "tfda_integrated_code": "Q0500401",
+          "tfda_sample_name": "蛋黃酥"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q0500401",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "0d3d4bf5be5bf8b7bc5f7f288bbe67af9f3ec2c074e5306eae03964c57c27654"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_pineapple_cake_one",
+      "canonical_name": "鳳梨酥",
+      "aliases": [
+        "鳳梨酥",
+        "pineapple cake one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 45,
+        "label": "one pineapple cake",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 216,
+      "kcal_range": [
+        160,
+        300
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q0500501_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 481.0,
+          "tfda_integrated_code": "Q0500501",
+          "tfda_sample_name": "鳳梨酥"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q0500501",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "78fa19b897d799e22ea1f5ba36c76d7fad125dc4a8b501943b033a49db1ef21a"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_sesame_egg_roll_serving",
+      "canonical_name": "蛋捲(芝麻)",
+      "aliases": [
+        "蛋捲(芝麻)",
+        "sesame egg roll serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one small sesame egg roll serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 164,
+      "kcal_range": [
+        120,
+        230
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q4100401_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 547.0,
+          "tfda_integrated_code": "Q4100401",
+          "tfda_sample_name": "蛋捲(芝麻)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q4100401",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "bb320e6eb77c5429deba7c5579841ece556ebb0c541af28fc48c3e792eddffec"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_vegetable_soda_crackers_serving",
+      "canonical_name": "蘇打餅乾(蔬菜)",
+      "aliases": [
+        "蘇打餅乾(蔬菜)",
+        "vegetable soda crackers serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one vegetable soda crackers serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 152,
+      "kcal_range": [
+        110,
+        220
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q4100701_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 506.0,
+          "tfda_integrated_code": "Q4100701",
+          "tfda_sample_name": "蘇打餅乾(蔬菜)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q4100701",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "542c25db15e383c9d3a94a153290385359212376daa99142409fdb06805643fc"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_potato_chips_serving",
+      "canonical_name": "洋芋片",
+      "aliases": [
+        "洋芋片",
+        "potato chips serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one potato chips serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 165,
+      "kcal_range": [
+        120,
+        240
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q4200201_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 549.0,
+          "tfda_integrated_code": "Q4200201",
+          "tfda_sample_name": "洋芋片"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q4200201",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "4d265d5fa65fd6f472a549d2a055f9bfdd8ec9b434b1fc88bf73d06f03d1d3af"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_sachima_one",
+      "canonical_name": "沙其馬",
+      "aliases": [
+        "沙其馬",
+        "sachima one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 60,
+        "label": "one sachima pastry",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 290,
+      "kcal_range": [
+        220,
+        400
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q4900101_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 484.0,
+          "tfda_integrated_code": "Q4900101",
+          "tfda_sample_name": "沙其馬"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q4900101",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "88361633894226d1a42855532c4b17d6c5dd72bee766559a0814811d79332f61"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_nougat_serving",
+      "canonical_name": "牛軋糖",
+      "aliases": [
+        "牛軋糖",
+        "nougat serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one nougat serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 141,
+      "kcal_range": [
+        100,
+        190
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q6200501_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 470.0,
+          "tfda_integrated_code": "Q6200501",
+          "tfda_sample_name": "牛軋糖"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q6200501",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "0e3a33b1c70845fad72de7079c09ce71180e7152d14940501f4180d0192dfe17"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_tiramisu_slice",
+      "canonical_name": "提拉米蘇(圓形)",
+      "aliases": [
+        "提拉米蘇(圓形)",
+        "tiramisu slice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "slice",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one tiramisu slice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 327,
+      "kcal_range": [
+        250,
+        450
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q0900301_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 327.0,
+          "tfda_integrated_code": "Q0900301",
+          "tfda_sample_name": "提拉米蘇(圓形)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q0900301",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "6fdfd48eb98e06eecfab3232cbed13c417574b70e611f1e0e29da6eb2625181a"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_black_forest_cake_slice",
+      "canonical_name": "黑森林蛋糕",
+      "aliases": [
+        "黑森林蛋糕",
+        "black forest cake slice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "slice",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one black forest cake slice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 274,
+      "kcal_range": [
+        210,
+        380
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_Q0900701_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 274.0,
+          "tfda_integrated_code": "Q0900701",
+          "tfda_sample_name": "黑森林蛋糕"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "Q0900701",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "7810e0f75bab798b8caaf40a65e0da32674875a2826f95e53b352a322685f039"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_staple_pork_blood_rice_cake_one",
+      "canonical_name": "豬血糕",
+      "aliases": [
+        "豬血糕",
+        "pork blood rice cake one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one pork blood rice cake",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 192,
+      "kcal_range": [
+        140,
+        280
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R0600101_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 192.0,
+          "tfda_integrated_code": "R0600101",
+          "tfda_sample_name": "豬血糕"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R0600101",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "7ffe6abd85c831057a986dc8ddf527c87f81338c9f12034f5b7a99d9e07874f9"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_staple_duck_blood_rice_cake_one",
+      "canonical_name": "鴨血糕",
+      "aliases": [
+        "鴨血糕",
+        "duck blood rice cake one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one duck blood rice cake",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 190,
+      "kcal_range": [
+        140,
+        280
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R0600201_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 190.0,
+          "tfda_integrated_code": "R0600201",
+          "tfda_sample_name": "鴨血糕"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R0600201",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "0c669d6ed4f639f508e023e9e6716538a85b297c2313983b3c6e90e91f35e19d"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_street_coffin_bread_one",
+      "canonical_name": "棺材板",
+      "aliases": [
+        "棺材板",
+        "coffin bread one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 200,
+        "label": "one coffin bread",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 522,
+      "kcal_range": [
+        390,
+        720
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R3000401_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 261.0,
+          "tfda_integrated_code": "R3000401",
+          "tfda_sample_name": "棺材板"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R3000401",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "1baf173474c98901fa3c0f504f6afb88d888d14de3decf5a2cc305284d887005"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_street_agei_one",
+      "canonical_name": "油豆腐粉絲(阿給)",
+      "aliases": [
+        "油豆腐粉絲(阿給)",
+        "agei one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 180,
+        "label": "one agei stuffed tofu noodle serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 257,
+      "kcal_range": [
+        190,
+        360
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R3000501_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 143.0,
+          "tfda_integrated_code": "R3000501",
+          "tfda_sample_name": "油豆腐粉絲(阿給)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R3000501",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "d5524154aeca9c5dff8402435b0bd5befc690bb59c60be6769e8662f44953a97"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_side_frozen_scallion_pancake_one",
+      "canonical_name": "冷凍蔥油餅",
+      "aliases": [
+        "冷凍蔥油餅",
+        "frozen scallion pancake one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 110,
+        "label": "one frozen scallion pancake",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 280,
+      "kcal_range": [
+        210,
+        380
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R2700201_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 255.0,
+          "tfda_integrated_code": "R2700201",
+          "tfda_sample_name": "冷凍蔥油餅"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R2700201",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "bdc07de0163c740b86c111bc6fdb879fe1c5edb96da588d66702915efaee3b00"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_noodle_soba_wet_bowl",
+      "canonical_name": "蕎麥麵(濕)",
+      "aliases": [
+        "蕎麥麵(濕)",
+        "wet soba noodle bowl"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "bowl",
+        "portion_quantity": 1,
+        "portion_grams": 250,
+        "label": "one wet soba noodle bowl",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 370,
+      "kcal_range": [
+        270,
+        500
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R2001502_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 148.0,
+          "tfda_integrated_code": "R2001502",
+          "tfda_sample_name": "蕎麥麵(濕)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R2001502",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "839b421b45d7b4540e8e32873c0219c0d5b80760ba3174a158911a9da82fbeed"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_noodle_instant_beef_pack",
+      "canonical_name": "泡麵(牛肉口味)",
+      "aliases": [
+        "泡麵(牛肉口味)",
+        "instant beef noodle pack"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "pack",
+        "portion_quantity": 1,
+        "portion_grams": 85,
+        "label": "one instant beef noodle pack",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 400,
+      "kcal_range": [
+        320,
+        540
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R2100201_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 470.0,
+          "tfda_integrated_code": "R2100201",
+          "tfda_sample_name": "泡麵(牛肉口味)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R2100201",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "5c58b648b4137ef1873f46adbebaccda75ea376acf8e7979f66f5b050c2deab4"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_noodle_instant_shrimp_pack",
+      "canonical_name": "泡麵(鮮蝦口味)",
+      "aliases": [
+        "泡麵(鮮蝦口味)",
+        "instant shrimp noodle pack"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "pack",
+        "portion_quantity": 1,
+        "portion_grams": 85,
+        "label": "one instant shrimp noodle pack",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 400,
+      "kcal_range": [
+        320,
+        540
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R2100301_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 471.0,
+          "tfda_integrated_code": "R2100301",
+          "tfda_sample_name": "泡麵(鮮蝦口味)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R2100301",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "9fee100f4778643695b6cba9ef729889b75178598edeba3d7ddab7015c3d26a0"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_meat_roast_chicken_serving",
+      "canonical_name": "烤雞",
+      "aliases": [
+        "烤雞",
+        "roast chicken serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 150,
+        "label": "one roast chicken serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 350,
+      "kcal_range": [
+        260,
+        470
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_dataset_8543_R7300101_energy",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 233.0,
+          "tfda_integrated_code": "R7300101",
+          "tfda_sample_name": "烤雞"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "https://data.gov.tw/dataset/8543",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "R7300101",
+        "nutrient": "修正熱量",
+        "raw_row_hash": "f95cc93750f51839b2857573e11fac6043ae67b59737c2dddde55753b80f6980"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    }
+  ]
+}

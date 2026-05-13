@@ -309,7 +309,7 @@ When the reusable-meal slice is built, it must align with the shared Manager-sty
 | Recommendation shadow | PreferenceProfileSummary, GoldenOrderSummary, negative and temporary preference candidates | candidate generation and user-visible offer/silence gate | live search, served recommendation, durable memory write |
 | Rescue shadow | RescueHistorySummary, AdherenceSummary, IntakeCompletenessSummary, suppression posture | proposal invitation and acceptance boundary | proposal commit, plan rewrite, budget correction |
 | Proactive no-send | SuppressionSummary, InteractionPreferenceSummary, GoldenOrderSummary, PreferenceProfileSummary | deterministic trigger gate and no-send dispatch decision | scheduler activation, push/LINE send, trigger persistence |
-| Long-term chat context | selected PreferenceProfileSummary and confirmed-memory candidates | context packing activation plan | ManagerContextPacket injection |
+| Long-term chat context | selected PreferenceProfileSummary, reusable personal meal candidates, and confirmed-memory candidates | context packing activation plan | ManagerContextPacket injection |
 | Calibration shadow | CalibrationHistorySummary, AdherenceSummary, IntakeCompletenessSummary | proposal candidate scoring | stored-action creation or body-plan mutation |
 
 ## Build Sequence

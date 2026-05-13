@@ -3,44 +3,19 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any, Callable
 
+from .fooddb_packet_case_family_projection import (
+    b1_case_family_from_packet_fields,
+    canonical_b1_case_family,
+)
+from .fooddb_packet_smoke_contract import (
+    FOODDB_PACKET_MANAGER_REQUIRED_FIELDS,
+    GROKFAST_FOODDB_PACKET_PROFILE,
+    NON_CLAIMS,
+    packet_artifact_case_ids,
+)
 from app.nutrition.application.fooddb_live_payload_projection import (
     build_compact_fooddb_live_projection,
     build_diagnostic_allowed_evidence_refs,
-)
-
-
-GROKFAST_FOODDB_PACKET_PROFILE = {
-    "provider_profile_id": "builderspace-grok-4-fast-fooddb-packet-smoke",
-    "provider": "builderspace",
-    "model": "grok-4-fast",
-    "provider_profile_role": "live_diagnostic_probe",
-    "cost_tier": "low",
-    "production_selected": False,
-    "readiness_owner": False,
-}
-
-NON_CLAIMS = [
-    "no_readiness_claim",
-    "no_production_model_selection",
-    "no_self_use_approval",
-    "no_runtime_mutation",
-    "no_fooddb_truth_promotion",
-    "no_kimi_call",
-    "no_websearch_runtime_truth",
-]
-
-FOODDB_PACKET_MANAGER_REQUIRED_FIELDS = (
-    "manager_action",
-    "response_mode",
-    "intent",
-    "workflow_effect",
-    "target_attachment",
-    "exactness",
-    "confidence",
-    "evidence_posture",
-    "repair_ack",
-    "operations",
-    "answer_contract",
 )
 
 ManagerContractValidator = Callable[[dict[str, Any], dict[str, Any]], list[str]]
@@ -163,6 +138,7 @@ def build_grokfast_fooddb_packet_diagnostic(
 
     pass_count = sum(1 for item in case_results if item.get("status") == "pass")
     fail_count = len(case_results) - pass_count
+    selected_case_ids = packet_artifact_case_ids(packet_artifact)
     return {
         "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
         "artifact_schema_version": "1.0",
@@ -182,11 +158,13 @@ def build_grokfast_fooddb_packet_diagnostic(
         "manager_context_changed": False,
         "packetizer_format_changed": False,
         "packet_artifact_type": packet_artifact.get("artifact_type"),
+        "selected_case_ids": selected_case_ids,
         "cases": case_results,
         "summary": {
             "case_count": len(case_results),
             "pass_count": pass_count,
             "fail_count": fail_count,
+            "selected_case_count": len(selected_case_ids),
             "failure_families": sorted(
                 {
                     family
@@ -210,14 +188,14 @@ def build_packet_artifact_from_tool_evidence_result(*, tool_evidence_artifact: d
         if not case_id:
             continue
         cases.append(
-            {
-                "case_id": case_id,
-                "raw_user_input": packet.get("raw_user_input"),
-                "case_family": _b1_case_family_from_packet_fields(
-                    case_id=case_id,
-                    expected_behavior=str(packet.get("manager_expected_behavior") or ""),
-                    evidence_items=packet.get("evidence_items") or [],
-                ),
+                {
+                    "case_id": case_id,
+                    "raw_user_input": packet.get("raw_user_input"),
+                    "case_family": b1_case_family_from_packet_fields(
+                        case_id=case_id,
+                        expected_behavior=str(packet.get("manager_expected_behavior") or ""),
+                        evidence_items=packet.get("evidence_items") or [],
+                    ),
                 "manager_expected_behavior": packet.get("manager_expected_behavior"),
                 "manager_evidence_packet": dict(packet),
                 "tool_evidence_result": _single_packet_tool_result(tool_result=tool_result, packet=packet),
@@ -431,34 +409,14 @@ def _manager_constraints_for_case(packet_case: dict[str, Any]) -> dict[str, Any]
 def _b1_case_family_for_packet_case(packet_case: dict[str, Any]) -> str | None:
     case_family = str(packet_case.get("case_family") or "").strip()
     if case_family and case_family != "tool_evidence_result_packet":
-        return case_family
+        return canonical_b1_case_family(case_family)
     packet = packet_case.get("manager_evidence_packet")
     evidence_items = packet.get("evidence_items") if isinstance(packet, dict) else []
-    return _b1_case_family_from_packet_fields(
+    return b1_case_family_from_packet_fields(
         case_id=str(packet_case.get("case_id") or ""),
         expected_behavior=str(packet_case.get("manager_expected_behavior") or ""),
         evidence_items=evidence_items if isinstance(evidence_items, list) else [],
     )
-
-
-def _b1_case_family_from_packet_fields(
-    *,
-    case_id: str,
-    expected_behavior: str,
-    evidence_items: list[Any],
-) -> str:
-    if expected_behavior == "ask_followup_no_mutation" or not evidence_items:
-        return "composition_unknown_self_selected_basket"
-    if expected_behavior == "estimate_listed_components_only":
-        return "listed_ingredient_basket"
-    if expected_behavior == "generic_range_estimate_with_followup_hints":
-        return "common_commercial_meal"
-    if "boba" in case_id or expected_behavior in {
-        "estimate_from_packet_with_uncertainty",
-        "estimate_or_confirm_from_fuzzy_packet",
-    }:
-        return "common_commercial_drink"
-    return "common_food_item"
 
 
 def _used_evidence_refs(manager_output: dict[str, Any]) -> set[str]:

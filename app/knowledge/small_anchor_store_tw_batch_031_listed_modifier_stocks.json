@@ -1,0 +1,1030 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_five_spice_powder_5g",
+      "canonical_name": "\u4e94\u9999\u7c89",
+      "aliases": [
+        "\u4e94\u9999\u7c89 five spice powder 5g",
+        "five spice powder 5g",
+        "five spice powder 5g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 5,
+        "portion_grams": 5,
+        "label": "five spice powder 5g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 13,
+      "kcal_range": [
+        5,
+        25
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_e3d91ad4f37e",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 268.375,
+          "tfda_sample_name": "\u4e94\u9999\u7c89"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_caebb9a697f8",
+        "raw_row_hash": "9e088b749dc393c4a3bdcae27aafa59d2a51bdf7f6fe299e85083cc823ceca93"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_white_pepper_powder_2g",
+      "canonical_name": "\u767d\u80e1\u6912\u7c89",
+      "aliases": [
+        "\u767d\u80e1\u6912\u7c89 white pepper powder 2g",
+        "white pepper powder 2g",
+        "white pepper powder 2g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 2,
+        "portion_grams": 2,
+        "label": "white pepper powder 2g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 6,
+      "kcal_range": [
+        0,
+        12
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_0ac74861a3ba",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 287.8983,
+          "tfda_sample_name": "\u767d\u80e1\u6912\u7c89"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_a1942f0bfe5b",
+        "raw_row_hash": "3034c0258968dfaccf623f1a2b40a1b109d1a3f8f015695b516d2140e18159a1"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_black_pepper_powder_2g",
+      "canonical_name": "\u9ed1\u80e1\u6912\u7c89",
+      "aliases": [
+        "\u9ed1\u80e1\u6912\u7c89 black pepper powder 2g",
+        "black pepper powder 2g",
+        "black pepper powder 2g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 2,
+        "portion_grams": 2,
+        "label": "black pepper powder 2g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 7,
+      "kcal_range": [
+        0,
+        12
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_c4d460f12117",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 325.1261,
+          "tfda_sample_name": "\u9ed1\u80e1\u6912\u7c89"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_a35a580bdfc0",
+        "raw_row_hash": "56126c6e387aa6f77da97fec36e6843c656f2b9d0c999da91dbbe1df07154744"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_onion_powder_5g",
+      "canonical_name": "\u6d0b\u8525\u7c89",
+      "aliases": [
+        "\u6d0b\u8525\u7c89 onion powder 5g",
+        "onion powder 5g",
+        "onion powder 5g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 5,
+        "portion_grams": 5,
+        "label": "onion powder 5g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 18,
+      "kcal_range": [
+        5,
+        25
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_9791853bb72a",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 354.8006,
+          "tfda_sample_name": "\u6d0b\u8525\u7c89"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_0b937a151bb9",
+        "raw_row_hash": "06c618818765b4cc58b3eb74f8b8b2e2f03b792d23617c9f0a7a02818874919f"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_garlic_powder_5g",
+      "canonical_name": "\u849c\u7c89",
+      "aliases": [
+        "\u849c\u7c89 garlic powder 5g",
+        "garlic powder 5g",
+        "garlic powder 5g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 5,
+        "portion_grams": 5,
+        "label": "garlic powder 5g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 15,
+      "kcal_range": [
+        5,
+        25
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_1ae4353e2062",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 299.984,
+          "tfda_sample_name": "\u849c\u7c89"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_991df0cb9610",
+        "raw_row_hash": "c4e81273126df58913795b3dd3947524b50a253ecda7e036f57fa9e1acf83039"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_chili_powder_5g",
+      "canonical_name": "\u8fa3\u6912\u7c89",
+      "aliases": [
+        "\u8fa3\u6912\u7c89 chili powder 5g",
+        "chili powder 5g",
+        "chili powder 5g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 5,
+        "portion_grams": 5,
+        "label": "chili powder 5g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 15,
+      "kcal_range": [
+        5,
+        25
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_482c74c06735",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 306.5378,
+          "tfda_sample_name": "\u8fa3\u6912\u7c89"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_2ea2ab418d14",
+        "raw_row_hash": "d1d2b31c42cbe72076cea11d9f685ed3c0d4fd3103ec48527d3d0f632999a6dd"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_shichimi_powder_2g",
+      "canonical_name": "\u4e03\u5473\u5510\u8f9b\u5b50",
+      "aliases": [
+        "\u4e03\u5473\u5510\u8f9b\u5b50 shichimi powder 2g",
+        "shichimi powder 2g",
+        "shichimi powder 2g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 2,
+        "portion_grams": 2,
+        "label": "shichimi powder 2g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 7,
+      "kcal_range": [
+        0,
+        15
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_961c832f24d7",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 370.0359,
+          "tfda_sample_name": "\u4e03\u5473\u5510\u8f9b\u5b50"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7f922e60e36a",
+        "raw_row_hash": "d2146b12a8fffe47707ec32a79e730868e4268b407205c82d5738823f0994c6f"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_dou_su_10g",
+      "canonical_name": "\u8c46\u9165",
+      "aliases": [
+        "\u8c46\u9165 dou su 10g",
+        "dou su 10g",
+        "dou su 10g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 10,
+        "portion_grams": 10,
+        "label": "dou su 10g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 51,
+      "kcal_range": [
+        35,
+        75
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_002b914d516b",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 513.219,
+          "tfda_sample_name": "\u8c46\u9165"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7dcc861afe25",
+        "raw_row_hash": "2f90b21634e49dbc8132d3a0dd90c71c7962872fdcd928ccf8b4524a1a294266"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_plum_powder_5g",
+      "canonical_name": "\u6885\u5b50\u7c89",
+      "aliases": [
+        "\u6885\u5b50\u7c89 plum powder 5g",
+        "plum powder 5g",
+        "plum powder 5g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 5,
+        "portion_grams": 5,
+        "label": "plum powder 5g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 13,
+      "kcal_range": [
+        5,
+        25
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_e7adbcb5f7a9",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 267.8856,
+          "tfda_sample_name": "\u6885\u5b50\u7c89"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_36d92df218ae",
+        "raw_row_hash": "5b214e848c8b9667af08ba4eacc174778c814989c5904365b0552a6be175f35e"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_coconut_powder_10g",
+      "canonical_name": "\u6930\u5b50\u7c89",
+      "aliases": [
+        "\u6930\u5b50\u7c89 coconut powder 10g",
+        "coconut powder 10g",
+        "coconut powder 10g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 10,
+        "portion_grams": 10,
+        "label": "coconut powder 10g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 61,
+      "kcal_range": [
+        40,
+        85
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_5bd6be1fc096",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 606.3233,
+          "tfda_sample_name": "\u6930\u5b50\u7c89"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_5ba251cbf2b5",
+        "raw_row_hash": "6361323e5807707d844fb213f650eac8fc469b9da9acbf035e5d7b62d1a45cdb"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_soy_sauce_15g",
+      "canonical_name": "\u91ac\u6cb9",
+      "aliases": [
+        "\u91ac\u6cb9 soy sauce 15g",
+        "soy sauce 15g",
+        "soy sauce 15g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 15,
+        "portion_grams": 15,
+        "label": "soy sauce 15g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 14,
+      "kcal_range": [
+        5,
+        25
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_db4519b457b0",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 90.0368,
+          "tfda_sample_name": "\u91ac\u6cb9"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_4ef97618bcac",
+        "raw_row_hash": "74e8b699cc9dee63b3eef9de3b4012d76c6664044eee9b3c64d9d0e60f39e129"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_black_bean_soy_sauce_15g",
+      "canonical_name": "\u9ed1\u8c46\u91ac\u6cb9",
+      "aliases": [
+        "\u9ed1\u8c46\u91ac\u6cb9 black bean soy sauce 15g",
+        "black bean soy sauce 15g",
+        "black bean soy sauce 15g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 15,
+        "portion_grams": 15,
+        "label": "black bean soy sauce 15g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 17,
+      "kcal_range": [
+        5,
+        30
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_6e646b0c7c66",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 112.5065,
+          "tfda_sample_name": "\u9ed1\u8c46\u91ac\u6cb9"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_a3787b12ca4d",
+        "raw_row_hash": "5cd5636af8c549a16606a953f06f786bc639023b045716eed2c1fa9c68757bb1"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_pork_bone_stock_250g",
+      "canonical_name": "\u9ad8\u6e6f(\u8c6c\u5927\u9aa8)",
+      "aliases": [
+        "\u9ad8\u6e6f(\u8c6c\u5927\u9aa8) pork bone stock 250g",
+        "pork bone stock 250g",
+        "pork bone stock 250g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 250,
+        "portion_grams": 250,
+        "label": "pork bone stock 250g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 123,
+      "kcal_range": [
+        60,
+        170
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_c54109a3ec1d",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 49.1156,
+          "tfda_sample_name": "\u9ad8\u6e6f(\u8c6c\u5927\u9aa8)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_fee84ae3521a",
+        "raw_row_hash": "f0e112ea971ed53f3e6dd2d8b2fb8e3ab3d224f9fbcf011650c36cd9330aab0b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_low_fat_stock_250g",
+      "canonical_name": "\u4f4e\u8102\u9ad8\u6e6f",
+      "aliases": [
+        "\u4f4e\u8102\u9ad8\u6e6f low fat stock 250g",
+        "low fat stock 250g",
+        "low fat stock 250g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 250,
+        "portion_grams": 250,
+        "label": "low fat stock 250g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 5,
+      "kcal_range": [
+        0,
+        20
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_16fb9a64a643",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 2.1768,
+          "tfda_sample_name": "\u4f4e\u8102\u9ad8\u6e6f"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_19e7565cf24c",
+        "raw_row_hash": "6417c21e74a1044542731404841f3972f09d8a95264cfc4488f661908d309643"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_vegetarian_stock_250g",
+      "canonical_name": "\u7d20\u98df\u9ad8\u6e6f",
+      "aliases": [
+        "\u7d20\u98df\u9ad8\u6e6f vegetarian stock 250g",
+        "vegetarian stock 250g",
+        "vegetarian stock 250g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 250,
+        "portion_grams": 250,
+        "label": "vegetarian stock 250g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 43,
+      "kcal_range": [
+        20,
+        70
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_a9be310b06d4",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 17.0368,
+          "tfda_sample_name": "\u7d20\u98df\u9ad8\u6e6f"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_afd2d2e66325",
+        "raw_row_hash": "3e252f76069d5c13de7b3253a145ab79837098d47f5d8a8c09586e3ec37920b5"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_rice_vinegar_15g",
+      "canonical_name": "\u7c73\u918b",
+      "aliases": [
+        "\u7c73\u918b rice vinegar 15g",
+        "rice vinegar 15g",
+        "rice vinegar 15g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 15,
+        "portion_grams": 15,
+        "label": "rice vinegar 15g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 1,
+      "kcal_range": [
+        0,
+        10
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_89edd1debcfc",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 9.6804,
+          "tfda_sample_name": "\u7c73\u918b"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_4fc272bdb59f",
+        "raw_row_hash": "606c65b6743dd2bc038305fbeeb5acf5f13ce83546f2d31a3d64412d0ef54f8c"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_modifier_black_vinegar_15g",
+      "canonical_name": "\u70cf\u918b",
+      "aliases": [
+        "\u70cf\u918b black vinegar 15g",
+        "black vinegar 15g",
+        "black vinegar 15g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 15,
+        "portion_grams": 15,
+        "label": "black vinegar 15g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 6,
+      "kcal_range": [
+        0,
+        15
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_a7e330dfdbef",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 36.7636,
+          "tfda_sample_name": "\u70cf\u918b"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7fdd2382aa8d",
+        "raw_row_hash": "8d79ffaded9ddfcd3fac73e4eff76444ce7d4ac6ed55069b02cfd95a0bf4428b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_chicken_essence_60g",
+      "canonical_name": "\u96de\u7cbe",
+      "aliases": [
+        "\u96de\u7cbe chicken essence 60g",
+        "chicken essence 60g",
+        "chicken essence 60g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "listed_item_component",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "g",
+        "portion_quantity": 60,
+        "portion_grams": 60,
+        "label": "chicken essence 60g",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "listed_component_portion_policy"
+        ]
+      },
+      "kcal_point": 20,
+      "kcal_range": [
+        10,
+        35
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_b71a4a7b4ccf",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 34.126,
+          "tfda_sample_name": "\u96de\u7cbe"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_ae2c3e00acfd",
+        "raw_row_hash": "5e1415500b8077d078418099620cb294bf0528e275e9f81a6d0cdf6a33df79ee"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_listed_component_batch",
+        "policy_version": "fooddb_tfda_listed_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    }
+  ]
+}

@@ -1,0 +1,1144 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_loose_rice_milk_cup",
+      "canonical_name": "\u7c73\u6f3f(\u6563\u88dd)",
+      "aliases": [
+        "\u7c73\u6f3f(\u6563\u88dd)",
+        "rice milk cup",
+        "loose rice milk 250ml"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 250,
+        "label": "one loose rice milk cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 151,
+      "kcal_range": [
+        105,
+        220
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_6b659c5a0933",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 60.3,
+          "tfda_sample_name": "\u7c73\u6f3f(\u6563\u88dd)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_ab14fb389f33",
+        "raw_row_hash": "56eaf878b74e1eb49539e714b189b4b5b238659229fff0fcbbcabb0c5bbb3447"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_brown_rice_milk_cup",
+      "canonical_name": "\u7cd9\u7c73\u6f3f",
+      "aliases": [
+        "\u7cd9\u7c73\u6f3f",
+        "brown rice milk cup",
+        "brown rice milk 250ml"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 250,
+        "label": "one brown rice milk cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 173,
+      "kcal_range": [
+        120,
+        245
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_d7d3e927996c",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 69.3744,
+          "tfda_sample_name": "\u7cd9\u7c73\u6f3f"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_0b35045f3e53",
+        "raw_row_hash": "dcf1c448850a144f8bd1683aefa05231cf6631879f803fb94e1ca8b68f876657"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_noodle_mitaimu_bowl",
+      "canonical_name": "\u7c73\u82d4\u76ee",
+      "aliases": [
+        "\u7c73\u82d4\u76ee",
+        "mitaimu bowl",
+        "rice thick noodle bowl"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "bowl",
+        "portion_quantity": 1,
+        "portion_grams": 250,
+        "label": "one mitaimu noodle bowl",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 302,
+      "kcal_range": [
+        210,
+        420
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_22ddef55edd9",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 120.92,
+          "tfda_sample_name": "\u7c73\u82d4\u76ee"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_4f3b074196a3",
+        "raw_row_hash": "7efb74ca5dd329578943d933bc9f48b85c356cdbd2df409be7f9103d24865cba"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_noodle_mianxian_serving",
+      "canonical_name": "\u9eb5\u7dda",
+      "aliases": [
+        "\u9eb5\u7dda",
+        "mianxian serving",
+        "thin wheat vermicelli serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 70,
+        "label": "one mianxian serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 241,
+      "kcal_range": [
+        170,
+        335
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_981cf865eded",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 344.7299,
+          "tfda_sample_name": "\u9eb5\u7dda"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_c69a2cc72bd9",
+        "raw_row_hash": "e8997e1603a7600a60bda55f5c138916a94ee26505d5740fe0c1c11561472292"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_noodle_macaroni_serving",
+      "canonical_name": "\u901a\u5fc3\u9eb5",
+      "aliases": [
+        "\u901a\u5fc3\u9eb5",
+        "macaroni serving",
+        "tongxin noodle serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 70,
+        "label": "one macaroni serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 248,
+      "kcal_range": [
+        175,
+        345
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_2a629de3fcfd",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 354.8634,
+          "tfda_sample_name": "\u901a\u5fc3\u9eb5"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_419f4b14c272",
+        "raw_row_hash": "ea27a17c4d0bea1b2d0b4cd4dd3aacf8f8e14e0083a863eb6e2cb8e0e6460b1e"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_noodle_ramen_serving",
+      "canonical_name": "\u62c9\u9eb5",
+      "aliases": [
+        "\u62c9\u9eb5",
+        "ramen serving",
+        "fresh ramen noodle serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 150,
+        "label": "one ramen noodle serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 435,
+      "kcal_range": [
+        305,
+        610
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_0f383af3d0f3",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 289.6736,
+          "tfda_sample_name": "\u62c9\u9eb5"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_2cae229fe41f",
+        "raw_row_hash": "314e1b39e5808519d7660c35e4afc1db9d30cee69b47d8ffc20807df76549a76"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_noodle_dry_soba_serving",
+      "canonical_name": "\u854e\u9ea5\u9eb5(\u4e7e)",
+      "aliases": [
+        "\u854e\u9ea5\u9eb5(\u4e7e)",
+        "dry soba noodle serving",
+        "buckwheat noodle dry serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 70,
+        "label": "one dry soba serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 238,
+      "kcal_range": [
+        165,
+        335
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_1402aff8aa12",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 340.5476,
+          "tfda_sample_name": "\u854e\u9ea5\u9eb5(\u4e7e)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_771d248fed71",
+        "raw_row_hash": "e7aef523b48a62043fb1d7b9205fa56df9f63ab6675b0ad1142a9f9cf353d1be"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_noodle_wet_soba_serving",
+      "canonical_name": "\u854e\u9ea5\u9eb5(\u6fd5)",
+      "aliases": [
+        "\u854e\u9ea5\u9eb5(\u6fd5)",
+        "wet soba noodle serving",
+        "buckwheat noodle wet serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 180,
+        "label": "one wet soba serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 266,
+      "kcal_range": [
+        185,
+        375
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_4d9eaf010545",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 148.0358,
+          "tfda_sample_name": "\u854e\u9ea5\u9eb5(\u6fd5)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_e03f9efb4be2",
+        "raw_row_hash": "335fc48ebbdd55f656274c9026376d8e2a371ac7c8c44e34aa197c05c653df78"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_staple_fried_bantiao_plate",
+      "canonical_name": "\u7092\u677f\u689d",
+      "aliases": [
+        "\u7092\u677f\u689d",
+        "fried flat rice noodle plate",
+        "fried bantiao serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "plate",
+        "portion_quantity": 1,
+        "portion_grams": 300,
+        "label": "one fried bantiao plate",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 441,
+      "kcal_range": [
+        330,
+        620
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_7e43b828019f",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 147.0,
+          "tfda_sample_name": "\u7092\u677f\u689d"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_b147a046581f",
+        "raw_row_hash": "b38af79c7fbe472aa3c1d65ddea9b6474371dc7f345e3abd54ff71d50072605d"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_instant_noodle_beef_pack",
+      "canonical_name": "\u6ce1\u9eb5(\u725b\u8089\u53e3\u5473)",
+      "aliases": [
+        "\u6ce1\u9eb5(\u725b\u8089\u53e3\u5473)",
+        "instant noodle beef pack",
+        "beef flavor instant noodle pack"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "pack",
+        "portion_quantity": 1,
+        "portion_grams": 85,
+        "label": "one beef instant noodle pack",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 399,
+      "kcal_range": [
+        280,
+        550
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_d43809a16565",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 469.6845,
+          "tfda_sample_name": "\u6ce1\u9eb5(\u725b\u8089\u53e3\u5473)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7413fd3e89c8",
+        "raw_row_hash": "684f0079d0d283cab941215c27b161af9bb598e706e205c0342fb9fea1e9ddae"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_instant_noodle_shrimp_pack",
+      "canonical_name": "\u6ce1\u9eb5(\u9bae\u8766\u53e3\u5473)",
+      "aliases": [
+        "\u6ce1\u9eb5(\u9bae\u8766\u53e3\u5473)",
+        "instant noodle shrimp pack",
+        "shrimp flavor instant noodle pack"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "pack",
+        "portion_quantity": 1,
+        "portion_grams": 85,
+        "label": "one shrimp instant noodle pack",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 401,
+      "kcal_range": [
+        280,
+        560
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_7ddeb27647e7",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 471.443,
+          "tfda_sample_name": "\u6ce1\u9eb5(\u9bae\u8766\u53e3\u5473)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_3a333d7a1d3d",
+        "raw_row_hash": "447c1b5349517240f6ea4cf95234332f5c9bdd43f48ec6099bff02617103aa68"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dumpling_pork_crab_roe_10pc",
+      "canonical_name": "\u51b7\u51cd\u8c6c\u8089\u87f9\u9ec3\u6c34\u9903",
+      "aliases": [
+        "\u51b7\u51cd\u8c6c\u8089\u87f9\u9ec3\u6c34\u9903",
+        "pork crab roe dumplings 10 pieces",
+        "frozen pork crab roe dumplings"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 10,
+        "portion_grams": 150,
+        "label": "ten pork crab roe dumplings",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 331,
+      "kcal_range": [
+        230,
+        465
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_d56eeb983c15",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 220.5092,
+          "tfda_sample_name": "\u51b7\u51cd\u8c6c\u8089\u87f9\u9ec3\u6c34\u9903"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_4cd21a33fab1",
+        "raw_row_hash": "5dfa48867dcaf26146d3ca07ed424dbe896e5722cf4665ec3aff034accf50f33"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dumpling_mushroom_chicken_10pc",
+      "canonical_name": "\u51b7\u51cd\u9999\u83c7\u96de\u8089\u6c34\u9903",
+      "aliases": [
+        "\u51b7\u51cd\u9999\u83c7\u96de\u8089\u6c34\u9903",
+        "mushroom chicken dumplings 10 pieces",
+        "frozen mushroom chicken dumplings"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 10,
+        "portion_grams": 150,
+        "label": "ten mushroom chicken dumplings",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 324,
+      "kcal_range": [
+        230,
+        455
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_b8305aa47c18",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 216.3082,
+          "tfda_sample_name": "\u51b7\u51cd\u9999\u83c7\u96de\u8089\u6c34\u9903"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_79ec8802a468",
+        "raw_row_hash": "cdf034ff8aa7c55ba53147a8d151bd35babd083281ccbf879f02f361a6a9a1ae"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dumpling_cooked_pork_10pc",
+      "canonical_name": "\u51b7\u51cd\u8c6c\u8089\u719f\u6c34\u9903",
+      "aliases": [
+        "\u51b7\u51cd\u8c6c\u8089\u719f\u6c34\u9903",
+        "cooked pork dumplings 10 pieces",
+        "frozen cooked pork dumplings"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 10,
+        "portion_grams": 150,
+        "label": "ten cooked pork dumplings",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 346,
+      "kcal_range": [
+        240,
+        485
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_8999d247c2c6",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 230.945,
+          "tfda_sample_name": "\u51b7\u51cd\u8c6c\u8089\u719f\u6c34\u9903"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_87552a9e512c",
+        "raw_row_hash": "d38f54fb4971e7f9c3f3b17dfc4c5270fbec43dccfbfe682602a163e111ee44a"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_wenzhou_wonton_bowl",
+      "canonical_name": "\u6eab\u5dde\u991b\u98e9",
+      "aliases": [
+        "\u6eab\u5dde\u991b\u98e9",
+        "wenzhou wonton serving",
+        "wonton bowl"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "bowl",
+        "portion_quantity": 1,
+        "portion_grams": 200,
+        "label": "one Wenzhou wonton bowl",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 287,
+      "kcal_range": [
+        200,
+        405
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_57b6ea7a5687",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 143.6755,
+          "tfda_sample_name": "\u6eab\u5dde\u991b\u98e9"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_47408b220dce",
+        "raw_row_hash": "eb5d2ec5a3fa67da58400a1a3bb1155d75146b3dd08aeba46d7df0ae2d9e0bd0"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dim_sum_char_siu_bun_one",
+      "canonical_name": "\u51b7\u51cd\u53c9\u71d2\u5305",
+      "aliases": [
+        "\u51b7\u51cd\u53c9\u71d2\u5305",
+        "char siu bun",
+        "frozen char siu bun"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 90,
+        "label": "one char siu bun",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 237,
+      "kcal_range": [
+        165,
+        335
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_f3d8771eef16",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 263.5865,
+          "tfda_sample_name": "\u51b7\u51cd\u53c9\u71d2\u5305"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_6c176e8e4677",
+        "raw_row_hash": "4cdba37a4a1cf9c90a6c5fcee7d50dd74acbeefeea056ab63f46e4eec5745704"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dim_sum_white_mantou_one",
+      "canonical_name": "\u51b7\u51cd\u767d\u9945\u982d",
+      "aliases": [
+        "\u51b7\u51cd\u767d\u9945\u982d",
+        "white mantou",
+        "frozen white mantou"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 90,
+        "label": "one white mantou",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 247,
+      "kcal_range": [
+        175,
+        345
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_089f7bd474f8",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 274.4946,
+          "tfda_sample_name": "\u51b7\u51cd\u767d\u9945\u982d"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_ce9199453cde",
+        "raw_row_hash": "59417d53559b7eef16c17ec5900a775301f9650b792ed06fb4f78021a3de358b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_staple_scallion_pancake_one",
+      "canonical_name": "\u51b7\u51cd\u8525\u6cb9\u9905",
+      "aliases": [
+        "\u51b7\u51cd\u8525\u6cb9\u9905",
+        "scallion pancake",
+        "frozen scallion pancake"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one scallion pancake",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 255,
+      "kcal_range": [
+        180,
+        360
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_472cbb442bd0",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 255.4525,
+          "tfda_sample_name": "\u51b7\u51cd\u8525\u6cb9\u9905"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_8fc05fec7ceb",
+        "raw_row_hash": "b70cfec34b78ca967c45f6d8fcba66882ee60324f5063a880562c48597be9765"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_staple_chive_pocket_one",
+      "canonical_name": "\u97ed\u83dc\u76d2\u5b50",
+      "aliases": [
+        "\u97ed\u83dc\u76d2\u5b50",
+        "chive pocket",
+        "jiucai hezi"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 120,
+        "label": "one chive pocket",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 257,
+      "kcal_range": [
+        180,
+        360
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_294eda06499c",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 214.3305,
+          "tfda_sample_name": "\u97ed\u83dc\u76d2\u5b50"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_1cb38809df6b",
+        "raw_row_hash": "3311254dce9aa210db1b9a828c5f29030e8d0553e0b01a5d355f37e4dca73dcc"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_red_bean_wrap_cake_one",
+      "canonical_name": "\u5927\u9905\u5305\u5c0f\u9905(\u7d05\u8c46)",
+      "aliases": [
+        "\u5927\u9905\u5305\u5c0f\u9905(\u7d05\u8c46)",
+        "red bean wrap cake",
+        "flatbread wrapped cookie red bean"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 120,
+        "label": "one red bean wrap cake",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 449,
+      "kcal_range": [
+        315,
+        630
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_85bdcbff533d",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 374.5,
+          "tfda_sample_name": "\u5927\u9905\u5305\u5c0f\u9905(\u7d05\u8c46)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_89f458cc57d0",
+        "raw_row_hash": "c4f5264b7011a05569116f064b7a9d9b78dd281deebfd39dd1184efd34b2d545"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    }
+  ]
+}

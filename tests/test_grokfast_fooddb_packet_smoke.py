@@ -3,8 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.nutrition.application.approved_packet_ready_fooddb_artifact import (
+    build_approved_packet_ready_fooddb_artifact,
+)
 from app.nutrition.application.fooddb_manager_packet_smoke import (
     build_fooddb_manager_packet_smoke,
+)
+from app.nutrition.application.fooddb_real_manager_e2e import (
+    build_fooddb_real_manager_e2e,
 )
 from app.nutrition.application.fooddb_retrieval_policy import (
     build_runtime_retrieval_records_from_small_anchor_payload,
@@ -51,6 +57,26 @@ def _tool_evidence_artifact() -> dict:
     }
 
 
+def _real_manager_packet_artifact() -> dict:
+    approved = build_approved_packet_ready_fooddb_artifact(
+        artifact_path="artifacts/approved_packet_ready_fooddb_full.json",
+        selection_profile="full_current_shell",
+    )
+    return build_fooddb_real_manager_e2e(approved_packet_ready_artifact=approved)
+
+
+def _contract_errors_for_case(packet_case: dict, manager_output: dict) -> list[str]:
+    try:
+        validate_manager_payload(
+            MANAGER_LOOP_STAGE,
+            manager_output,
+            constraints=build_live_manager_payload(packet_case=packet_case)["constraints"],
+        )
+    except Exception as exc:
+        return [f"{type(exc).__name__}: {exc}"]
+    return []
+
+
 def test_grokfast_fooddb_packet_diagnostic_classifies_fixture_evidence_use() -> None:
     packet_artifact = _packet_artifact()
     manager_outputs = build_fixture_manager_outputs(packet_artifact=packet_artifact)
@@ -88,6 +114,35 @@ def test_grokfast_fooddb_fixture_outputs_match_b1_pass2_manager_schema() -> None
             manager_output,
             constraints=constraints,
         )
+
+
+def test_grokfast_fooddb_real_manager_e2e_fixture_outputs_match_b1_pass2_manager_schema() -> None:
+    packet_artifact = _real_manager_packet_artifact()
+    manager_outputs = build_fixture_manager_outputs(packet_artifact=packet_artifact)
+
+    for packet_case, output in zip(packet_artifact["cases"], manager_outputs, strict=True):
+        constraints = build_live_manager_payload(packet_case=packet_case)["constraints"]
+        assert should_attempt_b1_pass2_structured_output_transport(constraints) is True
+        validate_manager_payload(
+            MANAGER_LOOP_STAGE,
+            output["manager_output"],
+            constraints=constraints,
+        )
+
+
+def test_grokfast_fooddb_packet_diagnostic_accepts_real_manager_e2e_fixture_baseline() -> None:
+    packet_artifact = _real_manager_packet_artifact()
+    diagnostic = build_grokfast_fooddb_packet_diagnostic(
+        packet_artifact=packet_artifact,
+        manager_outputs=build_fixture_manager_outputs(packet_artifact=packet_artifact),
+        live_provider_used=False,
+        manager_contract_validator=_contract_errors_for_case,
+    )
+
+    assert diagnostic["status"] == "pass"
+    assert diagnostic["summary"]["case_count"] == 8
+    assert diagnostic["summary"]["pass_count"] == 8
+    assert diagnostic["summary"]["fail_count"] == 0
 
 
 def test_grokfast_fooddb_live_payload_selects_structured_pass2_contract() -> None:
@@ -660,6 +715,41 @@ def test_grokfast_fooddb_packet_smoke_cli_defaults_to_fixture_and_blocks_acciden
     assert blocked["failure_family"] == "live_mode_requires_explicit_allow_live"
 
 
+def test_grokfast_fooddb_packet_smoke_cli_can_target_single_real_manager_case(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.run_accurate_intake_grokfast_fooddb_packet_smoke import main
+
+    packet_path = tmp_path / "real-manager-packet.json"
+    output = tmp_path / "single-case-diagnostic.json"
+    write_json_artifact(packet_path, _real_manager_packet_artifact())
+
+    assert (
+        main(
+            [
+                "--mode",
+                "fixture",
+                "--packet-smoke",
+                str(packet_path),
+                "--case-id",
+                "generic_macro_hidden_boba",
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+
+    artifact = read_json_artifact(output)
+    assert artifact["status"] == "pass"
+    assert artifact["packet_artifact_type"] == "accurate_intake_fooddb_real_manager_e2e"
+    assert artifact["selected_case_ids"] == ["generic_macro_hidden_boba"]
+    assert artifact["summary"]["case_count"] == 1
+    assert artifact["summary"]["pass_count"] == 1
+    assert [case["case_id"] for case in artifact["cases"]] == ["generic_macro_hidden_boba"]
+
+
 def test_grokfast_fooddb_packet_smoke_live_requires_runner_readiness_packet(
     tmp_path: Path,
 ) -> None:
@@ -704,12 +794,14 @@ def test_grokfast_fooddb_packet_smoke_live_requires_runner_readiness_packet(
                 "index_backend_parity_next_required_slice": "grokfast_fooddb_packet_live_diagnostic",
                 "case_matrix_status": "pass",
                 "case_matrix_plan_only": True,
-                "case_matrix_case_count": 5,
+                "case_matrix_case_count": 8,
                 "case_matrix_modifier_guard_cases": 2,
                 "case_matrix_bare_basket_cases": 1,
                 "case_matrix_listed_basket_cases": 1,
+                "case_matrix_query_only_cases": 1,
+                "case_matrix_macro_hidden_cases": 1,
                 "case_matrix_websearch_cases": 0,
-                "case_matrix_exact_card_cases": 0,
+                "case_matrix_exact_card_cases": 1,
                 "case_matrix_live_provider_invoked": False,
                 "case_matrix_websearch_invoked": False,
                 "case_matrix_shared_contract_changed": False,
@@ -808,12 +900,14 @@ def test_grokfast_fooddb_packet_smoke_live_blocks_runner_readiness_mismatch(
             "index_backend_parity_next_required_slice": "grokfast_fooddb_packet_live_diagnostic",
             "case_matrix_status": "pass",
             "case_matrix_plan_only": True,
-            "case_matrix_case_count": 5,
+            "case_matrix_case_count": 8,
             "case_matrix_modifier_guard_cases": 2,
             "case_matrix_bare_basket_cases": 1,
             "case_matrix_listed_basket_cases": 1,
+            "case_matrix_query_only_cases": 1,
+            "case_matrix_macro_hidden_cases": 1,
             "case_matrix_websearch_cases": 0,
-            "case_matrix_exact_card_cases": 0,
+            "case_matrix_exact_card_cases": 1,
             "case_matrix_live_provider_invoked": False,
             "case_matrix_websearch_invoked": False,
             "case_matrix_shared_contract_changed": False,

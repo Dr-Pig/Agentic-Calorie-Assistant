@@ -122,17 +122,17 @@ semantic_owner:
 
 ## Current Baseline
 
-The current baseline is useful for pipeline validation but too narrow for realistic daily use.
+The current baseline meets the 1000 packet-ready self-use v1 coverage target.
 
 ```yaml
 current_packet_ready_profile:
-  packet_ready_records: 270
-  exact_brand_item_macro_complete: 62
-  generic_common_serving_anchor: 114
-  listed_component_anchor: 94
+  packet_ready_records: 1000
+  exact_brand_item_macro_complete: 250
+  generic_common_serving_anchor: 400
+  listed_component_anchor: 350
   source_evidence_only_tfda_rows: 848
   source_evidence_only_runtime_truth_allowed: false
-  self_use_gap: coverage density, not lane architecture
+  self_use_gap: none_for_1000_packet_ready_target
 ```
 
 Build the current-vs-target gap report with:
@@ -426,6 +426,28 @@ fixed_18_case_live_llm_acceptance:
 ```
 
 The live matrix is diagnostic evidence. It does not select a production model, approve private self-use, or approve mutation rollout.
+
+### Bounded Live Probe Execution
+
+Before a full FoodDB live matrix run, a bounded live probe may execute a fixed subset of already-approved cases. This exists to support single-case canaries, latency attribution, and provider-contract debugging without paying the cost of the whole matrix on every probe.
+
+```yaml
+bounded_live_probe_execution:
+  fixed_case_subset_allowed: true
+  ad_hoc_case_generation_allowed: false
+  case_ids_must_come_from_existing_packet_artifact: true
+  single_case_probe_preferred_before_full_matrix: true
+  full_matrix_requires_prior_single_case_stage_gate: true
+  case_order_must_follow_source_artifact_order: true
+  purpose:
+    - single-case live canary
+    - latency and provider attribution
+    - packet-boundary debugging
+  non_claims:
+    - not full-matrix acceptance
+    - not production-model selection
+    - not private self-use approval
+```
 
 ## Edge-Case Live Matrix Acceptance
 

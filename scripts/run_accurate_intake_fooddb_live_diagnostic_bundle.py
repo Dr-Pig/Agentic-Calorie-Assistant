@@ -15,6 +15,9 @@ if str(ROOT) not in sys.path:
 from app.nutrition.application.fooddb_evidence_status_packet import (  # noqa: E402
     build_fooddb_evidence_status_packet,
 )
+from app.nutrition.application.approved_packet_ready_fooddb_artifact import (  # noqa: E402
+    build_approved_packet_ready_fooddb_artifact,
+)
 from app.nutrition.application.fooddb_grokfast_live_diagnostic_case_matrix import (  # noqa: E402
     build_fooddb_grokfast_live_diagnostic_case_matrix_artifact,
 )
@@ -30,6 +33,10 @@ from app.nutrition.application.food_evidence_retriever_router_readiness import (
 from app.nutrition.application.fooddb_live_diagnostic_report import (  # noqa: E402
     build_fooddb_live_diagnostic_report,
 )
+from app.nutrition.application.fooddb_live_diagnostic_stage_gate import (  # noqa: E402
+    LIVE_STAGES,
+    build_fooddb_live_diagnostic_stage_gate_artifact,
+)
 from app.nutrition.application.fooddb_live_failure_taxonomy_inspection import (  # noqa: E402
     build_fooddb_live_failure_taxonomy_inspection,
 )
@@ -41,6 +48,9 @@ from app.nutrition.application.fooddb_manager_contract_handoff_inspection import
 )
 from app.nutrition.application.fooddb_manager_packet_smoke import (  # noqa: E402
     build_fooddb_manager_packet_smoke,
+)
+from app.nutrition.application.fooddb_real_manager_e2e import (  # noqa: E402
+    build_fooddb_real_manager_e2e,
 )
 from app.nutrition.application.fooddb_manager_contract_probe import (  # noqa: E402
     build_fooddb_manager_contract_probe,
@@ -91,7 +101,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--small-anchor-store", default=str(DEFAULT_SMALL_ANCHOR_STORE))
     parser.add_argument("--tfda-source", default=str(DEFAULT_TFDA_SOURCE))
     parser.add_argument("--exact-cards", default=str(DEFAULT_EXACT_CARDS))
+    parser.add_argument("--approved-packet-ready-artifact")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    parser.add_argument("--case-id", action="append", default=None)
+    parser.add_argument("--live-stage", choices=LIVE_STAGES, default="single-case")
+    parser.add_argument("--prior-single-case-stage-gate-json")
     args = parser.parse_args(argv)
 
     output_dir = Path(args.output_dir)
@@ -106,15 +120,33 @@ def main(argv: list[str] | None = None) -> int:
         paths=paths,
         source_payloads=source_payloads,
         small_anchor_store_path=Path(args.small_anchor_store),
+        approved_packet_ready_artifact=(
+            read_json_artifact(Path(args.approved_packet_ready_artifact))
+            if args.approved_packet_ready_artifact
+            else None
+        ),
     )
     diagnostic_exit = _run_packet_smoke(
         mode=args.mode,
         allow_live=args.allow_live,
         paths=paths,
+        selected_case_ids=_selected_case_ids(args.case_id),
     )
     diagnostic = read_json_artifact(paths["diagnostic"])
     report = build_fooddb_live_diagnostic_report(diagnostic_artifact=diagnostic, **_report_inputs(artifacts))
     write_json_artifact(paths["report"], report)
+    stage_gate = _build_live_stage_gate(
+        mode=args.mode,
+        live_stage=args.live_stage,
+        diagnostic=diagnostic,
+        prior_single_case_stage_gate=(
+            read_json_artifact(Path(args.prior_single_case_stage_gate_json))
+            if args.prior_single_case_stage_gate_json
+            else None
+        ),
+    )
+    if stage_gate is not None:
+        write_json_artifact(paths["stage_gate"], stage_gate)
     contract_artifacts = _build_post_diagnostic_artifacts(
         paths=paths,
         source_payloads=source_payloads,
@@ -130,7 +162,10 @@ def main(argv: list[str] | None = None) -> int:
         report=report,
         preflight=artifacts["preflight"],
         live_runner_readiness=artifacts["live_runner_readiness"],
-        contract_artifacts=contract_artifacts,
+        contract_artifacts={**artifacts, **contract_artifacts},
+        selected_case_ids=_selected_case_ids(args.case_id),
+        live_stage=args.live_stage if args.mode == "live" else None,
+        stage_gate=stage_gate,
     )
     write_json_artifact(paths["manifest"], manifest)
     print(
@@ -146,6 +181,8 @@ def main(argv: list[str] | None = None) -> int:
             ensure_ascii=False,
         )
     )
+    if stage_gate is not None and stage_gate.get("status") == "blocked":
+        return 1
     return diagnostic_exit
 
 
@@ -171,13 +208,28 @@ def _build_pre_provider_artifacts(
     paths: dict[str, Path],
     source_payloads: dict[str, Any],
     small_anchor_store_path: Path | None = None,
+    approved_packet_ready_artifact: dict[str, Any] | None = None,
 ) -> dict[str, dict[str, Any]]:
     local_index = LocalSmallAnchorFoodEvidenceIndex.from_path(
         small_anchor_store_path or DEFAULT_SMALL_ANCHOR_STORE
     )
+    approved_artifact = (
+        approved_packet_ready_artifact
+        if approved_packet_ready_artifact is not None
+        else build_approved_packet_ready_fooddb_artifact(
+            artifact_path=str(paths["approved_packet_ready_artifact"]),
+            selection_profile="full_current_shell",
+        )
+    )
     retrieval_records = local_index.load_records()
     retrieval_eval_wall = build_retrieval_eval_wall(retrieval_records=retrieval_records)
-    manager_packet_smoke = build_fooddb_manager_packet_smoke(retrieval_records=retrieval_records)
+    manager_packet_smoke = build_fooddb_manager_packet_smoke(
+        retrieval_records=retrieval_records,
+        approved_packet_ready_artifact=approved_artifact,
+    )
+    real_manager_e2e = build_fooddb_real_manager_e2e(
+        approved_packet_ready_artifact=approved_artifact,
+    )
     index_backend_parity = _build_index_backend_parity(
         local_index=local_index,
         sqlite_db_path=paths["sqlite_db"],
@@ -208,6 +260,8 @@ def _build_pre_provider_artifacts(
     )
 
     artifacts = {
+        "approved_packet_ready_artifact": approved_artifact,
+        "real_manager_e2e": real_manager_e2e,
         "retrieval_eval_wall": retrieval_eval_wall,
         "fooddb_status_packet": fooddb_status_packet,
         "manager_packet_smoke": manager_packet_smoke,
@@ -254,12 +308,13 @@ def _run_packet_smoke(
     mode: str,
     allow_live: bool,
     paths: dict[str, Path],
+    selected_case_ids: list[str],
 ) -> int:
     argv = [
         "--mode",
         mode,
         "--packet-smoke",
-        str(paths["manager_packet_smoke"]),
+        str(paths["real_manager_e2e"]),
         "--preflight-artifact",
         str(paths["preflight"]),
         "--router-readiness-artifact",
@@ -269,6 +324,8 @@ def _run_packet_smoke(
         "--output",
         str(paths["diagnostic"]),
     ]
+    for case_id in selected_case_ids:
+        argv.extend(["--case-id", case_id])
     if allow_live:
         argv.append("--allow-live")
     return run_grokfast_fooddb_packet_smoke(argv)
@@ -327,6 +384,22 @@ def _build_post_diagnostic_artifacts(
     return artifacts
 
 
+def _build_live_stage_gate(
+    *,
+    mode: str,
+    live_stage: str,
+    diagnostic: dict[str, Any],
+    prior_single_case_stage_gate: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if mode != "live" or diagnostic.get("live_provider_used") is not True:
+        return None
+    return build_fooddb_live_diagnostic_stage_gate_artifact(
+        live_stage=live_stage,
+        fooddb_live_diagnostic=diagnostic,
+        prior_single_case_stage_gate=prior_single_case_stage_gate,
+    )
+
+
 def _build_manifest(
     *,
     mode: str,
@@ -338,8 +411,14 @@ def _build_manifest(
     preflight: dict[str, Any],
     live_runner_readiness: dict[str, Any],
     contract_artifacts: dict[str, dict[str, Any]],
+    selected_case_ids: list[str] | None = None,
+    live_stage: str | None = None,
+    stage_gate: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    stage_gate_blocked = isinstance(stage_gate, dict) and stage_gate.get("status") == "blocked"
     contract_probe = contract_artifacts["manager_contract_probe"]
+    approved_artifact = contract_artifacts["approved_packet_ready_artifact"]
+    real_manager_e2e = contract_artifacts["real_manager_e2e"]
     status_packet_inspection = contract_artifacts["fooddb_status_packet_inspection"]
     handoff_inspection = contract_artifacts["manager_contract_handoff_inspection"]
     failure_taxonomy_inspection = contract_artifacts["fooddb_live_failure_taxonomy_inspection"]
@@ -361,17 +440,42 @@ def _build_manifest(
         "track": "FDB",
         "classification": "live_diagnostic_orchestration_only",
         "claim_scope": "fooddb_packet_live_diagnostic_bundle_execution",
-        "bundle_status": "pass" if diagnostic_exit == 0 else "blocked_or_failed",
+        "bundle_status": (
+            "pass"
+            if diagnostic_exit == 0 and not stage_gate_blocked
+            else "blocked_or_failed"
+        ),
         "mode": mode,
         "allow_live": allow_live,
         "diagnostic_exit_code": diagnostic_exit,
         "live_provider_used": diagnostic.get("live_provider_used") is True,
         "live_websearch_used": diagnostic.get("live_websearch_used") is True,
+        "live_stage": live_stage or "not_applicable",
+        "stage_gate_status": (
+            str(stage_gate.get("status") or "not_run")
+            if isinstance(stage_gate, dict)
+            else "not_applicable"
+        ),
+        "selected_case_ids": (
+            list(diagnostic.get("selected_case_ids") or [])
+            if diagnostic.get("selected_case_ids") is not None
+            else list(selected_case_ids or [])
+        ),
+        "diagnostic_case_count": int(diagnostic.get("summary", {}).get("case_count", 0) or 0),
         "runtime_truth_changed": False,
         "runtime_mutation_attempted": False,
         "readiness_claimed": False,
         "self_use_approved": False,
         "production_selected": False,
+        "approved_packet_ready_selection_profile": approved_artifact.get("summary", {}).get(
+            "selection_profile"
+        ),
+        "approved_packet_ready_item_count": int(
+            approved_artifact.get("summary", {}).get("packet_ready_item_count", 0) or 0
+        ),
+        "real_manager_e2e_status": real_manager_e2e.get("status"),
+        "real_manager_e2e_case_count": int(real_manager_e2e.get("summary", {}).get("case_count", 0) or 0),
+        "real_manager_e2e_pass_count": int(real_manager_e2e.get("summary", {}).get("pass_count", 0) or 0),
         "preflight_clear_to_run_live_diagnostic": preflight.get("clear_to_run_live_diagnostic") is True,
         "preflight_status": preflight.get("status"),
         "live_runner_readiness_status": live_runner_readiness.get("status"),
@@ -400,6 +504,8 @@ def _build_manifest(
             key: str(path)
             for key, path in paths.items()
             if key in {
+                "approved_packet_ready_artifact",
+                "real_manager_e2e",
                 "retrieval_eval_wall",
                 "fooddb_status_packet",
                 "manager_packet_smoke",
@@ -409,6 +515,7 @@ def _build_manifest(
                 "router_readiness",
                 "live_runner_readiness",
                 "diagnostic",
+                "stage_gate",
                 "report",
                 "manager_contract_probe",
                 "manager_contract_repair_pack",
@@ -418,6 +525,7 @@ def _build_manifest(
                 "fooddb_status_packet_inspection",
                 "fooddb_status_packet_post_contract",
             }
+            and (key != "stage_gate" or isinstance(stage_gate, dict))
         },
         "non_claims": [
             "not_self_use_gate",
@@ -427,6 +535,15 @@ def _build_manifest(
             "not_product_readiness",
         ],
     }
+
+
+def _selected_case_ids(values: list[str] | None) -> list[str]:
+    selected: list[str] = []
+    for value in values or []:
+        case_id = str(value or "").strip()
+        if case_id and case_id not in selected:
+            selected.append(case_id)
+    return selected
 
 
 def _inspection_next_slice(

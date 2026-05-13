@@ -43,6 +43,13 @@ def test_fooddb_grokfast_live_case_matrix_covers_required_risk_families() -> Non
     assert by_id["bare_luwei"]["family"] == "bare_basket_followup"
     assert by_id["listed_luwei_components"]["family"] == "listed_basket_components"
     assert by_id["chicken_bento_less_rice"]["family"] == "generic_anchor_modifier_guard"
+    assert by_id["exact_item_official_label"]["family"] == "exact_item_card"
+    assert by_id["food_query_no_mutation"]["family"] == "query_only_food_answer"
+    assert by_id["macro_missing_hidden"]["family"] == "macro_visibility_hidden"
+    assert by_id["exact_item_official_label"]["canonical_manifest_case_id"] == "MVP-LIVE-004"
+    assert by_id["food_query_no_mutation"]["canonical_manifest_case_id"] == "MVP-LIVE-014"
+    assert by_id["macro_missing_hidden"]["canonical_manifest_case_id"] == "MVP-LIVE-017"
+    assert by_id["boba_typo"]["canonical_manifest_case_id"] is None
     assert by_id["bare_luwei"]["expected_manager_posture"] == "ask_followup_no_mutation"
     assert by_id["bare_luwei"]["expected_runtime_evidence_in_packet"] is False
     assert by_id["listed_luwei_components"]["expected_runtime_evidence_in_packet"] is True
@@ -54,9 +61,13 @@ def test_fooddb_grokfast_live_case_matrix_records_non_claims() -> None:
     assert "not_full_self_use_gate" in artifact["non_claims"]
     assert "not_websearch_exact_card_gate" in artifact["non_claims"]
     assert "not_final_response_quality_gate" in artifact["non_claims"]
-    assert artifact["summary"]["case_count"] == 5
+    assert artifact["summary"]["case_count"] == 8
     assert artifact["summary"]["websearch_cases"] == 0
-    assert artifact["summary"]["exact_card_cases"] == 0
+    assert artifact["summary"]["exact_card_cases"] == 1
+    assert artifact["summary"]["query_only_cases"] == 1
+    assert artifact["summary"]["macro_hidden_cases"] == 1
+    assert artifact["summary"]["canonical_manifest_linked_case_count"] == 7
+    assert artifact["summary"]["fooddb_specific_edge_case_count"] == 1
 
 
 def test_fooddb_grokfast_live_case_matrix_rejects_ad_hoc_or_unsafe_cases() -> None:

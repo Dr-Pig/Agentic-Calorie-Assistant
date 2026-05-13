@@ -29,20 +29,20 @@ def test_fooddb_self_use_v1_gap_reports_current_packet_ready_counts_against_1000
         "generic_common_serving": 400,
         "listed_component": 350,
     }
-    assert report["current"]["packet_ready_item_count"] == 270
+    assert report["current"]["packet_ready_item_count"] == 1000
     assert report["current"]["lane_counts"] == {
-        "exact_item_card": 62,
-        "generic_common_serving": 114,
-        "listed_component": 94,
+        "exact_item_card": 250,
+        "generic_common_serving": 400,
+        "listed_component": 350,
     }
-    assert report["gap"]["packet_ready_item_count"] == 730
+    assert report["gap"]["packet_ready_item_count"] == 0
     assert report["gap"]["lane_counts"] == {
-        "exact_item_card": 188,
-        "generic_common_serving": 286,
-        "listed_component": 256,
+        "exact_item_card": 0,
+        "generic_common_serving": 0,
+        "listed_component": 0,
     }
-    assert report["gap"]["exact_macro_complete_count"] == 138
-    assert report["status"] == "below_target"
+    assert report["gap"]["exact_macro_complete_count"] == 0
+    assert report["status"] == "target_met"
 
 
 def test_fooddb_self_use_v1_gap_is_report_only_and_preserves_boundaries() -> None:
@@ -67,5 +67,5 @@ def test_fooddb_self_use_v1_gap_cli_writes_roundtrippable_artifact(tmp_path: Pat
     assert main(["--build-current-artifact", "--output", str(output)]) == 0
 
     artifact = read_json_artifact(output)
-    assert artifact["status"] == "below_target"
-    assert artifact["gap"]["packet_ready_item_count"] == 730
+    assert artifact["status"] == "target_met"
+    assert artifact["gap"]["packet_ready_item_count"] == 0

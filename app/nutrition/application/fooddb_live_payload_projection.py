@@ -62,10 +62,17 @@ def _compact_evidence_item(item: dict[str, Any]) -> dict[str, Any]:
     compact_item = {
         "anchor_id": item.get("anchor_id"),
         "canonical_name": item.get("canonical_name"),
+        "source_lane": item.get("source_lane"),
         "confidence": item.get("confidence"),
         "runtime_truth_allowed": item.get("runtime_truth_allowed") is True,
         "kcal_point": item.get("kcal_point"),
         "kcal_range": item.get("kcal_range"),
+        "macro_visibility_status": item.get("macro_visibility_status"),
+        "macro_source_basis": item.get("macro_source_basis"),
+        "macro_confidence": item.get("macro_confidence"),
+        "protein_g": item.get("protein_g"),
+        "carbs_g": item.get("carbs_g"),
+        "fat_g": item.get("fat_g"),
         "serving_basis": item.get("serving_basis"),
         "portion_basis": {
             "portion_unit": portion_basis.get("portion_unit"),
