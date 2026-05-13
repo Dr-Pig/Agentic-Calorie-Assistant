@@ -453,7 +453,7 @@
           throw new Error(`HTTP ${response.status}`);
         }
         el("local-debug-token").value = "";
-        setStatus("Local session connected.");
+        setStatus("Local session connected.", "connected");
         return true;
       } catch (error) {
         setStatus(`Session failed: ${error.message}`, "error");
@@ -469,7 +469,7 @@
           headers: { Accept: "application/json" }
         });
         if (response.ok) {
-          setStatus("Local session connected automatically.");
+          setStatus("Local session connected automatically.", "connected");
           return true;
         }
         setStatus("Automatic session is not connected. Use manual token fallback if needed.", "error");

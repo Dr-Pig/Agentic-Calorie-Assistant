@@ -75,6 +75,12 @@ DESKTOP_ENTRY_SELECTOR = '[data-surface-role="desktop-dogfood-entry"]'
 DEFAULT_FEEDBACK_TRACE_ID = "one-day-dogfood-trace"
 DEFAULT_FEEDBACK_MESSAGE_ID = "one-day-dogfood-message"
 DEFAULT_FEEDBACK_TEXT = "One-day desktop dogfood loop smoke feedback."
+DESKTOP_SESSION_CONNECTED_CONDITION = """(() => {
+  const entry = document.querySelector("#entry-status");
+  const state = entry?.dataset?.state || "";
+  const text = entry?.textContent || "";
+  return state === "connected" || text.includes("Local session connected");
+})()"""
 
 
 def _free_port() -> int:
@@ -191,10 +197,7 @@ def _run_browser_sequence(
             page.wait_for_selector(DESKTOP_ENTRY_SELECTOR, timeout=timeout_ms)
             page.fill("#local-debug-token", local_debug_token)
             page.click("#establish-local-session")
-            page.wait_for_function(
-                """() => (document.querySelector("#entry-status")?.textContent || "").includes("Session connected")""",
-                timeout=timeout_ms,
-            )
+            _wait_for_desktop_session_connected(page, timeout_ms=timeout_ms)
             desktop_entry = _desktop_entry_state(page)
             page.goto(
                 f"{base_url}/static/accurate-intake-local-shell.html",
@@ -284,7 +287,9 @@ def _desktop_entry_state(page: Any) -> dict[str, Any]:
           });
           return {
             surface_loaded: Boolean(document.querySelector('[data-surface-role="desktop-dogfood-entry"]')),
-            session_connected: (document.querySelector("#entry-status")?.textContent || "").includes("Session connected"),
+            session_connected: """
+        + DESKTOP_SESSION_CONNECTED_CONDITION
+        + """,
             token_in_url: window.location.href.includes("local_debug_token="),
             storage_used: Boolean(
               Object.keys(window.localStorage || {}).length ||
@@ -294,6 +299,10 @@ def _desktop_entry_state(page: Any) -> dict[str, Any]:
           };
         }"""
     )
+
+
+def _wait_for_desktop_session_connected(page: Any, *, timeout_ms: int) -> None:
+    page.wait_for_function(DESKTOP_SESSION_CONNECTED_CONDITION, timeout=timeout_ms)
 
 
 def _page_url(
