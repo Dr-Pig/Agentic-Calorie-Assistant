@@ -122,17 +122,17 @@ semantic_owner:
 
 ## Current Baseline
 
-The current baseline is useful for pipeline validation but too narrow for realistic daily use.
+The current baseline meets the 1000 packet-ready self-use v1 coverage target.
 
 ```yaml
 current_packet_ready_profile:
-  packet_ready_records: 988
-  exact_brand_item_macro_complete: 238
+  packet_ready_records: 1000
+  exact_brand_item_macro_complete: 250
   generic_common_serving_anchor: 400
   listed_component_anchor: 350
   source_evidence_only_tfda_rows: 848
   source_evidence_only_runtime_truth_allowed: false
-  self_use_gap: coverage density, not lane architecture
+  self_use_gap: none_for_1000_packet_ready_target
 ```
 
 Build the current-vs-target gap report with:
