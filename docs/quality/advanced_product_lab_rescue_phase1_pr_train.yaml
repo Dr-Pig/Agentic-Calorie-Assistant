@@ -4,11 +4,11 @@ status: active
 owner: AdvancedRescueRuntimeLab
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 5
-last_completed_pr_number: 19
+dynamic_remaining_pr_count: 4
+last_completed_pr_number: 20
 current_mainline: advanced_product_lab_rescue_phase1
 is_detour: false
-mainline_blocker_being_removed: proposal_inbox_history_audit_read_model_not_built
+mainline_blocker_being_removed: recommendation_posture_refresh_handoff_not_built
 strategic_verdict: mainline
 
 strategic_gate:
@@ -20,7 +20,7 @@ strategic_gate:
   exit_gate_status: not_applicable
   return_slice_after_exit: not_applicable
   strategic_verdict: mainline
-  mainline_blocker_being_removed: proposal_inbox_history_audit_read_model_not_built
+  mainline_blocker_being_removed: recommendation_posture_refresh_handoff_not_built
 
 capability_dependency_check:
   capability_layer: L9 Same-Truth / UI / Memory / Proactive, with L2/L3/L4 runtime dependencies
@@ -479,7 +479,11 @@ last_merge_evidence:
       pull_request: 1195
       merge_commit: 108b4f3ab15d92ad6f885b2e9138e08fde5cdfab
       result: isolated_lab_commit_effect_and_ledger_overlay_merged
-  latest_dynamic_estimate_after_merge: 5
+    - pr_number: 20
+      pull_request: 1197
+      merge_commit: f9f711f5a164a59c45aebefcee9c483d21b1ab36
+      result: proposal_inbox_history_audit_read_model_merged
+  latest_dynamic_estimate_after_merge: 4
 
 estimate_notes:
   - Initial dynamic estimate is 24 PRs before PR1 merge.
@@ -502,5 +506,6 @@ estimate_notes:
   - After PR17 merge, remaining estimate moved to 7; dismiss remains a single proposal-state contract with no snooze, permanent mute, reason requirement, or backup switching, so no extra PR was added.
   - After PR18 merge, remaining estimate moved to 6; attachment priority is manager-semantic driven with no keyword oracle, so no extra PR was added.
   - After PR19 merge, remaining estimate moved to 5; proposal status overlay and rescue ledger overlay stayed one accept-commit rollback boundary, so no extra PR was added.
+  - After PR20 merge, remaining estimate moved to 4; fat-file gate forced an audit helper extraction, but the read model stayed one mirror-only PR, so no extra PR was added.
   - This count may increase if L2 data-state or isolated lab ledger contracts are thinner than expected.
   - This count may decrease only when adjacent slices share one reviewable capability and one rollback boundary.
