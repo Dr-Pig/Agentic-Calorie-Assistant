@@ -182,7 +182,7 @@ def test_fooddb_live_diagnostic_bundle_can_scope_fixture_to_single_case(
             "--output-dir",
             str(tmp_path),
             "--case-id",
-            "generic_macro_hidden_boba",
+            "boba_large_half_sugar",
         ]
     )
 
@@ -193,11 +193,11 @@ def test_fooddb_live_diagnostic_bundle_can_scope_fixture_to_single_case(
     diagnostic = read_json_artifact(tmp_path / "accurate_intake_grokfast_fooddb_packet_smoke.json")
 
     assert manifest["bundle_status"] == "pass"
-    assert manifest["selected_case_ids"] == ["generic_macro_hidden_boba"]
+    assert manifest["selected_case_ids"] == ["boba_large_half_sugar"]
     assert manifest["diagnostic_case_count"] == 1
-    assert diagnostic["selected_case_ids"] == ["generic_macro_hidden_boba"]
+    assert diagnostic["selected_case_ids"] == ["boba_large_half_sugar"]
     assert diagnostic["summary"]["case_count"] == 1
-    assert [case["case_id"] for case in diagnostic["cases"]] == ["generic_macro_hidden_boba"]
+    assert [case["case_id"] for case in diagnostic["cases"]] == ["boba_large_half_sugar"]
 
 
 def test_fooddb_live_diagnostic_bundle_builds_live_single_case_stage_gate(

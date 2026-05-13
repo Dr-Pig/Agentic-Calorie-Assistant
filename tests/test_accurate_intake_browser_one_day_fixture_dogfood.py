@@ -192,6 +192,26 @@ def test_browser_one_day_fixture_session_factory_uses_null_pool_for_threaded_bro
         engine.dispose()
 
 
+def test_browser_one_day_fixture_waits_on_stable_desktop_session_contract() -> None:
+    class FakePage:
+        def __init__(self) -> None:
+            self.script = ""
+            self.timeout = None
+
+        def wait_for_function(self, script: str, *, timeout: int) -> None:
+            self.script = script
+            self.timeout = timeout
+
+    page = FakePage()
+
+    module._wait_for_desktop_session_connected(page, timeout_ms=4321)
+
+    assert 'dataset?.state' in page.script
+    assert '"connected"' in page.script
+    assert "Local session connected" in page.script
+    assert page.timeout == 4321
+
+
 def test_browser_one_day_fixture_uses_browser_fixture_status_not_dogfood_pass(
     monkeypatch,
     tmp_path: Path,
@@ -216,6 +236,13 @@ def test_browser_one_day_fixture_uses_browser_fixture_status_not_dogfood_pass(
     assert report["browser"]["desktop_loop"]["data_export_sidecars_included"] is True
     assert Path(report["review_queue_artifact_path"]).parent.name.startswith("data_")
     assert Path(report["feedback_store_path"]).parent.name.startswith("feedback_")
+
+
+def test_desktop_entry_page_sets_connected_state_for_manual_and_auto_session() -> None:
+    html = Path("static/accurate-intake-desktop.html").read_text(encoding="utf-8")
+
+    assert 'setStatus("Local session connected.", "connected")' in html
+    assert 'setStatus("Local session connected automatically.", "connected")' in html
 
 
 def test_browser_one_day_fixture_uses_desktop_launcher_app_builder(

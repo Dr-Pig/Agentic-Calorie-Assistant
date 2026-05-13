@@ -1,0 +1,68 @@
+artifact_type: advanced_product_lab_main_sync_drift_audit
+version: 1
+status: recorded
+owner: AdvancedProductLabContextEngineering
+slice_number: 1
+slice_id: main_to_lab_sync_and_contract_drift_audit
+recorded_at: "2026-05-14"
+
+sync_scope:
+  source_branch: origin/main
+  target_branch: codex/advanced-product-lab
+  source_main_commit: 0f6a694f
+  lab_pre_merge_commit: 274e3daf
+  merge_base_commit: 95ba5852
+  merge_posture: main_to_lab_no_runtime_activation
+  merge_mode: git_merge_no_commit_review_then_slice_commit
+
+source_main_commit: 0f6a694f
+merge_base_commit: 95ba5852
+merge_posture: main_to_lab_no_runtime_activation
+main_change_family: current_shell_fooddb_desktop_dogfood_alignment
+merged_file_count: 12
+merged_files:
+  - app/nutrition/application/fooddb_grokfast_live_diagnostic_case_catalog.py
+  - app/nutrition/application/fooddb_manager_packet_smoke.py
+  - app/nutrition/application/fooddb_real_manager_e2e.py
+  - docs/quality/FOODDB_SELF_USE_V1_1000_PACKET_READY_COVERAGE_PLAN.md
+  - scripts/run_accurate_intake_browser_one_day_fixture_dogfood.py
+  - scripts/run_accurate_intake_persistent_desktop_dogfood_baseline.py
+  - static/accurate-intake-desktop.html
+  - tests/test_accurate_intake_browser_one_day_fixture_dogfood.py
+  - tests/test_fooddb_live_diagnostic_bundle_runner.py
+  - tests/test_fooddb_live_payload_projection.py
+  - tests/test_fooddb_real_manager_e2e.py
+  - tests/test_grokfast_fooddb_packet_smoke.py
+
+advanced_lab_bootstrap_preserved: true
+advanced_lab_artifacts_removed: []
+advanced_lab_runtime_impact:
+  advanced_product_lab_files_removed: false
+  advanced_product_lab_tool_contract_changed: false
+  manager_style_contract_redefined_by_main: false
+  main_contract_alignment_required_before_next_runtime_slice: true
+
+activation_wall:
+  mainline_activation_enabled: false
+  production_route_or_api_mount_allowed: false
+  production_scheduler_delivery_allowed: false
+  production_db_migration_allowed: false
+  canonical_product_mutation_allowed_on_main: false
+  durable_product_memory_activation_on_main: false
+
+drift_assessment:
+  current_shell_updates_imported: true
+  fooddb_desktop_dogfood_updates_imported: true
+  advanced_context_engineering_train_files_preserved: true
+  pending_meal_intent_contract_unchanged: true
+  follow_up_required:
+    - Run targeted Current Shell/FoodDB smoke checks alongside context-engineering tests before Slice 2.
+    - Keep future runtime-bearing CE slices aligned with origin/main Current Shell manager contracts.
+
+claim_boundaries:
+  lab_enabled: true
+  lab_isolated: true
+  user_facing_behavior_changed: false
+  runtime_truth_changed: false
+  mutation_changed: false
+  production_activation_changed: false

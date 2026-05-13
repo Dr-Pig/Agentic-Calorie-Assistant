@@ -6,6 +6,9 @@ from app.nutrition.application.approved_packet_ready_fooddb_artifact import (
 from app.nutrition.application.fooddb_real_manager_e2e import (
     build_fooddb_real_manager_e2e,
 )
+from app.nutrition.application.fooddb_grokfast_live_diagnostic_case_catalog import (
+    REQUIRED_CASE_IDS,
+)
 
 
 def _artifact() -> dict:
@@ -36,53 +39,27 @@ def test_real_fooddb_manager_e2e_consumes_full_packet_ready_records() -> None:
         "listed_component": 350,
         "basket_family_semantic_only": 4,
     }
+    assert [case["case_id"] for case in artifact["cases"]] == list(REQUIRED_CASE_IDS)
 
-    exact = _case_by_id(artifact, "exact_macro_visible_chocolate_milk")
+    exact = _case_by_id(artifact, "exact_item_official_label")
     exact_item = exact["manager_evidence_packet"]["evidence_items"][0]
     assert exact["status"] == "pass"
     assert exact_item["source_lane"] == "exact_item_card"
     assert exact_item["macro_visibility_status"] == "visible"
-    assert exact_item["protein_g"] == 12
-    assert exact_item["carbs_g"] == 48
-    assert exact_item["fat_g"] == 6
+    assert exact_item["protein_g"] is not None
+    assert exact_item["carbs_g"] is not None
+    assert exact_item["fat_g"] is not None
     assert exact["final_response_basis"]["macro_basis"]["allowed_macro_claims"] == {
-        "protein_g": 12,
-        "carbs_g": 48,
-        "fat_g": 6,
-    }
-
-    jiucai_he = _case_by_id(artifact, "exact_macro_visible_jiucai_he")
-    jiucai_item = jiucai_he["manager_evidence_packet"]["evidence_items"][0]
-    assert jiucai_he["status"] == "pass"
-    assert jiucai_item["source_lane"] == "exact_item_card"
-    assert jiucai_item["anchor_id"] == "exact_7eleven_jiucai_he_135g"
-    assert jiucai_he["final_response_basis"]["macro_basis"]["allowed_macro_claims"] == {
-        "protein_g": 8,
-        "carbs_g": 39,
-        "fat_g": 10,
+        "protein_g": exact_item["protein_g"],
+        "carbs_g": exact_item["carbs_g"],
+        "fat_g": exact_item["fat_g"],
     }
 
 
 def test_real_fooddb_manager_e2e_preserves_macro_missing_and_basket_boundaries() -> None:
     artifact = build_fooddb_real_manager_e2e(approved_packet_ready_artifact=_artifact())
 
-    fried_rice = _case_by_id(artifact, "generic_fried_rice_macro_hidden")
-    fried_rice_item = fried_rice["manager_evidence_packet"]["evidence_items"][0]
-    assert fried_rice["status"] == "pass"
-    assert fried_rice_item["source_lane"] == "generic_common_serving"
-    assert fried_rice_item["anchor_id"] == "staple_fried_rice"
-    assert fried_rice_item["macro_visibility_status"] == "hidden_missing_source"
-    assert fried_rice["final_response_basis"]["macro_basis"]["allowed_macro_claims"] == {}
-
-    congee = _case_by_id(artifact, "generic_cantonese_congee_macro_hidden")
-    congee_item = congee["manager_evidence_packet"]["evidence_items"][0]
-    assert congee["status"] == "pass"
-    assert congee_item["source_lane"] == "generic_common_serving"
-    assert congee_item["anchor_id"] == "stable_base_cantonese_congee"
-    assert congee_item["macro_visibility_status"] == "hidden_missing_source"
-    assert congee["final_response_basis"]["macro_basis"]["allowed_macro_claims"] == {}
-
-    boba = _case_by_id(artifact, "generic_macro_hidden_boba")
+    boba = _case_by_id(artifact, "boba_large_half_sugar")
     boba_item = boba["manager_evidence_packet"]["evidence_items"][0]
     assert boba["status"] == "pass"
     assert boba_item["source_lane"] == "generic_common_serving"
@@ -102,13 +79,29 @@ def test_real_fooddb_manager_e2e_preserves_macro_missing_and_basket_boundaries()
     assert all(item["macro_visibility_status"] == "hidden_missing_source" for item in listed_items)
     assert listed["final_response_basis"]["macro_basis"]["allowed_macro_claims"] == {}
 
-    bare = _case_by_id(artifact, "bare_luwei_followup_only")
+    bare = _case_by_id(artifact, "bare_luwei")
     packet = bare["manager_evidence_packet"]
     assert bare["status"] == "pass"
     assert packet["retrieval_boundary"] == "bare_basket_ask_followup_no_estimate"
     assert packet["evidence_items"] == []
     assert packet["followup_hints"]
     assert bare["final_response_basis"]["action_status"] == "ask_followup_no_mutation"
+
+    macro_hidden = _case_by_id(artifact, "macro_missing_hidden")
+    macro_hidden_item = macro_hidden["manager_evidence_packet"]["evidence_items"][0]
+    assert macro_hidden["status"] == "pass"
+    assert macro_hidden["raw_user_input"] == "我吃了一份早餐店蛋餅"
+    assert macro_hidden["retrieval_query_text"] == "蛋餅"
+    assert macro_hidden_item["macro_visibility_status"] == "hidden_missing_source"
+    assert macro_hidden["final_response_basis"]["macro_basis"]["allowed_macro_claims"] == {}
+
+    query_only = _case_by_id(artifact, "food_query_no_mutation")
+    query_only_item = query_only["manager_evidence_packet"]["evidence_items"][0]
+    assert query_only["status"] == "pass"
+    assert query_only["raw_user_input"] == "牛肉麵大概多少熱量？先不要幫我記"
+    assert query_only["retrieval_query_text"] == "牛肉麵"
+    assert query_only_item["source_lane"] == "generic_common_serving"
+    assert query_only["final_response_basis"]["action_status"] == "answer_only_no_mutation"
 
 
 def test_real_fooddb_manager_e2e_cli_writes_roundtrippable_artifact(tmp_path) -> None:

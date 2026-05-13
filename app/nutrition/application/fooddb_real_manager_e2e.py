@@ -5,6 +5,9 @@ from typing import Any, Iterable
 
 from app.nutrition.infrastructure.small_anchor_store_loader import load_small_anchor_seed_records
 
+from .fooddb_grokfast_live_diagnostic_case_catalog import (
+    build_fooddb_grokfast_live_diagnostic_cases,
+)
 from .fooddb_manager_packet_smoke import (
     FoodDBPacketSmokeCase,
     build_fooddb_manager_packet_smoke,
@@ -14,59 +17,53 @@ from .fooddb_retrieval_records import (
     build_current_shell_retrieval_records_from_packet_ready_artifact,
 )
 
-FOODDB_REAL_MANAGER_E2E_CASES: tuple[FoodDBPacketSmokeCase, ...] = tuple(
-    FoodDBPacketSmokeCase(*item)
-    for item in (
-        (
-            "exact_macro_visible_chocolate_milk",
-            "\u7d71\u4e00\u5de7\u514b\u529b\u725b\u4e73 400ml",
-            "use_exact_packet_macro_visible_without_mutation",
-            "exact_item_macro_present",
-        ),
-        (
-            "generic_macro_hidden_boba",
-            "\u5927\u676f\u534a\u7cd6\u73cd\u5976",
-            "estimate_range_with_macro_hidden",
-            "generic_common_drink_macro_missing",
-        ),
-        (
-            "listed_luwei_components",
-            "\u6ef7\u5473\u6709\u8c46\u5e72\u3001\u6d77\u5e36\u3001\u8ca2\u4e38",
-            "estimate_listed_components_only",
-            "listed_ingredient_basket_macro_missing",
-        ),
-        (
-            "bare_luwei_followup_only",
-            "\u6211\u5403\u6ef7\u5473",
-            "ask_followup_no_mutation",
-            "composition_unknown_self_selected_basket",
-        ),
-        (
-            "generic_bento_macro_hidden_less_rice",
-            "\u96de\u817f\u4fbf\u7576\u5c11\u98ef",
-            "generic_range_estimate_with_followup_hints",
-            "common_commercial_meal_macro_missing",
-        ),
-        (
-            "exact_macro_visible_jiucai_he",
-            "\u97ed\u83dc\u76d2135\u516c\u514b",
-            "use_exact_packet_macro_visible_without_mutation",
-            "exact_item_macro_present",
-        ),
-        (
-            "generic_fried_rice_macro_hidden",
-            "\u7092\u98ef",
-            "estimate_range_with_macro_hidden",
-            "common_commercial_meal_macro_missing",
-        ),
-        (
-            "generic_cantonese_congee_macro_hidden",
-            "\u5ee3\u6771\u7ca5",
-            "estimate_range_with_macro_hidden",
-            "common_commercial_meal_macro_missing",
-        ),
-    )
-)
+_BEHAVIOR_BY_POSTURE = {
+    "estimate_from_packet_with_uncertainty": "estimate_from_packet_with_uncertainty",
+    "estimate_or_confirm_from_fuzzy_packet": "estimate_or_confirm_from_fuzzy_packet",
+    "ask_followup_no_mutation": "ask_followup_no_mutation",
+    "estimate_listed_components_only": "estimate_listed_components_only",
+    "generic_range_estimate_with_followup_hints": "generic_range_estimate_with_followup_hints",
+    "commit_exact_item_when_packet_supports_exactness": "use_exact_packet_macro_visible_without_mutation",
+    "answer_only_no_mutation": "answer_only_no_mutation",
+    "commit_without_macro_claims": "commit_without_macro_claims",
+}
+
+_CASE_FAMILY_BY_LIVE_FAMILY = {
+    "modifier_guard": "common_commercial_drink",
+    "fuzzy_alias": "common_commercial_drink",
+    "bare_basket_followup": "composition_unknown_self_selected_basket",
+    "listed_basket_components": "listed_ingredient_basket",
+    "generic_anchor_modifier_guard": "common_commercial_meal",
+    "exact_item_card": "exact_item_macro_present",
+    "query_only_food_answer": "common_commercial_meal_macro_missing",
+    "macro_visibility_hidden": "common_commercial_meal_macro_missing",
+}
+
+_RETRIEVAL_QUERY_OVERRIDE = {
+    "food_query_no_mutation": "牛肉麵",
+    "macro_missing_hidden": "蛋餅",
+}
+
+
+def _build_real_manager_e2e_cases() -> tuple[FoodDBPacketSmokeCase, ...]:
+    cases: list[FoodDBPacketSmokeCase] = []
+    for case in build_fooddb_grokfast_live_diagnostic_cases():
+        case_id = str(case.get("case_id") or "")
+        posture = str(case.get("expected_manager_posture") or "")
+        family = str(case.get("family") or "")
+        cases.append(
+            FoodDBPacketSmokeCase(
+                case_id=case_id,
+                raw_input=str(case.get("utterance") or ""),
+                expected_behavior=_BEHAVIOR_BY_POSTURE[posture],
+                case_family=_CASE_FAMILY_BY_LIVE_FAMILY[family],
+                retrieval_query_text=_RETRIEVAL_QUERY_OVERRIDE.get(case_id),
+            )
+        )
+    return tuple(cases)
+
+
+FOODDB_REAL_MANAGER_E2E_CASES = _build_real_manager_e2e_cases()
 
 
 def build_fooddb_real_manager_e2e(
@@ -123,21 +120,22 @@ def build_fooddb_real_manager_e2e(
 def _case_with_grade(case: dict[str, Any]) -> dict[str, Any]:
     packet = case["manager_evidence_packet"]
     evidence_items = packet.get("evidence_items") or []
-    blockers = _case_blockers(case["case_id"], packet)
+    expected_behavior = str(case.get("manager_expected_behavior") or "")
+    blockers = _case_blockers(expected_behavior, packet)
     return {
         **case,
         "status": "pass" if not blockers else "fail",
         "blockers": blockers,
         "final_response_basis": _final_response_basis(
-            case["manager_expected_behavior"],
+            expected_behavior,
             evidence_items,
         ),
     }
 
 
-def _case_blockers(case_id: str, packet: dict[str, Any]) -> list[str]:
+def _case_blockers(expected_behavior: str, packet: dict[str, Any]) -> list[str]:
     evidence_items = packet.get("evidence_items") or []
-    if case_id == "bare_luwei_followup_only":
+    if expected_behavior == "ask_followup_no_mutation":
         blockers = []
         if packet.get("retrieval_boundary") != "bare_basket_ask_followup_no_estimate":
             blockers.append("bare_basket_not_followup_boundary")
@@ -149,12 +147,18 @@ def _case_blockers(case_id: str, packet: dict[str, Any]) -> list[str]:
 
     if not evidence_items:
         return ["case_missing_evidence_items"]
-    if case_id.startswith("exact_"):
+    if expected_behavior == "use_exact_packet_macro_visible_without_mutation":
         return _exact_item_blockers(evidence_items[0])
-    if case_id.startswith("generic_"):
-        return _macro_hidden_lane_blockers(evidence_items, expected_lane="generic_common_serving")
-    if case_id.startswith("listed_"):
+    if expected_behavior == "estimate_listed_components_only":
         return _macro_hidden_lane_blockers(evidence_items, expected_lane="listed_component")
+    if expected_behavior in {
+        "estimate_from_packet_with_uncertainty",
+        "estimate_or_confirm_from_fuzzy_packet",
+        "generic_range_estimate_with_followup_hints",
+        "answer_only_no_mutation",
+        "commit_without_macro_claims",
+    }:
+        return _macro_hidden_lane_blockers(evidence_items, expected_lane="generic_common_serving")
     return []
 
 

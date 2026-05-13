@@ -4,8 +4,8 @@ status: planned
 owner: AdvancedProductLabContextEngineering
 consumer: advanced_product_lab_proactive_recommendation_rescue_integration
 planned_slice_count_likely: 16
-dynamic_remaining_slice_count: 16
-last_completed_slice_number: 0
+dynamic_remaining_slice_count: 15
+last_completed_slice_number: 1
 active_slice_number: null
 
 slice_count_range:
@@ -92,6 +92,14 @@ dynamic_estimate_protocol:
     - docs/quality/advanced_product_lab_context_engineering_stress_pr_train.yaml
     - docs/quality/advanced_product_lab_context_engineering_golden_set.yaml
     - docs/quality/advanced_product_lab_context_engineering_mechanism_review.yaml
+
+last_merge_evidence:
+  completed_slices:
+    - slice_number: 1
+      slice_id: main_to_lab_sync_and_contract_drift_audit
+      result: main_sync_drift_audit_recorded
+      artifact: docs/quality/advanced_product_lab_main_sync_drift_audit.yaml
+      dynamic_remaining_slice_count_after: 15
 
 best_practice_evidence:
   required: true

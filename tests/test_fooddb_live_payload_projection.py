@@ -166,7 +166,7 @@ def test_fooddb_live_payload_projection_keeps_tool_results_read_only() -> None:
 
 def test_fooddb_live_payload_projection_preserves_exact_macro_visible_fields() -> None:
     projection = build_compact_fooddb_live_projection(
-        packet_case=_real_manager_e2e_case("exact_macro_visible_chocolate_milk")
+        packet_case=_real_manager_e2e_case("exact_item_official_label")
     )
 
     evidence_item = projection["fooddb_evidence_packet"]["evidence_items"][0]
@@ -180,7 +180,7 @@ def test_fooddb_live_payload_projection_preserves_exact_macro_visible_fields() -
 
 def test_fooddb_live_payload_projection_preserves_macro_hidden_without_macro_values() -> None:
     payload = build_live_manager_payload(
-        packet_case=_real_manager_e2e_case("generic_macro_hidden_boba")
+        packet_case=_real_manager_e2e_case("boba_large_half_sugar")
     )
 
     evidence_item = payload["fooddb_evidence_packet"]["evidence_items"][0]

@@ -141,7 +141,7 @@ def build_fooddb_grokfast_live_diagnostic_cases() -> list[dict[str, Any]]:
         ),
         _case(
             case_id="exact_item_official_label",
-            utterance=_manifest_utterance("MVP-LIVE-004"),
+            utterance="統一巧克力牛乳 400ml",
             family="exact_item_card",
             canonical_manifest_case_id="MVP-LIVE-004",
             expected_manager_posture="commit_exact_item_when_packet_supports_exactness",

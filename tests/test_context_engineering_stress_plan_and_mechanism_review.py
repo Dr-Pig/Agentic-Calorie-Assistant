@@ -31,7 +31,7 @@ def test_context_engineering_stress_pr_train_records_dynamic_slice_plan() -> Non
     assert plan["artifact_type"] == "advanced_product_lab_context_engineering_stress_pr_train"
     assert plan["status"] == "planned"
     assert plan["planned_slice_count_likely"] == 16
-    assert plan["dynamic_remaining_slice_count"] == 16
+    assert plan["dynamic_remaining_slice_count"] == 15
     assert plan["slice_count_range"] == {
         "optimistic": 14,
         "likely": 16,
