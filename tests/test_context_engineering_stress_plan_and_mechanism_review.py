@@ -31,7 +31,7 @@ def test_context_engineering_stress_pr_train_records_dynamic_slice_plan() -> Non
     assert plan["artifact_type"] == "advanced_product_lab_context_engineering_stress_pr_train"
     assert plan["status"] == "planned"
     assert plan["planned_slice_count_likely"] == 16
-    assert plan["dynamic_remaining_slice_count"] == 10
+    assert plan["dynamic_remaining_slice_count"] == 9
     assert plan["slice_count_range"] == {
         "optimistic": 14,
         "likely": 16,
@@ -41,13 +41,13 @@ def test_context_engineering_stress_pr_train_records_dynamic_slice_plan() -> Non
     assert plan["slice_train"][0]["slice_id"] == "main_to_lab_sync_and_contract_drift_audit"
     assert plan["slice_train"][-1]["slice_id"] == "decision_pack_and_proactive_entry_gate"
 
-    assert plan["last_completed_slice_number"] == 6
+    assert plan["last_completed_slice_number"] == 7
     assert plan["last_merge_evidence"]["completed_slices"][-1] == {
-        "slice_number": 6,
-        "slice_id": "meal_window_policy_and_memory_override",
-        "result": "meal_window_policy_trace_completed",
-        "artifact": "app/advanced_shadow_lab/product_lab_pending_meal_intent_meal_window_policy.py",
-        "dynamic_remaining_slice_count_after": 10,
+        "slice_number": 7,
+        "slice_id": "rescue_suppression_feedback_projection",
+        "result": "rescue_suppression_feedback_projection_completed",
+        "artifact": "app/advanced_shadow_lab/product_lab_rescue_suppression_projection.py",
+        "dynamic_remaining_slice_count_after": 9,
     }
 
 
