@@ -4,8 +4,8 @@ status: planned
 owner: AdvancedProductLabContextEngineering
 consumer: advanced_product_lab_proactive_recommendation_rescue_integration
 planned_slice_count_likely: 16
-dynamic_remaining_slice_count: 3
-last_completed_slice_number: 13
+dynamic_remaining_slice_count: 2
+last_completed_slice_number: 14
 active_slice_number: null
 
 slice_count_range:
@@ -160,6 +160,11 @@ last_merge_evidence:
       result: final_response_boundary_grade_completed
       artifact: app/advanced_shadow_lab/context_engineering_final_response_boundary.py
       dynamic_remaining_slice_count_after: 3
+    - slice_number: 14
+      slice_id: overtrigger_and_undertrigger_holdout_gate
+      result: ce_stress_holdout_report_completed
+      artifact: app/advanced_shadow_lab/context_engineering_holdout_gate.py
+      dynamic_remaining_slice_count_after: 2
 
 best_practice_evidence:
   required: true
