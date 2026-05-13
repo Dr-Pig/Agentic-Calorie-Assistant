@@ -1,0 +1,431 @@
+artifact_type: advanced_product_lab_rescue_phase1_golden_set
+version: 1
+status: active_fixture_contract
+owner: AdvancedRescueRuntimeLab
+consumer: advanced_product_lab_rescue_phase1_pr_train
+artifact_classification: merge_safe
+retirement_trigger: approved_rescue_runtime_activation_plan
+capability_domain: rescue_phase1_runtime_lab
+runtime_connected: false
+lab_isolated: true
+mainline_activation_enabled: false
+user_facing_behavior_changed_in_mainline: false
+canonical_product_db_mutation_allowed: false
+canonical_product_mutation_allowed_in_mainline: false
+production_scheduler_delivery_allowed: false
+manager_context_packet_changed_in_mainline: false
+raw_keyword_semantic_oracle_allowed: false
+
+suite_contract:
+  schema_version: 1
+  owner_required: true
+  consumer_required: true
+  required_journeys:
+    - F
+    - F2
+    - T
+    - N-3
+  required_case_types:
+    - same_day_overshoot_rescue
+    - planned_event_budget_allocation
+    - gathering_day_allocation
+    - intake_rescue_separation
+    - accept_rescue_plan
+    - dismiss_rescue_plan
+    - complaint_not_dismiss
+    - attachment_ambiguity
+    - guardrail_math
+    - proactive_rescue_nudge
+  required_split_counts:
+    fixture: 10
+    holdout: 3
+    negative: 4
+  required_runtime_effects:
+    mainline_activation_enabled: false
+    canonical_product_db_mutation_allowed: false
+    production_scheduler_delivery_allowed: false
+    manager_context_packet_changed_in_mainline: false
+
+best_practice_evidence:
+  required: false
+  rationale: >
+    This PR is fixture and rubric governance only. The high-impact runtime,
+    tool, mutation, and live-provider slices later in the train must record
+    current official best-practice evidence before PR publication.
+
+rubric:
+  - dimension_id: trigger_legality
+    truth_owner: deterministic_rescue_trigger_guard
+    blocking: true
+    pass_rule: rescue starts only from explicit user request or allowed proactive budget alert.
+  - dimension_id: guardrail_math_legality
+    truth_owner: deterministic_rescue_math
+    blocking: true
+    pass_rule: overshoot, cap, horizon, safety floor, and effective_from are deterministic.
+  - dimension_id: proposal_separation
+    truth_owner: rescue_runtime_contract
+    blocking: true
+    pass_rule: intake replies may show awareness but cannot attach formal rescue proposal.
+  - dimension_id: attachment_legality
+    truth_owner: ManagerRuntime_with_attachment_priority_guards
+    blocking: true
+    pass_rule: explicit actions attach to proposal; ambiguous or complaint turns do not mutate state.
+  - dimension_id: commit_boundary
+    truth_owner: ProposalContainer_and_LedgerEntry_validators
+    blocking: true
+    pass_rule: accept creates isolated lab commit effect only after explicit confirmation.
+  - dimension_id: retrieval_context_scope
+    truth_owner: rescue_retrieval_policy
+    blocking: true
+    pass_rule: rescue reads short structured state and summaries, not full transcript search.
+  - dimension_id: proactive_control_boundary
+    truth_owner: proactive_scheduler_policy
+    blocking: true
+    pass_rule: proactive rescue nudge is independent, controlled, and dismissible.
+  - dimension_id: no_mainline_activation
+    truth_owner: activation_wall
+    blocking: true
+    pass_rule: fixture success cannot enable mainline routes, scheduler, DB migration, or mutation.
+
+cases:
+  - case_id: f_intake_reply_overshoot_no_formal_rescue
+    journey_id: F
+    case_type: intake_rescue_separation
+    split: fixture
+    product_contract_refs:
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#4.0
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#9.7
+      - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md#F
+    input_summary: meal logging creates same-day overshoot inside intake flow.
+    expected_trace_fields:
+      - current_budget_view.remaining_kcal
+      - intake_reply_overshoot_awareness
+      - formal_rescue_proposal_created
+      - ledger_overlay_created
+    expected_effects:
+      overshoot_awareness_allowed: true
+      formal_rescue_proposal_created: false
+      ledger_overlay_created: false
+      independent_rescue_message_required: true
+    oracle: &product_trace_oracle
+      semantic_oracle_source: product_rule_and_trace_fields
+      raw_keyword_route_allowed: false
+
+  - case_id: f_explicit_request_generates_independent_rescue_message
+    journey_id: F
+    case_type: same_day_overshoot_rescue
+    split: fixture
+    product_contract_refs:
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#4.1
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#5
+    input_summary: user explicitly asks how to recover after overshooting today.
+    expected_trace_fields:
+      - rescue_trigger_source
+      - rescue_context_pack
+      - independent_rescue_message
+      - proposal_candidate
+    expected_effects:
+      rescue_trigger_allowed: true
+      message_independent: true
+      proposal_first: true
+      canonical_mutation_before_accept: false
+    oracle: *product_trace_oracle
+
+  - case_id: f_guardrail_math_standard_cap
+    journey_id: F
+    case_type: guardrail_math
+    split: fixture
+    product_contract_refs:
+      - docs/specs/L3M_GUARDRAIL_MATH_SPEC.md
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#8.4
+    input_summary: 450 kcal overshoot, 1800 kcal base budget, standard 15 percent cap.
+    expected_trace_fields:
+      - overshoot_kcal
+      - daily_cap_kcal
+      - recommended_days
+      - daily_kcal_adjustment
+    expected_math:
+      overshoot_kcal: 450
+      daily_cap_kcal: 270
+      recommended_days: 2
+      cap_mode: standard
+    oracle: *product_trace_oracle
+
+  - case_id: f_safety_floor_blocks_non_viable
+    journey_id: F
+    case_type: guardrail_math
+    split: negative
+    product_contract_refs:
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#10.2
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#12.3
+    input_summary: proposed overlay would push future days below BodyPlan safety floor.
+    expected_trace_fields:
+      - active_body_plan_view.safety_floor_kcal
+      - target_day_checks.safety_floor_passed
+      - recovery_viability
+      - escalation_posture
+    expected_effects:
+      proposal_allowed: false
+      recovery_viability: non_viable
+      escalation_posture: rescue_stop_and_escalate
+    oracle: *product_trace_oracle
+
+  - case_id: f_accept_from_chat
+    journey_id: F
+    case_type: accept_rescue_plan
+    split: fixture
+    product_contract_refs:
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#14B
+      - docs/specs/L2_DATA_STATE_SPEC.md#3.9
+      - docs/specs/L2_DATA_STATE_SPEC.md#3.6
+    input_summary: user says a clear chat acceptance for the current rescue proposal.
+    expected_trace_fields:
+      - proposal_id
+      - commit_source
+      - accepted_at
+      - rescue_commit_effect
+    expected_commit:
+      source: chat
+      proposal_status: accepted
+      isolated_lab_ledger_overlay_created: true
+      mainline_ledger_overlay_created: false
+    oracle: *product_trace_oracle
+
+  - case_id: f_accept_from_ui_smart_chip
+    journey_id: F
+    case_type: accept_rescue_plan
+    split: holdout
+    product_contract_refs:
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#14B
+      - docs/specs/L1_RUNTIME_OWNERSHIP_SPEC.md#3.4
+    input_summary: user accepts through proposal card or smart-chip mirror.
+    expected_trace_fields:
+      - proposal_id
+      - commit_source
+      - accepted_at
+      - source_surface
+    expected_commit:
+      allowed_sources:
+        - ui
+        - smart_chip
+      explicit_accept_required: true
+      canonical_mutation_before_accept: false
+    oracle: *product_trace_oracle
+
+  - case_id: f_explicit_dismiss
+    journey_id: F
+    case_type: dismiss_rescue_plan
+    split: fixture
+    product_contract_refs:
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#9.5
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#14B
+    input_summary: user says not this plan or taps the dismiss action.
+    expected_trace_fields:
+      - proposal_id
+      - dismiss_requested
+      - proposal_status
+      - active_inbox_visibility
+    expected_attachment:
+      proposal_action: dismiss_rescue_plan
+      proposal_status: dismissed
+      active_inbox_removed: true
+      permanent_rescue_mute_created: false
+      snooze_created: false
+    oracle: *product_trace_oracle
+
+  - case_id: f_complaint_not_dismiss
+    journey_id: F
+    case_type: complaint_not_dismiss
+    split: fixture
+    product_contract_refs:
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#9.5A
+      - docs/specs/L1_RUNTIME_OWNERSHIP_SPEC.md#4.10
+    input_summary: user complains that the plan feels too hard without rejecting it.
+    expected_trace_fields:
+      - open_rescue_proposal_id
+      - negotiation_intent
+      - proposal_action
+      - proposal_status_changed
+    expected_attachment:
+      proposal_action: none
+      disposition: answer_only_or_negotiation
+      proposal_status_changed: false
+    oracle: *product_trace_oracle
+
+  - case_id: f_ambiguous_same_proposal_and_followup_answer_only
+    journey_id: F
+    case_type: attachment_ambiguity
+    split: negative
+    product_contract_refs:
+      - docs/specs/L1_RUNTIME_OWNERSHIP_SPEC.md#4.10
+    input_summary: open rescue proposal and pending intake followup exist, user says an ambiguous short reply.
+    expected_trace_fields:
+      - open_rescue_proposal_id
+      - pending_followup_id
+      - attachment_decision
+      - mutation_attempted
+    expected_attachment:
+      proposal_action: none
+      followup_answer_committed: false
+      disposition: answer_only
+      mutation_attempted: false
+    oracle: *product_trace_oracle
+
+  - case_id: f_duplicate_open_proposal_blocked
+    journey_id: F
+    case_type: same_day_overshoot_rescue
+    split: negative
+    product_contract_refs:
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#6
+      - docs/specs/L2_DATA_STATE_SPEC.md#3.9
+    input_summary: rescue is requested while an open rescue proposal already exists.
+    expected_trace_fields:
+      - open_proposals_view.open_rescue_proposal_count
+      - blockers
+      - proposal_candidate_created
+    expected_effects:
+      proposal_candidate_created: false
+      blocker_reason: open_rescue_proposal
+      existing_proposal_referenced: true
+    oracle: *product_trace_oracle
+
+  - case_id: f2_planned_hotpot_reserve
+    journey_id: F2
+    case_type: planned_event_budget_allocation
+    split: fixture
+    product_contract_refs:
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#17A
+      - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md#F2
+    input_summary: user expects a hotpot buffet and asks to reduce calories before the event.
+    expected_trace_fields:
+      - planned_event_context
+      - event_date
+      - reserve_kcal_or_estimate
+      - proposal_candidate
+    expected_effects:
+      planned_event_budget_allocation: true
+      proposal_first: true
+      future_overlay_preview_created: true
+      ledger_overlay_requires_accept: true
+    oracle: *product_trace_oracle
+
+  - case_id: f2_unknown_event_amount_asks_clarify
+    journey_id: F2
+    case_type: planned_event_budget_allocation
+    split: holdout
+    product_contract_refs:
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#17A
+      - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md#F2
+    input_summary: user says a large meal is coming but gives no amount or event specificity.
+    expected_trace_fields:
+      - planned_event_context
+      - missing_fields
+      - clarification_question
+      - proposal_candidate_created
+    expected_effects:
+      proposal_candidate_created: false
+      clarification_or_conservative_default_required: true
+      ledger_overlay_created: false
+    oracle: *product_trace_oracle
+
+  - case_id: f2_after_event_uses_standard_rescue
+    journey_id: F2
+    case_type: planned_event_budget_allocation
+    split: negative
+    product_contract_refs:
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#17A
+    input_summary: user already ate the event meal and asks how to recover afterward.
+    expected_trace_fields:
+      - event_timing
+      - planned_event_variant_allowed
+      - standard_rescue_variant_allowed
+    expected_effects:
+      planned_event_budget_allocation: false
+      standard_rescue_variant_allowed: true
+      reason: after_event_recovery_uses_standard_rescue
+    oracle: *product_trace_oracle
+
+  - case_id: t_gathering_informational_only
+    journey_id: T
+    case_type: gathering_day_allocation
+    split: fixture
+    product_contract_refs:
+      - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md#T
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#17A
+    input_summary: user asks for gathering-day planning but does not ask to reserve or set a budget.
+    expected_trace_fields:
+      - gathering_context
+      - current_budget_view
+      - informational_guidance
+      - proposal_created
+    expected_effects:
+      proposal_created: false
+      informational_guidance_allowed: true
+      ledger_overlay_created: false
+    oracle: *product_trace_oracle
+
+  - case_id: t_explicit_reserve_escalates_to_proposal
+    journey_id: T
+    case_type: gathering_day_allocation
+    split: fixture
+    product_contract_refs:
+      - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md#T
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#17A
+    input_summary: user asks to reserve calories for a gathering.
+    expected_trace_fields:
+      - gathering_context
+      - requested_reserve_kcal
+      - proposal_candidate
+      - explicit_accept_required
+    expected_effects:
+      proposal_created: true
+      proposal_type: planned_event_budget_allocation
+      ledger_overlay_requires_accept: true
+    oracle: *product_trace_oracle
+
+  - case_id: n3_proactive_rescue_nudge_independent
+    journey_id: N-3
+    case_type: proactive_rescue_nudge
+    split: fixture
+    product_contract_refs:
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md
+      - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md#N-3
+    input_summary: user is overshot and silent, scheduler simulation considers a rescue nudge.
+    expected_trace_fields:
+      - proactive_trigger
+      - cooldown
+      - suppression
+      - independent_message_packet
+    expected_effects:
+      message_independent: true
+      not_inline_after_intake: true
+      chat_first_surface: true
+      mainline_scheduler_delivery: false
+    oracle: *product_trace_oracle
+
+  - case_id: n3_dismiss_current_proposal_no_snooze
+    journey_id: N-3
+    case_type: proactive_rescue_nudge
+    split: holdout
+    product_contract_refs:
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#9.5
+    input_summary: user dismisses a proactive rescue proposal.
+    expected_trace_fields:
+      - proactive_candidate_id
+      - proposal_id
+      - dismiss_reason
+      - next_signal_required
+    expected_effects:
+      current_proposal_dismissed: true
+      permanent_rescue_mute_created: false
+      timed_snooze_created: false
+      new_proposal_requires_major_signal_or_user_reopen: true
+    oracle: *product_trace_oracle
+
+non_claims:
+  - not_runtime_activation_evidence
+  - not_mainline_user_facing_approval
+  - not_private_self_use_approval
+  - not_production_ledger_or_scheduler_approval
+  - not_live_grokfast_evidence

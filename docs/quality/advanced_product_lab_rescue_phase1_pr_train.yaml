@@ -96,6 +96,7 @@ dynamic_estimate_protocol:
     - estimate_notes
   persistent_truth_files:
     - docs/quality/advanced_product_lab_rescue_phase1_pr_train.yaml
+    - docs/quality/advanced_product_lab_rescue_phase1_golden_set.yaml
     - docs/quality/advanced_capability_activation_ladder.yaml
     - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md
 
