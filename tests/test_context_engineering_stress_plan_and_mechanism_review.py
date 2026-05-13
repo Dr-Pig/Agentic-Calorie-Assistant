@@ -31,7 +31,7 @@ def test_context_engineering_stress_pr_train_records_dynamic_slice_plan() -> Non
     assert plan["artifact_type"] == "advanced_product_lab_context_engineering_stress_pr_train"
     assert plan["status"] == "planned"
     assert plan["planned_slice_count_likely"] == 16
-    assert plan["dynamic_remaining_slice_count"] == 2
+    assert plan["dynamic_remaining_slice_count"] == 1
     assert plan["slice_count_range"] == {
         "optimistic": 14,
         "likely": 16,
@@ -41,13 +41,23 @@ def test_context_engineering_stress_pr_train_records_dynamic_slice_plan() -> Non
     assert plan["slice_train"][0]["slice_id"] == "main_to_lab_sync_and_contract_drift_audit"
     assert plan["slice_train"][-1]["slice_id"] == "decision_pack_and_proactive_entry_gate"
 
-    assert plan["last_completed_slice_number"] == 14
+    assert plan["last_completed_slice_number"] == 15
     assert plan["last_merge_evidence"]["completed_slices"][-1] == {
-        "slice_number": 14,
-        "slice_id": "overtrigger_and_undertrigger_holdout_gate",
-        "result": "ce_stress_holdout_report_completed",
-        "artifact": "app/advanced_shadow_lab/context_engineering_holdout_gate.py",
-        "dynamic_remaining_slice_count_after": 2,
+        "slice_number": 15,
+        "slice_id": "grokfast_live_planner_diagnostic",
+        "result": "grokfast_ce_stress_live_diagnostic_completed",
+        "artifact": "app/advanced_shadow_lab/context_engineering_grokfast_diagnostic.py",
+        "dynamic_remaining_slice_count_after": 1,
+    }
+    assert plan["last_live_diagnostic_evidence"] == {
+        "slice_number": 15,
+        "provider_profile_id": "builderspace-grok-4-fast-advanced-shadow-lab-live-diagnostic",
+        "artifact_path": "artifacts/advanced_product_lab/ce_grokfast_live_diagnostic.json",
+        "artifact_committed_to_repo": False,
+        "status": "pass",
+        "live_provider_used": True,
+        "live_grokfast_diagnostic_pass": True,
+        "blocker_count": 0,
     }
 
 
