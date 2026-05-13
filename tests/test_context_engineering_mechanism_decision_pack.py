@@ -84,9 +84,9 @@ def test_mechanism_review_validation_rejects_wrong_pending_option() -> None:
 def test_context_engineering_train_marks_slice_three_complete() -> None:
     train = _train()
 
-    assert train["dynamic_remaining_slice_count"] == 13
-    assert train["last_completed_slice_number"] == 3
-    assert train["last_merge_evidence"]["completed_slices"][-1] == {
+    assert train["dynamic_remaining_slice_count"] == 12
+    assert train["last_completed_slice_number"] == 4
+    assert train["last_merge_evidence"]["completed_slices"][2] == {
         "slice_number": 3,
         "slice_id": "mechanism_challenge_decision_pack",
         "result": "mechanism_decision_pack_completed",

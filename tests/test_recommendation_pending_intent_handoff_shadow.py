@@ -35,14 +35,17 @@ def test_pending_intent_shadow_requires_explicit_acceptance_without_intake_commi
     assert packet["artifact_type"] == "recommendation_pending_meal_intent_shadow_packet"
     assert packet["status"] == "pass"
     assert packet["pending_meal_intent_created"] is True
-    assert packet["pending_meal_intent_trace"] == {
-        "contract_scope": "pending_meal_intent_only",
-        "intent_id": "pending-meal-golden-1-action-1",
-        "status": "created",
-        "source_surface": "chat",
-        "canonical_write_authorized": False,
-        "dismissed_scope": None,
-    }
+    trace = packet["pending_meal_intent_trace"]
+    assert trace["contract_scope"] == "pending_meal_intent_only"
+    assert trace["contract_version"] == "2.0"
+    assert trace["intent_id"] == "pending-meal-golden-1-action-1"
+    assert trace["status"] == "created"
+    assert trace["source_surface"] == "chat"
+    assert trace["scope_keys"]["surface"] == "chat"
+    assert trace["context_pack_block_id"] == "pending_meal_intent:pending-meal-golden-1-action-1"
+    assert trace["canonical_write_authorized"] is False
+    assert trace["durable_memory_write_authorized"] is False
+    assert trace["dismissed_scope"] is None
     assert packet["selected_candidate"]["candidate_id"] == "golden-1"
     assert packet["selected_candidate"]["source_refs"] == ["memory_candidate:golden-1"]
     assert packet["expires_at"] == (created_at + timedelta(hours=6)).isoformat()
