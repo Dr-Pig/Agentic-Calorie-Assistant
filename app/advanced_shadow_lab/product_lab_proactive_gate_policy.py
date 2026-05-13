@@ -16,6 +16,7 @@ def context_reasons(
     *,
     turn: Mapping[str, Any],
     context: Mapping[str, Any],
+    trigger: str,
 ) -> list[str]:
     local_time = str(context.get("local_time") or "")
     quiet_start = str(context.get("quiet_hours_start") or DEFAULT_QUIET_HOURS[0])
@@ -27,6 +28,8 @@ def context_reasons(
     recent = int(context.get("recent_send_count") or 0)
     if isinstance(max_recent, int) and recent >= max_recent:
         reasons.append("recent_send_cap")
+    if _cooldown_active(turn=turn, context=context, trigger=trigger):
+        reasons.append("cooldown_active")
     if str(turn.get("surface") or "") != "chat":
         reasons.append("surface_not_chat")
     return reasons
@@ -74,6 +77,22 @@ def _trigger_value(
     if not isinstance(values, Mapping):
         return default
     return values.get(trigger, default)
+
+
+def _cooldown_active(
+    *,
+    turn: Mapping[str, Any],
+    context: Mapping[str, Any],
+    trigger: str,
+) -> bool:
+    last_sent = _trigger_value(context, "last_sent_minute_by_trigger", trigger, None)
+    cooldown = _trigger_value(context, "cooldown_minutes_by_trigger", trigger, None)
+    now = turn.get("lab_now_minute")
+    if not all(isinstance(value, int) for value in (last_sent, cooldown, now)):
+        return False
+    if cooldown <= 0:
+        return False
+    return int(now) - int(last_sent) < int(cooldown)
 
 
 def _inside_quiet_hours(local_time: str, start: str, end: str) -> bool:
