@@ -1,0 +1,162 @@
+artifact_type: advanced_core_golden_set_coverage_matrix
+version: 1
+status: active_alignment_contract
+owner: AdvancedCoreGoldenSetAlignment
+consumer: advanced_product_lab_followup_planning
+existing_sets_policy: audit_and_patch_gaps
+mainline_activation_enabled: false
+raw_keyword_semantic_oracle_allowed: false
+
+strategic_gate:
+  current_mainline: advanced_core_golden_set_alignment
+  is_detour: false
+  blocked_mainline: null
+  detour_reason: null
+  detour_exit_gate: not_applicable
+  exit_gate_status: not_applicable
+  return_slice_after_exit: not_applicable
+  strategic_verdict: mainline
+  mainline_blocker_being_removed: advanced_capability_product_semantics_need_shared_case_matrix
+
+capability_dependency_check:
+  capability_layer: L9 Same-Truth / UI / Memory / Proactive with L1-L8 evidence dependencies
+  upstream_dependencies:
+    - layer: L1 InteractionEvent / CurrentTurnContext
+      contract_status: tested
+      risk_if_missing: manager-style tool routing can drift from user-visible workflow intent.
+    - layer: L2 AttachmentDecision / TransitionGuardResult
+      contract_status: contract_backed
+      risk_if_missing: cross-journey cases can attach accept/dismiss/that-one turns to the wrong object.
+    - layer: L4 RetrievalIntent / Source Selection
+      contract_status: tested
+      risk_if_missing: memory, reusable meal, and recommendation cases can become raw transcript RAG tests.
+    - layer: L8 Mutation / Ledger / Version
+      contract_status: draft
+      risk_if_missing: recommendation, rescue, and proactive fixtures can imply hidden canonical mutation.
+  slice_mode:
+    - eval
+    - contract_guard
+    - fixture_only
+  user_facing_behavior_changed: false
+  runtime_truth_changed: false
+  mutation_changed: false
+  safe_to_proceed_now: true
+  why_not_local_next_step_trap: >
+    The next product risk is semantic drift across completed advanced lab trains,
+    not another isolated capability runner.
+
+best_practice_evidence:
+  required: true
+  sources_checked:
+    - official_or_primary_source: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+      adopted_guidance: keep objective-specific datasets, edge cases, holdouts, and live diagnostics separate.
+    - official_or_primary_source: https://developers.openai.com/api/docs/guides/agent-evals
+      adopted_guidance: evaluate tool choice, argument precision, handoff accuracy, and trace evidence.
+    - official_or_primary_source: https://openai.github.io/openai-agents-python/guardrails/
+      adopted_guidance: keep side-effect and tool boundaries outside raw LLM output.
+  rejected_guidance:
+    - replacing capability golden sets with context-engineering orchestration tests
+    - treating fixture wording as product semantic truth
+    - promoting lab success into mainline activation
+  conflict_with_repo_habits: >
+    Several capability trains are already completed, but recommendation and
+    proactive did not have their own human-readable product-semantic golden sets.
+  how_the_design_changed: >
+    This matrix keeps existing memory, rescue, and context engineering sets as
+    audited baselines while adding missing recommendation, proactive, reusable
+    meal, and cross-journey product semantics.
+
+coverage_domains:
+  - memory
+  - rescue
+  - recommendation
+  - proactive
+  - context_engineering
+  - reusable_meal
+  - cross_journey
+
+existing_golden_sets:
+  memory:
+    path: docs/quality/runtime_lab_memory_edd_golden_set.yaml
+    policy: audit_only_unless_gap_or_conflict
+    required_semantics:
+      - confirmed_preference
+      - negative_blocker
+      - temporary_preference
+      - pattern_memory
+      - golden_order
+      - source_lookup
+      - feedback_confirmation_boundary
+  rescue:
+    path: docs/quality/advanced_product_lab_rescue_phase1_golden_set.yaml
+    policy: audit_only_unless_gap_or_conflict
+    required_semantics:
+      - same_day_overshoot
+      - planned_event
+      - gathering_allocation
+      - accept_dismiss
+      - complaint_not_dismiss
+      - proposal_mutation_boundary
+      - rescue_proactive_suppression
+  context_engineering:
+    path: docs/quality/advanced_product_lab_context_engineering_golden_set.yaml
+    policy: audit_only_unless_gap_or_conflict
+    required_semantics:
+      - multi_capability_routing
+      - tool_order
+      - mutation_wall
+      - bounded_react
+      - final_response_boundary
+
+new_golden_sets:
+  - advanced_product_lab_recommendation_golden_set
+  - advanced_product_lab_proactive_golden_set
+  - advanced_product_lab_cross_journey_golden_set
+
+expanded_golden_sets:
+  - advanced_product_lab_reusable_meal_golden_set
+
+coverage_matrix:
+  - domain: recommendation
+    golden_set: docs/quality/advanced_product_lab_recommendation_golden_set.yaml
+    required_semantics:
+      - three_node_graph
+      - candidate_source
+      - hard_blockers
+      - soft_boosts
+      - budget_gate
+      - offer_synthesis
+      - pending_meal_handoff
+      - feedback_projection
+  - domain: proactive
+    golden_set: docs/quality/advanced_product_lab_proactive_golden_set.yaml
+    required_semantics:
+      - wake_trigger
+      - deterministic_gate
+      - llm_send_skip
+      - quiet_hours
+      - cooldown
+      - dismiss_snooze_undo
+      - chat_first_delivery
+      - stay_silent
+  - domain: reusable_meal
+    golden_set: docs/quality/advanced_product_lab_reusable_meal_golden_set.yaml
+    required_semantics:
+      - same_meal_recall
+      - similar_but_not_same_drift
+      - personal_meal_template
+      - fooddb_fallback
+      - intake_confirmation
+  - domain: cross_journey
+    golden_set: docs/quality/advanced_product_lab_cross_journey_golden_set.yaml
+    required_semantics:
+      - recommendation_to_pending_meal_to_intake
+      - rescue_to_recommendation
+      - proactive_to_feedback_to_suppression
+      - memory_to_recommendation_blocker
+
+non_claims:
+  - not_mainline_activation_evidence
+  - not_user_facing_self_use_v1_change
+  - not_scheduler_delivery_approval
+  - not_production_db_migration_approval

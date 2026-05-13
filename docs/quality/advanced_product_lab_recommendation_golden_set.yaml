@@ -1,0 +1,345 @@
+artifact_type: advanced_product_lab_recommendation_golden_set
+version: 1
+status: active_alignment_contract
+owner: AdvancedProductLabRecommendation
+consumer: advanced_core_golden_set_alignment
+artifact_classification: merge_safe
+capability_domain: recommendation
+runtime_connected: false
+lab_isolated: true
+mainline_activation_enabled: false
+canonical_product_mutation_allowed: false
+production_scheduler_delivery_allowed: false
+durable_product_memory_written: false
+raw_keyword_semantic_oracle_allowed: false
+
+case_schema:
+  required_fields:
+    - case_id
+    - case_type
+    - split
+    - journey_refs
+    - product_truth
+    - product_contract_refs
+    - expected_capabilities
+    - forbidden_capabilities
+    - expected_trace_fields
+    - mutation_posture
+    - allowed_variants
+    - oracle
+
+suite_contract:
+  required_case_types:
+    - three_node_graph
+    - candidate_source
+    - hard_blocker
+    - soft_boost
+    - budget_gate
+    - offer_synthesis
+    - pending_meal_handoff
+    - feedback_projection
+    - rescue_posture
+    - reusable_meal_golden_order
+    - scope_leak
+    - overtrigger
+    - live_planning_seed
+    - live_offer_seed
+  required_split_counts:
+    fixture: 9
+    negative_holdout: 3
+    live_diagnostic_seed: 2
+
+evaluation_policy:
+  no_raw_keyword_semantic_oracle: true
+  eval_assets_do_not_define_product_truth: true
+  semantic_decision_owner: manager_llm_structured_output
+  deterministic_validation_boundary:
+    - schema
+    - scope_keys
+    - hard_blockers
+    - budget_gate
+    - mutation_legality
+    - omission_trace
+  trace_surfaces:
+    - ManagerTurnPlan
+    - recommendation_planning
+    - candidate_retrieval_guard_scoring
+    - allowed_pool_trace
+    - offer_synthesis
+    - pending_meal_intent_handoff
+    - FeedbackEvent
+
+cases:
+  - case_id: rec-001
+    case_type: three_node_graph
+    split: fixture
+    journey_refs: [L, Q]
+    product_truth: >
+      Recommendation runs as a three-node manager tool path: LLM planning,
+      deterministic retrieval guard scoring, then LLM offer synthesis.
+    product_contract_refs:
+      - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md#4.0A
+      - docs/quality/advanced_product_lab_recommendation_pr_train.yaml#recommendation_graph
+    expected_capabilities: [recommendation]
+    forbidden_capabilities: [intake, rescue, proactive, canonical_meal_commit]
+    expected_trace_fields:
+      - recommendation_planning.user_goal
+      - recommendation_planning.candidate_spec
+      - candidate_retrieval_guard_scoring.allowed_pool
+      - offer_synthesis.selected_primary
+    mutation_posture: &read_only_posture
+      canonical_mutation: false
+      mainline_activation: false
+      durable_memory_write: false
+    allowed_variants: [ask_clarifying_budget_or_location_if_required]
+    oracle: &product_oracle
+      semantic_oracle_source: product_rule_and_trace_fields
+      raw_keyword_route_allowed: false
+
+  - case_id: rec-002
+    case_type: candidate_source
+    split: fixture
+    journey_refs: [L, M]
+    product_truth: Recommendation candidate sources may include FoodDB, reviewed memory, reusable meal, budget posture, and rescue posture, but raw transcript search is not a source.
+    product_contract_refs:
+      - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md#6.3
+      - docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md
+    expected_capabilities: [recommendation, memory, reusable_meal, query]
+    forbidden_capabilities: [raw_transcript_rag, live_search, canonical_meal_commit]
+    expected_trace_fields:
+      - candidate_sources.fooddb
+      - candidate_sources.reviewed_memory
+      - candidate_sources.reusable_meal
+      - omission_trace.raw_transcript_omitted
+    mutation_posture: *read_only_posture
+    allowed_variants: [cold_start_uses_safe_generic_candidates]
+    oracle: *product_oracle
+
+  - case_id: rec-003
+    case_type: hard_blocker
+    split: fixture
+    journey_refs: [M]
+    product_truth: Confirmed negative preferences block or downrank candidates before any positive preference boost is applied.
+    product_contract_refs:
+      - docs/specs/L4A_MEMORY_MODEL_SPEC.md#6.1A
+      - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#3.4A
+    expected_capabilities: [memory, recommendation]
+    forbidden_capabilities: [intake, proactive, memory_write]
+    expected_trace_fields:
+      - negative_preference_blockers
+      - candidate_guard.filtered_candidates.reason_codes
+      - positive_boost_not_applied_to_blocked_candidate
+    mutation_posture: *read_only_posture
+    allowed_variants: [same_turn_explicit_negative_blocks_as_candidate]
+    oracle: *product_oracle
+
+  - case_id: rec-004
+    case_type: soft_boost
+    split: fixture
+    journey_refs: [L, M]
+    product_truth: Positive preferences such as ramen, hotpot, heavy flavor, delivery discounts, and satiety are soft boosts only.
+    product_contract_refs:
+      - docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md#memory-signal-strength
+      - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md#7.5
+    expected_capabilities: [memory, recommendation]
+    forbidden_capabilities: [canonical_meal_commit, preference_overrides_budget_gate]
+    expected_trace_fields:
+      - preference_profile_summary.positive_boosts
+      - deterministic_quality_signals.satiety
+      - deterministic_quality_signals.discount_context
+    mutation_posture: *read_only_posture
+    allowed_variants: [offer_lower_risk_same_style_option]
+    oracle: *product_oracle
+
+  - case_id: rec-005
+    case_type: budget_gate
+    split: fixture
+    journey_refs: [L]
+    product_truth: Remaining budget and active rescue posture are hard constraints before offer synthesis.
+    product_contract_refs:
+      - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md#7.5
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#11.1
+    expected_capabilities: [query, rescue, recommendation]
+    forbidden_capabilities: [over_budget_primary_offer, ledger_mutation]
+    expected_trace_fields:
+      - current_budget_view.remaining_kcal
+      - rescue_posture.next_meal_protection
+      - allowed_pool.omitted_candidates
+    mutation_posture: *read_only_posture
+    allowed_variants: [primary_under_budget_with_backup_tradeoff]
+    oracle: *product_oracle
+
+  - case_id: rec-006
+    case_type: offer_synthesis
+    split: fixture
+    journey_refs: [L]
+    product_truth: Offer synthesis returns one primary option, backups, honest tradeoffs, and quick actions without pretending certainty.
+    product_contract_refs:
+      - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md#8
+      - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md#journey-l
+    expected_capabilities: [recommendation]
+    forbidden_capabilities: [intake, proactive, scheduler_delivery]
+    expected_trace_fields:
+      - offer_synthesis.selected_primary
+      - offer_synthesis.backups
+      - offer_synthesis.explanation
+      - chat_first_ux_packet.quick_actions
+    mutation_posture: *read_only_posture
+    allowed_variants: [ask_user_to_choose_if_candidates_tie]
+    oracle: *product_oracle
+
+  - case_id: rec-007
+    case_type: pending_meal_handoff
+    split: fixture
+    journey_refs: [L, Q]
+    product_truth: Accepting a recommendation creates PendingMealIntent only; it never commits a MealThread or budget ledger.
+    product_contract_refs:
+      - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md#10.2
+      - docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md#pending-meal-intent
+    expected_capabilities: [recommendation, pending_meal_intent]
+    forbidden_capabilities: [canonical_meal_commit, direct_ledger_commit, durable_memory_write]
+    expected_trace_fields:
+      - recommendation_acceptance_trace
+      - pending_meal_intent.created
+      - pending_meal_intent.canonical_write_authorized
+    mutation_posture:
+      canonical_mutation: false
+      mainline_activation: false
+      durable_memory_write: false
+      short_term_context_created: true
+    allowed_variants: [ask_which_offer_if_target_ambiguous]
+    oracle: *product_oracle
+
+  - case_id: rec-008
+    case_type: feedback_projection
+    split: fixture
+    journey_refs: [L, M]
+    product_truth: Accept, reject, correct, and undo are FeedbackEvent inputs; they do not directly mutate memory, MealThread, FoodDB, or budget truth.
+    product_contract_refs:
+      - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#3.4A
+      - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md#10
+    expected_capabilities: [recommendation, memory]
+    forbidden_capabilities: [memory_truth_mutation, fooddb_mutation, canonical_meal_commit]
+    expected_trace_fields:
+      - FeedbackEvent.target_type
+      - FeedbackEvent.action
+      - FeedbackEvent.scope_keys
+      - projection.review_required
+    mutation_posture: *read_only_posture
+    allowed_variants: [store_as_review_candidate_after_validator]
+    oracle: *product_oracle
+
+  - case_id: rec-009
+    case_type: reusable_meal_golden_order
+    split: fixture
+    journey_refs: [L, M]
+    product_truth: Reusable meal templates and golden orders can enter the recommendation pool as candidates or boosts with drift guards.
+    product_contract_refs:
+      - docs/specs/L4A_MEMORY_MODEL_SPEC.md#3.6
+      - docs/specs/L4A_MEMORY_MODEL_SPEC.md#3.6A
+      - docs/quality/advanced_product_lab_reusable_meal_golden_set.yaml
+    expected_capabilities: [memory, reusable_meal, recommendation]
+    forbidden_capabilities: [pattern_memory_auto_confirmed, reusable_template_as_fooddb_truth, direct_meal_commit]
+    expected_trace_fields:
+      - golden_order_summary.orders
+      - reusable_meal_candidates
+      - drift_guard.decision
+      - recommendation_candidate_boost
+    mutation_posture: *read_only_posture
+    allowed_variants: [inactive_golden_order_downranked]
+    oracle: *product_oracle
+
+  - case_id: rec-h001
+    case_type: scope_leak
+    split: negative_holdout
+    journey_refs: [M]
+    product_truth: Recommendation must reject candidates or memory from a different user, workspace, project, or surface.
+    product_contract_refs:
+      - docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md
+      - docs/quality/runtime_lab_memory_edd_golden_set.yaml
+    expected_capabilities: [recommendation, memory]
+    forbidden_capabilities: [cross_user_memory_use, cross_project_candidate_use]
+    expected_trace_fields:
+      - scope_keys
+      - candidate_guard.omitted_candidates
+      - omission_trace.scope_mismatch
+    mutation_posture: *read_only_posture
+    allowed_variants: [fall_back_to_non_personal_candidate_pool]
+    oracle: *product_oracle
+
+  - case_id: rec-h002
+    case_type: overtrigger
+    split: negative_holdout
+    journey_refs: [general_chat]
+    product_truth: A budget or memory question does not trigger recommendation unless the user asks for an option or planning help.
+    product_contract_refs:
+      - docs/quality/advanced_product_lab_context_engineering_golden_set.yaml
+      - docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md
+    expected_capabilities: [query]
+    forbidden_capabilities: [recommendation, proactive, intake]
+    expected_trace_fields:
+      - ManagerTurnPlan.omitted_capabilities
+      - omission_trace.recommendation_not_requested
+    mutation_posture: *read_only_posture
+    allowed_variants: [answer_and_offer_help_if_user_asks_later]
+    oracle: *product_oracle
+
+  - case_id: rec-h003
+    case_type: rescue_posture
+    split: negative_holdout
+    journey_refs: [F, L]
+    product_truth: Active rescue posture can constrain recommendation; recommendation cannot override an accepted rescue overlay or safety floor.
+    product_contract_refs:
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#11
+      - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md#11
+    expected_capabilities: [rescue, recommendation]
+    forbidden_capabilities: [safety_floor_violation, rescue_overlay_mutation]
+    expected_trace_fields:
+      - rescue_posture.short_term_calorie_patch
+      - candidate_guard.filtered_candidates.reason_codes
+      - recommendation_offer.no_rescue_override
+    mutation_posture: *read_only_posture
+    allowed_variants: [decline_to_recommend_if_no_safe_pool]
+    oracle: *product_oracle
+
+  - case_id: rec-live-001
+    case_type: live_planning_seed
+    split: live_diagnostic_seed
+    journey_refs: [L]
+    product_truth: Grokfast live diagnostic may test planning shape, but live output is advisory and cannot create product truth.
+    product_contract_refs:
+      - docs/quality/advanced_product_lab_recommendation_pr_train.yaml#pr_number_5
+      - docs/quality/advanced_capability_activation_ladder.yaml#advanced_lab_execution_policy
+    expected_capabilities: [recommendation]
+    forbidden_capabilities: [canonical_mutation, scheduler_delivery, live_search]
+    expected_trace_fields:
+      - live_diagnostic.provider_profile_id
+      - recommendation_planning.candidate_spec
+      - provider_output.validator_status
+    mutation_posture: *read_only_posture
+    allowed_variants: [diagnostic_only_no_claim_artifact]
+    oracle: *product_oracle
+
+  - case_id: rec-live-002
+    case_type: live_offer_seed
+    split: live_diagnostic_seed
+    journey_refs: [L, M]
+    product_truth: Grokfast live diagnostic may test offer synthesis after deterministic blockers; it cannot serve to mainline user.
+    product_contract_refs:
+      - docs/quality/advanced_product_lab_recommendation_pr_train.yaml#pr_number_19
+      - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md#8
+    expected_capabilities: [memory, recommendation]
+    forbidden_capabilities: [served_to_mainline_user, canonical_meal_commit, durable_memory_write]
+    expected_trace_fields:
+      - candidate_retrieval_guard_scoring.allowed_pool
+      - offer_synthesis.selected_primary
+      - live_diagnostic.non_claims
+    mutation_posture: *read_only_posture
+    allowed_variants: [omit_offer_if_blockers_empty_allowed_pool]
+    oracle: *product_oracle
+
+non_claims:
+  - not_mainline_recommendation_activation
+  - not_production_user_facing_serving
+  - not_fooddb_expansion_approval
+  - not_scheduler_or_notification_approval

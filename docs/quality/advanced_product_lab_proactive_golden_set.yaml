@@ -1,0 +1,340 @@
+artifact_type: advanced_product_lab_proactive_golden_set
+version: 1
+status: active_alignment_contract
+owner: AdvancedProductLabProactive
+consumer: advanced_core_golden_set_alignment
+artifact_classification: merge_safe
+capability_domain: proactive
+runtime_connected: false
+lab_isolated: true
+mainline_activation_enabled: false
+canonical_product_mutation_allowed: false
+production_scheduler_delivery_allowed: false
+notification_delivery_allowed: false
+durable_product_memory_written: false
+raw_keyword_semantic_oracle_allowed: false
+
+case_schema:
+  required_fields:
+    - case_id
+    - case_type
+    - split
+    - journey_refs
+    - product_truth
+    - product_contract_refs
+    - expected_capabilities
+    - forbidden_capabilities
+    - expected_trace_fields
+    - mutation_posture
+    - allowed_variants
+    - oracle
+
+suite_contract:
+  required_case_types:
+    - wake_trigger
+    - deterministic_gate
+    - llm_send_skip
+    - quiet_hours
+    - cooldown
+    - dismiss_snooze_undo
+    - chat_first_delivery
+    - stay_silent
+    - permission_posture
+    - copy_safety
+    - feedback_suppression
+    - scheduler_activation_wall
+    - live_send_skip_seed
+    - live_feedback_seed
+  required_split_counts:
+    fixture: 8
+    negative_holdout: 4
+    live_diagnostic_seed: 2
+
+evaluation_policy:
+  no_raw_keyword_semantic_oracle: true
+  eval_assets_do_not_define_product_truth: true
+  wake_source_is_not_user_benefit: true
+  deterministic_gate_before_llm: true
+  semantic_decision_owner: manager_llm_structured_output
+  deterministic_validation_boundary:
+    - cooldown
+    - quiet_hours
+    - recent_send_cap
+    - permission_posture
+    - data_sufficiency
+    - control_state
+  trace_surfaces:
+    - ProactiveTriggerEvaluation
+    - deterministic_gate_result
+    - contextual_send_skip_decision
+    - NoSendNudgeCandidate
+    - FeedbackEvent
+    - chat_first_delivery_packet
+
+cases:
+  - case_id: pro-001
+    case_type: wake_trigger
+    split: fixture
+    journey_refs: [N-1]
+    product_truth: Pending meal or missed meal follow-up may wake at the meal-window boundary only when it has a user-relevant reason.
+    product_contract_refs:
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#5.1
+      - docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md#pending-meal-intent
+    expected_capabilities: [proactive, pending_meal_intent]
+    forbidden_capabilities: [recommendation, rescue, scheduler_delivery, canonical_meal_commit]
+    expected_trace_fields:
+      - wake_source
+      - user_relevant_reason
+      - pending_meal_intent_trace
+      - deterministic_gate_result
+    mutation_posture: &no_send_posture
+      canonical_mutation: false
+      mainline_activation: false
+      proactive_sent: false
+      notification_delivery: false
+    allowed_variants: [chat_thread_message_when_user_opens_app]
+    oracle: &product_oracle
+      semantic_oracle_source: product_rule_and_trace_fields
+      raw_keyword_route_allowed: false
+
+  - case_id: pro-002
+    case_type: deterministic_gate
+    split: fixture
+    journey_refs: [N-1, N-2]
+    product_truth: Deterministic gates own schedule, cooldown, quiet hours, recent-send cap, onboarding, and data sufficiency before any LLM send/skip judgment.
+    product_contract_refs:
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#4
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#7.1
+    expected_capabilities: [proactive]
+    forbidden_capabilities: [llm_before_gate, scheduler_delivery, canonical_mutation]
+    expected_trace_fields:
+      - deterministic_gate.cooldown_passed
+      - deterministic_gate.quiet_hours_passed
+      - deterministic_gate.recent_send_cap_passed
+      - deterministic_gate.data_sufficiency_passed
+    mutation_posture: *no_send_posture
+    allowed_variants: [gate_failure_skips_without_llm]
+    oracle: *product_oracle
+
+  - case_id: pro-003
+    case_type: llm_send_skip
+    split: fixture
+    journey_refs: [N-4]
+    product_truth: After deterministic gates pass, the LLM may still skip if the message is redundant, noisy, or lacks contextual value.
+    product_contract_refs:
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#2.2
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#4.11
+    expected_capabilities: [proactive, recommendation]
+    forbidden_capabilities: [recommendation_served, live_search, intake_hint_packet]
+    expected_trace_fields:
+      - contextual_send_skip_decision.send_or_skip
+      - contextual_send_skip_decision.skip_reason
+      - downstream_workflow_family
+    mutation_posture: *no_send_posture
+    allowed_variants: [low_quality_context_skips_silently]
+    oracle: *product_oracle
+
+  - case_id: pro-004
+    case_type: chat_first_delivery
+    split: fixture
+    journey_refs: [N-3, N-4]
+    product_truth: Proactive delivery is chat-first and routes into the downstream workflow family; it is not push notification by default.
+    product_contract_refs:
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#2.3
+      - docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md#proactive-contract
+    expected_capabilities: [proactive]
+    forbidden_capabilities: [push_notification, os_notification, line_delivery, scheduler_delivery]
+    expected_trace_fields:
+      - chat_first_delivery_packet.surface
+      - interrupt_cost
+      - permission_posture
+      - downstream_workflow_family
+    mutation_posture: *no_send_posture
+    allowed_variants: [app_open_only_surface]
+    oracle: *product_oracle
+
+  - case_id: pro-005
+    case_type: dismiss_snooze_undo
+    split: fixture
+    journey_refs: [N]
+    product_truth: Every candidate that may later become user-facing must expose dismiss, snooze, undo, and next-signal controls.
+    product_contract_refs:
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#4.7A
+      - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#3.4A
+    expected_capabilities: [proactive]
+    forbidden_capabilities: [candidate_without_control_path, confirmed_memory_auto_write]
+    expected_trace_fields:
+      - dismiss_reason_choices
+      - snooze_window
+      - undo_scope
+      - next_signal_required
+    mutation_posture: *no_send_posture
+    allowed_variants: [dismiss_current_candidate_only]
+    oracle: *product_oracle
+
+  - case_id: pro-006
+    case_type: permission_posture
+    split: fixture
+    journey_refs: [N-4]
+    product_truth: Recommendation prompts are app-open or no-push by default unless later activation grants explicit consent.
+    product_contract_refs:
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#4.5
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#5.4
+    expected_capabilities: [proactive, recommendation]
+    forbidden_capabilities: [background_push, actual_ranked_food_candidates, live_menu_search]
+    expected_trace_fields:
+      - permission_posture
+      - interrupt_cost
+      - candidate_quality_tier
+    mutation_posture: *no_send_posture
+    allowed_variants: [offer_to_help_pick_options]
+    oracle: *product_oracle
+
+  - case_id: pro-007
+    case_type: copy_safety
+    split: fixture
+    journey_refs: [N-3]
+    product_truth: Candidate copy must preserve agency, avoid shame, avoid fake precision, and stay invitation-only.
+    product_contract_refs:
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#4.12
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#10.1
+    expected_capabilities: [proactive, rescue]
+    forbidden_capabilities: [shaming_copy, directive_copy, fake_precision, plan_mutation]
+    expected_trace_fields:
+      - copy_safety.user_agency_preserved
+      - copy_safety.no_shame_or_blame
+      - copy_safety.invitation_only
+    mutation_posture: *no_send_posture
+    allowed_variants: [suppress_copy_if_rubric_fails]
+    oracle: *product_oracle
+
+  - case_id: pro-008
+    case_type: feedback_suppression
+    split: fixture
+    journey_refs: [N]
+    product_truth: Dismiss, snooze, opt-out, and undo control future proactive candidates without mutating meal, budget, recommendation, rescue, or memory truth directly.
+    product_contract_refs:
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#4.7
+      - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#3.4B
+    expected_capabilities: [proactive, memory]
+    forbidden_capabilities: [meal_thread_mutation, budget_mutation, recommendation_offer_mutation, confirmed_memory_auto_write]
+    expected_trace_fields:
+      - FeedbackEvent.action
+      - suppression_projection.scope
+      - undo_result
+      - memory_candidate_validator_status
+    mutation_posture: *no_send_posture
+    allowed_variants: [explicit_opt_out_creates_reviewed_suppression_candidate]
+    oracle: *product_oracle
+
+  - case_id: pro-h001
+    case_type: quiet_hours
+    split: negative_holdout
+    journey_refs: [N]
+    product_truth: Quiet hours suppress scheduled and event-driven proactive delivery unless a later activation spec defines an exception.
+    product_contract_refs:
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#4.2
+    expected_capabilities: [proactive]
+    forbidden_capabilities: [scheduler_delivery, notification_delivery, llm_send_decision]
+    expected_trace_fields:
+      - local_time
+      - quiet_hours_window
+      - suppression_reason
+    mutation_posture: *no_send_posture
+    allowed_variants: [defer_until_next_allowed_window]
+    oracle: *product_oracle
+
+  - case_id: pro-h002
+    case_type: cooldown
+    split: negative_holdout
+    journey_refs: [N]
+    product_truth: Recent send cap, cooldown, or recent dismiss suppresses repeated nudges even when a trigger wakes.
+    product_contract_refs:
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#4.1
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#4.3
+    expected_capabilities: [proactive]
+    forbidden_capabilities: [duplicate_nudge, notification_delivery, scheduler_delivery]
+    expected_trace_fields:
+      - cooldown.last_trigger_at
+      - recent_send_count
+      - suppression_reason
+    mutation_posture: *no_send_posture
+    allowed_variants: [record_no_send_diagnostic_only]
+    oracle: *product_oracle
+
+  - case_id: pro-h003
+    case_type: stay_silent
+    split: negative_holdout
+    journey_refs: [N]
+    product_truth: A wake source without a user-relevant reason must stay silent.
+    product_contract_refs:
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#4.11
+    expected_capabilities: [proactive]
+    forbidden_capabilities: [contextual_send, candidate_copy, notification_delivery]
+    expected_trace_fields:
+      - wake_source
+      - user_relevant_reason
+      - suppression_reason
+    mutation_posture: *no_send_posture
+    allowed_variants: [next_signal_required_records_material_change_needed]
+    oracle: *product_oracle
+
+  - case_id: pro-h004
+    case_type: scheduler_activation_wall
+    split: negative_holdout
+    journey_refs: [N]
+    product_truth: Golden-set success cannot activate scheduler, notification delivery, production route, or mainline runtime.
+    product_contract_refs:
+      - docs/quality/advanced_capability_activation_ladder.yaml#shadow_lab_scope
+      - docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md
+    expected_capabilities: [proactive]
+    forbidden_capabilities: [production_scheduler_delivery, notification_delivery, route_activation, product_db_migration]
+    expected_trace_fields:
+      - mainline_activation_enabled
+      - production_scheduler_delivery_allowed
+      - notification_delivery_allowed
+    mutation_posture: *no_send_posture
+    allowed_variants: [lab_scheduler_simulation_only]
+    oracle: *product_oracle
+
+  - case_id: pro-live-001
+    case_type: live_send_skip_seed
+    split: live_diagnostic_seed
+    journey_refs: [N-4]
+    product_truth: Grokfast live diagnostic may evaluate send/skip reasoning after deterministic gate evidence, but cannot send.
+    product_contract_refs:
+      - docs/quality/advanced_capability_activation_ladder.yaml#advanced_lab_execution_policy
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#7.2
+    expected_capabilities: [proactive, recommendation]
+    forbidden_capabilities: [proactive_sent, notification_delivery, recommendation_served]
+    expected_trace_fields:
+      - live_diagnostic.provider_profile_id
+      - deterministic_gate_result
+      - contextual_send_skip_decision
+    mutation_posture: *no_send_posture
+    allowed_variants: [diagnostic_only_no_claim_artifact]
+    oracle: *product_oracle
+
+  - case_id: pro-live-002
+    case_type: live_feedback_seed
+    split: live_diagnostic_seed
+    journey_refs: [N]
+    product_truth: Grokfast live diagnostic may classify feedback projection shape, but validators own suppression and memory projection legality.
+    product_contract_refs:
+      - docs/quality/advanced_capability_activation_ladder.yaml#advanced_lab_execution_policy
+      - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#3.4A
+    expected_capabilities: [proactive, memory]
+    forbidden_capabilities: [confirmed_memory_auto_write, proactive_delivery, canonical_mutation]
+    expected_trace_fields:
+      - FeedbackEvent.action
+      - validator.scope_check
+      - suppression_projection.status
+    mutation_posture: *no_send_posture
+    allowed_variants: [review_candidate_only]
+    oracle: *product_oracle
+
+non_claims:
+  - not_mainline_proactive_activation
+  - not_scheduler_delivery_approval
+  - not_notification_delivery_approval
+  - not_durable_memory_activation

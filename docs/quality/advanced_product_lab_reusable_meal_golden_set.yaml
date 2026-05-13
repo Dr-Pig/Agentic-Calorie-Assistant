@@ -1,8 +1,80 @@
 artifact_type: advanced_product_lab_reusable_meal_golden_set
 version: 1
-status: active
+status: active_alignment_contract
+owner: AdvancedProductLabReusableMeal
+consumer: advanced_core_golden_set_alignment
+artifact_classification: merge_safe
+capability_domain: reusable_meal
+runtime_connected: false
+lab_isolated: true
+mainline_activation_enabled: false
+canonical_product_mutation_allowed: false
+production_scheduler_delivery_allowed: false
+durable_product_memory_written: false
+raw_keyword_semantic_oracle_allowed: false
+
+case_schema:
+  required_fields:
+    - case_id
+    - case_type
+    - split
+    - journey_refs
+    - product_truth
+    - product_contract_refs
+    - expected_capabilities
+    - forbidden_capabilities
+    - expected_trace_fields
+    - mutation_posture
+    - allowed_variants
+    - oracle
+    - repetition_count
+    - explicit_same_as_before
+    - ingredient_drift
+    - portion_drift
+    - source_drift
+    - correction_count
+
+suite_contract:
+  required_case_types:
+    - same_meal_recall
+    - anchored_repeat
+    - ingredient_drift
+    - low_repetition_candidate
+    - golden_order_materialization
+    - fooddb_fallback_personal_template
+    - intake_confirmation_handoff
+    - correction_review
+    - store_variant_false_match
+    - portion_variant_false_match
+    - ambiguous_same_as_before
+    - scope_leak
+  required_split_counts:
+    fixture: 8
+    negative_holdout: 4
+
 cases:
   - case_id: rm-001
+    case_type: same_meal_recall
+    split: fixture
+    journey_refs: [B, M]
+    product_truth: Explicit same-as-before wording can reuse a scoped personal meal template when no drift or correction history is present.
+    product_contract_refs:
+      - docs/specs/L4A_MEMORY_MODEL_SPEC.md#3.6A
+      - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#5
+    expected_capabilities: [reusable_meal, intake]
+    forbidden_capabilities: [fooddb_mutation, memory_truth_mutation, direct_ledger_commit]
+    expected_trace_fields:
+      - reusable_meal_match.template_id
+      - drift_flags
+      - intake_handoff.required
+    mutation_posture: &hint_posture
+      canonical_mutation: false
+      mainline_activation: false
+      durable_memory_write: false
+    allowed_variants: [ask_portion_confirmation_if_portion_missing]
+    oracle: &product_oracle
+      semantic_oracle_source: product_rule_and_trace_fields
+      raw_keyword_route_allowed: false
     category: explicit_same_as_before
     utterance: same as before, mom fried rice
     expected_decision: reuse_exact
@@ -11,7 +83,24 @@ cases:
     ingredient_drift: false
     portion_drift: false
     source_drift: false
+    correction_count: 0
   - case_id: rm-002
+    case_type: anchored_repeat
+    split: fixture
+    journey_refs: [B, M]
+    product_truth: Repeated but not explicit same-as-before wording may anchor an estimate, but intake still owns the final logging path.
+    product_contract_refs:
+      - docs/specs/L4A_MEMORY_MODEL_SPEC.md#3.6A
+      - docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md#frequent-choice-and-golden-orders
+    expected_capabilities: [reusable_meal, intake]
+    forbidden_capabilities: [reusable_meal_as_canonical_food_truth, memory_write]
+    expected_trace_fields:
+      - reusable_meal_match.match_type
+      - reusable_meal_match.confidence
+      - intake_handoff.required
+    mutation_posture: *hint_posture
+    allowed_variants: [use_as_hint_with_uncertainty]
+    oracle: *product_oracle
     category: repeated_but_not_explicit
     utterance: mom fried rice again
     expected_decision: reuse_anchored
@@ -20,7 +109,24 @@ cases:
     ingredient_drift: false
     portion_drift: false
     source_drift: false
+    correction_count: 0
   - case_id: rm-003
+    case_type: ingredient_drift
+    split: fixture
+    journey_refs: [B, M]
+    product_truth: Ingredient drift forces re-estimation even when the user says it is the same meal.
+    product_contract_refs:
+      - docs/specs/L4A_MEMORY_MODEL_SPEC.md#3.6A
+      - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#5.4
+    expected_capabilities: [reusable_meal, intake]
+    forbidden_capabilities: [reuse_exact, direct_ledger_commit]
+    expected_trace_fields:
+      - drift_flags.ingredient_drift
+      - reusable_meal_match.decision
+      - intake_reestimate_required
+    mutation_posture: *hint_posture
+    allowed_variants: [ask_for_added_ingredient_amount]
+    oracle: *product_oracle
     category: ingredient_drift
     utterance: same hotpot but added tofu today
     expected_decision: re_estimate_required
@@ -29,7 +135,24 @@ cases:
     ingredient_drift: true
     portion_drift: false
     source_drift: false
+    correction_count: 0
   - case_id: rm-004
+    case_type: low_repetition_candidate
+    split: fixture
+    journey_refs: [B]
+    product_truth: Low repetition can create a reusable-meal candidate but should not act as a reusable template yet.
+    product_contract_refs:
+      - docs/specs/L4A_MEMORY_MODEL_SPEC.md#3.6A
+      - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#7.1
+    expected_capabilities: [reusable_meal, intake]
+    forbidden_capabilities: [reuse_exact, durable_memory_activation]
+    expected_trace_fields:
+      - reusable_meal_candidate.status
+      - repetition_count
+      - intake_handoff.required
+    mutation_posture: *hint_posture
+    allowed_variants: [normal_intake_with_candidate_note]
+    oracle: *product_oracle
     category: low_repetition
     utterance: I had that custom oatmeal again
     expected_decision: candidate_only
@@ -38,8 +161,128 @@ cases:
     ingredient_drift: false
     portion_drift: false
     source_drift: false
-holdouts:
+    correction_count: 0
+  - case_id: rm-005
+    case_type: golden_order_materialization
+    split: fixture
+    journey_refs: [M, L]
+    product_truth: Golden orders are materialized from canonical history and may provide a reusable recommendation/intake hint without becoming preference promotion truth.
+    product_contract_refs:
+      - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#3.3
+      - docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md#frequent-choice-and-golden-orders
+    expected_capabilities: [memory, reusable_meal, recommendation]
+    forbidden_capabilities: [pattern_to_confirmed_auto_promotion, direct_meal_commit]
+    expected_trace_fields:
+      - golden_order.materialized_from_canonical
+      - reusable_meal_match.template_id
+      - recommendation_candidate_boost
+    mutation_posture: *hint_posture
+    allowed_variants: [inactive_golden_order_downranked]
+    oracle: *product_oracle
+    category: golden_order_materialization
+    utterance: get my usual morning bar oatmeal
+    expected_decision: reuse_anchored
+    repetition_count: 5
+    explicit_same_as_before: false
+    ingredient_drift: false
+    portion_drift: false
+    source_drift: false
+    correction_count: 0
+  - case_id: rm-006
+    case_type: fooddb_fallback_personal_template
+    split: fixture
+    journey_refs: [B]
+    product_truth: A personal meal template can help when FoodDB lacks the item, but FoodDB truth is not mutated by the template.
+    product_contract_refs:
+      - docs/specs/L4A_MEMORY_MODEL_SPEC.md#3.6A
+      - docs/quality/ACCURATE_INTAKE_FOODDB_EXPANSION_SPEC.md
+    expected_capabilities: [reusable_meal, intake]
+    forbidden_capabilities: [fooddb_expansion, fooddb_mutation, direct_ledger_commit]
+    expected_trace_fields:
+      - fooddb_lookup.status
+      - personal_template_used_as_hint
+      - intake_handoff.required
+    mutation_posture: *hint_posture
+    allowed_variants: [fallback_to_normal_intake_if_template_confidence_low]
+    oracle: *product_oracle
+    category: fooddb_fallback
+    utterance: same homemade high-protein bowl
+    expected_decision: reuse_anchored
+    repetition_count: 4
+    explicit_same_as_before: false
+    ingredient_drift: false
+    portion_drift: false
+    source_drift: false
+    correction_count: 0
+  - case_id: rm-007
+    case_type: intake_confirmation_handoff
+    split: fixture
+    journey_refs: [B, L]
+    product_truth: Reusable-meal recall can prefill intake evidence but final recording still requires intake confirmation and versioning.
+    product_contract_refs:
+      - docs/specs/L2_DATA_STATE_SPEC.md
+      - docs/specs/L4A_MEMORY_MODEL_SPEC.md#3.6A
+    expected_capabilities: [reusable_meal, intake]
+    forbidden_capabilities: [direct_ledger_commit, template_as_final_meal_item]
+    expected_trace_fields:
+      - reusable_meal_hint_packet
+      - intake_confirmation_required
+      - meal_version_created_by_intake
+    mutation_posture: *hint_posture
+    allowed_variants: [ask_confirmation_when_user_says_log_it]
+    oracle: *product_oracle
+    category: intake_confirmation
+    utterance: log the same one from last Monday
+    expected_decision: reuse_anchored
+    repetition_count: 4
+    explicit_same_as_before: false
+    ingredient_drift: false
+    portion_drift: false
+    source_drift: false
+    correction_count: 0
+  - case_id: rm-008
+    case_type: correction_review
+    split: fixture
+    journey_refs: [K, M]
+    product_truth: Repeated corrections lower trust in exact reuse and route to anchored or reviewed reuse rather than exact replay.
+    product_contract_refs:
+      - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#3.5
+      - docs/specs/L4A_MEMORY_MODEL_SPEC.md#5.3
+    expected_capabilities: [reusable_meal, intake]
+    forbidden_capabilities: [reuse_exact, memory_truth_mutation]
+    expected_trace_fields:
+      - correction_count
+      - reusable_meal_match.decision
+      - review_required
+    mutation_posture: *hint_posture
+    allowed_variants: [reuse_anchored_with_confirmation]
+    oracle: *product_oracle
+    category: correction_review
+    utterance: same lunchbox but I corrected it twice before
+    expected_decision: reuse_anchored
+    repetition_count: 5
+    explicit_same_as_before: true
+    ingredient_drift: false
+    portion_drift: false
+    source_drift: false
+    correction_count: 2
   - case_id: rm-h001
+    case_type: store_variant_false_match
+    split: negative_holdout
+    journey_refs: [B, M]
+    product_truth: Same food name from a different store is not the same reusable meal.
+    product_contract_refs:
+      - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#5.3
+      - docs/specs/L4A_MEMORY_MODEL_SPEC.md#3.6A
+    expected_capabilities: [reusable_meal, intake]
+    forbidden_capabilities: [reuse_exact, direct_ledger_commit]
+    expected_trace_fields:
+      - drift_flags.source_drift
+      - reusable_meal_match.decision
+      - intake_reestimate_required
+    mutation_posture: *hint_posture
+    allowed_variants: [ask_store_clarification]
+    oracle: *product_oracle
     category: false_match_store_variant
     utterance: same ramen, different store
     expected_decision: re_estimate_required
@@ -48,7 +291,24 @@ holdouts:
     ingredient_drift: false
     portion_drift: false
     source_drift: true
+    correction_count: 0
   - case_id: rm-h002
+    case_type: portion_variant_false_match
+    split: negative_holdout
+    journey_refs: [B, M]
+    product_truth: Same meal with a materially different portion must be re-estimated.
+    product_contract_refs:
+      - docs/specs/L4A_MEMORY_MODEL_SPEC.md#3.6A
+      - docs/specs/L2_DATA_STATE_SPEC.md
+    expected_capabilities: [reusable_meal, intake]
+    forbidden_capabilities: [reuse_exact, direct_ledger_commit]
+    expected_trace_fields:
+      - drift_flags.portion_drift
+      - reusable_meal_match.decision
+      - intake_reestimate_required
+    mutation_posture: *hint_posture
+    allowed_variants: [ask_portion_clarification]
+    oracle: *product_oracle
     category: false_match_portion_variant
     utterance: same breakfast sandwich but double portion
     expected_decision: re_estimate_required
@@ -57,3 +317,56 @@ holdouts:
     ingredient_drift: false
     portion_drift: true
     source_drift: false
+    correction_count: 0
+  - case_id: rm-h003
+    case_type: ambiguous_same_as_before
+    split: negative_holdout
+    journey_refs: [B]
+    product_truth: Ambiguous same-as-before wording without a resolvable target must clarify instead of guessing.
+    product_contract_refs:
+      - docs/specs/L1_RUNTIME_OWNERSHIP_SPEC.md#4.10
+      - docs/specs/L4A_MEMORY_MODEL_SPEC.md#3.6A
+    expected_capabilities: [reusable_meal]
+    forbidden_capabilities: [intake, direct_ledger_commit, reuse_exact]
+    expected_trace_fields:
+      - target_attachment.status
+      - clarification_required
+      - mutation_attempted
+    mutation_posture: *hint_posture
+    allowed_variants: [offer_recent_reusable_targets]
+    oracle: *product_oracle
+    category: ambiguous_same_as_before
+    utterance: same as before
+    expected_decision: candidate_only
+    repetition_count: 0
+    explicit_same_as_before: true
+    ingredient_drift: false
+    portion_drift: false
+    source_drift: false
+    correction_count: 0
+  - case_id: rm-h004
+    case_type: scope_leak
+    split: negative_holdout
+    journey_refs: [M]
+    product_truth: A reusable meal template is scoped to the current user/workspace/project and must not cross scope.
+    product_contract_refs:
+      - docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md
+      - docs/specs/L4A_MEMORY_MODEL_SPEC.md#5.4
+    expected_capabilities: [reusable_meal]
+    forbidden_capabilities: [cross_user_template_use, intake, direct_ledger_commit]
+    expected_trace_fields:
+      - scope_keys
+      - omission_trace.scope_mismatch
+      - reusable_meal_match.decision
+    mutation_posture: *hint_posture
+    allowed_variants: [fallback_to_normal_intake]
+    oracle: *product_oracle
+    category: scope_leak
+    utterance: use the other workspace template
+    expected_decision: candidate_only
+    repetition_count: 5
+    explicit_same_as_before: false
+    ingredient_drift: false
+    portion_drift: false
+    source_drift: false
+    correction_count: 0
