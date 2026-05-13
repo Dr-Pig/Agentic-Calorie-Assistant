@@ -113,6 +113,16 @@ When the user says "就這個", "等等吃這個", or "就去這家" after a rec
 - It may be visible as a lightweight chat/UI mirror, but it must not look like a formal task or proposal.
 - Only "我吃了這個", "幫我記這個", or equivalent actual-consumption language enters intake.
 
+Default calibration:
+
+- `PendingMealIntent` is first-class short-term context, not long-term memory and not canonical meal truth.
+- TTL is `6` hours unless a future activation spec defines a narrower product-specific window.
+- Default meal windows are `lunch=11:00-14:30`, `dinner=17:00-22:00`, and `late_night=22:00-01:00` local time.
+- Confirmed or high-confidence meal-time memory may adjust follow-up timing, but it does not change the pending intent's truth owner.
+- Follow-up happens at meal-window end. In quiet hours, the allowed v1 behavior is chat-thread message only; no push-like delivery.
+- "有，我吃了" routes through intake; pending intent is only a target hint.
+- "沒有 / 算了 / 先不要" dismisses the current pending intent and must not become negative food preference memory.
+
 ### 2. Mutation Authority
 
 ```text
@@ -369,7 +379,7 @@ Rules:
 
 ## Open Gaps
 
-- Exact schema for `PendingMealIntent` as short-term context.
+- Lab store/lifecycle/context-pack implementation for `PendingMealIntent` beyond the minimal contract.
 - Exact `interaction_preference` fields and suppression thresholds.
 - Exact quality score weights for proactive recommendation.
 - Candidate cache ownership and invalidation policy.

@@ -108,6 +108,29 @@ Phase A intake context policy:
   - conversation atomic blocks，例如 clarification answer、correction request、confirm / reject、topic reset
 - raw transcript snippet 只作 support / trace evidence，不作 primary state truth
 
+### 2.7 Pending Meal Intent Context Block
+
+`PendingMealIntent` should enter context as a bounded structured state block, not as raw transcript and not as long-term memory.
+
+Default block fields:
+
+- `intent_id`
+- `candidate_title`
+- `source_surface`
+- `created_at`
+- `expires_at`
+- `status`
+- `candidate_metadata` summary
+- `canonical_write_authorized=false`
+
+Packing rules:
+
+- Include only active pending intents by default.
+- Include recently expired or dismissed intents only when the user turn explicitly references "that one", "the earlier one", "I ate it", or "I did not eat it".
+- Do not include raw recommendation or chat transcript unless needed as bounded evidence for target disambiguation.
+- Do not let the block authorize intake commit. It is only a target hint for the intake flow.
+- If more than one active pending intent exists, expose that ambiguity so the Manager can ask a clarification instead of auto-attaching.
+
 ---
 
 ## 5. Recommendation Context Pack

@@ -184,6 +184,26 @@ Required validators:
 - action is legal for the target type
 - no canonical mutation is implied by the feedback event alone
 
+### 3.4B Rescue Suppression Projection Boundary
+
+Rescue feedback may influence proactive control and interaction-preference memory, but it must not bypass the memory promotion rules above.
+
+Default interpretation:
+
+- Explicit user language such as "do not remind me about rescue" may become a confirmed rescue suppression after target, source, and scope validators pass.
+- A confirmed rescue suppression blocks proactive rescue reminders only. It does not block user-callable rescue when the user explicitly asks for help.
+- `dismiss` and `snooze` remain current-candidate or cooldown controls. They do not create confirmed memory and do not demote rescue as a capability.
+- Three rescue dismiss/ignore events within `14` days may create a `pending_review` suppression candidate, not confirmed memory.
+- The review prompt should be useful and chat-first, for example asking whether the user wants fewer rescue reminders in context. The system should not send standalone memory-hygiene prompts just to clean up internal state.
+- `undo` can reverse the most recent matching dismiss/snooze/opt-out effect only when source and scope checks pass.
+
+Forbidden shortcuts:
+
+- Do not treat a dismissed rescue proposal as a durable dislike of rescue.
+- Do not treat a rescue opt-out as permission to mutate MealThread, budget, ledger, or body-plan truth.
+- Do not treat user acceptance of a rescue proposal as permission to enable proactive scheduler delivery.
+- Do not auto-promote suppression from repeated behavior without explicit user confirmation.
+
 ---
 
 ### 3.5 Path 5：修正 → Canonical Truth

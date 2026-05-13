@@ -45,6 +45,29 @@ recommendation 必須結合：
 - recommendation 不建立 recommendation intent state
 - 只有使用者明確表達「我吃這個 / 幫我記這個 / 加到今天」時，才轉進 intake flow
 
+### 2.2A Pending Meal Intent Handoff Is Short-Term Context, Not Recommendation Intent State
+
+If a user reacts to a recommendation with language such as "save this for later", "remind me at dinner", or "I may eat this later", the system may create a `PendingMealIntent` as short-term context.
+
+This does not contradict Section 2.2 because:
+
+- `PendingMealIntent` is owned by short-term context / follow-up, not by recommendation ranking.
+- It has a bounded TTL, defaulting to `6` hours.
+- It cannot authorize `MealThread`, ledger, budget, or body-plan mutation.
+- It cannot become durable food preference memory by itself.
+- It exists only to help later references such as "that one", "I ate it", "I did not eat it", or "switch to something else".
+
+Handoff rules:
+
+| User language after recommendation | Runtime action |
+| --- | --- |
+| "I ate this", "log this", "add this to today" | Route to intake with recommendation hint packet. |
+| "save this", "maybe later", "remind me at dinner" | Create `PendingMealIntent` short-term context. |
+| "this looks good" | Record feedback only; do not create pending intent or intake. |
+| "no / nevermind / I did not eat it" | Dismiss current pending intent if one exists; do not create negative preference memory. |
+
+Later confirmation must still route through intake. The pending intent is a target hint, not canonical consumption truth.
+
 ### 2.3 產品目標
 
 recommendation 必須支援：

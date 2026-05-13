@@ -245,6 +245,28 @@ Projection boundaries:
 
 Every proactive candidate that could later become user-facing must expose a dismissal path, a snooze window policy, and the next signal required before re-surfacing. Without that control path it is not eligible for user-facing delivery.
 
+### 4.7B Pending Meal Intent And Rescue Suppression Calibration
+
+`PendingMealIntent` is short-term context for follow-up and later target attachment. It is not a durable memory record, not a recommendation intent state, and not a canonical `MealThread` or ledger draft.
+
+Default v1 policy:
+
+- TTL is `6` hours.
+- Default meal windows are `lunch=11:00-14:30`, `dinner=17:00-22:00`, and `late_night=22:00-01:00` local time.
+- A confirmed or high-confidence meal-time memory may override default windows, but only as context for follow-up timing.
+- Follow-up should be evaluated at meal-window end.
+- Quiet-hours follow-up may write a chat-thread message that the user sees when opening chat, but must not send push/OS/LINE-style notification unless a later activation spec grants permission.
+- If the user later says "I ate that" or "log the one from before", the pending intent may provide a target hint, but intake must still run. Pending intent cannot authorize canonical meal or budget mutation.
+- If the user says "no", "nevermind", or "I did not eat it", dismiss the current pending intent only. Do not create negative food preference memory from that dismissal.
+
+Rescue trigger calibration:
+
+- If the user explicitly asks for conditional rescue such as "if I am over, help me plan tonight" or "spread it out if I exceed budget", the same turn may run budget query and rescue proposal after intake/query truth is available.
+- That rescue output remains proposal-only. No future budget, ledger, or plan mutation occurs until explicit user acceptance.
+- If the user did not ask for rescue, unprompted rescue eligibility requires an overshoot greater than `25%` of the daily budget plus normal suppression, cooldown, data sufficiency, and permission gates.
+- Explicit rescue opt-out creates a rescue suppression projection after scope/source validation. Dismiss/snooze only suppresses the current candidate or cooldown window.
+- Three dismiss/ignore events within `14` days may create a pending review candidate; the proactive path should ask chat-first whether the user wants fewer rescue reminders. It must not auto-promote confirmed suppression.
+
 ### 4.8 Channel Sensitivity
 
 Delivery surface changes the interruption cost.

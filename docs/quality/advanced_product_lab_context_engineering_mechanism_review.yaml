@@ -1,0 +1,155 @@
+artifact_type: advanced_product_lab_context_engineering_mechanism_review
+version: 1
+status: active
+owner: AdvancedProductLabContextEngineering
+review_scope: current_advanced_lab_manager_style_context_engineering_skeleton
+overall_verdict: skeleton_direction_sound_but_not_product_complete
+
+strategic_gate:
+  current_mainline: advanced_product_lab_context_engineering_stress_and_pending_intent_hardening
+  is_detour: false
+  blocked_mainline: null
+  detour_reason: null
+  detour_exit_gate: not_applicable
+  exit_gate_status: not_applicable
+  return_slice_after_exit: not_applicable
+  strategic_verdict: mainline
+  mainline_blocker_being_removed: skeleton_exists_but_manager_tool_selection_and_short_term_state_are_not_stress_proven
+
+capability_dependency_check:
+  capability_layer: L1 InteractionEvent / CurrentTurnContext with L2 AttachmentDecision and L9 Memory/Proactive consequences
+  upstream_dependencies:
+    - layer: L0 Product Operating Rules
+      contract_status: tested
+      risk_if_missing: short-term state can become a hidden mutation path.
+    - layer: L2 AttachmentDecision / TransitionGuardResult
+      contract_status: contract_backed
+      risk_if_missing: pending intent can attach to the wrong recommendation or meal.
+    - layer: L8 Mutation / Ledger / Version
+      contract_status: draft
+      risk_if_missing: future intent can be mistaken for canonical consumption.
+  slice_mode:
+    - eval
+    - contract_guard
+    - lab_only_runtime
+  user_facing_behavior_changed: false
+  runtime_truth_changed: false
+  mutation_changed: false
+  safe_to_proceed_now: true
+  why_not_local_next_step_trap: >
+    The next product blocker is not deeper recommendation ranking; it is making the
+    manager loop prove that it can choose and combine existing capabilities without
+    over-triggering or inventing state.
+
+best_practice_evidence:
+  required: true
+  sources_checked:
+    - official_or_primary_source: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+      adopted_guidance: evaluate contextual complexity, multiple intents, tool selection, edge cases, and adversarial cases.
+    - official_or_primary_source: https://developers.openai.com/api/docs/guides/agent-evals
+      adopted_guidance: use trace grading for workflow-level agent behavior and tool argument precision.
+    - official_or_primary_source: https://openai.github.io/openai-agents-python/sessions/
+      adopted_guidance: session history is separate from durable memory; short-term continuity should not become long-term memory.
+    - official_or_primary_source: https://openai.github.io/openai-agents-python/guardrails/
+      adopted_guidance: tool calls need tool-level guardrails when manager workflows can have side effects.
+    - official_or_primary_source: https://docs.langchain.com/oss/python/concepts/memory
+      adopted_guidance: separate short-term memory/context, semantic long-term memory, and episodic examples.
+  rejected_guidance:
+    - make_pending_meal_intent_a_long_term_memory_record
+    - make_pending_meal_intent_a_canonical_meal_thread_draft_by_default
+    - keep_context_engineering_as_scripted_fixture_only
+  conflict_with_repo_habits: >
+    Advanced lab evidence artifacts are useful, but some manager scripts still encode
+    fixture semantics. The next train must stress actual ManagerTurnPlan decisions.
+  how_the_design_changed: >
+    PendingMealIntent becomes a first-class short-term state with store/lifecycle/context
+    requirements before proactive delivery work expands.
+
+manager_style_gap_assessment:
+  current_skeleton_gap: scripted_fixture_semantics_exist_before_live_planner_tool_selection_stress
+  existing_strengths:
+    - shared CapabilityRegistry exists.
+    - ManagerTurnPlan and tool-choice wall contracts exist.
+    - Memory, rescue, reusable meal, and recommendation have lab adapters.
+    - Recommendation train closed with 3-node physical graph and 5 logical trace boundaries.
+  not_yet_proven:
+    - one natural-language turn can select intake, query, rescue, recommendation, memory, and pending intent correctly.
+    - tool argument extraction remains precise when several capabilities are possible.
+    - final response clearly distinguishes recorded facts, proposals, and short-term context.
+    - live Grokfast planner behavior matches fixture semantics on holdouts.
+    - main contract alignment survives main-to-lab sync before the next runtime slices.
+
+pending_meal_intent_assessment:
+  recommended_option: first_class_short_term_context_state
+  why: >
+    "Maybe I will eat this later" needs continuity, expiry, follow-up, and later
+    target attachment, but it is neither durable preference nor canonical consumption.
+  accepted_properties:
+    state_category: short_term_context
+    ttl_hours: 6
+    followup_timing: meal_window_end
+    quiet_hours_policy: chat_thread_message_only_no_push
+    canonical_write_authorized: false
+    confirmation_handoff: intake_run_required
+    dismissal_scope: current_intent_instance_only
+  rejected_options:
+    long_term_memory_record:
+      reason: wrong_lifespan_and_wrong_truth_owner
+      failure_mode: bloats durable preference memory and can later bias recommendation as if the user liked or ate the item.
+    canonical_meal_thread_draft:
+      reason: too_mutation_like_before_user_confirms_consumption
+      failure_mode: future intent looks like food truth and can leak into consumed/budget math.
+    recommendation_intent_state:
+      reason: contradicts_recommendation_contract_no_intent_state
+      failure_mode: creates a parallel recommendation state machine and increases cleanup complexity.
+    keep_as_shadow_packet_only:
+      reason: insufficient_for_complete_product_loop
+      failure_mode: cannot survive turn boundaries, expiry, dismissal, or context injection.
+  required_next_capabilities:
+    - store_lifecycle
+    - meal_window_policy
+    - context_pack_injection
+    - intake_handoff_on_confirmation
+    - dismiss_without_negative_memory
+    - expiry_and_followup_trace
+
+llm_deterministic_boundary:
+  decision_surface: multi_capability_context_engineering_and_pending_intent
+  truth_owner: hybrid
+  llm_role:
+    - classify_turn_and_plan_capabilities
+    - resolve_ambiguous_user_intent_when_context_is_available
+    - synthesize_final_response
+    - judge_when_user_language_requests_proposal_vs_confirmation
+  deterministic_role:
+    - validate_scope_keys
+    - enforce_tool_availability
+    - enforce_ordering_constraints
+    - enforce_mutation_legality
+    - enforce_pending_intent_ttl
+    - enforce_rescue_unprompted_threshold
+    - compile_omission_trace
+  do_not_use_as_semantic_truth:
+    - raw_user_text_keyword_route
+    - fixture_case_label
+    - runner_expected_capability_list
+    - old_5_node_recommendation_runner_shape
+  do_not_override:
+    - canonical MealThread truth
+    - DayBudgetLedger truth
+    - BodyPlan truth
+    - reviewed MemoryRecord truth
+    - user-confirmed suppression truth
+
+next_decision:
+  build_next: context_engineering_stress_pr_train
+  do_not_build_yet:
+    - proactive_scheduler_delivery
+    - production_route_activation
+    - production_db_migration
+    - new_generic_workflow_engine
+  evidence_to_advance:
+    - 30-case golden set green under fixture manager planner.
+    - PendingMealIntent lifecycle/store/context tests green.
+    - Grokfast live diagnostic emits non-claim trace for the live seed subset.
+    - Main-to-lab contract drift audit completes before runtime-bearing slices.
