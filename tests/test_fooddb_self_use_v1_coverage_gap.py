@@ -29,15 +29,15 @@ def test_fooddb_self_use_v1_gap_reports_current_packet_ready_counts_against_1000
         "generic_common_serving": 400,
         "listed_component": 350,
     }
-    assert report["current"]["packet_ready_item_count"] == 976
+    assert report["current"]["packet_ready_item_count"] == 988
     assert report["current"]["lane_counts"] == {
-        "exact_item_card": 226,
+        "exact_item_card": 238,
         "generic_common_serving": 400,
         "listed_component": 350,
     }
-    assert report["gap"]["packet_ready_item_count"] == 24
+    assert report["gap"]["packet_ready_item_count"] == 12
     assert report["gap"]["lane_counts"] == {
-        "exact_item_card": 24,
+        "exact_item_card": 12,
         "generic_common_serving": 0,
         "listed_component": 0,
     }
@@ -68,4 +68,4 @@ def test_fooddb_self_use_v1_gap_cli_writes_roundtrippable_artifact(tmp_path: Pat
 
     artifact = read_json_artifact(output)
     assert artifact["status"] == "below_target"
-    assert artifact["gap"]["packet_ready_item_count"] == 24
+    assert artifact["gap"]["packet_ready_item_count"] == 12
