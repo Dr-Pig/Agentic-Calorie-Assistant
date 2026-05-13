@@ -62,6 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--allow-live", action="store_true")
     parser.add_argument("--packet-smoke", default=str(DEFAULT_PACKET_SMOKE))
     parser.add_argument("--tool-evidence-result", default=None)
+    parser.add_argument("--case-id", action="append", default=None)
     parser.add_argument("--preflight-artifact", default=str(DEFAULT_PREFLIGHT))
     parser.add_argument("--router-readiness-artifact", default=str(DEFAULT_ROUTER_READINESS))
     parser.add_argument(
@@ -77,6 +78,22 @@ def main(argv: list[str] | None = None) -> int:
     preflight: dict[str, Any] | None = None
     router_readiness: dict[str, Any] | None = None
     live_runner_readiness: dict[str, Any] | None = None
+
+    selected_case_ids = _selected_case_ids(args.case_id)
+    if selected_case_ids:
+        packet_artifact, selection_blockers = _select_packet_cases(
+            packet_artifact,
+            selected_case_ids=selected_case_ids,
+        )
+        if selection_blockers:
+            artifact = _blocked_case_selection_artifact(
+                failure_family="unknown_case_id_selection",
+                selected_case_ids=selected_case_ids,
+                selection_blockers=selection_blockers,
+            )
+            write_json_artifact(output_path, artifact)
+            _print_summary(output_path, artifact)
+            return 2
 
     if args.mode == "live" and not args.allow_live:
         artifact = {
@@ -370,12 +387,72 @@ def _blocked_live_artifact(
     }
 
 
+def _blocked_case_selection_artifact(
+    *,
+    failure_family: str,
+    selected_case_ids: list[str],
+    selection_blockers: list[str],
+) -> dict[str, Any]:
+    return {
+        "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
+        "classification": "live_diagnostic_only",
+        "status": "blocked",
+        "failure_family": failure_family,
+        "selected_case_ids": selected_case_ids,
+        "selection_blockers": selection_blockers,
+        "live_provider_used": False,
+        "readiness_claimed": False,
+        "self_use_approved": False,
+        "production_selected": False,
+        "runtime_mutation_attempted": False,
+        "runtime_truth_changed": False,
+        "provider_profile": dict(GROKFAST_FOODDB_PACKET_PROFILE),
+    }
+
+
 def _load_packet_artifact(args: argparse.Namespace) -> dict[str, Any]:
     if args.tool_evidence_result:
         return build_packet_artifact_from_tool_evidence_result(
             tool_evidence_artifact=read_json_artifact(Path(args.tool_evidence_result))
         )
     return read_json_artifact(Path(args.packet_smoke))
+
+
+def _selected_case_ids(values: list[str] | None) -> list[str]:
+    selected: list[str] = []
+    for value in values or []:
+        case_id = str(value or "").strip()
+        if case_id and case_id not in selected:
+            selected.append(case_id)
+    return selected
+
+
+def _select_packet_cases(
+    packet_artifact: dict[str, Any],
+    *,
+    selected_case_ids: list[str],
+) -> tuple[dict[str, Any], list[str]]:
+    available_case_ids = {
+        str(case.get("case_id") or "").strip()
+        for case in packet_artifact.get("cases") or []
+        if isinstance(case, dict)
+    }
+    blockers = [f"unknown_case_id:{case_id}" for case_id in selected_case_ids if case_id not in available_case_ids]
+    if blockers:
+        return packet_artifact, blockers
+    filtered_cases = [
+        case
+        for case in packet_artifact.get("cases") or []
+        if isinstance(case, dict) and str(case.get("case_id") or "").strip() in selected_case_ids
+    ]
+    summary = dict(packet_artifact.get("summary") or {})
+    summary["selected_case_count"] = len(filtered_cases)
+    return {
+        **packet_artifact,
+        "cases": filtered_cases,
+        "selected_case_ids": list(selected_case_ids),
+        "summary": summary,
+    }, []
 
 
 def _should_include_upstream_refs(args: argparse.Namespace) -> bool:

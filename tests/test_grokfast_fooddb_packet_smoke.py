@@ -715,6 +715,41 @@ def test_grokfast_fooddb_packet_smoke_cli_defaults_to_fixture_and_blocks_acciden
     assert blocked["failure_family"] == "live_mode_requires_explicit_allow_live"
 
 
+def test_grokfast_fooddb_packet_smoke_cli_can_target_single_real_manager_case(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.run_accurate_intake_grokfast_fooddb_packet_smoke import main
+
+    packet_path = tmp_path / "real-manager-packet.json"
+    output = tmp_path / "single-case-diagnostic.json"
+    write_json_artifact(packet_path, _real_manager_packet_artifact())
+
+    assert (
+        main(
+            [
+                "--mode",
+                "fixture",
+                "--packet-smoke",
+                str(packet_path),
+                "--case-id",
+                "generic_macro_hidden_boba",
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+
+    artifact = read_json_artifact(output)
+    assert artifact["status"] == "pass"
+    assert artifact["packet_artifact_type"] == "accurate_intake_fooddb_real_manager_e2e"
+    assert artifact["selected_case_ids"] == ["generic_macro_hidden_boba"]
+    assert artifact["summary"]["case_count"] == 1
+    assert artifact["summary"]["pass_count"] == 1
+    assert [case["case_id"] for case in artifact["cases"]] == ["generic_macro_hidden_boba"]
+
+
 def test_grokfast_fooddb_packet_smoke_live_requires_runner_readiness_packet(
     tmp_path: Path,
 ) -> None:

@@ -99,6 +99,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--exact-cards", default=str(DEFAULT_EXACT_CARDS))
     parser.add_argument("--approved-packet-ready-artifact")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    parser.add_argument("--case-id", action="append", default=None)
     args = parser.parse_args(argv)
 
     output_dir = Path(args.output_dir)
@@ -123,6 +124,7 @@ def main(argv: list[str] | None = None) -> int:
         mode=args.mode,
         allow_live=args.allow_live,
         paths=paths,
+        selected_case_ids=_selected_case_ids(args.case_id),
     )
     diagnostic = read_json_artifact(paths["diagnostic"])
     report = build_fooddb_live_diagnostic_report(diagnostic_artifact=diagnostic, **_report_inputs(artifacts))
@@ -143,6 +145,7 @@ def main(argv: list[str] | None = None) -> int:
         preflight=artifacts["preflight"],
         live_runner_readiness=artifacts["live_runner_readiness"],
         contract_artifacts={**artifacts, **contract_artifacts},
+        selected_case_ids=_selected_case_ids(args.case_id),
     )
     write_json_artifact(paths["manifest"], manifest)
     print(
@@ -283,6 +286,7 @@ def _run_packet_smoke(
     mode: str,
     allow_live: bool,
     paths: dict[str, Path],
+    selected_case_ids: list[str],
 ) -> int:
     argv = [
         "--mode",
@@ -298,6 +302,8 @@ def _run_packet_smoke(
         "--output",
         str(paths["diagnostic"]),
     ]
+    for case_id in selected_case_ids:
+        argv.extend(["--case-id", case_id])
     if allow_live:
         argv.append("--allow-live")
     return run_grokfast_fooddb_packet_smoke(argv)
@@ -367,6 +373,7 @@ def _build_manifest(
     preflight: dict[str, Any],
     live_runner_readiness: dict[str, Any],
     contract_artifacts: dict[str, dict[str, Any]],
+    selected_case_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     contract_probe = contract_artifacts["manager_contract_probe"]
     approved_artifact = contract_artifacts["approved_packet_ready_artifact"]
@@ -398,6 +405,12 @@ def _build_manifest(
         "diagnostic_exit_code": diagnostic_exit,
         "live_provider_used": diagnostic.get("live_provider_used") is True,
         "live_websearch_used": diagnostic.get("live_websearch_used") is True,
+        "selected_case_ids": (
+            list(diagnostic.get("selected_case_ids") or [])
+            if diagnostic.get("selected_case_ids") is not None
+            else list(selected_case_ids or [])
+        ),
+        "diagnostic_case_count": int(diagnostic.get("summary", {}).get("case_count", 0) or 0),
         "runtime_truth_changed": False,
         "runtime_mutation_attempted": False,
         "readiness_claimed": False,
@@ -469,6 +482,15 @@ def _build_manifest(
             "not_product_readiness",
         ],
     }
+
+
+def _selected_case_ids(values: list[str] | None) -> list[str]:
+    selected: list[str] = []
+    for value in values or []:
+        case_id = str(value or "").strip()
+        if case_id and case_id not in selected:
+            selected.append(case_id)
+    return selected
 
 
 def _inspection_next_slice(
