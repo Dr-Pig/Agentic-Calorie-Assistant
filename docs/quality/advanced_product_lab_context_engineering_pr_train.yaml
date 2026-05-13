@@ -1,0 +1,634 @@
+artifact_type: advanced_product_lab_context_engineering_pr_train
+version: 1
+status: complete
+owner: AdvancedProductLabContextEngineering
+consumer: advanced_product_lab_followup_planning
+planned_pr_count: 29
+dynamic_remaining_pr_count: 0
+last_completed_pr_number: 29
+active_pr_number: null
+current_mainline: advanced_product_lab_context_engineering_skeleton
+is_detour: false
+mainline_blocker_being_removed: advanced_capabilities_exist_but_do_not_yet_converge_on_one_manager_style_runtime_skeleton
+strategic_verdict: mainline
+
+strategic_gate:
+  current_mainline: advanced_product_lab_context_engineering_skeleton
+  is_detour: false
+  blocked_mainline: null
+  detour_reason: null
+  detour_exit_gate: not_applicable
+  exit_gate_status: not_applicable
+  return_slice_after_exit: not_applicable
+  strategic_verdict: mainline
+  mainline_blocker_being_removed: advanced_capabilities_exist_but_do_not_yet_converge_on_one_manager_style_runtime_skeleton
+  upstream_alignment_rule: current_shell_manager_runtime_contract_is_upstream_truth
+
+capability_dependency_check:
+  capability_layer: L1 InteractionEvent / CurrentTurnContext, with L2/L4/L8/L9 convergence requirements
+  upstream_dependencies:
+    - layer: L0 Product Operating Rules
+      contract_status: tested
+      risk_if_missing: planner work can drift away from shared product truth.
+    - layer: L1 InteractionEvent / CurrentTurnContext
+      contract_status: tested
+      risk_if_missing: advanced capabilities can fork into a second routing model.
+    - layer: L2 AttachmentDecision / TransitionGuardResult
+      contract_status: contract_backed
+      risk_if_missing: multi-capability turns can attach tools to the wrong object or proposal.
+    - layer: L4 RetrievalIntent / Source Selection
+      contract_status: tested
+      risk_if_missing: memory, rescue, and recurring-meal retrieval can leak transcript or bypass typed context.
+    - layer: L8 Mutation / Ledger / Version
+      contract_status: draft
+      risk_if_missing: planner and reusable-meal work can fake mutation legality or bypass proposal and ledger truth.
+  slice_mode:
+    - contract_guard
+    - eval
+    - lab_only_runtime
+    - offline_runtime
+  user_facing_behavior_changed: false
+  runtime_truth_changed: false
+  mutation_changed: false
+  safe_to_proceed_now: true
+  why_not_local_next_step_trap: >
+    Recommendation, rescue, and proactive already have enough lab depth that further domain
+    work without a shared planner skeleton would increase integration cost and semantic drift.
+
+branch_strategy:
+  target_branch: codex/advanced-product-lab
+  stable_repo_branches:
+    - main
+    - codex/advanced-product-lab
+  additional_long_lived_branches_allowed: false
+  short_lived_pr_branches_required: false
+  logical_pr_slices_run_on_same_branch: true
+  merge_mainline: main_remains_dormant
+  lab_runtime_surface_may_be_complete: true
+  lab_user_facing_surfaces_allowed: true
+  lab_isolated_mutation_ledger_allowed: true
+  lab_scheduler_simulation_allowed: true
+  live_grokfast_diagnostics_allowed: true
+  kimi_live_calls_allowed: false
+  mainline_activation_enabled: false
+  self_use_v1_affected: false
+  keep_long_lived_lab_branch: true
+
+required_artifact_flags:
+  lab_enabled: true
+  lab_isolated: true
+  mainline_activation_enabled: false
+  mainline_runtime_connected: false
+  mainline_route_or_api_mount_allowed: false
+  production_manager_mount_allowed: false
+  production_scheduler_delivery_allowed: false
+  production_db_migration_allowed: false
+  canonical_product_mutation_allowed: false
+  durable_product_memory_written: false
+  manager_context_packet_changed: false
+  recommendation_served: false
+  rescue_proposal_committed: false
+  proactive_sent: false
+
+dynamic_estimate_protocol:
+  update_after_each_merge: true
+  report_in_chat_after_each_completed_pr: true
+  estimate_may_increase: true
+  estimate_may_decrease: true
+  do_not_use_chat_memory_as_only_plan: true
+  update_fields:
+    - dynamic_remaining_pr_count
+    - last_completed_pr_number
+    - active_pr_number
+    - last_merge_evidence
+    - estimate_notes
+  persistent_truth_files:
+    - docs/quality/advanced_product_lab_context_engineering_pr_train.yaml
+    - AGENTS.md
+    - docs/quality/ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md
+
+spec_coverage_matrix:
+  canonical_source_refs:
+    - docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml
+    - docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md
+    - docs/specs/WAVE_1_PHASE_B_MINIMAL_TOOL_LOOP_SPEC.md
+    - docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml
+    - docs/quality/ACCURATE_INTAKE_MVP_UX_SEMANTIC_CASES.md
+    - docs/quality/ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md
+    - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md
+    - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md
+    - docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md
+    - docs/specs/L4C_CONTEXT_PACKING_SPEC.md
+  required_clauses:
+    - coverage_id: one_manager_style_runtime_contract
+      source_refs:
+        - docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md
+        - docs/specs/WAVE_1_PHASE_B_MINIMAL_TOOL_LOOP_SPEC.md
+      first_pr: 2
+      test_signal: current-shell and advanced-lab share one manager orchestration stance.
+    - coverage_id: multi_intent_context_engineering_golden_set
+      source_refs:
+        - docs/quality/ACCURATE_INTAKE_MVP_UX_SEMANTIC_CASES.md
+        - docs/specs/L4C_CONTEXT_PACKING_SPEC.md
+      first_pr: 5
+      test_signal: one turn may trigger intake, rescue, recommendation, query, and memory without semantic rewrite.
+    - coverage_id: omission_and_tool_ordering_trace
+      source_refs:
+        - docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml
+        - docs/specs/WAVE_1_PHASE_B_MINIMAL_TOOL_LOOP_SPEC.md
+      first_pr: 10
+      test_signal: blocked, omitted, deferred, and allowed tool paths remain visible in trace.
+    - coverage_id: memory_and_rescue_on_shared_turn_plan
+      source_refs:
+        - docs/quality/ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md
+      first_pr: 19
+      test_signal: memory and rescue consume a shared turn plan rather than sidecar-only direct runtime bypass.
+    - coverage_id: reusable_meal_entity_not_memory_only
+      source_refs:
+        - docs/quality/ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md
+        - docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md
+      first_pr: 21
+      test_signal: repeated meals promote to reusable-meal candidates with drift checks, not transcript cache.
+    - coverage_id: recommendation_entry_after_shared_planner
+      source_refs:
+        - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md
+        - docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md
+      first_pr: 29
+      test_signal: recommendation work starts from shared planner/runtime contract rather than a separate orchestration model.
+
+best_practice_evidence:
+  required: true
+  sources_checked:
+    - openai_agents_tools
+    - openai_agents_sessions
+    - openai_agents_guardrails
+    - openai_evaluation_best_practices
+    - openai_agent_evals
+  source_urls:
+    openai_agents_tools: https://openai.github.io/openai-agents-python/tools/
+    openai_agents_sessions: https://openai.github.io/openai-agents-python/sessions/
+    openai_agents_guardrails: https://openai.github.io/openai-agents-python/guardrails/
+    openai_evaluation_best_practices: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+    openai_agent_evals: https://developers.openai.com/api/docs/guides/agent-evals
+  adopted_guidance:
+    - use_one_manager_plus_tools_runtime_contract_instead_of_parallel_orchestration_models
+    - keep_session_history_and_durable_memory_separate
+    - keep_tool_guardrails_at_tool_boundaries
+    - use_trace_grading_and_task_specific_eval_sets_before_activation
+    - validate_realistic_multi_intent_workflows_with_holdouts_and_human_calibration
+  rejected_guidance:
+    - separate_advanced_manager_architecture_for_lab_only_capabilities
+    - hidden_provider_cache_as_reusable_meal_truth
+    - transcript_replay_as_primary_context_pack
+  conflict_with_repo_habits: >
+    Advanced lab already has direct runtime artifact paths that are useful for closure
+    but must converge toward the shared manager loop.
+  how_the_design_changed: >
+    The next build train starts from planner and tool/runtime convergence rather than
+    from deeper recommendation logic.
+
+alignment_rule:
+  upstream_truth_branch: main
+  upstream_truth_contract_family: CurrentShell_ManagerRuntime
+  advanced_lab_role: additive_capability_extension
+  forbidden_drift:
+    - advanced_lab_local_manager_semantics_becoming_upstream_truth
+    - advanced_lab_tool_vocabulary_redefining_current_shell_contracts
+    - advanced_lab_truth_owners_conflicting_with_current_shell_truth_owners
+
+llm_deterministic_boundary:
+  decision_surface: context_engineering_skeleton_and_shared_manager_loop
+  truth_owner: hybrid
+  deterministic_role:
+    - validate_scope
+    - validate_tool_availability
+    - enforce_ordering_constraints
+    - block_illegal_mutation
+    - compile_omission_trace
+    - derive_reuse_downgrade_for_recurring_meal_candidates
+  llm_role:
+    - classify_turn
+    - plan_capabilities
+    - choose_when_to_call_tools
+    - synthesize_final_response
+  do_not_override:
+    - canonical_meal_thread_truth
+    - canonical_budget_and_ledger_truth
+    - canonical_body_plan_truth
+    - ProposalContainer_status_and_legality
+    - reviewed_memory_record_truth
+    - reusable_meal_template_drift_policy
+
+semantic_owner:
+  user_intent: ManagerRuntime
+  food_semantics: FoodDB_and_intake_runtime_contracts
+  routing_or_workflow_effect: shared_manager_turn_plan_contract
+  mutation_legality: deterministic_guards_and_canonical_mutation_layers
+  persistence_truth: canonical_product_objects_plus_reviewed_memory_and_future_reusable_meal_entities
+
+milestones:
+  - milestone_id: planner_contract_and_case_schema
+    provider_profile: none
+    blocks_completion: true
+  - milestone_id: shared_memory_rescue_turn_plan_integration
+    provider_profile: none
+    blocks_completion: true
+  - milestone_id: recurring_meal_shadow_retrieval
+    provider_profile: none
+    blocks_completion: true
+  - milestone_id: grokfast_manager_turn_live_diagnostic
+    provider_profile: builderspace-grok-4-fast
+    blocks_completion: true
+  - milestone_id: context_engineering_shadow_comparison_decision_pack
+    provider_profile: builderspace-grok-4-fast
+    blocks_completion: true
+
+pr_train:
+  - pr_number: 1
+    slice_id: context_engineering_bootstrap_and_train_alignment
+    goal: Record the 29-PR train, branch policy, manager-style convergence rule, and reusable-meal boundary in canonical bootstrap/spec artifacts.
+    slice_mode:
+      - contract_guard
+      - wrapper_evidence_wiring
+    merge_target: codex/advanced-product-lab
+    completion_gate: AGENTS/bootstrap, memory build spec, and machine-readable train align without changing runtime code.
+  - pr_number: 2
+    slice_id: shared_manager_style_convergence_contract
+    goal: Define the shared manager-style convergence contract across Current Shell and advanced lab.
+    slice_mode:
+      - contract_guard
+      - runtime_contract
+    merge_target: codex/advanced-product-lab
+    completion_gate: one orchestration stance and one truth-owner map are machine-readable and test-backed.
+  - pr_number: 3
+    slice_id: shared_capability_registry_contract
+    goal: Add shared capability family and tool-vocabulary registry for intake, query, memory, rescue, recommendation, proactive, and reusable meal.
+    slice_mode:
+      - contract_guard
+      - capability_registry
+    merge_target: codex/advanced-product-lab
+    completion_gate: capability names, tool modes, and family ownership are normalized.
+  - pr_number: 4
+    slice_id: manager_turn_plan_schema
+    goal: Add typed ManagerTurnPlan and FinalResponsePlan contracts for multi-intent capability planning.
+    slice_mode:
+      - contract_guard
+      - runtime_contract
+    merge_target: codex/advanced-product-lab
+    completion_gate: planner output no longer depends on ad hoc fixture script shape.
+  - pr_number: 5
+    slice_id: multi_intent_golden_set_schema_and_loader
+    goal: Add product-wide multi-intent context-engineering golden set schema and loader.
+    slice_mode:
+      - eval
+      - contract_guard
+    merge_target: codex/advanced-product-lab
+    completion_gate: one-turn overlap cases are representable without runner-inferred semantics.
+  - pr_number: 6
+    slice_id: current_shell_and_advanced_lab_overlap_case_pack
+    goal: Seed overlap cases spanning intake, query, memory, rescue, and recommendation posture.
+    slice_mode:
+      - eval
+      - holdout
+    merge_target: codex/advanced-product-lab
+    completion_gate: overlap cases cover both branches without creating separate routing taxonomies.
+  - pr_number: 7
+    slice_id: ambiguity_holdout_and_adversarial_case_pack
+    goal: Add ambiguity, prompt-injection, omission, and over-trigger holdouts for shared planner behavior.
+    slice_mode:
+      - eval
+      - security_holdout
+    merge_target: codex/advanced-product-lab
+    completion_gate: lexical shortcuts and transcript-driven semantic routing are caught.
+  - pr_number: 8
+    slice_id: trace_grader_and_omission_rubric
+    goal: Add trace grading and omission/defer/block rubric for planner and tool-loop evidence.
+    slice_mode:
+      - eval
+      - quality_report
+    merge_target: codex/advanced-product-lab
+    completion_gate: planner quality is scored on outcome and trace evidence rather than fixed tool order only.
+  - pr_number: 9
+    slice_id: bounded_react_loop_state_contract
+    goal: Define bounded ReAct loop state, stop conditions, and pass/round constraints shared by the lab and Current Shell.
+    slice_mode:
+      - runtime_contract
+      - contract_guard
+    merge_target: codex/advanced-product-lab
+    completion_gate: pass1/pass2 remains legal as a harness subset but not the only runtime shape.
+  - pr_number: 10
+    slice_id: tool_choice_ordering_and_argument_walls
+    goal: Add deterministic walls for tool availability, ordering, arguments, omission, and illegal same-turn combinations.
+    slice_mode:
+      - runtime_contract
+      - contract_guard
+    merge_target: codex/advanced-product-lab
+    completion_gate: multi-capability turns cannot bypass legality or hide blocked tools.
+  - pr_number: 11
+    slice_id: context_pack_assembler_base
+    goal: Build the shared capability context-pack assembler base.
+    slice_mode:
+      - runtime_contract
+      - context_packing
+    merge_target: codex/advanced-product-lab
+    completion_gate: per-capability context selection is explicit and typed.
+  - pr_number: 12
+    slice_id: memory_context_pack_adapter
+    goal: Attach long-term memory and recall summaries to the shared context-pack assembler.
+    slice_mode:
+      - runtime_contract
+      - memory
+    merge_target: codex/advanced-product-lab
+    completion_gate: memory is consumed as typed context, not transcript replay.
+  - pr_number: 13
+    slice_id: rescue_context_pack_adapter
+    goal: Attach rescue read models, current budget, body plan, and open-proposal context to the shared assembler.
+    slice_mode:
+      - runtime_contract
+      - rescue
+    merge_target: codex/advanced-product-lab
+    completion_gate: rescue context no longer relies on direct sidecar-only runtime wiring.
+  - pr_number: 14
+    slice_id: current_shell_runtime_bridge_contract
+    goal: Define the bridge from Current Shell manager runtime traces into the shared planner vocabulary.
+    slice_mode:
+      - runtime_contract
+      - bridge
+    merge_target: codex/advanced-product-lab
+    completion_gate: Current Shell can map into the same capability-plan vocabulary without activation drift.
+  - pr_number: 15
+    slice_id: advanced_lab_runtime_bridge_contract
+    goal: Define the bridge from advanced product-lab runtime surfaces into the shared planner vocabulary.
+    slice_mode:
+      - runtime_contract
+      - bridge
+    merge_target: codex/advanced-product-lab
+    completion_gate: advanced lab direct runtime builders expose the same planner seams as Current Shell.
+  - pr_number: 16
+    slice_id: manager_tool_result_envelope_normalization
+    goal: Normalize tool-result envelopes, blockers, and source refs across manager-callable capability tools.
+    slice_mode:
+      - runtime_contract
+      - tool_envelope
+    merge_target: codex/advanced-product-lab
+    completion_gate: tool outputs are composable without per-tool special casing in the manager loop.
+  - pr_number: 17
+    slice_id: final_response_plan_and_capability_signal_packet
+    goal: Add final response planning packet and user-visible capability signal contract.
+    slice_mode:
+      - runtime_contract
+      - chat_first
+    merge_target: codex/advanced-product-lab
+    completion_gate: users can tell what the system is doing without seeing internal tool names.
+  - pr_number: 18
+    slice_id: direct_bypass_to_manager_path_convergence
+    goal: Converge advanced-lab default runtime path away from direct capability bypass toward shared manager planning.
+    slice_mode:
+      - runtime_contract
+      - convergence
+    merge_target: codex/advanced-product-lab
+    completion_gate: manager path becomes the default integration path and direct builders become subordinate internals.
+  - pr_number: 19
+    slice_id: memory_run_on_shared_turn_plan
+    goal: Run long-term memory retrieval and recall through the shared turn plan.
+    slice_mode:
+      - product_capability
+      - memory
+    merge_target: codex/advanced-product-lab
+    completion_gate: memory tools are triggered by planner semantics, not fixture-only call sequences.
+  - pr_number: 20
+    slice_id: rescue_run_on_shared_turn_plan
+    goal: Run rescue triggering, negotiation, and proposal shaping through the shared turn plan.
+    slice_mode:
+      - product_capability
+      - rescue
+    merge_target: codex/advanced-product-lab
+    completion_gate: rescue becomes a planner-managed capability inside the shared ReAct loop.
+  - pr_number: 21
+    slice_id: reusable_meal_entity_contract
+    goal: Add UserFoodEntity or RecurringMealTemplate contract as a shared product object, not memory-only truth.
+    slice_mode:
+      - contract_guard
+      - product_capability
+    merge_target: codex/advanced-product-lab
+    completion_gate: repeated meals have a typed truth object with scope, provenance, and version seams.
+  - pr_number: 22
+    slice_id: reusable_meal_promotion_and_drift_policy
+    goal: Add promotion, reuse, downgrade, supersede, and drift policy for reusable-meal candidates.
+    slice_mode:
+      - product_capability
+      - policy
+    merge_target: codex/advanced-product-lab
+    completion_gate: same-as-before reuse is explicit and bounded rather than hidden cache reuse.
+  - pr_number: 23
+    slice_id: reusable_meal_golden_set_and_holdouts
+    goal: Add reusable-meal golden set, holdouts, and false-match coverage.
+    slice_mode:
+      - eval
+      - holdout
+    merge_target: codex/advanced-product-lab
+    completion_gate: similar but not identical meals do not collapse into one template.
+  - pr_number: 24
+    slice_id: reusable_meal_memory_hint_bridge
+    goal: Bridge repeated-pattern memory hints into reusable-meal candidate retrieval without making memory the truth owner.
+    slice_mode:
+      - product_capability
+      - memory
+    merge_target: codex/advanced-product-lab
+    completion_gate: memory can suggest reusable meals but cannot silently assert nutrition truth.
+  - pr_number: 25
+    slice_id: reusable_meal_intake_shadow_retrieval
+    goal: Attach reusable-meal candidate retrieval to intake-side shadow runtime and typed context packs.
+    slice_mode:
+      - product_capability
+      - intake
+    merge_target: codex/advanced-product-lab
+    completion_gate: intake can reuse prior stable meals with downgrade-to-reestimate safety.
+  - pr_number: 26
+    slice_id: integrated_memory_rescue_reusable_meal_fixture_e2e
+    goal: Run integrated fixture E2E across planner, memory, rescue, and reusable-meal retrieval.
+    slice_mode:
+      - e2e
+      - product_capability
+    merge_target: codex/advanced-product-lab
+    completion_gate: multi-capability behavior stays coherent inside one loop.
+  - pr_number: 27
+    slice_id: grokfast_manager_turn_live_diagnostic
+    goal: Run Grokfast live diagnostic over shared planner turns, not just isolated domain nodes.
+    slice_mode:
+      - live_diagnostic
+      - eval
+    merge_target: codex/advanced-product-lab
+    completion_gate: live evidence shows planner, tools, and response synthesis interact correctly.
+  - pr_number: 28
+    slice_id: context_engineering_shadow_comparison_and_decision_pack
+    goal: Compare baseline and shared-planner paths, then produce decision pack and readiness report.
+    slice_mode:
+      - quality_report
+      - decision_unlock
+    merge_target: codex/advanced-product-lab
+    completion_gate: remaining planner gaps are explicit before recommendation starts.
+  - pr_number: 29
+    slice_id: recommendation_entry_contract_and_next_train_closeout
+    goal: Close the pre-recommendation train and record the next recommendation train starting from the shared planner skeleton.
+    slice_mode:
+      - closure
+      - contract_guard
+    merge_target: codex/advanced-product-lab
+    completion_gate: recommendation begins from the shared manager/runtime contract rather than from a parallel architecture.
+
+last_merge_evidence:
+  completed_prs:
+    - pr_number: 1
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: context_engineering_bootstrap_and_train_alignment_completed_locally
+    - pr_number: 2
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: shared_manager_style_convergence_contract_completed_locally
+    - pr_number: 3
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: shared_capability_registry_contract_completed_locally
+    - pr_number: 4
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: manager_turn_plan_schema_completed_locally
+    - pr_number: 5
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: multi_intent_golden_set_schema_and_loader_completed_locally
+    - pr_number: 6
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: current_shell_and_advanced_lab_overlap_case_pack_completed_locally
+    - pr_number: 7
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: ambiguity_holdout_and_adversarial_case_pack_completed_locally
+    - pr_number: 8
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: trace_grader_and_omission_rubric_completed_locally
+    - pr_number: 9
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: bounded_react_loop_state_contract_completed_locally
+    - pr_number: 10
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: tool_choice_ordering_and_argument_walls_completed_locally
+    - pr_number: 11
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: context_pack_assembler_base_completed_locally
+    - pr_number: 12
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: memory_context_pack_adapter_completed_locally
+    - pr_number: 13
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: rescue_context_pack_adapter_completed_locally
+    - pr_number: 14
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: current_shell_runtime_bridge_contract_completed_locally
+    - pr_number: 15
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: advanced_lab_runtime_bridge_contract_completed_locally
+    - pr_number: 16
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: manager_tool_result_envelope_normalization_completed_locally
+    - pr_number: 17
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: final_response_plan_and_capability_signal_packet_completed_locally
+    - pr_number: 18
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: direct_bypass_to_manager_path_convergence_completed_locally
+    - pr_number: 19
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: memory_run_on_shared_turn_plan_completed_locally
+    - pr_number: 20
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: rescue_run_on_shared_turn_plan_completed_locally
+    - pr_number: 21
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: reusable_meal_entity_contract_completed_locally
+    - pr_number: 22
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: reusable_meal_promotion_and_drift_policy_completed_locally
+    - pr_number: 23
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: reusable_meal_golden_set_and_holdouts_completed_locally
+    - pr_number: 24
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: reusable_meal_memory_hint_bridge_completed_locally
+    - pr_number: 25
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: reusable_meal_intake_shadow_retrieval_completed_locally
+    - pr_number: 26
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: integrated_memory_rescue_reusable_meal_fixture_e2e_completed_locally
+    - pr_number: 27
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: grokfast_manager_turn_live_diagnostic_completed_locally
+      live_artifact: artifacts/advanced_product_lab_manager_turn_grokfast_diagnostic_pr27_live.json
+    - pr_number: 28
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: context_engineering_shadow_comparison_and_decision_pack_completed_locally
+      decision_pack_artifact: artifacts/advanced_product_lab_context_engineering_decision_pack_pr28.json
+    - pr_number: 29
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: recommendation_entry_contract_and_next_train_closeout_completed_locally
+      entry_contract_artifact: artifacts/advanced_product_lab_recommendation_entry_contract_pr29.json
+      next_train: docs/quality/advanced_product_lab_recommendation_pr_train.yaml
+estimate_notes:
+  - Initial dynamic estimate is 29 PRs before PR1 merge.
+  - After PR1 logical completion, remaining estimate moved to 28.
+  - After PR2 logical completion, remaining estimate moved to 27.
+  - After PR3 logical completion, remaining estimate moved to 26.
+  - After PR4 logical completion, remaining estimate moved to 25.
+  - After PR5 logical completion, remaining estimate moved to 24.
+  - After PR6 logical completion, remaining estimate moved to 23.
+  - After PR7 logical completion, remaining estimate moved to 22.
+  - After PR8 logical completion, remaining estimate moved to 21.
+  - After PR9 logical completion, remaining estimate moved to 20.
+  - After PR10 logical completion, remaining estimate moved to 19.
+  - After PR11 logical completion, remaining estimate moved to 18.
+  - After PR12 logical completion, remaining estimate moved to 17.
+  - After PR13 logical completion, remaining estimate moved to 16.
+  - After PR14 logical completion, remaining estimate moved to 15.
+  - After PR15 logical completion, remaining estimate moved to 14.
+  - After PR16 logical completion, remaining estimate moved to 13.
+  - After PR17 logical completion, remaining estimate moved to 12.
+  - After PR18 logical completion, remaining estimate moved to 11.
+  - After PR19 logical completion, remaining estimate moved to 10.
+  - After PR20 logical completion, remaining estimate moved to 9.
+  - After PR21 logical completion, remaining estimate moved to 8.
+  - After PR22 logical completion, remaining estimate moved to 7.
+  - After PR23 logical completion, remaining estimate moved to 6.
+  - After PR24 logical completion, remaining estimate moved to 5.
+  - After PR25 logical completion, remaining estimate moved to 4.
+  - After PR26 logical completion, remaining estimate moved to 3.
+  - After PR27 logical completion, remaining estimate moved to 2 after a real Grokfast live diagnostic passed.
+  - After PR28 logical completion, remaining estimate moved to 1 after the decision pack passed without mainline activation.
+  - After PR29 logical completion, remaining estimate moved to 0 and the recommendation train opened with an initial dynamic estimate of 24 PRs.
+  - Remaining PR count must be updated after every completed logical PR and may increase if convergence work exposes hidden integration gaps.

@@ -1,0 +1,59 @@
+artifact_type: advanced_product_lab_reusable_meal_golden_set
+version: 1
+status: active
+cases:
+  - case_id: rm-001
+    category: explicit_same_as_before
+    utterance: same as before, mom fried rice
+    expected_decision: reuse_exact
+    repetition_count: 4
+    explicit_same_as_before: true
+    ingredient_drift: false
+    portion_drift: false
+    source_drift: false
+  - case_id: rm-002
+    category: repeated_but_not_explicit
+    utterance: mom fried rice again
+    expected_decision: reuse_anchored
+    repetition_count: 4
+    explicit_same_as_before: false
+    ingredient_drift: false
+    portion_drift: false
+    source_drift: false
+  - case_id: rm-003
+    category: ingredient_drift
+    utterance: same hotpot but added tofu today
+    expected_decision: re_estimate_required
+    repetition_count: 6
+    explicit_same_as_before: true
+    ingredient_drift: true
+    portion_drift: false
+    source_drift: false
+  - case_id: rm-004
+    category: low_repetition
+    utterance: I had that custom oatmeal again
+    expected_decision: candidate_only
+    repetition_count: 2
+    explicit_same_as_before: false
+    ingredient_drift: false
+    portion_drift: false
+    source_drift: false
+holdouts:
+  - case_id: rm-h001
+    category: false_match_store_variant
+    utterance: same ramen, different store
+    expected_decision: re_estimate_required
+    repetition_count: 5
+    explicit_same_as_before: true
+    ingredient_drift: false
+    portion_drift: false
+    source_drift: true
+  - case_id: rm-h002
+    category: false_match_portion_variant
+    utterance: same breakfast sandwich but double portion
+    expected_decision: re_estimate_required
+    repetition_count: 5
+    explicit_same_as_before: true
+    ingredient_drift: false
+    portion_drift: true
+    source_drift: false

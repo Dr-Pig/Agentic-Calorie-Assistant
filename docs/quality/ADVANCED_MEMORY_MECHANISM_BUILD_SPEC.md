@@ -18,6 +18,28 @@ The first goal is not to create a memory service. The first goal is to make memo
 
 Memory work in this phase may observe runtime behavior as evidence. It must not become runtime behavior.
 
+## Manager-Style Convergence Addendum
+
+Advanced memory, rescue, recommendation, proactive, and reusable-meal work must converge on the same Manager-style runtime contract that Current Shell uses for bounded tool calling and deterministic legality checks.
+
+Allowed temporary implementation shapes:
+
+- scripted manager passes for fixture or E2E evidence
+- pass1/pass2 harnesses for bounded diagnostic slices
+- direct runtime artifact builders that expose domain logic before the shared manager planner is complete
+
+These are temporary harness shapes only. They must not become a second product architecture.
+
+Required convergence rules:
+
+- one shared outer orchestration stance: bounded Manager-style ReAct loop
+- one shared capability-planning vocabulary across Current Shell and advanced lab
+- one shared tool vocabulary for cross-domain capabilities
+- one shared truth-owner map for meal, budget, body, proposal, memory, and reusable-meal entities
+- one shared deterministic legality layer for scope, ordering, mutation, and activation walls
+
+Do not let the advanced lab and Current Shell drift into separate agent skeletons merely because one branch is fully enabled in the lab and the other remains dormant on mainline.
+
 ## Advanced Runtime Lab Addendum
 
 The isolated advanced lab is allowed to build complete product-capability mechanics, but the merge-back posture must stay dormant.
@@ -182,6 +204,7 @@ semantic_owner:
 - Memory is not a transcript dump.
 - Memory is not canonical meal, budget, body, proposal, or ledger truth.
 - Memory may reference canonical objects, but it must not replace them.
+- Reusable meals are not generic cache entries. When repeated meal reuse becomes a product object, its truth must live in a user-scoped reusable-meal entity or template layer with versioning and source refs, not in free-text memory alone.
 - Short-term context is not durable memory.
 - Pattern memory can influence future ranking or suppression only after the consumer has an approved read boundary.
 - Confirmed memory requires explicit user confirmation, review, or revocation support.
@@ -215,6 +238,7 @@ Live test policy:
 | L2a Statistical Pattern | Deterministic patterns from canonical history | deterministic consolidation | shadow candidates and derived summary fields | durable writes or hidden personalization | recommendation, rescue, proactive, calibration |
 | L2b Semantic Pattern | LLM-extracted pattern candidate from enough evidence | future reviewed memory pipeline | schema design and fake provider cases | live LLM extraction or promotion | recommendation and chat context after activation |
 | L3 Confirmed Memory | Explicit or user-confirmed memory | future durable memory store with review surface | candidate schema and fixture review | durable write, cross-session injection, or automatic promotion | recommendation, proactive, chat context |
+| Reusable Personal Meal | User-scoped reusable meal template backed by canonical meal refs and confirmed estimate posture | future reusable-meal entity layer plus canonical meal/source refs | schema design, fixture cases, and shadow retrieval candidates | silent auto-attach, FoodDB truth replacement, or durable write | intake reuse, long-term chat context, recommendation |
 | Negative Preference Memory | Confirmed dislike, avoidance, opt-out, or inferred avoidance candidate | future reviewed memory store; deterministic guards for suppression | conflict cases and blocking rules | auto-demotion of confirmed negative memory | recommendation and proactive hard guards |
 | Temporary Preference | Time-boxed preference or constraint | future reviewed memory store | validity-window fixtures | indefinite defaults or silent extension | recommendation and proactive ranking |
 | Golden Order | Repeated store plus item bundle materialized from canonical history | canonical history materialized view | deterministic shadow view | treating it as promotion output | recommendation and proactive candidate selection |
@@ -228,6 +252,7 @@ Consumers should read bounded summaries, not raw history.
 | Summary | Inputs | Can answer | Must not answer |
 |---|---|---|---|
 | PreferenceProfileSummary | committed meals, explicit preference candidates, negative preferences, temporary preferences | likely staples, drink style, store affinity, time-of-day tendencies, blockers | final food truth, current intent, or durable preference truth |
+| PersonalMealTemplateSummary | committed meals, repeated bundle history, user-confirmed meal reuse decisions | whether the user likely means a repeated personal meal and which reusable versions are candidates | FoodDB truth, auto-commit authority, or current-turn target selection |
 | GoldenOrderSummary | canonical committed meal history | repeated store and bundle candidates with recency and confidence | confirmed memory, promotion, or current craving |
 | SuppressionSummary | ignored nudges, dismissals, explicit opt-outs, quiet-hour and cooldown events | whether a proactive or recommendation surface should be reduced, delayed, or blocked | permission to send |
 | IntakeCompletenessSummary | meal log completeness and correction history | logging gaps, likely underlogging windows, confidence gaps | budget mutation or body-plan adjustment |
@@ -243,17 +268,41 @@ These rules are copied from canonical memory specs and narrowed for this build s
 - Repeated store and item creates a pattern candidate after the same store plus item repeats at least 3 times.
 - Repeated item kind creates a pattern candidate after the same item kind repeats at least 5 times.
 - Repeated time preference creates a pattern candidate after the same time preference repeats at least 5 times.
+- Reusable personal meal candidate may appear after the same normalized user-scoped meal/bundle repeats at least 3 times or the user explicitly confirms that the meal should be reusable later.
+- Reusable personal meal promotion must stay separate from generic preference promotion. Repetition may produce a reusable-meal candidate, but durable reusable-meal truth requires either explicit "same as before" style user confirmation or a reviewed promotion path with portion, ingredient, and source stability checks.
+- Reusable personal meal retrieval may choose between `reuse_exact`, `reuse_anchored`, and `re_estimate_required`. The system must downgrade to `re_estimate_required` when portion, ingredients, cooking method, or source drift beyond the template's confirmed reuse policy.
 - Golden order appears when the same normalized store plus bundle repeats at least 3 times in 30 days and has an observation within 60 days.
 - Pattern to confirmed memory requires reinforcement count at least 5, confidence at least 0.8, consistency for 30 days, and user confirmation.
 - LLM extraction may propose a semantic pattern candidate only after the evidence threshold exists; it may not complete promotion.
 - Confirmed negative memory does not auto-demote. It changes only through explicit user cancellation or correction.
 - Temporary preference defaults to a maximum 14-day validity window unless a narrower user-stated window exists.
+- Reusable personal meal drift in recipe, portion, modifiers, or cooking method must create a supersede or re-estimate path; it must not silently overwrite the previous reusable version.
 - Pattern memory not observed for 30 days is downgraded to needs_attention, archived at 60 days, and deleted at 90 days unless refreshed by new evidence.
 - Golden order inactive for 60 days is inactive, archived at 90 days, and may reactivate if the same bundle reappears.
 
 ## Consumer Dependency Map
 
 Build consumers against the summary views, not against memory storage.
+
+## Reusable Meal Boundary Clarification
+
+Reusable-meal support is related to memory but it is not owned by memory alone.
+
+Use this split:
+
+- memory owns recall hints, repeated-pattern evidence, review state, and user-facing summary language
+- canonical meal history owns the source observations and auditable provenance
+- a future reusable-meal entity or template layer owns normalized meal identity, estimate posture, versioning, reuse policy, and drift handling
+- intake and recommendation consume reusable-meal candidates through typed retrieval, not transcript replay
+
+Do not implement reusable-meal support as:
+
+- a hidden provider cache
+- raw transcript search
+- direct FoodDB truth replacement
+- a free-text note that bypasses estimate/version boundaries
+
+When the reusable-meal slice is built, it must align with the shared Manager-style tool/runtime contract so that Current Shell and the advanced product lab can attach the same capability later with different activation posture instead of different architecture.
 
 | Consumer | Reads first | Needs later | Must not do in this phase |
 |---|---|---|---|

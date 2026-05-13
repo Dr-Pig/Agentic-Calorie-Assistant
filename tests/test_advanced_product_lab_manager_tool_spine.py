@@ -45,6 +45,17 @@ def test_product_lab_manager_tool_loop_runs_representative_dynamic_spine(
         "rescue-1",
         "proactive-1",
     ]
+    response_plan = artifact["final_response_packet"]["final_response_signal_packet"][
+        "response_plan"
+    ]
+    assert response_plan["user_visible_capabilities"] == [
+        "memory",
+        "recommendation",
+        "rescue",
+        "proactive",
+    ]
+    assert "accept_rescue_plan" in response_plan["action_affordances"]
+    assert "dismiss_nudge" in response_plan["action_affordances"]
 
     by_call = {result["call_id"]: result for result in artifact["tool_result_trace"]}
     memory_search = by_call["memory-search-1"]["result_artifact"]

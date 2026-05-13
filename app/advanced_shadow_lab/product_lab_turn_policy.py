@@ -15,6 +15,8 @@ SUPPORTED_FIXTURE_INTENTS = {
     "swap_suggestion",
     "exercise_budget_bonus",
     "weekly_insight_proactive_lab",
+    "repeat_meal_intake_shadow",
+    "repeat_meal_rescue_shadow",
 }
 CAPABILITIES_EXERCISED = [
     "long_term_memory",

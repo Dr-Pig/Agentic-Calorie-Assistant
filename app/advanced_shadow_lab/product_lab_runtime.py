@@ -16,10 +16,10 @@ from app.advanced_shadow_lab.product_lab_memory import (
     empty_product_lab_memory_context_pack,
     fixture_inputs_with_lab_memory_context,
 )
-from app.advanced_shadow_lab.product_lab_manager_tool_loop import (
-    run_product_lab_manager_tool_loop,
-)
 from app.advanced_shadow_lab.product_lab_memory_store import ProductLabMemoryStore
+from app.advanced_shadow_lab.product_lab_runtime_manager_artifacts import (
+    build_runtime_manager_artifacts,
+)
 from app.advanced_shadow_lab.product_lab_runtime_product_artifacts import (
     product_lab_product_artifact_blockers,
     run_product_lab_product_artifacts,
@@ -60,16 +60,12 @@ def run_advanced_product_lab_turn(
         session_id=str(turn.get("session_id") or ""), turn_id=str(turn.get("turn_id") or "")
     ))
     runtime_inputs = fixture_inputs_with_lab_memory_context(fixture_inputs, memory_context_pack)
-    manager_tool_loop = (
-        run_product_lab_manager_tool_loop(
-            lab_mode=lab_mode,
-            turn=turn,
-            fixture_inputs=runtime_inputs,
-            manager_script=list(manager_script),
-            store=manager_tool_store,
-        )
-        if manager_script is not None
-        else None
+    manager_artifacts = build_runtime_manager_artifacts(
+        lab_mode=lab_mode,
+        turn=turn,
+        runtime_inputs=runtime_inputs,
+        manager_script=manager_script,
+        manager_tool_store=manager_tool_store,
     )
     chain = run_advanced_shadow_e2e_fixture_chain(
         memory_summary_projection=mapping(fixture_inputs, "memory_summary_projection"),
@@ -129,7 +125,7 @@ def run_advanced_product_lab_turn(
         *product_lab_product_artifact_blockers(product_artifacts),
         *[
             f"manager_tool_loop.{blocker}"
-            for blocker in _tool_loop_blockers(manager_tool_loop)
+            for blocker in manager_artifacts["manager_tool_loop_blockers"]
         ],
         *stage_blockers("control_state", control_state),
         *chat_packet_blockers(chat_packet),
@@ -161,9 +157,11 @@ def run_advanced_product_lab_turn(
         "product_lab_exercise_budget_artifact": product_exercise_budget,
         "product_lab_weekly_insight_artifact": product_weekly_insight,
         "product_lab_proactive_artifact": product_proactive,
-        "manager_tool_loop_enabled": manager_tool_loop is not None,
-        "manager_tool_loop_artifact": manager_tool_loop,
-        "manager_tool_loop_source_refs": _tool_loop_source_refs(manager_tool_loop),
+        **{
+            key: value
+            for key, value in manager_artifacts.items()
+            if key != "manager_tool_loop_blockers"
+        },
         "e2e_chain_artifact": chain,
         "control_state": control_state,
         "lab_chat_response_packet": chat_packet,
@@ -171,20 +169,6 @@ def run_advanced_product_lab_turn(
         "blockers": all_blockers,
         **dict(FALSE_FLAGS),
     }
-
-
-def _tool_loop_blockers(artifact: Mapping[str, Any] | None) -> list[str]:
-    return [] if artifact is None else [str(blocker) for blocker in artifact.get("blockers") or []]
-
-
-def _tool_loop_source_refs(artifact: Mapping[str, Any] | None) -> list[str]:
-    if artifact is None:
-        return []
-    return [
-        f"manager_tool_call:{result.get('call_id') or ''}:{result.get('tool_name') or ''}"
-        for result in artifact.get("tool_result_trace") or []
-        if isinstance(result, Mapping)
-    ]
 
 
 __all__ = ["SIDECAR_ACTIVATION_CONTRACT", "run_advanced_product_lab_turn"]

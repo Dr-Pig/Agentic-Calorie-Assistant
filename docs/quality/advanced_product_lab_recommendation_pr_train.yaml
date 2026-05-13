@@ -1,0 +1,189 @@
+artifact_type: advanced_product_lab_recommendation_pr_train
+version: 1
+status: active
+owner: AdvancedProductLabRecommendation
+consumer: advanced_product_lab_followup_planning
+planned_pr_count: 24
+dynamic_remaining_pr_count: 24
+last_completed_pr_number: 0
+active_pr_number: 1
+current_mainline: advanced_product_lab_recommendation_manager_tool_train
+is_detour: false
+mainline_blocker_being_removed: recommendation_must_enter_through_shared_manager_tool_loop
+strategic_verdict: mainline
+
+parent_context_engineering_train:
+  path: docs/quality/advanced_product_lab_context_engineering_pr_train.yaml
+  closed_by_pr: 29
+  entry_contract_artifact: artifacts/advanced_product_lab_recommendation_entry_contract_pr29.json
+
+branch_strategy:
+  target_branch: codex/advanced-product-lab
+  stable_repo_branches:
+    - main
+    - codex/advanced-product-lab
+  logical_pr_slices_run_on_same_branch: true
+  lab_runtime_surface_may_be_complete: true
+  mainline_activation_enabled: false
+  self_use_v1_affected: false
+  keep_long_lived_lab_branch: true
+
+required_artifact_flags:
+  lab_enabled: true
+  lab_isolated: true
+  recommendation_served_to_lab: true
+  mainline_activation_enabled: false
+  mainline_runtime_connected: false
+  served_to_mainline_user: false
+  production_scheduler_delivery_allowed: false
+  production_db_migration_allowed: false
+  canonical_product_mutation_allowed: false
+  durable_product_memory_written: false
+  manager_context_packet_changed: false
+
+manager_tool_entry:
+  tool_name: recommendation.run
+  capability_id: recommendation
+  tool_mode: candidate_context
+  runtime_surface: manager_tool_loop
+  parallel_orchestration_allowed: false
+  upstream_truth_contract_family: CurrentShell_ManagerRuntime
+
+recommendation_graph:
+  physical_node_order:
+    - recommendation_planning
+    - candidate_retrieval_guard_scoring
+    - offer_synthesis
+  logical_stage_boundaries:
+    - recommendation_context_result
+    - candidate_spec
+    - candidate_retrieval_guard_scoring
+    - ranking_result
+    - recommendation_response_result
+  legacy_five_node_runner_is_canonical: false
+  generic_workflow_engine_required: false
+  ownership_boundaries:
+    - llm_planning_to_deterministic_guard
+    - deterministic_guard_to_llm_offer_synthesis
+
+best_practice_evidence:
+  required: true
+  sources_checked:
+    - openai_agents_tools
+    - openai_agents_sessions
+    - openai_agents_guardrails
+    - openai_evaluation_best_practices
+    - openai_agent_evals
+  source_urls:
+    openai_agents_tools: https://openai.github.io/openai-agents-python/tools/
+    openai_agents_sessions: https://openai.github.io/openai-agents-python/sessions/
+    openai_agents_guardrails: https://openai.github.io/openai-agents-python/guardrails/
+    openai_evaluation_best_practices: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+    openai_agent_evals: https://developers.openai.com/api/docs/guides/agent-evals
+  adopted_guidance:
+    - expose_recommendation_as_a_manager_tool_with_guarded_tool_boundaries
+    - keep_session_history_memory_and_recommendation_truth_separate
+    - use_trace_grading_and_holdouts_before_mainline_activation
+  rejected_guidance:
+    - five_node_pass_chain_as_canonical_runtime
+    - generic_workflow_engine_before_second_real_consumer
+    - direct_lab_runtime_bypass_as_upstream_truth
+
+llm_deterministic_boundary:
+  decision_surface: recommendation_manager_tool_runtime
+  truth_owner: hybrid
+  deterministic_role:
+    - validate_tool_scope
+    - retrieve_candidates
+    - apply_hard_blockers
+    - score_quality_signals
+    - block_illegal_mutation
+  llm_role:
+    - classify_recommendation_goal
+    - produce_candidate_spec
+    - synthesize_offer
+    - explain_tradeoffs
+  do_not_override:
+    - canonical_meal_thread_truth
+    - current_budget_view
+    - active_body_plan_view
+    - reviewed_memory_record_truth
+    - rescue_proposal_legality
+
+pr_train:
+  - pr_number: 1
+    slice_id: recommendation_parent_entry_and_gate_alignment
+    goal: Verify context-engineering closeout and start recommendation from recommendation.run only.
+  - pr_number: 2
+    slice_id: recommendation_tool_argument_contract
+    goal: Define manager tool arguments, scope keys, and no raw transcript bypass.
+  - pr_number: 3
+    slice_id: recommendation_turn_plan_input_adapter
+    goal: Project ManagerTurnPlan and context packs into planning input.
+  - pr_number: 4
+    slice_id: recommendation_planning_fixture_provider
+    goal: Add LLM-owned planning fixture provider and schema tests.
+  - pr_number: 5
+    slice_id: recommendation_planning_grokfast_live_diagnostic
+    goal: Run Grokfast diagnostic for planning output shape.
+  - pr_number: 6
+    slice_id: recommendation_candidate_source_port
+    goal: Add candidate source contract for FoodDB, memory, budget, rescue, and reusable meals.
+  - pr_number: 7
+    slice_id: recommendation_candidate_retrieval_guard_scoring
+    goal: Implement deterministic candidate retrieval, hard blockers, and quality signals.
+  - pr_number: 8
+    slice_id: recommendation_negative_budget_rescue_blockers
+    goal: Cover negative preference, budget posture, availability, and rescue conflict boundaries.
+  - pr_number: 9
+    slice_id: recommendation_allowed_pool_trace
+    goal: Emit allowed pool, omitted candidates, and scoring reasons.
+  - pr_number: 10
+    slice_id: recommendation_offer_synthesis_fixture_provider
+    goal: Add LLM-owned offer synthesis fixture provider and schema tests.
+  - pr_number: 11
+    slice_id: recommendation_chat_first_ux_packet
+    goal: Build chat-first UX packet with backups and explanation.
+  - pr_number: 12
+    slice_id: recommendation_pending_intake_handoff
+    goal: Keep recommendation-to-intake handoff explicit and non-committing.
+  - pr_number: 13
+    slice_id: recommendation_feedback_event_projection
+    goal: Project accept, reject, correction, and undo into feedback events without truth mutation.
+  - pr_number: 14
+    slice_id: recommendation_rescue_posture_handoff
+    goal: Ensure rescue can constrain recommendation and recommendation can inform rescue.
+  - pr_number: 15
+    slice_id: recommendation_proactive_candidate_bridge
+    goal: Allow proactive to read recommendation outputs without direct delivery.
+  - pr_number: 16
+    slice_id: recommendation_reusable_meal_and_golden_order_bridge
+    goal: Use reusable meal and golden-order signals as candidates or boosts with drift guards.
+  - pr_number: 17
+    slice_id: recommendation_multi_intent_e2e
+    goal: Exercise intake, query, memory, rescue, and recommendation in one Manager-style turn.
+  - pr_number: 18
+    slice_id: recommendation_adversarial_holdout_pack
+    goal: Add prompt-injection, scope leak, blocker, and over-trigger holdouts.
+  - pr_number: 19
+    slice_id: recommendation_offer_grokfast_live_diagnostic
+    goal: Run Grokfast diagnostic for offer synthesis and guard interaction.
+  - pr_number: 20
+    slice_id: recommendation_paired_lab_e2e
+    goal: Compare baseline Manager path and recommendation-enabled lab path.
+  - pr_number: 21
+    slice_id: recommendation_latency_cost_omission_trace
+    goal: Add latency, cost, degraded omission, and no-retry-expansion trace.
+  - pr_number: 22
+    slice_id: recommendation_quality_decision_pack
+    goal: Aggregate fixture, holdout, live diagnostic, and E2E evidence.
+  - pr_number: 23
+    slice_id: recommendation_mainline_dormancy_gate
+    goal: Prove merge-back remains dormant for self-use V1.
+  - pr_number: 24
+    slice_id: recommendation_train_closeout_and_next_capability_plan
+    goal: Close recommendation train and decide next rescue/proactive integration train.
+
+estimate_notes:
+  - Initial dynamic estimate is 24 PRs after context engineering PR29 closeout.
+  - Estimate may increase if manager-tool integration exposes missing candidate source or UX feedback contracts.

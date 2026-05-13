@@ -1,0 +1,107 @@
+artifact_type: advanced_product_lab_context_engineering_golden_set
+version: 1
+status: active
+owner: AdvancedProductLabContextEngineering
+consumer: shared_manager_turn_plan_eval
+case_schema:
+  required_fields:
+    - case_id
+    - coverage_scope
+    - user_turn
+    - expected_primary_workflow
+    - expected_capabilities
+    - forbidden_capabilities
+    - expected_ordering_constraints
+    - mutation_posture
+  non_semantic_fields:
+    - notes
+    - source_refs
+cases:
+  - case_id: ce-001
+    coverage_scope: shared
+    user_turn: 我吃了拉麵，今天是不是超了？晚點幫我推薦晚餐
+    expected_primary_workflow: intake_with_budget_check_and_deferred_recommendation
+    expected_capabilities:
+      - intake
+      - query
+      - rescue
+      - recommendation
+    forbidden_capabilities:
+      - proactive
+    expected_ordering_constraints:
+      - intake_before_rescue
+      - rescue_before_recommendation
+    mutation_posture: read_only
+    source_refs:
+      - docs/quality/ACCURATE_INTAKE_MVP_UX_SEMANTIC_CASES.md
+  - case_id: ce-002
+    coverage_scope: advanced_lab
+    user_turn: 剛剛那個救援方案太硬了，溫和一點，順便記住我不想太痛苦
+    expected_primary_workflow: rescue_negotiation_with_memory_feedback
+    expected_capabilities:
+      - rescue
+      - memory
+    forbidden_capabilities:
+      - proactive
+    expected_ordering_constraints:
+      - rescue_before_memory
+    mutation_posture: proposal_only
+    source_refs:
+      - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md
+  - case_id: ce-003
+    coverage_scope: shared
+    user_turn: 我晚上要吃火鍋，現在午餐該怎麼吃？
+    expected_primary_workflow: planned_event_guidance_with_recommendation
+    expected_capabilities:
+      - recommendation
+      - rescue
+    forbidden_capabilities:
+      - intake
+    expected_ordering_constraints:
+      - rescue_before_recommendation
+    mutation_posture: read_only
+    source_refs:
+      - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md
+  - case_id: ce-004
+    coverage_scope: shared
+    user_turn: 我今天不想收到這種提醒，但晚餐還是可以推薦
+    expected_primary_workflow: proactive_control_with_recommendation_allowed
+    expected_capabilities:
+      - proactive
+      - recommendation
+    forbidden_capabilities:
+      - rescue
+    expected_ordering_constraints:
+      - proactive_before_recommendation
+    mutation_posture: read_only
+    source_refs:
+      - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md
+  - case_id: ce-005
+    coverage_scope: current_shell_bridge
+    user_turn: 幫我看今天還剩多少熱量，然後順便看看我是不是最近常吃拉麵
+    expected_primary_workflow: query_with_memory_recall
+    expected_capabilities:
+      - query
+      - memory
+    forbidden_capabilities:
+      - rescue
+      - proactive
+    expected_ordering_constraints:
+      - query_before_memory
+    mutation_posture: read_only
+    source_refs:
+      - docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml
+  - case_id: ce-006
+    coverage_scope: shared
+    user_turn: 跟上次一樣的炒飯，幫我記一下
+    expected_primary_workflow: intake_with_reusable_meal_candidate
+    expected_capabilities:
+      - intake
+      - reusable_meal
+    forbidden_capabilities:
+      - proactive
+    expected_ordering_constraints:
+      - reusable_meal_before_intake
+    mutation_posture: read_only
+    source_refs:
+      - docs/quality/ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md

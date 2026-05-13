@@ -6,12 +6,19 @@ from app.advanced_shadow_lab.product_lab_manager_tool_contract import (
     FINAL_FORBIDDEN_TRUE_FIELDS,
     dormant_activation_fields,
 )
+from app.shared.contracts.final_response_signal_packet import (
+    build_final_response_signal_packet,
+)
 
 
 def build_product_lab_manager_final_response_packet(
     final_response: Mapping[str, Any],
     prior_results: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, Any]:
+    final_response_signal_packet = build_final_response_signal_packet(
+        final_response=final_response,
+        prior_results=prior_results,
+    )
     return {
         "artifact_type": "advanced_product_lab_manager_final_response_packet",
         "artifact_schema_version": "1.0",
@@ -21,6 +28,7 @@ def build_product_lab_manager_final_response_packet(
         "source_tool_call_ids": [
             str(item) for item in final_response.get("source_tool_call_ids") or []
         ],
+        "final_response_signal_packet": final_response_signal_packet,
         "tool_results_seen_count": len(prior_results),
         "served_to_lab_user": True,
         "scheduler_enqueued": False,
