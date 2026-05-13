@@ -33,6 +33,10 @@ from app.nutrition.application.food_evidence_retriever_router_readiness import (
 from app.nutrition.application.fooddb_live_diagnostic_report import (  # noqa: E402
     build_fooddb_live_diagnostic_report,
 )
+from app.nutrition.application.fooddb_live_diagnostic_stage_gate import (  # noqa: E402
+    LIVE_STAGES,
+    build_fooddb_live_diagnostic_stage_gate_artifact,
+)
 from app.nutrition.application.fooddb_live_failure_taxonomy_inspection import (  # noqa: E402
     build_fooddb_live_failure_taxonomy_inspection,
 )
@@ -100,6 +104,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--approved-packet-ready-artifact")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--case-id", action="append", default=None)
+    parser.add_argument("--live-stage", choices=LIVE_STAGES, default="single-case")
+    parser.add_argument("--prior-single-case-stage-gate-json")
     args = parser.parse_args(argv)
 
     output_dir = Path(args.output_dir)
@@ -129,6 +135,18 @@ def main(argv: list[str] | None = None) -> int:
     diagnostic = read_json_artifact(paths["diagnostic"])
     report = build_fooddb_live_diagnostic_report(diagnostic_artifact=diagnostic, **_report_inputs(artifacts))
     write_json_artifact(paths["report"], report)
+    stage_gate = _build_live_stage_gate(
+        mode=args.mode,
+        live_stage=args.live_stage,
+        diagnostic=diagnostic,
+        prior_single_case_stage_gate=(
+            read_json_artifact(Path(args.prior_single_case_stage_gate_json))
+            if args.prior_single_case_stage_gate_json
+            else None
+        ),
+    )
+    if stage_gate is not None:
+        write_json_artifact(paths["stage_gate"], stage_gate)
     contract_artifacts = _build_post_diagnostic_artifacts(
         paths=paths,
         source_payloads=source_payloads,
@@ -146,6 +164,8 @@ def main(argv: list[str] | None = None) -> int:
         live_runner_readiness=artifacts["live_runner_readiness"],
         contract_artifacts={**artifacts, **contract_artifacts},
         selected_case_ids=_selected_case_ids(args.case_id),
+        live_stage=args.live_stage if args.mode == "live" else None,
+        stage_gate=stage_gate,
     )
     write_json_artifact(paths["manifest"], manifest)
     print(
@@ -161,6 +181,8 @@ def main(argv: list[str] | None = None) -> int:
             ensure_ascii=False,
         )
     )
+    if stage_gate is not None and stage_gate.get("status") == "blocked":
+        return 1
     return diagnostic_exit
 
 
@@ -362,6 +384,22 @@ def _build_post_diagnostic_artifacts(
     return artifacts
 
 
+def _build_live_stage_gate(
+    *,
+    mode: str,
+    live_stage: str,
+    diagnostic: dict[str, Any],
+    prior_single_case_stage_gate: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if mode != "live" or diagnostic.get("live_provider_used") is not True:
+        return None
+    return build_fooddb_live_diagnostic_stage_gate_artifact(
+        live_stage=live_stage,
+        fooddb_live_diagnostic=diagnostic,
+        prior_single_case_stage_gate=prior_single_case_stage_gate,
+    )
+
+
 def _build_manifest(
     *,
     mode: str,
@@ -374,7 +412,10 @@ def _build_manifest(
     live_runner_readiness: dict[str, Any],
     contract_artifacts: dict[str, dict[str, Any]],
     selected_case_ids: list[str] | None = None,
+    live_stage: str | None = None,
+    stage_gate: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    stage_gate_blocked = isinstance(stage_gate, dict) and stage_gate.get("status") == "blocked"
     contract_probe = contract_artifacts["manager_contract_probe"]
     approved_artifact = contract_artifacts["approved_packet_ready_artifact"]
     real_manager_e2e = contract_artifacts["real_manager_e2e"]
@@ -399,12 +440,22 @@ def _build_manifest(
         "track": "FDB",
         "classification": "live_diagnostic_orchestration_only",
         "claim_scope": "fooddb_packet_live_diagnostic_bundle_execution",
-        "bundle_status": "pass" if diagnostic_exit == 0 else "blocked_or_failed",
+        "bundle_status": (
+            "pass"
+            if diagnostic_exit == 0 and not stage_gate_blocked
+            else "blocked_or_failed"
+        ),
         "mode": mode,
         "allow_live": allow_live,
         "diagnostic_exit_code": diagnostic_exit,
         "live_provider_used": diagnostic.get("live_provider_used") is True,
         "live_websearch_used": diagnostic.get("live_websearch_used") is True,
+        "live_stage": live_stage or "not_applicable",
+        "stage_gate_status": (
+            str(stage_gate.get("status") or "not_run")
+            if isinstance(stage_gate, dict)
+            else "not_applicable"
+        ),
         "selected_case_ids": (
             list(diagnostic.get("selected_case_ids") or [])
             if diagnostic.get("selected_case_ids") is not None
@@ -464,6 +515,7 @@ def _build_manifest(
                 "router_readiness",
                 "live_runner_readiness",
                 "diagnostic",
+                "stage_gate",
                 "report",
                 "manager_contract_probe",
                 "manager_contract_repair_pack",
@@ -473,6 +525,7 @@ def _build_manifest(
                 "fooddb_status_packet_inspection",
                 "fooddb_status_packet_post_contract",
             }
+            and (key != "stage_gate" or isinstance(stage_gate, dict))
         },
         "non_claims": [
             "not_self_use_gate",

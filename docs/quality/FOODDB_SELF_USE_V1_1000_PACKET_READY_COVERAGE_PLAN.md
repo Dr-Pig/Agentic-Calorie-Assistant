@@ -437,6 +437,7 @@ bounded_live_probe_execution:
   ad_hoc_case_generation_allowed: false
   case_ids_must_come_from_existing_packet_artifact: true
   single_case_probe_preferred_before_full_matrix: true
+  full_matrix_requires_prior_single_case_stage_gate: true
   case_order_must_follow_source_artifact_order: true
   purpose:
     - single-case live canary
