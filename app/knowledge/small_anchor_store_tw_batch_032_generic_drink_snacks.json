@@ -1,0 +1,1144 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_watermelon_juice_300ml",
+      "canonical_name": "\u897f\u74dc\u6c41(\u975e\u539f\u6c41)",
+      "aliases": [
+        "\u897f\u74dc\u6c41(\u975e\u539f\u6c41) watermelon juice 300ml",
+        "watermelon juice 300ml",
+        "300ml watermelon juice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 300,
+        "portion_grams": 300,
+        "label": "300ml watermelon juice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 89,
+      "kcal_range": [
+        60,
+        130
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_978b0f9841af",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 29.72,
+          "tfda_sample_name": "\u897f\u74dc\u6c41(\u975e\u539f\u6c41)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_598fc049329a",
+        "raw_row_hash": "adaa8bd655d26fd242853e2aca1112fbff5dce52068f30980838e9374ece8e05"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_guava_juice_300ml",
+      "canonical_name": "\u82ad\u6a02\u6c41(\u975e\u539f\u6c41)",
+      "aliases": [
+        "\u82ad\u6a02\u6c41(\u975e\u539f\u6c41) guava juice 300ml",
+        "guava juice 300ml",
+        "300ml guava juice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 300,
+        "portion_grams": 300,
+        "label": "300ml guava juice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 135,
+      "kcal_range": [
+        95,
+        180
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_2f20784934e5",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 44.97,
+          "tfda_sample_name": "\u82ad\u6a02\u6c41(\u975e\u539f\u6c41)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_bde554c8e08a",
+        "raw_row_hash": "9a6ee7cfb3265e9d6b617f9450bdb0357ab85a8946a80529dd8a32b3ce226173"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_orange_juice_300ml",
+      "canonical_name": "\u67f3\u6a59\u6c41(\u975e\u539f\u6c41)",
+      "aliases": [
+        "\u67f3\u6a59\u6c41(\u975e\u539f\u6c41) orange juice 300ml",
+        "orange juice 300ml",
+        "300ml orange juice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 300,
+        "portion_grams": 300,
+        "label": "300ml orange juice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 151,
+      "kcal_range": [
+        110,
+        200
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_54d55959edf7",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 50.188,
+          "tfda_sample_name": "\u67f3\u6a59\u6c41(\u975e\u539f\u6c41)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_5287eac77db2",
+        "raw_row_hash": "015ea5257e8576c6a281d2be02f8ac852d766280ca29ea70e2ad7b14d1272cfc"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_cranberry_juice_300ml",
+      "canonical_name": "\u8513\u8d8a\u8393\u6c41(\u975e\u539f\u6c41)",
+      "aliases": [
+        "\u8513\u8d8a\u8393\u6c41(\u975e\u539f\u6c41) cranberry juice 300ml",
+        "cranberry juice 300ml",
+        "300ml cranberry juice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 300,
+        "portion_grams": 300,
+        "label": "300ml cranberry juice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 135,
+      "kcal_range": [
+        95,
+        180
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_5131a907881a",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 44.861,
+          "tfda_sample_name": "\u8513\u8d8a\u8393\u6c41(\u975e\u539f\u6c41)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_cb6b88050c81",
+        "raw_row_hash": "2934d4a1577f443e5fb3ffd9983fe2075630fa5a8a1d516a2f74d58d1018ca36"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_tomato_juice_300ml",
+      "canonical_name": "\u8543\u8304\u6c41(\u975e\u539f\u6c41)",
+      "aliases": [
+        "\u8543\u8304\u6c41(\u975e\u539f\u6c41) tomato juice 300ml",
+        "tomato juice 300ml",
+        "300ml tomato juice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 300,
+        "portion_grams": 300,
+        "label": "300ml tomato juice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 65,
+      "kcal_range": [
+        45,
+        95
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_7802473a00f3",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 21.71,
+          "tfda_sample_name": "\u8543\u8304\u6c41(\u975e\u539f\u6c41)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_3c9c152ed670",
+        "raw_row_hash": "c330669573db1dad28c4c3ede2df7b7689c73d4793864aa38eea37a378a83c73"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_grass_jelly_honey_cup",
+      "canonical_name": "\u4ed9\u8349\u871c",
+      "aliases": [
+        "\u4ed9\u8349\u871c grass jelly honey drink cup",
+        "grass jelly honey drink cup",
+        "one grass jelly honey drink cup"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 300,
+        "label": "one grass jelly honey drink cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 105,
+      "kcal_range": [
+        70,
+        145
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_86ef72880e00",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 35.0,
+          "tfda_sample_name": "\u4ed9\u8349\u871c"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_970e11a91e09",
+        "raw_row_hash": "61a603df7a299843431255dd6cad15d5ed15b3cb855385c8bda378de783111d7"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_aloe_vera_cup",
+      "canonical_name": "\u8606\u8588\u9732\u98f2\u6599",
+      "aliases": [
+        "\u8606\u8588\u9732\u98f2\u6599 aloe vera drink cup",
+        "aloe vera drink cup",
+        "one aloe vera drink cup"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "cup",
+        "portion_quantity": 1,
+        "portion_grams": 300,
+        "label": "one aloe vera drink cup",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 130,
+      "kcal_range": [
+        90,
+        170
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_01b626d14b71",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 43.36,
+          "tfda_sample_name": "\u8606\u8588\u9732\u98f2\u6599"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_287dee6a8f1c",
+        "raw_row_hash": "8200fd92426485bf0cc5f242611a9fbe9b273c0255746d4a2bceca9077ba97bd"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_black_bean_tea_500ml",
+      "canonical_name": "\u9ed1\u8c46\u8336",
+      "aliases": [
+        "\u9ed1\u8c46\u8336 black bean tea 500ml",
+        "black bean tea 500ml",
+        "500ml black bean tea"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 500,
+        "portion_grams": 500,
+        "label": "500ml black bean tea",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 64,
+      "kcal_range": [
+        35,
+        95
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_d680267a395c",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 12.754,
+          "tfda_sample_name": "\u9ed1\u8c46\u8336"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_247d812bf334",
+        "raw_row_hash": "1c6102212e5a3542b3c7319fadca314a805533c9428b2bbc974345d382f3f96b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_barley_tea_500ml",
+      "canonical_name": "\u9ea5\u8336",
+      "aliases": [
+        "\u9ea5\u8336 barley tea 500ml",
+        "barley tea 500ml",
+        "500ml barley tea"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 500,
+        "portion_grams": 500,
+        "label": "500ml barley tea",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 89,
+      "kcal_range": [
+        55,
+        120
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_2890f5a975fc",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 17.76,
+          "tfda_sample_name": "\u9ea5\u8336"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_edee10fcd3e5",
+        "raw_row_hash": "9b72f87f93e542d8ad5aa9826a08c378035249d10754b80ba29b6e53a84cd919"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_sarsaparilla_can",
+      "canonical_name": "\u6c99\u58eb",
+      "aliases": [
+        "\u6c99\u58eb sarsaparilla can",
+        "sarsaparilla can",
+        "one 330ml sarsaparilla can"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "can",
+        "portion_quantity": 1,
+        "portion_grams": 330,
+        "label": "one 330ml sarsaparilla can",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 121,
+      "kcal_range": [
+        85,
+        160
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_3c844f51040f",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 36.68,
+          "tfda_sample_name": "\u6c99\u58eb"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_421edbc9a645",
+        "raw_row_hash": "f4c0410b689c3c59de60f7d2e9527bfd940e055ced66c3c05bbf81b5615dcab9"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_sports_drink_500ml",
+      "canonical_name": "\u904b\u52d5\u98f2\u6599",
+      "aliases": [
+        "\u904b\u52d5\u98f2\u6599 sports drink 500ml",
+        "sports drink 500ml",
+        "500ml sports drink"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 500,
+        "portion_grams": 500,
+        "label": "500ml sports drink",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 142,
+      "kcal_range": [
+        90,
+        190
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_125bf24a07ce",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 28.44,
+          "tfda_sample_name": "\u904b\u52d5\u98f2\u6599"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_cc10d7a6a017",
+        "raw_row_hash": "8fae33cca4f8b098ab00bf47381c7d128f2354ae3ef50d0041fa567a5a828cea"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_drink_oolong_tea_light_sugar_700ml",
+      "canonical_name": "\u70cf\u9f8d\u8336(\u53bb\u51b0,\u5fae\u7cd6)",
+      "aliases": [
+        "\u70cf\u9f8d\u8336(\u53bb\u51b0,\u5fae\u7cd6) oolong tea light sugar 700ml",
+        "oolong tea light sugar 700ml",
+        "700ml light sugar oolong tea"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "ml",
+        "portion_quantity": 700,
+        "portion_grams": 700,
+        "label": "700ml light sugar oolong tea",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 109,
+      "kcal_range": [
+        55,
+        175
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_ef8ccd380aa3",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 15.5005,
+          "tfda_sample_name": "\u70cf\u9f8d\u8336(\u53bb\u51b0,\u5fae\u7cd6)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_101b3dc44397",
+        "raw_row_hash": "958bb3371064281f39bfaadb1db92fc23418268fae3b2b65fd0b003cb8fe8c1e"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_square_pastry_serving",
+      "canonical_name": "\u65b9\u584a\u9165",
+      "aliases": [
+        "\u65b9\u584a\u9165 square pastry serving",
+        "square pastry serving",
+        "one square pastry serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one square pastry serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 152,
+      "kcal_range": [
+        110,
+        205
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_86f79bc7e775",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 507.667,
+          "tfda_sample_name": "\u65b9\u584a\u9165"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7b72d331cf46",
+        "raw_row_hash": "03f3c60834963f5cec0363b8788465e470bbf1a56395738cf3a4636f392923e0"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_wafer_roll_serving",
+      "canonical_name": "\u6372\u5fc3\u9165",
+      "aliases": [
+        "\u6372\u5fc3\u9165 wafer roll serving",
+        "wafer roll serving",
+        "one wafer roll serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one wafer roll serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 146,
+      "kcal_range": [
+        105,
+        200
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_f10a7bdf949c",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 487.12,
+          "tfda_sample_name": "\u6372\u5fc3\u9165"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_8dd1e6efbec2",
+        "raw_row_hash": "9872cd7fc36e3316ff47c955cb2541d8a1d39cd12dd93bd83546c701b5c6c7c5"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_vegetable_soda_cracker_serving",
+      "canonical_name": "\u8607\u6253\u9905\u4e7e(\u852c\u83dc)",
+      "aliases": [
+        "\u8607\u6253\u9905\u4e7e(\u852c\u83dc) vegetable soda cracker serving",
+        "vegetable soda cracker serving",
+        "one vegetable soda cracker serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one vegetable soda cracker serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 152,
+      "kcal_range": [
+        110,
+        205
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_7166a7ae2680",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 506.3191,
+          "tfda_sample_name": "\u8607\u6253\u9905\u4e7e(\u852c\u83dc)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_fbbb2f01d950",
+        "raw_row_hash": "f4ed4ba778c4d9ace81549b2774e8b6530c7493d66c5361e5797d44decc3de89"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_potato_chips_serving",
+      "canonical_name": "\u6d0b\u828b\u7247",
+      "aliases": [
+        "\u6d0b\u828b\u7247 potato chips serving",
+        "potato chips serving",
+        "one potato chips serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one potato chips serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 165,
+      "kcal_range": [
+        120,
+        225
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_7135ef0ce2e6",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 548.522,
+          "tfda_sample_name": "\u6d0b\u828b\u7247"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_9984baedc4c2",
+        "raw_row_hash": "732f3e7dd74ecc6900f0e9319a85bc94036c1e78e472eaa3481b36ace3b0e5e0"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_fish_crisp_serving",
+      "canonical_name": "\u9b5a\u9165",
+      "aliases": [
+        "\u9b5a\u9165 fish crisp serving",
+        "fish crisp serving",
+        "one fish crisp serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one fish crisp serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 169,
+      "kcal_range": [
+        125,
+        230
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_3584782d3299",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 563.576,
+          "tfda_sample_name": "\u9b5a\u9165"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_da7f1e9b36b7",
+        "raw_row_hash": "5c5add8bb8368a65bf28591234ed86c80e72db3fbbf92b17b19625b5be73b47e"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_sachima_one",
+      "canonical_name": "\u6c99\u5176\u99ac",
+      "aliases": [
+        "\u6c99\u5176\u99ac sachima one",
+        "sachima one",
+        "one sachima"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 50,
+        "label": "one sachima",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 242,
+      "kcal_range": [
+        175,
+        325
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_40a68494627a",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 483.7221,
+          "tfda_sample_name": "\u6c99\u5176\u99ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_b6e657e2994c",
+        "raw_row_hash": "a489d229347fb26e12c3e06d013bd059ec90ca2fbdc6c8be5ddc8e552f0a7147"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_milk_chocolate_serving",
+      "canonical_name": "\u725b\u5976\u5de7\u514b\u529b",
+      "aliases": [
+        "\u725b\u5976\u5de7\u514b\u529b milk chocolate serving",
+        "milk chocolate serving",
+        "one milk chocolate serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 25,
+        "label": "one milk chocolate serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 137,
+      "kcal_range": [
+        95,
+        180
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_eeb3e85c7d12",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 546.4649,
+          "tfda_sample_name": "\u725b\u5976\u5de7\u514b\u529b"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_0137547c50db",
+        "raw_row_hash": "539e912edf8414705b8306584e167b308159a05ddab73ddc4d7f3da4ed9a1816"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_white_sesame_candy_serving",
+      "canonical_name": "\u767d\u829d\u9ebb\u7cd6",
+      "aliases": [
+        "\u767d\u829d\u9ebb\u7cd6 white sesame candy serving",
+        "white sesame candy serving",
+        "one white sesame candy serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one white sesame candy serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 102,
+      "kcal_range": [
+        70,
+        135
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_7fb2071f4922",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 511.8976,
+          "tfda_sample_name": "\u767d\u829d\u9ebb\u7cd6"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_bfd2594279f9",
+        "raw_row_hash": "1f5d96dfab8fc0bafb00d46db71adf045ed119e58175ed74c576b6a9e0d6fd87"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    }
+  ]
+}

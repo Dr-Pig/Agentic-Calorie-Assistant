@@ -63,7 +63,7 @@ def test_generic_common_batch_012_enters_full_current_shell_with_hidden_macros()
 
     item = by_id["generic_staple_meat_zongzi_one"]
 
-    assert artifact["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 274
+    assert artifact["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 294
     assert item["kcal_point"] == 467
     assert item["kcal_range"] == [360, 650]
     assert item["macro_visibility_status"] == "hidden_missing_source"
