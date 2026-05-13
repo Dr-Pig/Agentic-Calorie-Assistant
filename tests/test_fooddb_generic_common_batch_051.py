@@ -9,30 +9,30 @@ from app.nutrition.infrastructure.small_anchor_store_loader import (
 
 
 BATCH_IDS = {
-    "generic_drink_watermelon_juice_300ml",
-    "generic_drink_guava_juice_300ml",
-    "generic_drink_orange_juice_300ml",
-    "generic_drink_cranberry_juice_300ml",
-    "generic_drink_tomato_juice_300ml",
-    "generic_drink_grass_jelly_honey_cup",
-    "generic_drink_aloe_vera_cup",
-    "generic_drink_black_bean_tea_500ml",
-    "generic_drink_barley_tea_500ml",
-    "generic_drink_sarsaparilla_can",
-    "generic_drink_sports_drink_500ml",
-    "generic_drink_oolong_tea_light_sugar_700ml",
-    "generic_snack_square_pastry_serving",
-    "generic_snack_wafer_roll_serving",
-    "generic_snack_vegetable_soda_cracker_serving",
-    "generic_snack_potato_chips_serving",
-    "generic_snack_fish_crisp_serving",
-    "generic_snack_sachima_one",
-    "generic_snack_milk_chocolate_serving",
-    "generic_snack_white_sesame_candy_serving",
+    "generic_sauce_light_soy_sauce_tbsp",
+    "generic_sauce_low_sodium_soy_sauce_tbsp",
+    "generic_sauce_low_sodium_high_iron_soy_sauce_tbsp",
+    "generic_sauce_soy_paste_tbsp",
+    "generic_sauce_black_bean_soy_paste_tbsp",
+    "generic_sauce_scallop_sauce_tbsp",
+    "generic_sauce_italian_cheese_sauce_serving",
+    "generic_sauce_zhajiang_serving",
+    "generic_sauce_vegetarian_zhajiang_serving",
+    "generic_sauce_instant_sesame_noodle_packet",
+    "generic_sauce_tomato_pasta_sauce_serving",
+    "generic_sauce_five_flavor_sauce_serving",
+    "generic_sauce_satay_tbsp",
+    "generic_sauce_vegetarian_satay_tbsp",
+    "generic_sauce_yellow_mustard_tbsp",
+    "generic_sauce_wasabi_serving",
+    "generic_sauce_kumquat_serving",
+    "generic_sauce_seafood_sauce_serving",
+    "generic_sauce_sweet_bean_sauce_serving",
+    "generic_sauce_teriyaki_sauce_serving",
 }
 
 
-def test_generic_common_batch_047_loads_drink_snack_anchors() -> None:
+def test_generic_common_batch_051_loads_sauce_modifier_anchors() -> None:
     records = load_small_anchor_seed_records()
     by_id = {str(record.get("anchor_id") or ""): record for record in records}
 
@@ -53,7 +53,7 @@ def test_generic_common_batch_047_loads_drink_snack_anchors() -> None:
         assert record["kcal_range"][0] <= record["kcal_point"] <= record["kcal_range"][1]
 
 
-def test_generic_common_batch_047_enters_full_current_shell_with_hidden_macros() -> None:
+def test_generic_common_batch_051_enters_full_current_shell_with_hidden_macros() -> None:
     artifact = build_approved_packet_ready_fooddb_artifact(
         artifact_path="artifacts/approved_packet_ready_fooddb_full.json",
         selection_profile="full_current_shell",
@@ -62,10 +62,10 @@ def test_generic_common_batch_047_enters_full_current_shell_with_hidden_macros()
 
     assert artifact["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 374
     expected = {
-        "generic_drink_guava_juice_300ml": (135, [95, 180]),
-        "generic_drink_oolong_tea_light_sugar_700ml": (109, [55, 175]),
-        "generic_snack_potato_chips_serving": (165, [120, 225]),
-        "generic_snack_sachima_one": (242, [175, 325]),
+        "generic_sauce_soy_paste_tbsp": (21, [10, 35]),
+        "generic_sauce_zhajiang_serving": (154, [100, 230]),
+        "generic_sauce_satay_tbsp": (108, [70, 150]),
+        "generic_sauce_teriyaki_sauce_serving": (68, [40, 105]),
     }
     for item_id, (kcal_point, kcal_range) in expected.items():
         item = by_id[item_id]
