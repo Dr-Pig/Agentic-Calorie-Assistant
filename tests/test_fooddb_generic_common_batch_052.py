@@ -9,30 +9,36 @@ from app.nutrition.infrastructure.small_anchor_store_loader import (
 
 
 BATCH_IDS = {
-    "generic_staple_puli_rice_noodle_serving",
-    "generic_staple_thin_rice_noodle_serving",
-    "generic_staple_zhuoshui_rice_noodle_serving",
-    "generic_staple_long_wheat_noodle_serving",
-    "generic_staple_red_wheat_noodle_serving",
-    "generic_noodle_chicken_thread_noodle_pack",
-    "generic_noodle_pot_yi_noodle_pack",
-    "generic_noodle_dry_egg_noodle_serving",
-    "generic_noodle_frozen_udon_serving",
-    "generic_dim_sum_flower_roll_one",
-    "generic_dim_sum_milk_custard_silver_roll_one",
-    "generic_staple_beef_pie_one",
-    "generic_staple_pork_pie_one",
-    "generic_dessert_sweet_fermented_rice_bowl",
-    "generic_dessert_purple_fermented_rice_bowl",
-    "generic_snack_lemon_dried_fruit_serving",
-    "generic_drink_oat_milk_cup",
-    "generic_drink_three_in_one_coffee_packet",
-    "generic_drink_papaya_milk_cup",
-    "generic_drink_unsweetened_fresh_milk_tea_cup",
+    "generic_sauce_korean_sauce_serving",
+    "generic_sauce_garlic_sauce_tbsp",
+    "generic_sauce_spicy_garlic_sauce_tbsp",
+    "generic_sauce_scallion_sauce_tbsp",
+    "generic_sauce_sweet_sour_sauce_serving",
+    "generic_sauce_ketchup_serving",
+    "generic_sauce_ginger_sauce_tbsp",
+    "generic_sauce_mushroom_sauce_serving",
+    "generic_sauce_rice_bean_sauce_tbsp",
+    "generic_sauce_garlic_black_bean_tbsp",
+    "generic_sauce_bean_crumb_sauce_tbsp",
+    "generic_sauce_red_yeast_sauce_tbsp",
+    "generic_sauce_chive_flower_sauce_tbsp",
+    "generic_sauce_xiangchun_sauce_tbsp",
+    "generic_sauce_mapo_sauce_serving",
+    "generic_sauce_shrimp_sauce_tbsp",
+    "generic_sauce_salad_dressing_tbsp",
+    "generic_sauce_egg_free_salad_dressing_tbsp",
+    "generic_sauce_japanese_salad_dressing_serving",
+    "generic_sauce_caesar_dressing_serving",
+    "generic_spread_chocolate_sauce_serving",
+    "generic_spread_grape_jam_serving",
+    "generic_spread_pomelo_jam_serving",
+    "generic_spread_mulberry_jam_serving",
+    "generic_spread_white_sesame_bread_spread_tbsp",
+    "generic_spread_black_sesame_bread_spread_tbsp",
 }
 
 
-def test_generic_common_batch_025_loads_tfda_backed_everyday_staples() -> None:
+def test_generic_common_batch_052_loads_generic_lane_closeout_anchors() -> None:
     records = load_small_anchor_seed_records()
     by_id = {str(record.get("anchor_id") or ""): record for record in records}
 
@@ -45,16 +51,15 @@ def test_generic_common_batch_025_loads_tfda_backed_everyday_staples() -> None:
         assert record["serving_basis"] == "common_serving"
         assert record["source_refs"][0]["runtime_role"] == "source_evidence_only"
         assert record["source_refs"][0]["external_source_role"] == "source_evidence_only"
+        assert record["source_refs"][0]["source_id"] == "taiwan_tfda_open_data"
         assert record["source_provenance"]["source_class"] == "taiwan_tfda_open_data"
-        assert record["source_provenance"]["source_file"] == (
-            "app/knowledge/tfda_per100g_source_evidence_tw.json"
-        )
+        assert record["source_provenance"]["source_url"] == "https://data.gov.tw/dataset/8543"
         assert record["approval_metadata"]["runtime_truth_allowed"] is True
         assert record["runtime_usage_boundary"] == "generic_range_estimate_with_refinement_not_exact"
         assert record["kcal_range"][0] <= record["kcal_point"] <= record["kcal_range"][1]
 
 
-def test_generic_common_batch_025_enters_full_current_shell_with_hidden_macros() -> None:
+def test_generic_common_batch_052_closes_generic_lane_with_hidden_macros() -> None:
     artifact = build_approved_packet_ready_fooddb_artifact(
         artifact_path="artifacts/approved_packet_ready_fooddb_full.json",
         selection_profile="full_current_shell",
@@ -63,10 +68,10 @@ def test_generic_common_batch_025_enters_full_current_shell_with_hidden_macros()
 
     assert artifact["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 400
     expected = {
-        "generic_noodle_frozen_udon_serving": (251, [190, 340]),
-        "generic_staple_beef_pie_one": (334, [260, 460]),
-        "generic_drink_papaya_milk_cup": (206, [150, 300]),
-        "generic_drink_unsweetened_fresh_milk_tea_cup": (133, [90, 210]),
+        "generic_sauce_korean_sauce_serving": (31, [20, 50]),
+        "generic_sauce_garlic_black_bean_tbsp": (53, [35, 80]),
+        "generic_sauce_salad_dressing_tbsp": (94, [65, 130]),
+        "generic_spread_black_sesame_bread_spread_tbsp": (98, [65, 140]),
     }
     for item_id, (kcal_point, kcal_range) in expected.items():
         item = by_id[item_id]

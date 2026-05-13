@@ -60,7 +60,7 @@ def test_generic_common_batch_049_enters_full_current_shell_with_hidden_macros()
     )
     by_id = {str(item["item_id"]): item for item in artifact["packet_ready_items"]}
 
-    assert artifact["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 374
+    assert artifact["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 400
     expected = {
         "generic_snack_sesame_egg_roll_serving": (164, [120, 220]),
         "generic_snack_instant_noodle_crisps_pack": (238, [170, 310]),

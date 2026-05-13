@@ -1,0 +1,1486 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_korean_sauce_serving",
+      "canonical_name": "\u671d\u9bae\u91ac",
+      "aliases": [
+        "\u671d\u9bae\u91ac korean sauce serving",
+        "korean sauce serving",
+        "one korean sauce serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one korean sauce serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 31,
+      "kcal_range": [
+        20,
+        50
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_e2ad64cfec2b",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 102.4744,
+          "tfda_sample_name": "\u671d\u9bae\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_950a692278ec",
+        "raw_row_hash": "d751cdd8b5aac26acc8adb3a9c630edd425a6f1a7f84fcbff273a8f7cd8a9a3c"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_garlic_sauce_tbsp",
+      "canonical_name": "\u849c\u84c9\u91ac",
+      "aliases": [
+        "\u849c\u84c9\u91ac garlic sauce tablespoon",
+        "garlic sauce tablespoon",
+        "one tablespoon garlic sauce"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one tablespoon garlic sauce",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 56,
+      "kcal_range": [
+        35,
+        85
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_4b52965c7ab3",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 279.1408,
+          "tfda_sample_name": "\u849c\u84c9\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_e5256d3320ce",
+        "raw_row_hash": "63bb0c5e017c89fc80bf6fcd492c7154978cf3399175bb2514ea82cb0ddfc79c"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_spicy_garlic_sauce_tbsp",
+      "canonical_name": "\u8fa3\u849c\u84c9\u91ac",
+      "aliases": [
+        "\u8fa3\u849c\u84c9\u91ac spicy garlic sauce tablespoon",
+        "spicy garlic sauce tablespoon",
+        "one tablespoon spicy garlic sauce"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one tablespoon spicy garlic sauce",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 14,
+      "kcal_range": [
+        5,
+        30
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_01d5c513c355",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 69.4214,
+          "tfda_sample_name": "\u8fa3\u849c\u84c9\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_93dcac01ae02",
+        "raw_row_hash": "c921464de4e5cf66ef7d34404b617a50ebd1a2ee226d7851608492e364d75a42"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_scallion_sauce_tbsp",
+      "canonical_name": "\u8525\u91ac",
+      "aliases": [
+        "\u8525\u91ac scallion sauce tablespoon",
+        "scallion sauce tablespoon",
+        "one tablespoon scallion sauce"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one tablespoon scallion sauce",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 29,
+      "kcal_range": [
+        15,
+        50
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_356f2ba029f4",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 144.9807,
+          "tfda_sample_name": "\u8525\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_30e5310324e8",
+        "raw_row_hash": "f13786839444a43db8e14cab0d97ca75d28b8d264e9e22aa79680f95cf792b86"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_sweet_sour_sauce_serving",
+      "canonical_name": "\u7cd6\u918b\u91ac",
+      "aliases": [
+        "\u7cd6\u918b\u91ac sweet sour sauce serving",
+        "sweet sour sauce serving",
+        "one sweet sour sauce serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one sweet sour sauce serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 39,
+      "kcal_range": [
+        20,
+        65
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_86cf08eeeebb",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 129.2764,
+          "tfda_sample_name": "\u7cd6\u918b\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_80910628201a",
+        "raw_row_hash": "230bdbc206e784d1eb28af890b9132d409f730cee78934d25915c45a3042c12e"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_ketchup_serving",
+      "canonical_name": "\u8543\u8304\u91ac",
+      "aliases": [
+        "\u8543\u8304\u91ac ketchup serving",
+        "ketchup serving",
+        "one ketchup serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one ketchup serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 22,
+      "kcal_range": [
+        10,
+        40
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_3b56424fb780",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 110.9166,
+          "tfda_sample_name": "\u8543\u8304\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_bddd07e5a622",
+        "raw_row_hash": "9ffc9f39a28845d993eecd1f7dd32ea00de1caa2c14e3d6de7c4131a17a948e3"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_ginger_sauce_tbsp",
+      "canonical_name": "\u8591\u84c9\u91ac",
+      "aliases": [
+        "\u8591\u84c9\u91ac ginger sauce tablespoon",
+        "ginger sauce tablespoon",
+        "one tablespoon ginger sauce"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 15,
+        "label": "one tablespoon ginger sauce",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 9,
+      "kcal_range": [
+        5,
+        20
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_b8d61042776d",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 61.2008,
+          "tfda_sample_name": "\u8591\u84c9\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_d2c6755ee656",
+        "raw_row_hash": "e45381d1dece8a7343b53518efdef5256655a2ea69c1168cc354058cc83bff01"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_mushroom_sauce_serving",
+      "canonical_name": "\u8611\u83c7\u91ac",
+      "aliases": [
+        "\u8611\u83c7\u91ac mushroom sauce serving",
+        "mushroom sauce serving",
+        "one mushroom sauce serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one mushroom sauce serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 17,
+      "kcal_range": [
+        5,
+        35
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_5fbce5bbc4b6",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 55.5924,
+          "tfda_sample_name": "\u8611\u83c7\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_5f152ffc4542",
+        "raw_row_hash": "ff9d346beda2f0b23e73876865142d8765198d999416a50c72dc508f806c76a2"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_rice_bean_sauce_tbsp",
+      "canonical_name": "\u7c73\u8c46\u91ac",
+      "aliases": [
+        "\u7c73\u8c46\u91ac rice bean sauce tablespoon",
+        "rice bean sauce tablespoon",
+        "one tablespoon rice bean sauce"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one tablespoon rice bean sauce",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 25,
+      "kcal_range": [
+        10,
+        45
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_8c5d5a5810ba",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 123.4514,
+          "tfda_sample_name": "\u7c73\u8c46\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_71dbec9660e4",
+        "raw_row_hash": "58821b75467e62b16ca828d2b8affc222946ac53d029fd0eecbeefc2ec7d5b17"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_garlic_black_bean_tbsp",
+      "canonical_name": "\u849c\u5473\u8c46\u8c49\u91ac",
+      "aliases": [
+        "\u849c\u5473\u8c46\u8c49\u91ac garlic black bean sauce tablespoon",
+        "garlic black bean sauce tablespoon",
+        "one tablespoon garlic black bean sauce"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one tablespoon garlic black bean sauce",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 53,
+      "kcal_range": [
+        35,
+        80
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_43dc945aaa8b",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 264.2508,
+          "tfda_sample_name": "\u849c\u5473\u8c46\u8c49\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_8cb8bbc5bbf5",
+        "raw_row_hash": "dbc3791ec5a533b180856bc3fb440e33f97f9b032d1cfd0f8046e2873c7ecc48"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_bean_crumb_sauce_tbsp",
+      "canonical_name": "\u8c46\u9165\u91ac",
+      "aliases": [
+        "\u8c46\u9165\u91ac bean crumb sauce tablespoon",
+        "bean crumb sauce tablespoon",
+        "one tablespoon bean crumb sauce"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 15,
+        "label": "one tablespoon bean crumb sauce",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 99,
+      "kcal_range": [
+        70,
+        140
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_a781dfe01785",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 659.8988,
+          "tfda_sample_name": "\u8c46\u9165\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_f9548b587db5",
+        "raw_row_hash": "d77d2977082e494978a802553f0da285400facf57b4920920e0c501ae30c5257"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_red_yeast_sauce_tbsp",
+      "canonical_name": "\u7d05\u9eb4\u91ac",
+      "aliases": [
+        "\u7d05\u9eb4\u91ac red yeast sauce tablespoon",
+        "red yeast sauce tablespoon",
+        "one tablespoon red yeast sauce"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one tablespoon red yeast sauce",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 32,
+      "kcal_range": [
+        15,
+        55
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_a86ffb39d045",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 160.8389,
+          "tfda_sample_name": "\u7d05\u9eb4\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_bf7ffab0b325",
+        "raw_row_hash": "0de12ce7ce24727b62ee2c31381e2db71b685071d43350cd30127da909a8ae93"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_chive_flower_sauce_tbsp",
+      "canonical_name": "\u97ed\u82b1\u91ac",
+      "aliases": [
+        "\u97ed\u82b1\u91ac chive flower sauce tablespoon",
+        "chive flower sauce tablespoon",
+        "one tablespoon chive flower sauce"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one tablespoon chive flower sauce",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 5,
+      "kcal_range": [
+        0,
+        15
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_7d10fd1d13fb",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 23.5868,
+          "tfda_sample_name": "\u97ed\u82b1\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_b09e67e51834",
+        "raw_row_hash": "b0e1b24d36b7f3e50c3512e275f93138053241f359a032d8b70d1b8dab925439"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_xiangchun_sauce_tbsp",
+      "canonical_name": "\u9999\u693f\u91ac",
+      "aliases": [
+        "\u9999\u693f\u91ac xiangchun sauce tablespoon",
+        "xiangchun sauce tablespoon",
+        "one tablespoon xiangchun sauce"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 15,
+        "label": "one tablespoon xiangchun sauce",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 75,
+      "kcal_range": [
+        50,
+        110
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_a54d79295665",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 497.1911,
+          "tfda_sample_name": "\u9999\u693f\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_b1e42bff0750",
+        "raw_row_hash": "70207d723a57c1c2036738b20b627529cb25a245e473e782cfb79edf027cebae"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_mapo_sauce_serving",
+      "canonical_name": "\u9ebb\u5a46\u91ac",
+      "aliases": [
+        "\u9ebb\u5a46\u91ac mapo sauce serving",
+        "mapo sauce serving",
+        "one mapo sauce serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 40,
+        "label": "one mapo sauce serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 74,
+      "kcal_range": [
+        45,
+        115
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_58ca752de264",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 184.7644,
+          "tfda_sample_name": "\u9ebb\u5a46\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_2fc672a3d88d",
+        "raw_row_hash": "36947402ef307190c9eb5a50fb1ac58ec0d1e29477dd6202661516ebf8705aae"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_shrimp_sauce_tbsp",
+      "canonical_name": "\u8766\u91ac",
+      "aliases": [
+        "\u8766\u91ac shrimp sauce tablespoon",
+        "shrimp sauce tablespoon",
+        "one tablespoon shrimp sauce"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 15,
+        "label": "one tablespoon shrimp sauce",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 15,
+      "kcal_range": [
+        5,
+        30
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_d6ec6b29431e",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 99.0644,
+          "tfda_sample_name": "\u8766\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_18239e9a7cda",
+        "raw_row_hash": "cfe29d9e1fc226e4dc85be6b199f64dfa1ea7deff8a930497454dfd2d2c393b3"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_salad_dressing_tbsp",
+      "canonical_name": "\u6c99\u62c9\u91ac(2021\u5e74\u53d6\u6a23)",
+      "aliases": [
+        "\u6c99\u62c9\u91ac(2021\u5e74\u53d6\u6a23) salad dressing tablespoon",
+        "salad dressing tablespoon",
+        "one tablespoon salad dressing"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 15,
+        "label": "one tablespoon salad dressing",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 94,
+      "kcal_range": [
+        65,
+        130
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_cba8e0a3b65a",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 629.5348,
+          "tfda_sample_name": "\u6c99\u62c9\u91ac(2021\u5e74\u53d6\u6a23)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_efdd3e9ae2fe",
+        "raw_row_hash": "47c0b91c617f37bade43a62b5e8d9bd870f0b703464943d0be007327a3bd17ad"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_egg_free_salad_dressing_tbsp",
+      "canonical_name": "\u7121\u86cb\u6c99\u62c9\u91ac",
+      "aliases": [
+        "\u7121\u86cb\u6c99\u62c9\u91ac egg free salad dressing tablespoon",
+        "egg free salad dressing tablespoon",
+        "one tablespoon egg free salad dressing"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 15,
+        "label": "one tablespoon egg free salad dressing",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 72,
+      "kcal_range": [
+        50,
+        105
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_772748b125d6",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 479.3964,
+          "tfda_sample_name": "\u7121\u86cb\u6c99\u62c9\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7e251fe08e8d",
+        "raw_row_hash": "c8c14408fa0d81048a5de4118b028769b63d0124637166c93eb4a66969a8638a"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_japanese_salad_dressing_serving",
+      "canonical_name": "\u548c\u98a8\u6c99\u62c9\u91ac",
+      "aliases": [
+        "\u548c\u98a8\u6c99\u62c9\u91ac japanese salad dressing serving",
+        "japanese salad dressing serving",
+        "one japanese salad dressing serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one japanese salad dressing serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 38,
+      "kcal_range": [
+        20,
+        65
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_185782d58204",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 128.125,
+          "tfda_sample_name": "\u548c\u98a8\u6c99\u62c9\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_bbf17532ac10",
+        "raw_row_hash": "047a0c91e0db45be155998f2c72b1059f40f66e7b5b2501770da5d524d3d9148"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_sauce_caesar_dressing_serving",
+      "canonical_name": "\u51f1\u6492\u6c99\u62c9\u91ac",
+      "aliases": [
+        "\u51f1\u6492\u6c99\u62c9\u91ac caesar dressing serving",
+        "caesar dressing serving",
+        "one caesar dressing serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one caesar dressing serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 101,
+      "kcal_range": [
+        70,
+        145
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_f2753d66ff85",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 335.8103,
+          "tfda_sample_name": "\u51f1\u6492\u6c99\u62c9\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_8db78f46a38f",
+        "raw_row_hash": "5ffeaa551741093152fd761370c9c4a155be846a8be3193eee3a104343fcf64b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_spread_chocolate_sauce_serving",
+      "canonical_name": "\u5de7\u514b\u529b\u91ac(\u6db2\u9ad4)",
+      "aliases": [
+        "\u5de7\u514b\u529b\u91ac(\u6db2\u9ad4) chocolate sauce serving",
+        "chocolate sauce serving",
+        "one chocolate sauce serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one chocolate sauce serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 54,
+      "kcal_range": [
+        35,
+        85
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_4449aea2366a",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 272.4839,
+          "tfda_sample_name": "\u5de7\u514b\u529b\u91ac(\u6db2\u9ad4)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_13cf562183e6",
+        "raw_row_hash": "38f3a8e42a924ce8c5e5c9142ec8b3e0e138e5038c3f708620a0f92b0c08e862"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_spread_grape_jam_serving",
+      "canonical_name": "\u8461\u8404\u679c\u91ac",
+      "aliases": [
+        "\u8461\u8404\u679c\u91ac grape jam serving",
+        "grape jam serving",
+        "one grape jam serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one grape jam serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 52,
+      "kcal_range": [
+        35,
+        80
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_b6bd95f52d4e",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 257.64,
+          "tfda_sample_name": "\u8461\u8404\u679c\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_2826ae0a7eb1",
+        "raw_row_hash": "7c3a5233a5779af1fe792c9b0c11d4a41fbfef1cb33267a4dca2a4e87f1ed69d"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_spread_pomelo_jam_serving",
+      "canonical_name": "\u67da\u5b50\u679c\u91ac",
+      "aliases": [
+        "\u67da\u5b50\u679c\u91ac pomelo jam serving",
+        "pomelo jam serving",
+        "one pomelo jam serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one pomelo jam serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 53,
+      "kcal_range": [
+        35,
+        80
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_797d5d55225d",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 262.8986,
+          "tfda_sample_name": "\u67da\u5b50\u679c\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_0edb24e179c6",
+        "raw_row_hash": "57287245b558fa27fca9cddbc318474a1bef5bea916dc5c2bad632d977d53498"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_spread_mulberry_jam_serving",
+      "canonical_name": "\u6851\u845a\u679c\u91ac",
+      "aliases": [
+        "\u6851\u845a\u679c\u91ac mulberry jam serving",
+        "mulberry jam serving",
+        "one mulberry jam serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 20,
+        "label": "one mulberry jam serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 45,
+      "kcal_range": [
+        30,
+        70
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_ac2036a549fa",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 224.6936,
+          "tfda_sample_name": "\u6851\u845a\u679c\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_dd3f1890bbbd",
+        "raw_row_hash": "ceb0be445186423d69349a3cc7c52e3e8b2af2d406d8a43a7d8129972dc449a8"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_spread_white_sesame_bread_spread_tbsp",
+      "canonical_name": "\u767d\u829d\u9ebb\u9eb5\u5305\u91ac",
+      "aliases": [
+        "\u767d\u829d\u9ebb\u9eb5\u5305\u91ac white sesame bread spread tablespoon",
+        "white sesame bread spread tablespoon",
+        "one tablespoon white sesame bread spread"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 15,
+        "label": "one tablespoon white sesame bread spread",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 100,
+      "kcal_range": [
+        70,
+        145
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_f430b8cd42a4",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 664.7555,
+          "tfda_sample_name": "\u767d\u829d\u9ebb\u9eb5\u5305\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_fec0f857454f",
+        "raw_row_hash": "c0c1dc07b852e22e546005ced0bba7594fde04f28091fd85712f027df4451be0"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_spread_black_sesame_bread_spread_tbsp",
+      "canonical_name": "\u9ed1\u829d\u9ebb\u9eb5\u5305\u91ac",
+      "aliases": [
+        "\u9ed1\u829d\u9ebb\u9eb5\u5305\u91ac black sesame bread spread tablespoon",
+        "black sesame bread spread tablespoon",
+        "one tablespoon black sesame bread spread"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "tbsp",
+        "portion_quantity": 1,
+        "portion_grams": 15,
+        "label": "one tablespoon black sesame bread spread",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 98,
+      "kcal_range": [
+        65,
+        140
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_ca15997d367b",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 653.2187,
+          "tfda_sample_name": "\u9ed1\u829d\u9ebb\u9eb5\u5305\u91ac"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7f4f44316c06",
+        "raw_row_hash": "629fb36ac79fc281360e158f3d1e4b4ddbfafa6d8ec5dfa9441dd837692fc285"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    }
+  ]
+}
