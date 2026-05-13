@@ -19,6 +19,7 @@ SUPPORTED_FIXTURE_INTENTS = {
     "repeat_meal_intake_shadow",
     "repeat_meal_rescue_shadow",
     "multi_intent_recommendation_e2e",
+    "intake_query_rescue",
 }
 CAPABILITIES_EXERCISED = [
     "long_term_memory",

@@ -23,6 +23,7 @@ SIDECAR_ACTIVATION_CONTRACT = offline_sidecar_contract(
 )
 
 PRODUCT_TOOL_NAMES = {
+    "intake.run",
     "query.run",
     "recommendation.run",
     "reusable_meal.search",
@@ -35,6 +36,7 @@ TOOL_MODES = {
     "memory.search": "read_only_context",
     "memory.get": "read_only_context",
     "conversation_recall.search": "read_only_context",
+    "intake.run": "contract_backed_intake_handoff",
     "reusable_meal.search": "read_only_context",
     "recommendation.run": "candidate_context",
     "rescue.run": "proposal_candidate",
@@ -45,6 +47,7 @@ TOOL_FAMILIES = {
     "memory.search": "long_term_memory",
     "memory.get": "long_term_memory",
     "conversation_recall.search": "long_term_memory",
+    "intake.run": "intake",
     "reusable_meal.search": "reusable_meal",
     "recommendation.run": "recommendation",
     "rescue.run": "rescue",

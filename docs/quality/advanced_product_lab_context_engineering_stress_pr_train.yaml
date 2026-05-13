@@ -4,8 +4,8 @@ status: planned
 owner: AdvancedProductLabContextEngineering
 consumer: advanced_product_lab_proactive_recommendation_rescue_integration
 planned_slice_count_likely: 16
-dynamic_remaining_slice_count: 9
-last_completed_slice_number: 7
+dynamic_remaining_slice_count: 8
+last_completed_slice_number: 8
 active_slice_number: null
 
 slice_count_range:
@@ -130,6 +130,11 @@ last_merge_evidence:
       result: rescue_suppression_feedback_projection_completed
       artifact: app/advanced_shadow_lab/product_lab_rescue_suppression_projection.py
       dynamic_remaining_slice_count_after: 9
+    - slice_number: 8
+      slice_id: contract_backed_intake_bridge_for_advanced_lab
+      result: advanced_lab_intake_bridge_trace_completed
+      artifact: app/advanced_shadow_lab/product_lab_intake_bridge.py
+      dynamic_remaining_slice_count_after: 8
 
 best_practice_evidence:
   required: true

@@ -3,6 +3,9 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.product_lab_manager_tool_contract import MEMORY_TOOL_NAMES
+from app.advanced_shadow_lab.product_lab_intake_bridge import (
+    build_advanced_lab_intake_bridge_trace,
+)
 from app.advanced_shadow_lab.product_lab_memory import empty_product_lab_memory_context_pack
 from app.advanced_shadow_lab.product_lab_memory_store import ProductLabMemoryStore
 from app.advanced_shadow_lab.product_lab_memory_tools import (
@@ -35,6 +38,8 @@ def dispatch_product_lab_manager_tool(
             turn=turn,
             store=store,
         )
+    if tool_name == "intake.run":
+        return build_advanced_lab_intake_bridge_trace(turn=turn, arguments=arguments), []
     if tool_name == "query.run":
         return run_product_lab_query(fixture_inputs=fixture_inputs), []
     if tool_name == "reusable_meal.search":
