@@ -31,7 +31,7 @@ def test_context_engineering_stress_pr_train_records_dynamic_slice_plan() -> Non
     assert plan["artifact_type"] == "advanced_product_lab_context_engineering_stress_pr_train"
     assert plan["status"] == "planned"
     assert plan["planned_slice_count_likely"] == 16
-    assert plan["dynamic_remaining_slice_count"] == 14
+    assert plan["dynamic_remaining_slice_count"] == 13
     assert plan["slice_count_range"] == {
         "optimistic": 14,
         "likely": 16,
@@ -41,13 +41,13 @@ def test_context_engineering_stress_pr_train_records_dynamic_slice_plan() -> Non
     assert plan["slice_train"][0]["slice_id"] == "main_to_lab_sync_and_contract_drift_audit"
     assert plan["slice_train"][-1]["slice_id"] == "decision_pack_and_proactive_entry_gate"
 
-    assert plan["last_completed_slice_number"] == 2
+    assert plan["last_completed_slice_number"] == 3
     assert plan["last_merge_evidence"]["completed_slices"][-1] == {
-        "slice_number": 2,
-        "slice_id": "ce_stress_golden_set_loader_and_schema_gate",
-        "result": "golden_set_loader_v2_completed",
-        "artifact": "app/advanced_shadow_lab/context_engineering_case_loader.py",
-        "dynamic_remaining_slice_count_after": 14,
+        "slice_number": 3,
+        "slice_id": "mechanism_challenge_decision_pack",
+        "result": "mechanism_decision_pack_completed",
+        "artifact": "app/advanced_shadow_lab/context_engineering_mechanism_review.py",
+        "dynamic_remaining_slice_count_after": 13,
     }
 
 
