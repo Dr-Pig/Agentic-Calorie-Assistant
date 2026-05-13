@@ -64,6 +64,7 @@ def run_product_lab_recommendation(
     memory_context_pack: Mapping[str, Any],
     manager_turn_plan: Mapping[str, Any] | None = None,
     tool_arguments: Mapping[str, Any] | None = None,
+    reusable_meal_context_pack: Mapping[str, Any] | None = None,
     provider: FixtureProductLabRecommendationProvider | None = None,
 ) -> dict[str, Any]:
     active_provider = provider or FixtureProductLabRecommendationProvider()
@@ -81,6 +82,7 @@ def run_product_lab_recommendation(
         planning=planning,
         fixture_inputs=fixture_inputs,
         memory_context_pack=memory_context_pack,
+        reusable_meal_context_pack=reusable_meal_context_pack,
     )
     offer_synthesis = active_provider.synthesize_offer(
         retrieval_guard_scoring=retrieval_guard_scoring,

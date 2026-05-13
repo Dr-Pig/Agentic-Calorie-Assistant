@@ -86,6 +86,9 @@ def run_advanced_product_lab_turn(
         memory_context_pack=memory_context_pack,
         prior_action_state=prior_action_state,
         prior_control_journal=list(prior_control_journal or []),
+        manager_selected_reusable_meal_artifact=manager_artifacts.get(
+            "manager_selected_reusable_meal_artifact"
+        ),
     )
     product_recommendation = product_artifacts["recommendation"]
     product_recommendation_rescue_bridge = product_artifacts[

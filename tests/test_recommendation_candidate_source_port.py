@@ -64,7 +64,14 @@ def test_candidate_source_port_normalizes_fooddb_memory_and_context_views() -> N
                 {
                     "entity_id": "ufe-fried-rice",
                     "display_name": "Mom fried rice",
+                    "status": "confirmed",
+                    "review_required": False,
+                    "normalized_signature": "mom_fried_rice",
+                    "estimate_posture_decision": "reuse_exact",
+                    "estimated_kcal": 650,
+                    "estimated_kcal_range": {"min": 590, "max": 690},
                     "source_refs": ["memory_record:reusable-meal-hint-1"],
+                    "drift_flags": {},
                 }
             ]
         },

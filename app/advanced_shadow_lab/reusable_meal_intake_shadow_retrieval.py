@@ -99,6 +99,8 @@ def _candidate_from_entity(
         "normalized_signature": str(version.get("normalized_signature") or ""),
         "match_basis": "normalized_signature",
         "source_kind": str(version.get("source_kind") or ""),
+        "estimated_kcal": version.get("estimated_kcal") if isinstance(version.get("estimated_kcal"), int) else None,
+        "estimated_kcal_range": dict(version.get("estimated_kcal_range") if isinstance(version.get("estimated_kcal_range"), Mapping) else {}),
         "source_refs": [str(ref) for ref in version.get("source_refs") or []],
         "memory_hint_used": memory_hint_used,
         "estimate_posture_decision": decision,

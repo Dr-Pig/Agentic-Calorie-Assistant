@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.recommendation.application.reusable_meal_candidate_source import (
+    reusable_meal_candidate_source_projection,
+)
+
 
 SOURCE_FAMILIES = ["fooddb", "memory", "budget", "rescue", "reusable_meal"]
 CANDIDATE_FIELDS_REQUIRED = [
@@ -40,11 +44,14 @@ def normalize_recommendation_candidate_sources(
     memory_context_pack: Mapping[str, Any],
     reusable_meal_context_pack: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    reusable_projection = reusable_meal_candidate_source_projection(
+        reusable_meal_context_pack or {}
+    )
     candidates = _deduped(
         [
             *_fooddb_candidates(payload),
             *_memory_candidates(memory_context_pack),
-            *_reusable_meal_candidates(reusable_meal_context_pack or {}),
+            *list(reusable_projection["candidate_sources"]),
         ]
     )
     artifact = {
@@ -56,9 +63,13 @@ def normalize_recommendation_candidate_sources(
             str(candidate.get("candidate_id") or "") for candidate in candidates
         ],
         "candidate_sources": candidates,
+        "omitted_candidate_sources": list(
+            reusable_projection["omitted_candidate_sources"]
+        ),
         "source_context_views": {
             "budget": _budget_context(payload),
             "rescue": _rescue_context(payload),
+            "reusable_meal": dict(reusable_projection["source_context_view"]),
         },
         "may_score_or_rank_candidates": False,
         "may_filter_hard_blockers": False,
@@ -125,24 +136,6 @@ def _memory_candidates(memory_context_pack: Mapping[str, Any]) -> list[dict[str,
                 "hard_avoid_flags": [],
                 "source_refs": [f"memory_candidate:{record_id}"],
                 "memory_record_id": record_id,
-            }
-        )
-    return candidates
-
-
-def _reusable_meal_candidates(context: Mapping[str, Any]) -> list[dict[str, Any]]:
-    candidates: list[dict[str, Any]] = []
-    for entity in context.get("reusable_meal_candidates") or []:
-        if not isinstance(entity, Mapping):
-            continue
-        entity_id = str(entity.get("entity_id") or "")
-        candidates.append(
-            {
-                "candidate_id": entity_id,
-                "title": str(entity.get("display_name") or entity_id),
-                "source_family": "reusable_meal",
-                "source_type": "reusable_meal_entity",
-                "source_refs": [str(ref) for ref in entity.get("source_refs") or []],
             }
         )
     return candidates

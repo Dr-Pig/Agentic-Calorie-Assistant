@@ -33,11 +33,13 @@ def build_candidate_retrieval_guard_scoring(
     planning: Mapping[str, Any],
     fixture_inputs: Mapping[str, Any],
     memory_context_pack: Mapping[str, Any],
+    reusable_meal_context_pack: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload = _mapping(fixture_inputs.get("recommendation_payload"))
     candidate_source_port = normalize_recommendation_candidate_sources(
         payload=payload,
         memory_context_pack=memory_context_pack,
+        reusable_meal_context_pack=reusable_meal_context_pack,
     )
     source_candidates = [
         dict(candidate)

@@ -33,6 +33,7 @@ def run_product_lab_product_artifacts(
     memory_context_pack: Mapping[str, Any],
     prior_action_state: Mapping[str, Any] | None = None,
     prior_control_journal: list[Mapping[str, Any]] | None = None,
+    manager_selected_reusable_meal_artifact: Mapping[str, Any] | None = None,
 ) -> dict[str, dict[str, Any]]:
     no_plan_enabled = turn.get("no_plan_degraded_enabled") is True
     no_plan = run_product_lab_no_plan_degraded(
@@ -53,6 +54,7 @@ def run_product_lab_product_artifacts(
             turn=turn,
             fixture_inputs=recommendation_inputs,
             memory_context_pack=memory_context_pack,
+            reusable_meal_context_pack=manager_selected_reusable_meal_artifact or {},
         )
     )
     rescue = (
