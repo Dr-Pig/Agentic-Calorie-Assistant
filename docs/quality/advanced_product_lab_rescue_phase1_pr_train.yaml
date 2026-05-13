@@ -4,11 +4,11 @@ status: active
 owner: AdvancedRescueRuntimeLab
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 4
-last_completed_pr_number: 20
+dynamic_remaining_pr_count: 3
+last_completed_pr_number: 21
 current_mainline: advanced_product_lab_rescue_phase1
 is_detour: false
-mainline_blocker_being_removed: recommendation_posture_refresh_handoff_not_built
+mainline_blocker_being_removed: rescue_feedback_memory_projection_not_built
 strategic_verdict: mainline
 
 strategic_gate:
@@ -20,7 +20,7 @@ strategic_gate:
   exit_gate_status: not_applicable
   return_slice_after_exit: not_applicable
   strategic_verdict: mainline
-  mainline_blocker_being_removed: recommendation_posture_refresh_handoff_not_built
+  mainline_blocker_being_removed: rescue_feedback_memory_projection_not_built
 
 capability_dependency_check:
   capability_layer: L9 Same-Truth / UI / Memory / Proactive, with L2/L3/L4 runtime dependencies
@@ -483,7 +483,11 @@ last_merge_evidence:
       pull_request: 1197
       merge_commit: f9f711f5a164a59c45aebefcee9c483d21b1ab36
       result: proposal_inbox_history_audit_read_model_merged
-  latest_dynamic_estimate_after_merge: 4
+    - pr_number: 21
+      pull_request: 1199
+      merge_commit: 0c3d0af2d9a5d4fcb136de69f41f21bd4da15299
+      result: recommendation_posture_refresh_handoff_merged
+  latest_dynamic_estimate_after_merge: 3
 
 estimate_notes:
   - Initial dynamic estimate is 24 PRs before PR1 merge.
@@ -507,5 +511,6 @@ estimate_notes:
   - After PR18 merge, remaining estimate moved to 6; attachment priority is manager-semantic driven with no keyword oracle, so no extra PR was added.
   - After PR19 merge, remaining estimate moved to 5; proposal status overlay and rescue ledger overlay stayed one accept-commit rollback boundary, so no extra PR was added.
   - After PR20 merge, remaining estimate moved to 4; fat-file gate forced an audit helper extraction, but the read model stayed one mirror-only PR, so no extra PR was added.
+  - After PR21 merge, remaining estimate moved to 3; recommendation reads a short-term posture patch only and still does not serve an offer or create recommendation intent state.
   - This count may increase if L2 data-state or isolated lab ledger contracts are thinner than expected.
   - This count may decrease only when adjacent slices share one reviewable capability and one rollback boundary.
