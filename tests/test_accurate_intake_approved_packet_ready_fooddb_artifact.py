@@ -363,7 +363,7 @@ def test_default_repo_artifact_builds_from_tracked_exact_item_seed() -> None:
         "listed_component": 1,
     }
     assert artifact["summary"]["available_packet_ready_lane_counts"] == {
-        "exact_item_card": 178,
+        "exact_item_card": 190,
         "generic_common_serving": 400,
         "listed_component": 350,
     }
@@ -381,14 +381,14 @@ def test_full_current_shell_profile_includes_all_approved_packet_ready_lanes() -
 
     assert artifact["status"] == "approved_packet_ready_fooddb_artifact_ready"
     assert artifact["summary"]["selection_profile"] == "full_current_shell"
-    assert artifact["summary"]["packet_ready_item_count"] == 928
+    assert artifact["summary"]["packet_ready_item_count"] == 940
     assert artifact["summary"]["packet_ready_lane_counts"] == {
-        "exact_item_card": 178,
+        "exact_item_card": 190,
         "generic_common_serving": 400,
         "listed_component": 350,
     }
     assert artifact["summary"]["available_packet_ready_lane_counts"] == {
-        "exact_item_card": 178,
+        "exact_item_card": 190,
         "generic_common_serving": 400,
         "listed_component": 350,
     }
@@ -531,6 +531,12 @@ def test_full_current_shell_profile_includes_all_approved_packet_ready_lanes() -
     assert by_id["exact_paldo_kimchi_ramen_120g"]["macro_visibility_status"] == (
         "visible"
     )
+    assert by_id["exact_knorr_mentaiko_pasta_sauce_140g"][
+        "source_provenance"
+    ]["source_file"] == "app/knowledge/exact_item_cards_tw_batch_021.json"
+    assert by_id["exact_knorr_mentaiko_pasta_sauce_140g"][
+        "macro_visibility_status"
+    ] == "visible"
     assert by_id["generic_staple_meat_floss_triangle_rice_ball"]["kcal_point"] == 235
     assert by_id["generic_staple_meat_floss_triangle_rice_ball"]["kcal_range"] == [190, 300]
     assert by_id["generic_staple_meat_floss_triangle_rice_ball"]["macro_visibility_status"] == (
@@ -757,7 +763,7 @@ def test_approved_packet_ready_fooddb_artifact_cli_can_write_full_current_shell_
     assert exit_code == 0
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
     assert artifact["summary"]["selection_profile"] == "full_current_shell"
-    assert artifact["summary"]["packet_ready_item_count"] == 928
+    assert artifact["summary"]["packet_ready_item_count"] == 940
 
 
 def test_runbook_documents_minimal_fooddb_packet_ready_artifact() -> None:
