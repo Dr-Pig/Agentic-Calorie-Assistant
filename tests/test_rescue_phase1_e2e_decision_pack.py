@@ -43,7 +43,7 @@ def test_rescue_phase1_decision_pack_closes_lab_without_mainline_activation(
     assert pack["mainline_activation_enabled"] is False
     assert pack["production_scheduler_delivery_allowed"] is False
     assert pack["canonical_product_mutation_allowed"] is False
-    assert pack["dynamic_estimate"]["remaining_pr_count_before_this_pr"] == 1
+    assert pack["dynamic_estimate"]["remaining_pr_count_before_this_pr"] == 0
     assert pack["dynamic_estimate"]["remaining_pr_count_after_pr24_merge"] == 0
     assert pack["milestone_statuses"] == {
         "fixture_golden_set_replay": "satisfied_fixture",

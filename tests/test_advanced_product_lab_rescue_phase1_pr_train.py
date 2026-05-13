@@ -20,10 +20,10 @@ def test_rescue_phase1_train_records_twenty_four_right_sized_prs() -> None:
     plan = _plan()
 
     assert plan["artifact_type"] == "advanced_product_lab_rescue_phase1_pr_train"
-    assert plan["status"] == "active"
+    assert plan["status"] == "completed"
     assert plan["planned_pr_count"] == 24
-    assert plan["dynamic_remaining_pr_count"] == 1
-    assert plan["last_completed_pr_number"] == 23
+    assert plan["dynamic_remaining_pr_count"] == 0
+    assert plan["last_completed_pr_number"] == 24
     assert (
         plan["planned_pr_count"] - plan["last_completed_pr_number"]
         == plan["dynamic_remaining_pr_count"]

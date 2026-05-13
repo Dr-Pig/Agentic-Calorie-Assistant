@@ -1,14 +1,14 @@
 artifact_type: advanced_product_lab_rescue_phase1_pr_train
 version: 1
-status: active
+status: completed
 owner: AdvancedRescueRuntimeLab
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 1
-last_completed_pr_number: 23
+dynamic_remaining_pr_count: 0
+last_completed_pr_number: 24
 current_mainline: advanced_product_lab_rescue_phase1
 is_detour: false
-mainline_blocker_being_removed: rescue_phase1_integrated_e2e_decision_pack_not_built
+mainline_blocker_being_removed: rescue_phase1_lab_loop_closed_pending_operator_dogfood_feedback
 strategic_verdict: mainline
 
 strategic_gate:
@@ -20,7 +20,7 @@ strategic_gate:
   exit_gate_status: not_applicable
   return_slice_after_exit: not_applicable
   strategic_verdict: mainline
-  mainline_blocker_being_removed: rescue_phase1_integrated_e2e_decision_pack_not_built
+  mainline_blocker_being_removed: rescue_phase1_lab_loop_closed_pending_operator_dogfood_feedback
 
 capability_dependency_check:
   capability_layer: L9 Same-Truth / UI / Memory / Proactive, with L2/L3/L4 runtime dependencies
@@ -495,7 +495,11 @@ last_merge_evidence:
       pull_request: 1202
       merge_commit: 2cdfd6c5dfbbed17f0e5e77e3c73fb1916191cdd
       result: proactive_rescue_nudge_bridge_merged
-  latest_dynamic_estimate_after_merge: 1
+    - pr_number: 24
+      pull_request: 1203
+      merge_commit: 274a0137cd7b3f1414514efbd518a1890432bd71
+      result: rescue_phase1_integrated_e2e_decision_pack_merged_with_live_grokfast_pass
+  latest_dynamic_estimate_after_merge: 0
 
 estimate_notes:
   - Initial dynamic estimate is 24 PRs before PR1 merge.
@@ -522,5 +526,6 @@ estimate_notes:
   - After PR21 merge, remaining estimate moved to 3; recommendation reads a short-term posture patch only and still does not serve an offer or create recommendation intent state.
   - After PR22 merge, remaining estimate moved to 2; rescue feedback now projects to reviewed memory candidates only, so no extra PR was added.
   - After PR23 merge, remaining estimate moved to 1; proactive cooldown and rescue feedback omission were completed under fat-file cap, so no extra PR was added.
+  - After PR24 merge, remaining estimate moved to 0; the integrated decision pack closed fixture replay, simulated self-use replay, accept/dismiss E2E, F/F2/T E2E, and live Grokfast diagnostic milestones while keeping mainline activation dormant, so no extra PR was added.
   - This count may increase if L2 data-state or isolated lab ledger contracts are thinner than expected.
   - This count may decrease only when adjacent slices share one reviewable capability and one rollback boundary.
