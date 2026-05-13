@@ -9,30 +9,28 @@ from app.nutrition.infrastructure.small_anchor_store_loader import (
 
 
 BATCH_IDS = {
-    "listed_item_onsen_egg_one",
-    "listed_item_boiled_chicken_egg_one",
-    "listed_item_boiled_egg_white_one",
-    "listed_item_boiled_egg_yolk_one",
-    "listed_item_commercial_tea_egg_one",
-    "listed_item_century_egg_one",
-    "listed_item_braised_egg_one",
-    "listed_item_commercial_braised_egg_one",
-    "listed_item_iron_egg_one",
-    "listed_item_poached_egg_no_oil_one",
-    "listed_item_fried_egg_with_oil_one",
-    "listed_item_steamed_egg_cup",
-    "listed_modifier_shacha_powder_15g",
-    "listed_modifier_curry_cube_20g",
-    "listed_modifier_fried_shallot_10g",
-    "listed_modifier_coconut_milk_30g",
-    "listed_modifier_garlic_crisp_10g",
-    "listed_modifier_bonito_powder_5g",
-    "listed_modifier_pork_broth_cube_10g",
-    "listed_modifier_chicken_broth_cube_10g",
+    "listed_modifier_five_spice_powder_5g",
+    "listed_modifier_white_pepper_powder_2g",
+    "listed_modifier_black_pepper_powder_2g",
+    "listed_modifier_onion_powder_5g",
+    "listed_modifier_garlic_powder_5g",
+    "listed_modifier_chili_powder_5g",
+    "listed_modifier_shichimi_powder_2g",
+    "listed_modifier_dou_su_10g",
+    "listed_modifier_plum_powder_5g",
+    "listed_modifier_coconut_powder_10g",
+    "listed_modifier_soy_sauce_15g",
+    "listed_modifier_black_bean_soy_sauce_15g",
+    "listed_item_pork_bone_stock_250g",
+    "listed_item_low_fat_stock_250g",
+    "listed_item_vegetarian_stock_250g",
+    "listed_modifier_rice_vinegar_15g",
+    "listed_modifier_black_vinegar_15g",
+    "listed_item_chicken_essence_60g",
 }
 
 
-def test_listed_component_batch_029_loads_egg_and_hotpot_modifiers() -> None:
+def test_listed_component_batch_046_loads_modifier_stock_components() -> None:
     records = load_small_anchor_seed_records()
     by_id = {str(record.get("anchor_id") or ""): record for record in records}
 
@@ -53,7 +51,7 @@ def test_listed_component_batch_029_loads_egg_and_hotpot_modifiers() -> None:
         assert record["kcal_range"][0] <= record["kcal_point"] <= record["kcal_range"][1]
 
 
-def test_listed_component_batch_029_enters_full_current_shell_with_hidden_macros() -> None:
+def test_listed_component_batch_046_enters_full_current_shell_with_hidden_macros() -> None:
     artifact = build_approved_packet_ready_fooddb_artifact(
         artifact_path="artifacts/approved_packet_ready_fooddb_full.json",
         selection_profile="full_current_shell",
@@ -62,10 +60,10 @@ def test_listed_component_batch_029_enters_full_current_shell_with_hidden_macros
 
     assert artifact["summary"]["packet_ready_lane_counts"]["listed_component"] == 350
     expected = {
-        "listed_item_onsen_egg_one": (76, [55, 105]),
-        "listed_item_braised_egg_one": (101, [75, 145]),
-        "listed_modifier_curry_cube_20g": (101, [70, 150]),
-        "listed_modifier_fried_shallot_10g": (49, [35, 70]),
+        "listed_modifier_five_spice_powder_5g": (13, [5, 25]),
+        "listed_modifier_soy_sauce_15g": (14, [5, 25]),
+        "listed_item_pork_bone_stock_250g": (123, [60, 170]),
+        "listed_item_chicken_essence_60g": (20, [10, 35]),
     }
     for item_id, (kcal_point, kcal_range) in expected.items():
         item = by_id[item_id]
