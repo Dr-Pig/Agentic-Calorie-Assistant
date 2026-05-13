@@ -56,6 +56,12 @@ def _recommendation_fields(
         "pending_intake_handoff_packet": dict(
             product_recommendation.get("pending_intake_handoff_packet") or {}
         ),
+        "recommendation_feedback_target": dict(
+            product_recommendation.get("feedback_target") or {}
+        ),
+        "recommendation_feedback_actions": [
+            str(action) for action in product_recommendation.get("feedback_actions") or []
+        ],
         "product_runtime_output_refs": [
             str(product_recommendation.get("artifact_type") or ""),
             str(product_proactive.get("artifact_type") or ""),

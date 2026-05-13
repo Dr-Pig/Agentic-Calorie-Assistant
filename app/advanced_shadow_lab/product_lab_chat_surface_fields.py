@@ -60,6 +60,10 @@ def recommendation_offer(packet: Mapping[str, Any]) -> dict[str, Any]:
         "pre_meal_planning": dict(_mapping(ux.get("pre_meal_planning_packet"))),
         "swap_suggestion": dict(_mapping(ux.get("swap_suggestion_packet"))),
         "offer_actions": [dict(item) for item in ux.get("actions") or [] if isinstance(item, Mapping)],
+        "feedback_target": dict(_mapping(packet.get("recommendation_feedback_target"))),
+        "feedback_actions": [
+            str(action) for action in packet.get("recommendation_feedback_actions") or []
+        ],
         "intake_handoff_state": str(handoff.get("handoff_state") or ""),
         "handoff_contract": dict(_mapping(handoff.get("handoff_contract"))),
         "canonical_commit_requested": handoff.get("canonical_commit_requested") is True,

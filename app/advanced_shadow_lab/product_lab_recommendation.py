@@ -11,6 +11,9 @@ from app.advanced_shadow_lab.product_lab_recommendation_graph_contract import (
 from app.advanced_shadow_lab.product_lab_recommendation_handoff import (
     build_pending_intake_handoff_packet,
 )
+from app.advanced_shadow_lab.product_lab_recommendation_feedback import (
+    recommendation_feedback_fields,
+)
 from app.advanced_shadow_lab.product_lab_recommendation_provider import (
     FixtureProductLabRecommendationProvider,
 )
@@ -94,6 +97,7 @@ def run_product_lab_recommendation(
         *_blockers("offer_synthesis", offer_synthesis),
     ]
     primary = _mapping(offer_synthesis.get("selected_primary"))
+    feedback_fields = recommendation_feedback_fields(turn=turn, primary_candidate=primary)
     pending_handoff = build_pending_intake_handoff_packet(
         primary_candidate=primary,
         ux_packet=_mapping(offer_synthesis.get("ux_packet")),
@@ -121,6 +125,7 @@ def run_product_lab_recommendation(
         "offer_synthesis": offer_synthesis,
         "intake_handoff_packet": _intake_handoff(primary),
         "pending_intake_handoff_packet": pending_handoff,
+        **feedback_fields,
         "recommendation_served_to_lab": served_to_lab,
         "proactive_recommendation_candidate_allowed": (
             served_to_lab
