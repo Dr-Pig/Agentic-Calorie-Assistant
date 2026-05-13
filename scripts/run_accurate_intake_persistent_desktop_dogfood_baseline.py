@@ -20,6 +20,7 @@ from scripts.run_accurate_intake_browser_one_day_fixture_dogfood import (  # noq
     _free_port,
     _run_desktop_loop_sequence,
     _run_uvicorn_in_thread,
+    _wait_for_desktop_session_connected,
     _wait_for_http,
 )
 from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
@@ -231,10 +232,7 @@ def _run_persistent_browser_sequence(
                     page.wait_for_selector('[data-surface-role="desktop-dogfood-entry"]', timeout=timeout_ms)
                     page.fill("#local-debug-token", local_debug_token)
                     page.click("#establish-local-session")
-                    page.wait_for_function(
-                        """() => (document.querySelector("#entry-status")?.textContent || "").includes("Session connected")""",
-                        timeout=timeout_ms,
-                    )
+                    _wait_for_desktop_session_connected(page, timeout_ms=timeout_ms)
                     entry = _desktop_entry_state(page)
                     loop = _run_desktop_loop_sequence(
                         page,
