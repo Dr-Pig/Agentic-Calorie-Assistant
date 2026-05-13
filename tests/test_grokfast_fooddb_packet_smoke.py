@@ -3,8 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.nutrition.application.approved_packet_ready_fooddb_artifact import (
+    build_approved_packet_ready_fooddb_artifact,
+)
 from app.nutrition.application.fooddb_manager_packet_smoke import (
     build_fooddb_manager_packet_smoke,
+)
+from app.nutrition.application.fooddb_real_manager_e2e import (
+    build_fooddb_real_manager_e2e,
 )
 from app.nutrition.application.fooddb_retrieval_policy import (
     build_runtime_retrieval_records_from_small_anchor_payload,
@@ -51,6 +57,26 @@ def _tool_evidence_artifact() -> dict:
     }
 
 
+def _real_manager_packet_artifact() -> dict:
+    approved = build_approved_packet_ready_fooddb_artifact(
+        artifact_path="artifacts/approved_packet_ready_fooddb_full.json",
+        selection_profile="full_current_shell",
+    )
+    return build_fooddb_real_manager_e2e(approved_packet_ready_artifact=approved)
+
+
+def _contract_errors_for_case(packet_case: dict, manager_output: dict) -> list[str]:
+    try:
+        validate_manager_payload(
+            MANAGER_LOOP_STAGE,
+            manager_output,
+            constraints=build_live_manager_payload(packet_case=packet_case)["constraints"],
+        )
+    except Exception as exc:
+        return [f"{type(exc).__name__}: {exc}"]
+    return []
+
+
 def test_grokfast_fooddb_packet_diagnostic_classifies_fixture_evidence_use() -> None:
     packet_artifact = _packet_artifact()
     manager_outputs = build_fixture_manager_outputs(packet_artifact=packet_artifact)
@@ -88,6 +114,35 @@ def test_grokfast_fooddb_fixture_outputs_match_b1_pass2_manager_schema() -> None
             manager_output,
             constraints=constraints,
         )
+
+
+def test_grokfast_fooddb_real_manager_e2e_fixture_outputs_match_b1_pass2_manager_schema() -> None:
+    packet_artifact = _real_manager_packet_artifact()
+    manager_outputs = build_fixture_manager_outputs(packet_artifact=packet_artifact)
+
+    for packet_case, output in zip(packet_artifact["cases"], manager_outputs, strict=True):
+        constraints = build_live_manager_payload(packet_case=packet_case)["constraints"]
+        assert should_attempt_b1_pass2_structured_output_transport(constraints) is True
+        validate_manager_payload(
+            MANAGER_LOOP_STAGE,
+            output["manager_output"],
+            constraints=constraints,
+        )
+
+
+def test_grokfast_fooddb_packet_diagnostic_accepts_real_manager_e2e_fixture_baseline() -> None:
+    packet_artifact = _real_manager_packet_artifact()
+    diagnostic = build_grokfast_fooddb_packet_diagnostic(
+        packet_artifact=packet_artifact,
+        manager_outputs=build_fixture_manager_outputs(packet_artifact=packet_artifact),
+        live_provider_used=False,
+        manager_contract_validator=_contract_errors_for_case,
+    )
+
+    assert diagnostic["status"] == "pass"
+    assert diagnostic["summary"]["case_count"] == 8
+    assert diagnostic["summary"]["pass_count"] == 8
+    assert diagnostic["summary"]["fail_count"] == 0
 
 
 def test_grokfast_fooddb_live_payload_selects_structured_pass2_contract() -> None:

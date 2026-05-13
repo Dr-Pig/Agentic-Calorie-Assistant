@@ -288,7 +288,7 @@ def _run_packet_smoke(
         "--mode",
         mode,
         "--packet-smoke",
-        str(paths["manager_packet_smoke"]),
+        str(paths["real_manager_e2e"]),
         "--preflight-artifact",
         str(paths["preflight"]),
         "--router-readiness-artifact",
