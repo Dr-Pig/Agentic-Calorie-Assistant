@@ -155,7 +155,7 @@ def test_recommendation_train_records_pr6_completion_and_next_active_slice() -> 
 
     assert plan["dynamic_remaining_pr_count"] <= 18
     assert plan["last_completed_pr_number"] >= 6
-    assert plan["active_pr_number"] >= 7
+    assert plan["active_pr_number"] is None or plan["active_pr_number"] >= 7
     assert {
         "pr_number": 6,
         "pull_request": "local_logical_slice",

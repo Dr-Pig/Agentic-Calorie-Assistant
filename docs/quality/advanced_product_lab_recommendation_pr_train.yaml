@@ -1,15 +1,15 @@
 artifact_type: advanced_product_lab_recommendation_pr_train
 version: 1
-status: active
+status: completed
 owner: AdvancedProductLabRecommendation
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 1
-last_completed_pr_number: 23
-active_pr_number: 24
+dynamic_remaining_pr_count: 0
+last_completed_pr_number: 24
+active_pr_number: null
 current_mainline: advanced_product_lab_recommendation_manager_tool_train
 is_detour: false
-mainline_blocker_being_removed: recommendation_must_enter_through_shared_manager_tool_loop
+mainline_blocker_being_removed: recommendation_manager_tool_train_closed_pending_operator_dogfood_feedback
 strategic_verdict: mainline
 
 parent_context_engineering_train:
@@ -65,6 +65,27 @@ recommendation_graph:
   ownership_boundaries:
     - llm_planning_to_deterministic_guard
     - deterministic_guard_to_llm_offer_synthesis
+
+next_capability_plan:
+  primary_next_train: advanced_product_lab_proactive_chat_first_integration
+  first_slice: proactive_entry_contract_from_memory_rescue_recommendation_outputs
+  estimated_pr_range:
+    optimistic: 18
+    likely: 24
+    conservative: 30
+  why_next: >
+    Memory, rescue, context engineering, and recommendation now have manager-style
+    lab evidence, so proactive can become the chat-first coordinator of those outputs.
+  dependencies_confirmed:
+    memory: completed
+    context_engineering: completed
+    rescue_phase1: completed
+    recommendation: completed
+  do_not_build_yet:
+    - mainline_route_mount
+    - production_notification_delivery
+    - production_db_migration
+    - generic_workflow_engine
 
 best_practice_evidence:
   required: true
@@ -210,6 +231,7 @@ estimate_notes:
   - After PR21 logical completion, remaining estimate moved to 3.
   - After PR22 logical completion, remaining estimate moved to 2.
   - After PR23 logical completion, remaining estimate moved to 1.
+  - After PR24 logical completion, recommendation train is closed and remaining estimate moved to 0.
 
 last_merge_evidence:
   completed_prs:
@@ -308,3 +330,7 @@ last_merge_evidence:
       pull_request: local_logical_slice
       merge_commit: working_branch_uncommitted
       result: recommendation_mainline_dormancy_gate_completed_locally
+    - pr_number: 24
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: recommendation_train_closeout_and_next_capability_plan_completed_locally

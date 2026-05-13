@@ -62,7 +62,7 @@ def test_recommendation_mainline_dormancy_gate_blocks_quality_or_mainline_leaks(
     ]
 
 
-def test_recommendation_train_records_pr23_completion_and_next_active_slice() -> None:
+def test_recommendation_train_still_records_pr23_dormancy_gate_completion() -> None:
     import yaml
 
     with open(
@@ -71,15 +71,15 @@ def test_recommendation_train_records_pr23_completion_and_next_active_slice() ->
     ) as handle:
         plan = yaml.safe_load(handle)
 
-    assert plan["dynamic_remaining_pr_count"] == 1
-    assert plan["last_completed_pr_number"] == 23
-    assert plan["active_pr_number"] == 24
-    assert plan["last_merge_evidence"]["completed_prs"][-1] == {
+    assert plan["dynamic_remaining_pr_count"] <= 1
+    assert plan["last_completed_pr_number"] >= 23
+    assert plan["active_pr_number"] is None or plan["active_pr_number"] == 24
+    assert {
         "pr_number": 23,
         "pull_request": "local_logical_slice",
         "merge_commit": "working_branch_uncommitted",
         "result": "recommendation_mainline_dormancy_gate_completed_locally",
-    }
+    } in plan["last_merge_evidence"]["completed_prs"]
 
 
 def _quality_pack() -> dict[str, object]:

@@ -70,15 +70,17 @@ def test_recommendation_next_train_is_machine_readable_and_manager_style() -> No
     plan = yaml.safe_load(NEXT_TRAIN_PATH.read_text(encoding="utf-8-sig"))
 
     assert plan["artifact_type"] == "advanced_product_lab_recommendation_pr_train"
-    assert plan["status"] == "active"
+    assert plan["status"] in {"active", "completed"}
     assert plan["current_mainline"] == "advanced_product_lab_recommendation_manager_tool_train"
     assert plan["planned_pr_count"] >= 20
     assert plan["dynamic_remaining_pr_count"] <= plan["planned_pr_count"]
-    assert plan["active_pr_number"] >= 1
+    assert plan["active_pr_number"] is None or plan["active_pr_number"] >= 1
     assert plan["parent_context_engineering_train"] == {
         "path": "docs/quality/advanced_product_lab_context_engineering_pr_train.yaml",
         "closed_by_pr": 29,
-        "entry_contract_artifact": "artifacts/advanced_product_lab_recommendation_entry_contract_pr29.json",
+        "entry_contract_artifact": (
+            "artifacts/advanced_product_lab_recommendation_entry_contract_pr29.json"
+        ),
     }
     assert plan["manager_tool_entry"]["tool_name"] == "recommendation.run"
     assert plan["manager_tool_entry"]["runtime_surface"] == "manager_tool_loop"
