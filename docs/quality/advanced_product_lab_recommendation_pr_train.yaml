@@ -4,9 +4,9 @@ status: active
 owner: AdvancedProductLabRecommendation
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 5
-last_completed_pr_number: 19
-active_pr_number: 20
+dynamic_remaining_pr_count: 4
+last_completed_pr_number: 20
+active_pr_number: 21
 current_mainline: advanced_product_lab_recommendation_manager_tool_train
 is_detour: false
 mainline_blocker_being_removed: recommendation_must_enter_through_shared_manager_tool_loop
@@ -206,6 +206,7 @@ estimate_notes:
   - After PR17 logical completion, remaining estimate moved to 7.
   - After PR18 logical completion, remaining estimate moved to 6.
   - After PR19 logical completion, remaining estimate moved to 5.
+  - After PR20 logical completion, remaining estimate moved to 4.
 
 last_merge_evidence:
   completed_prs:
@@ -288,3 +289,7 @@ last_merge_evidence:
       merge_commit: working_branch_uncommitted
       result: recommendation_offer_grokfast_live_diagnostic_completed_locally
       live_artifact: artifacts/advanced_product_lab_recommendation_offer_grokfast_diagnostic_pr19_live.json
+    - pr_number: 20
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: recommendation_paired_lab_e2e_completed_locally
