@@ -14,6 +14,9 @@ from app.advanced_shadow_lab.product_lab_proactive_candidate import (
     product_lab_proactive_candidate,
     product_lab_proactive_candidate_blockers,
 )
+from app.advanced_shadow_lab.product_lab_proactive_recommendation_bridge import (
+    build_recommendation_proactive_candidate_bridge,
+)
 from app.advanced_shadow_lab.product_lab_proactive_gate import (
     review_product_lab_proactive_candidates,
 )
@@ -38,8 +41,12 @@ def run_product_lab_proactive(
         rescue_omission_trace(current_action_state)
         or rf.rescue_feedback_omission_trace(feedback_projection)
     )
+    recommendation_bridge = build_recommendation_proactive_candidate_bridge(
+        recommendation_artifact=recommendation_artifact,
+        fixture_inputs=fixture_inputs,
+    )
     specs = [
-        _recommendation_candidate(recommendation_artifact, fixture_inputs),
+        recommendation_bridge.get("candidate_spec"),
         pending_intake_followup_candidate(
             action_state=current_action_state,
             control_model=_control_model(fixture_inputs, "pending_intake_followup"),
@@ -60,10 +67,18 @@ def run_product_lab_proactive(
         for spec in specs
         if spec is not None
     ]
+    bridge_blockers = [
+        f"recommendation_bridge.{blocker}"
+        for blocker in recommendation_bridge.get("blockers") or []
+        if recommendation_bridge.get("status") == "blocked"
+    ]
     blockers = [
-        blocker
-        for candidate in prepared_candidates
-        for blocker in product_lab_proactive_candidate_blockers(candidate)
+        *bridge_blockers,
+        *[
+            blocker
+            for candidate in prepared_candidates
+            for blocker in product_lab_proactive_candidate_blockers(candidate)
+        ],
     ]
     review = review_product_lab_proactive_candidates(
         turn=turn,
@@ -89,6 +104,7 @@ def run_product_lab_proactive(
         "chat_first": True,
         "candidate_count": len(passed),
         "candidates": passed,
+        "recommendation_proactive_candidate_bridge": recommendation_bridge,
         "delivery_packet": delivery,
         "pre_delivery_review": review,
         "pre_delivery_review_summary": dict(review.get("summary") or {}),
@@ -118,29 +134,6 @@ def run_product_lab_proactive(
         "durable_product_memory_written": False,
         "manager_context_packet_changed": False,
         "blockers": blockers,
-    }
-
-
-def _recommendation_candidate(
-    recommendation: Mapping[str, Any],
-    fixture_inputs: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    if (
-        recommendation.get("recommendation_served_to_lab") is not True
-        or recommendation.get("proactive_recommendation_candidate_allowed") is not True
-    ):
-        return None
-    primary = _mapping(_mapping(recommendation.get("offer_synthesis")).get("selected_primary"))
-    return {
-        "trigger_type": "recommendation_prompt",
-        "candidate_kind": "next_meal_recommendation",
-        "source_output_refs": [
-            str(recommendation.get("artifact_type") or ""),
-            f"candidate:{primary.get('candidate_id') or ''}",
-        ],
-        "source_status": str(recommendation.get("status") or ""),
-        "control_model": _control_model(fixture_inputs, "recommendation_prompt"),
-        "next_signal_fallback": "new_app_open_with_qualified_pool",
     }
 
 
