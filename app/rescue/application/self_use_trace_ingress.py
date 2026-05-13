@@ -10,7 +10,7 @@ from app.rescue.application.self_use_trace_ingress_contracts import (
     SIDECAR_ACTIVATION_CONTRACT,
     RescueIngressScopeError,
 )
-from app.rescue.application.self_use_trace_ingress_helpers import (
+from app.rescue.application.self_use_trace_ingress_mappers import (
     active_body_plan_view,
     current_budget_view,
     dig,

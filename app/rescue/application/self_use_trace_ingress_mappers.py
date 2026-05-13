@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Read-model mappers for rescue self-use trace ingress."""
+
 import re
 from hashlib import sha256
 from typing import Any, Mapping
