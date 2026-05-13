@@ -4,11 +4,11 @@ status: active
 owner: AdvancedRescueRuntimeLab
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 19
-last_completed_pr_number: 5
+dynamic_remaining_pr_count: 18
+last_completed_pr_number: 6
 current_mainline: advanced_product_lab_rescue_phase1
 is_detour: false
-mainline_blocker_being_removed: trigger_and_viability_assessment_node_not_built
+mainline_blocker_being_removed: option_generation_single_spread_node_not_built
 strategic_verdict: mainline
 
 strategic_gate:
@@ -20,7 +20,7 @@ strategic_gate:
   exit_gate_status: not_applicable
   return_slice_after_exit: not_applicable
   strategic_verdict: mainline
-  mainline_blocker_being_removed: trigger_and_viability_assessment_node_not_built
+  mainline_blocker_being_removed: option_generation_single_spread_node_not_built
 
 capability_dependency_check:
   capability_layer: L9 Same-Truth / UI / Memory / Proactive, with L2/L3/L4 runtime dependencies
@@ -423,7 +423,11 @@ last_merge_evidence:
       pull_request: 1172
       merge_commit: c45d3ec0cf276ac0ce8b7fa181db3bc3ec69374e
       result: rescue_guardrail_math_and_safety_floor_merged
-  latest_dynamic_estimate_after_merge: 19
+    - pr_number: 6
+      pull_request: 1173
+      merge_commit: 188970f8d62bc5e6b1d8ef2e0ec21b8c285e2a67
+      result: trigger_and_viability_assessment_node_merged
+  latest_dynamic_estimate_after_merge: 18
 
 estimate_notes:
   - Initial dynamic estimate is 24 PRs before PR1 merge.
@@ -432,5 +436,6 @@ estimate_notes:
   - After PR3 merge, remaining estimate moved to 21.
   - After PR4 merge, remaining estimate moved to 20.
   - After PR5 merge, remaining estimate moved to 19.
+  - After PR6 merge, remaining estimate moved to 18.
   - This count may increase if L2 data-state or isolated lab ledger contracts are thinner than expected.
   - This count may decrease only when adjacent slices share one reviewable capability and one rollback boundary.
