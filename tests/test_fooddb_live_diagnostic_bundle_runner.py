@@ -85,6 +85,9 @@ def test_fooddb_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_path:
         "generic_common_serving": 400,
         "listed_component": 350,
     }
+    assert diagnostic["packet_artifact_type"] == "accurate_intake_fooddb_real_manager_e2e"
+    assert diagnostic["summary"]["case_count"] == 8
+    assert diagnostic["summary"]["pass_count"] == 8
     assert diagnostic["live_provider_used"] is False
     assert diagnostic["preflight_ref"]["artifact_type"] == preflight["artifact_type"]
     assert diagnostic["preflight_ref"]["status"] == preflight["status"]
@@ -101,7 +104,7 @@ def test_fooddb_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_path:
     assert probe["contract_failure_detected"] is False
     assert probe["next_recommended_slice"] == "run_explicit_grokfast_fooddb_packet_live_diagnostic"
     assert repair_pack["artifact_type"] == "accurate_intake_fooddb_manager_contract_repair_pack"
-    assert repair_pack["summary"]["case_count"] == 5
+    assert repair_pack["summary"]["case_count"] == 8
     assert handoff["artifact_type"] == "accurate_intake_fooddb_manager_contract_handoff_v1"
     assert handoff["status"] == "insufficient_contract_handoff_evidence"
     assert handoff["handoff_ready"] is False
