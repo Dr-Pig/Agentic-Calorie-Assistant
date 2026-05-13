@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from app.advanced_shadow_lab.context_engineering_case_loader import (
     GOLDEN_SET_PATH,
+    build_context_engineering_golden_set_loader_artifact,
     golden_set_case_ids,
     load_context_engineering_golden_set,
+    validate_context_engineering_golden_set,
 )
 
 
@@ -124,3 +126,47 @@ def test_context_engineering_golden_set_includes_key_user_calibrated_cases() -> 
         "expires_in_hours"
     ] == 6
     assert by_id["ce-stress-024"]["expected_trace"]["proactive_delivery"] == "blocked"
+
+
+def test_context_engineering_golden_set_validation_artifact_passes_v2_contract() -> None:
+    validation = validate_context_engineering_golden_set()
+
+    assert validation["artifact_type"] == (
+        "advanced_product_lab_context_engineering_golden_set_validation"
+    )
+    assert validation["status"] == "pass"
+    assert validation["blockers"] == []
+    assert validation["case_count"] == 30
+    assert validation["split_counts"] == {
+        "fixture": 18,
+        "negative_holdout": 8,
+        "live_diagnostic_seed": 4,
+    }
+    assert validation["category_counts"]["pending_meal_intent"] == 4
+    assert validation["no_raw_keyword_semantic_oracle"] is True
+
+
+def test_context_engineering_golden_set_validation_rejects_oracle_and_count_drift() -> None:
+    artifact = load_context_engineering_golden_set()
+    artifact["evaluation_policy"]["no_raw_keyword_semantic_oracle"] = False
+    artifact["cases"] = artifact["cases"][:-1]
+
+    validation = validate_context_engineering_golden_set(artifact)
+
+    assert validation["status"] == "fail"
+    assert "evaluation_policy.no_raw_keyword_semantic_oracle_not_true" in validation["blockers"]
+    assert "case_count.expected_30_actual_29" in validation["blockers"]
+
+
+def test_context_engineering_golden_set_loader_v2_artifact_is_non_runtime_gate() -> None:
+    artifact = build_context_engineering_golden_set_loader_artifact()
+
+    assert artifact["artifact_type"] == (
+        "advanced_product_lab_context_engineering_golden_set_loader_v2"
+    )
+    assert artifact["status"] == "pass"
+    assert artifact["runtime_effect_allowed"] is False
+    assert artifact["mainline_activation_enabled"] is False
+    assert artifact["canonical_mutation_allowed"] is False
+    assert artifact["validated_case_count"] == 30
+    assert artifact["semantic_decision_owner"] == "manager_llm_structured_output"

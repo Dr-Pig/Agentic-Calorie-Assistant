@@ -4,8 +4,8 @@ status: planned
 owner: AdvancedProductLabContextEngineering
 consumer: advanced_product_lab_proactive_recommendation_rescue_integration
 planned_slice_count_likely: 16
-dynamic_remaining_slice_count: 15
-last_completed_slice_number: 1
+dynamic_remaining_slice_count: 14
+last_completed_slice_number: 2
 active_slice_number: null
 
 slice_count_range:
@@ -100,6 +100,11 @@ last_merge_evidence:
       result: main_sync_drift_audit_recorded
       artifact: docs/quality/advanced_product_lab_main_sync_drift_audit.yaml
       dynamic_remaining_slice_count_after: 15
+    - slice_number: 2
+      slice_id: ce_stress_golden_set_loader_and_schema_gate
+      result: golden_set_loader_v2_completed
+      artifact: app/advanced_shadow_lab/context_engineering_case_loader.py
+      dynamic_remaining_slice_count_after: 14
 
 best_practice_evidence:
   required: true
