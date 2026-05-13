@@ -122,13 +122,18 @@ retrieval 不應預設把大量候選直接交給主模型。
 1. `ActiveMealView`
 2. `RecentCommittedMealsView`
 3. selected typed meal records
-4. recent transcript
-5. semantic fallback
+4. `PersonalMealTemplateSummary` / `ReusablePersonalMealView`（future）
+5. recent transcript
+6. semantic fallback
 
 規則：
 
 - intake 不應先查全量 transcript
 - 若有 active thread candidate，優先走 typed linkage
+- `PersonalMealTemplateSummary` 只應在使用者範圍、且目前 utterance 合理地像是在指向「以前那份固定餐」時才進入候選。
+- `PersonalMealTemplateSummary` 的角色是提供 reuse / confirm / re-estimate 候選，不是直接 commit authority。
+- 若存在較新的 canonical meal thread、active draft、pending correction target，應優先用目前 turn / current-day typed context，而不是跳到 cross-session personal meal reuse。
+- personal meal template 不得覆蓋 exact FoodDB evidence；若 current turn 明顯在說品牌 exact item，仍應先走 evidence / packet 路徑。
 
 ---
 
