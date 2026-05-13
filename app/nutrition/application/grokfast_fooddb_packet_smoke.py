@@ -7,44 +7,15 @@ from .fooddb_packet_case_family_projection import (
     b1_case_family_from_packet_fields,
     canonical_b1_case_family,
 )
+from .fooddb_packet_smoke_contract import (
+    FOODDB_PACKET_MANAGER_REQUIRED_FIELDS,
+    GROKFAST_FOODDB_PACKET_PROFILE,
+    NON_CLAIMS,
+    packet_artifact_case_ids,
+)
 from app.nutrition.application.fooddb_live_payload_projection import (
     build_compact_fooddb_live_projection,
     build_diagnostic_allowed_evidence_refs,
-)
-
-
-GROKFAST_FOODDB_PACKET_PROFILE = {
-    "provider_profile_id": "builderspace-grok-4-fast-fooddb-packet-smoke",
-    "provider": "builderspace",
-    "model": "grok-4-fast",
-    "provider_profile_role": "live_diagnostic_probe",
-    "cost_tier": "low",
-    "production_selected": False,
-    "readiness_owner": False,
-}
-
-NON_CLAIMS = [
-    "no_readiness_claim",
-    "no_production_model_selection",
-    "no_self_use_approval",
-    "no_runtime_mutation",
-    "no_fooddb_truth_promotion",
-    "no_kimi_call",
-    "no_websearch_runtime_truth",
-]
-
-FOODDB_PACKET_MANAGER_REQUIRED_FIELDS = (
-    "manager_action",
-    "response_mode",
-    "intent",
-    "workflow_effect",
-    "target_attachment",
-    "exactness",
-    "confidence",
-    "evidence_posture",
-    "repair_ack",
-    "operations",
-    "answer_contract",
 )
 
 ManagerContractValidator = Callable[[dict[str, Any], dict[str, Any]], list[str]]
@@ -167,6 +138,7 @@ def build_grokfast_fooddb_packet_diagnostic(
 
     pass_count = sum(1 for item in case_results if item.get("status") == "pass")
     fail_count = len(case_results) - pass_count
+    selected_case_ids = packet_artifact_case_ids(packet_artifact)
     return {
         "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
         "artifact_schema_version": "1.0",
@@ -186,11 +158,13 @@ def build_grokfast_fooddb_packet_diagnostic(
         "manager_context_changed": False,
         "packetizer_format_changed": False,
         "packet_artifact_type": packet_artifact.get("artifact_type"),
+        "selected_case_ids": selected_case_ids,
         "cases": case_results,
         "summary": {
             "case_count": len(case_results),
             "pass_count": pass_count,
             "fail_count": fail_count,
+            "selected_case_count": len(selected_case_ids),
             "failure_families": sorted(
                 {
                     family

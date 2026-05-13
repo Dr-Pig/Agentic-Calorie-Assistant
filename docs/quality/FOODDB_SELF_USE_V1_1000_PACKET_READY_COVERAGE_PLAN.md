@@ -427,6 +427,27 @@ fixed_18_case_live_llm_acceptance:
 
 The live matrix is diagnostic evidence. It does not select a production model, approve private self-use, or approve mutation rollout.
 
+### Bounded Live Probe Execution
+
+Before a full FoodDB live matrix run, a bounded live probe may execute a fixed subset of already-approved cases. This exists to support single-case canaries, latency attribution, and provider-contract debugging without paying the cost of the whole matrix on every probe.
+
+```yaml
+bounded_live_probe_execution:
+  fixed_case_subset_allowed: true
+  ad_hoc_case_generation_allowed: false
+  case_ids_must_come_from_existing_packet_artifact: true
+  single_case_probe_preferred_before_full_matrix: true
+  case_order_must_follow_source_artifact_order: true
+  purpose:
+    - single-case live canary
+    - latency and provider attribution
+    - packet-boundary debugging
+  non_claims:
+    - not full-matrix acceptance
+    - not production-model selection
+    - not private self-use approval
+```
+
 ## Edge-Case Live Matrix Acceptance
 
 Edge cases should be fixed before live execution and should test failure families not fully represented by the 18-case matrix.

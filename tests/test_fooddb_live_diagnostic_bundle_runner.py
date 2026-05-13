@@ -174,6 +174,32 @@ def test_fooddb_live_diagnostic_bundle_live_mode_requires_explicit_allow_live(
     )
 
 
+def test_fooddb_live_diagnostic_bundle_can_scope_fixture_to_single_case(
+    tmp_path: Path,
+) -> None:
+    exit_code = main(
+        [
+            "--output-dir",
+            str(tmp_path),
+            "--case-id",
+            "generic_macro_hidden_boba",
+        ]
+    )
+
+    assert exit_code == 0
+    manifest = read_json_artifact(
+        tmp_path / "accurate_intake_fooddb_live_diagnostic_bundle_manifest.json"
+    )
+    diagnostic = read_json_artifact(tmp_path / "accurate_intake_grokfast_fooddb_packet_smoke.json")
+
+    assert manifest["bundle_status"] == "pass"
+    assert manifest["selected_case_ids"] == ["generic_macro_hidden_boba"]
+    assert manifest["diagnostic_case_count"] == 1
+    assert diagnostic["selected_case_ids"] == ["generic_macro_hidden_boba"]
+    assert diagnostic["summary"]["case_count"] == 1
+    assert [case["case_id"] for case in diagnostic["cases"]] == ["generic_macro_hidden_boba"]
+
+
 def test_fooddb_live_diagnostic_bundle_manifest_uses_post_contract_status_packet(
     tmp_path: Path,
 ) -> None:
