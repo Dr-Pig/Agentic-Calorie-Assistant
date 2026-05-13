@@ -9,30 +9,30 @@ from app.nutrition.infrastructure.small_anchor_store_loader import (
 
 
 BATCH_IDS = {
-    "listed_item_five_spice_dried_tofu_100g",
-    "listed_item_crab_stick_50g",
-    "listed_item_milkfish_ball_100g",
-    "listed_item_clam_ball_100g",
-    "listed_item_swordfish_ball_100g",
-    "listed_item_cod_ball_100g",
-    "listed_item_shrimp_ball_100g",
-    "listed_item_egg_dumpling_3pc",
-    "listed_item_fish_dumpling_3pc",
-    "listed_item_yan_dumpling_3pc",
-    "listed_item_bamboo_shoot_slices_100g",
-    "listed_item_canned_corn_kernels_80g",
-    "listed_item_pickled_cucumber_50g",
-    "listed_item_peanut_gluten_can_60g",
-    "listed_item_mushroom_gluten_can_60g",
-    "listed_item_bamboo_shoot_tuna_can_80g",
-    "listed_item_sauerkraut_50g",
-    "listed_item_golden_kimchi_50g",
-    "listed_item_korean_kimchi_50g",
-    "listed_item_mushroom_dumpling_3pc",
+    "listed_item_taiwan_tilapia_fillet_100g",
+    "listed_item_grilled_taiwan_tilapia_fillet_100g",
+    "listed_item_long_grilled_taiwan_tilapia_fillet_100g",
+    "listed_item_microwaved_taiwan_tilapia_fillet_100g",
+    "listed_item_bigeye_scad_100g",
+    "listed_item_bigeye_tuna_100g",
+    "listed_item_taiwan_spanish_mackerel_100g",
+    "listed_item_cod_fillet_100g",
+    "listed_item_dried_small_fish_20g",
+    "listed_item_giant_freshwater_prawn_100g",
+    "listed_item_whiteleg_shrimp_meat_100g",
+    "listed_item_fantail_shrimp_meat_100g",
+    "listed_item_red_shrimp_meat_100g",
+    "listed_item_red_crab_100g",
+    "listed_item_oyster_100g",
+    "listed_item_clam_meat_100g",
+    "listed_item_argentine_squid_100g",
+    "listed_item_small_squid_100g",
+    "listed_item_dried_squid_20g",
+    "listed_item_dried_scallop_20g",
 }
 
 
-def test_listed_component_batch_036_loads_hotpot_and_basket_components() -> None:
+def test_listed_component_batch_044_loads_seafood_protein_components() -> None:
     records = load_small_anchor_seed_records()
     by_id = {str(record.get("anchor_id") or ""): record for record in records}
 
@@ -53,7 +53,7 @@ def test_listed_component_batch_036_loads_hotpot_and_basket_components() -> None
         assert record["kcal_range"][0] <= record["kcal_point"] <= record["kcal_range"][1]
 
 
-def test_listed_component_batch_036_enters_full_current_shell_with_hidden_macros() -> None:
+def test_listed_component_batch_044_enters_full_current_shell_with_hidden_macros() -> None:
     artifact = build_approved_packet_ready_fooddb_artifact(
         artifact_path="artifacts/approved_packet_ready_fooddb_full.json",
         selection_profile="full_current_shell",
@@ -62,10 +62,10 @@ def test_listed_component_batch_036_enters_full_current_shell_with_hidden_macros
 
     assert artifact["summary"]["packet_ready_lane_counts"]["listed_component"] == 314
     expected = {
-        "listed_item_five_spice_dried_tofu_100g": (192, [140, 270]),
-        "listed_item_crab_stick_50g": (59, [40, 90]),
-        "listed_item_milkfish_ball_100g": (203, [150, 285]),
-        "listed_item_golden_kimchi_50g": (54, [35, 80]),
+        "listed_item_taiwan_tilapia_fillet_100g": (109, [80, 155]),
+        "listed_item_taiwan_spanish_mackerel_100g": (180, [135, 250]),
+        "listed_item_whiteleg_shrimp_meat_100g": (73, [50, 110]),
+        "listed_item_dried_scallop_20g": (48, [35, 70]),
     }
     for item_id, (kcal_point, kcal_range) in expected.items():
         item = by_id[item_id]
