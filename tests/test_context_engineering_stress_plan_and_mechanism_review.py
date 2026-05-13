@@ -31,7 +31,7 @@ def test_context_engineering_stress_pr_train_records_dynamic_slice_plan() -> Non
     assert plan["artifact_type"] == "advanced_product_lab_context_engineering_stress_pr_train"
     assert plan["status"] == "planned"
     assert plan["planned_slice_count_likely"] == 16
-    assert plan["dynamic_remaining_slice_count"] == 6
+    assert plan["dynamic_remaining_slice_count"] == 5
     assert plan["slice_count_range"] == {
         "optimistic": 14,
         "likely": 16,
@@ -41,13 +41,13 @@ def test_context_engineering_stress_pr_train_records_dynamic_slice_plan() -> Non
     assert plan["slice_train"][0]["slice_id"] == "main_to_lab_sync_and_contract_drift_audit"
     assert plan["slice_train"][-1]["slice_id"] == "decision_pack_and_proactive_entry_gate"
 
-    assert plan["last_completed_slice_number"] == 10
+    assert plan["last_completed_slice_number"] == 11
     assert plan["last_merge_evidence"]["completed_slices"][-1] == {
-        "slice_number": 10,
-        "slice_id": "tool_ordering_and_mutation_boundary_expansion",
-        "result": "tool_choice_wall_trace_completed",
-        "artifact": "app/advanced_shadow_lab/context_engineering_tool_choice_wall.py",
-        "dynamic_remaining_slice_count_after": 6,
+        "slice_number": 11,
+        "slice_id": "fixture_planner_provider_for_ce_stress",
+        "result": "fixture_planner_provider_completed",
+        "artifact": "app/advanced_shadow_lab/context_engineering_fixture_planner_provider.py",
+        "dynamic_remaining_slice_count_after": 5,
     }
 
 
