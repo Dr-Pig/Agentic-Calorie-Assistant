@@ -17,6 +17,7 @@ SUPPORTED_FIXTURE_INTENTS = {
     "weekly_insight_proactive_lab",
     "repeat_meal_intake_shadow",
     "repeat_meal_rescue_shadow",
+    "multi_intent_recommendation_e2e",
 }
 CAPABILITIES_EXERCISED = [
     "long_term_memory",

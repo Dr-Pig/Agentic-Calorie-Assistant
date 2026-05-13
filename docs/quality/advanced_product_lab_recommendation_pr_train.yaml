@@ -4,9 +4,9 @@ status: active
 owner: AdvancedProductLabRecommendation
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 8
-last_completed_pr_number: 16
-active_pr_number: 17
+dynamic_remaining_pr_count: 7
+last_completed_pr_number: 17
+active_pr_number: 18
 current_mainline: advanced_product_lab_recommendation_manager_tool_train
 is_detour: false
 mainline_blocker_being_removed: recommendation_must_enter_through_shared_manager_tool_loop
@@ -203,6 +203,7 @@ estimate_notes:
   - After PR14 logical completion, remaining estimate moved to 10.
   - After PR15 logical completion, remaining estimate moved to 9.
   - After PR16 logical completion, remaining estimate moved to 8.
+  - After PR17 logical completion, remaining estimate moved to 7.
 
 last_merge_evidence:
   completed_prs:
@@ -272,3 +273,7 @@ last_merge_evidence:
       pull_request: local_logical_slice
       merge_commit: working_branch_uncommitted
       result: recommendation_reusable_meal_and_golden_order_bridge_completed_locally
+    - pr_number: 17
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: recommendation_multi_intent_e2e_completed_locally

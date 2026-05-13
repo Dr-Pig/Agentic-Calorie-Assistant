@@ -11,7 +11,10 @@ def reusable_meal_candidate_source_projection(
 ) -> dict[str, Any]:
     candidates: list[dict[str, Any]] = []
     omitted: list[dict[str, str]] = []
-    for item in context.get("reusable_meal_candidates") or []:
+    pack = _mapping(context.get("typed_context_pack"))
+    for item in context.get("reusable_meal_candidates") or pack.get(
+        "reusable_meal_candidates"
+    ) or []:
         if not isinstance(item, Mapping):
             continue
         candidate, reason = _candidate(item)

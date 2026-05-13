@@ -55,6 +55,9 @@ def dispatch_product_lab_manager_tool(
                 turn=turn,
                 fixture_inputs=fixture_inputs,
                 memory_context_pack=_memory_pack_from_args(arguments, prior_tool_results, turn),
+                reusable_meal_context_pack=_prior_result(
+                    arguments, prior_tool_results, "reusable_meal_call_id"
+                ),
             ),
             [],
         )

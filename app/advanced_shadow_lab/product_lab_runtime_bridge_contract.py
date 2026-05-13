@@ -50,6 +50,17 @@ FIXTURE_INTENT_TO_PLAN = {
         "primary_workflow": "repeat_meal_rescue_shadow",
         "requested_capabilities": ["memory", "reusable_meal", "rescue"],
     },
+    "multi_intent_recommendation_e2e": {
+        "primary_workflow": "multi_intent_recommendation_e2e",
+        "requested_capabilities": [
+            "query",
+            "memory",
+            "reusable_meal",
+            "recommendation",
+            "rescue",
+            "proactive",
+        ],
+    },
 }
 
 
@@ -141,6 +152,8 @@ def _tool_candidates_from_manager_script(
 def _capability_id_for_tool_name(tool_name: str) -> str | None:
     if tool_name.startswith("memory.") or tool_name == "conversation_recall.search":
         return "memory"
+    if tool_name == "query.run":
+        return "query"
     if tool_name == "recommendation.run":
         return "recommendation"
     if tool_name == "rescue.run":

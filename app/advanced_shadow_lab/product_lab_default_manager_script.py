@@ -123,6 +123,8 @@ def _compile_script(executable_capabilities: list[str]) -> tuple[list[dict[str, 
             args["memory_context_call_id"] = "memory-search-1"
         if "query" in executable_capabilities:
             args["query_call_id"] = "query-1"
+        if "reusable_meal" in executable_capabilities:
+            args["reusable_meal_call_id"] = "reusable-meal-search-1"
         second_pass_calls.append(
             {
                 "call_id": "recommendation-1",
@@ -158,7 +160,7 @@ def _compile_script(executable_capabilities: list[str]) -> tuple[list[dict[str, 
             proactive_args["memory_context_call_id"] = "memory-search-1"
         script.append(
             {
-                "pass_id": "manager-pass-3",
+                "pass_id": f"manager-pass-{len(script) + 1}",
                 "action": "call_tools",
                 "tool_calls": [
                     {
