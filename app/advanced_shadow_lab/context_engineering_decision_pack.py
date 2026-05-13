@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAGS
+from app.advanced_shadow_lab.context_engineering_stress_decision_pack import (
+    build_ce_stress_decision_pack,
+    context_engineering_decision_pack_blockers,
+)
 
 
 EXPECTED_MANAGER_TOOL_ORDER = ["memory.search", "reusable_meal.search", "rescue.run"]
@@ -10,21 +14,31 @@ EXPECTED_MANAGER_TOOL_ORDER = ["memory.search", "reusable_meal.search", "rescue.
 
 def build_context_engineering_decision_pack(
     *,
-    pr_train: Mapping[str, Any],
-    baseline_runtime_artifact: Mapping[str, Any],
-    manager_runtime_artifact: Mapping[str, Any],
-    live_grokfast_artifact: Mapping[str, Any],
+    pr_train: Mapping[str, Any] | None = None,
+    baseline_runtime_artifact: Mapping[str, Any] | None = None,
+    manager_runtime_artifact: Mapping[str, Any] | None = None,
+    live_grokfast_artifact: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if not all(
+        item is not None
+        for item in (
+            pr_train,
+            baseline_runtime_artifact,
+            manager_runtime_artifact,
+            live_grokfast_artifact,
+        )
+    ):
+        return build_ce_stress_decision_pack()
     comparison = _comparison(
-        baseline_runtime_artifact=baseline_runtime_artifact,
-        manager_runtime_artifact=manager_runtime_artifact,
+        baseline_runtime_artifact=baseline_runtime_artifact or {},
+        manager_runtime_artifact=manager_runtime_artifact or {},
     )
-    live_summary = _live_grokfast_summary(live_grokfast_artifact)
+    live_summary = _live_grokfast_summary(live_grokfast_artifact or {})
     blockers = [
-        *_runtime_blockers("baseline_runtime", baseline_runtime_artifact),
-        *_runtime_blockers("manager_runtime", manager_runtime_artifact),
-        *_manager_path_blockers(manager_runtime_artifact),
-        *_live_blockers(live_grokfast_artifact),
+        *_runtime_blockers("baseline_runtime", baseline_runtime_artifact or {}),
+        *_runtime_blockers("manager_runtime", manager_runtime_artifact or {}),
+        *_manager_path_blockers(manager_runtime_artifact or {}),
+        *_live_blockers(live_grokfast_artifact or {}),
     ]
     status = "blocked" if blockers else "pass"
     return {
@@ -33,10 +47,10 @@ def build_context_engineering_decision_pack(
         "status": status,
         "owner": "app/advanced_shadow_lab/context_engineering_decision_pack.py",
         "consumer": "advanced_product_lab_recommendation_entry_planning",
-        "planned_pr_count": int(pr_train.get("planned_pr_count") or 0),
-        "last_completed_pr_number": int(pr_train.get("last_completed_pr_number") or 0),
+        "planned_pr_count": int((pr_train or {}).get("planned_pr_count") or 0),
+        "last_completed_pr_number": int((pr_train or {}).get("last_completed_pr_number") or 0),
         "dynamic_remaining_pr_count_before_pack": int(
-            pr_train.get("dynamic_remaining_pr_count") or 0
+            (pr_train or {}).get("dynamic_remaining_pr_count") or 0
         ),
         "comparison": comparison,
         "live_grokfast_summary": live_summary,
@@ -147,4 +161,7 @@ def _tool_order(artifact: Mapping[str, Any]) -> list[str]:
     ]
 
 
-__all__ = ["build_context_engineering_decision_pack"]
+__all__ = [
+    "build_context_engineering_decision_pack",
+    "context_engineering_decision_pack_blockers",
+]
