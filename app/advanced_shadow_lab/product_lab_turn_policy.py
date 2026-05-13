@@ -14,6 +14,7 @@ SUPPORTED_FIXTURE_INTENTS = {
     "planned_event_all_day_allocation",
     "swap_suggestion",
     "exercise_budget_bonus",
+    "query_only_recommendation_holdout",
     "weekly_insight_proactive_lab",
     "repeat_meal_intake_shadow",
     "repeat_meal_rescue_shadow",

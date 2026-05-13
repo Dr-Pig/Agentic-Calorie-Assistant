@@ -38,6 +38,10 @@ FIXTURE_INTENT_TO_PLAN = {
         "primary_workflow": "exercise_budget_bonus",
         "requested_capabilities": ["query", "recommendation"],
     },
+    "query_only_recommendation_holdout": {
+        "primary_workflow": "query_only_recommendation_holdout",
+        "requested_capabilities": ["query"],
+    },
     "weekly_insight_proactive_lab": {
         "primary_workflow": "weekly_insight_proactive",
         "requested_capabilities": ["memory", "proactive"],
