@@ -364,7 +364,7 @@ def test_default_repo_artifact_builds_from_tracked_exact_item_seed() -> None:
     }
     assert artifact["summary"]["available_packet_ready_lane_counts"] == {
         "exact_item_card": 142,
-        "generic_common_serving": 374,
+        "generic_common_serving": 400,
         "listed_component": 350,
     }
     by_lane = {item["source_lane"]: item for item in artifact["packet_ready_items"]}
@@ -381,15 +381,15 @@ def test_full_current_shell_profile_includes_all_approved_packet_ready_lanes() -
 
     assert artifact["status"] == "approved_packet_ready_fooddb_artifact_ready"
     assert artifact["summary"]["selection_profile"] == "full_current_shell"
-    assert artifact["summary"]["packet_ready_item_count"] == 866
+    assert artifact["summary"]["packet_ready_item_count"] == 892
     assert artifact["summary"]["packet_ready_lane_counts"] == {
         "exact_item_card": 142,
-        "generic_common_serving": 374,
+        "generic_common_serving": 400,
         "listed_component": 350,
     }
     assert artifact["summary"]["available_packet_ready_lane_counts"] == {
         "exact_item_card": 142,
-        "generic_common_serving": 374,
+        "generic_common_serving": 400,
         "listed_component": 350,
     }
     assert artifact["manager_packet_forbidden_inputs"] == [
@@ -423,6 +423,10 @@ def test_full_current_shell_profile_includes_all_approved_packet_ready_lanes() -
         "tfda_per100g_b6d1810164e4"
     )
     assert by_id["generic_sauce_satay_tbsp"]["macro_visibility_status"] == "hidden_missing_source"
+    assert by_id["generic_spread_black_sesame_bread_spread_tbsp"]["source_refs"][0]["source_evidence_id"] == (
+        "tfda_per100g_ca15997d367b"
+    )
+    assert by_id["generic_spread_black_sesame_bread_spread_tbsp"]["macro_visibility_status"] == "hidden_missing_source"
     assert by_id["exact_weichuan_prince_cup_noodle_pork_52g"]["source_provenance"]["source_file"] == (
         "app/knowledge/exact_item_cards_tw_batch_002.json"
     )
@@ -735,7 +739,7 @@ def test_approved_packet_ready_fooddb_artifact_cli_can_write_full_current_shell_
     assert exit_code == 0
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
     assert artifact["summary"]["selection_profile"] == "full_current_shell"
-    assert artifact["summary"]["packet_ready_item_count"] == 866
+    assert artifact["summary"]["packet_ready_item_count"] == 892
 
 
 def test_runbook_documents_minimal_fooddb_packet_ready_artifact() -> None:
