@@ -4,11 +4,11 @@ status: active
 owner: AdvancedRescueRuntimeLab
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 15
-last_completed_pr_number: 9
+dynamic_remaining_pr_count: 14
+last_completed_pr_number: 10
 current_mainline: advanced_product_lab_rescue_phase1
 is_detour: false
-mainline_blocker_being_removed: reactive_rescue_independent_message_flow_not_built
+mainline_blocker_being_removed: rescue_chat_ux_packet_and_copy_guard_not_built
 strategic_verdict: mainline
 
 strategic_gate:
@@ -20,7 +20,7 @@ strategic_gate:
   exit_gate_status: not_applicable
   return_slice_after_exit: not_applicable
   strategic_verdict: mainline
-  mainline_blocker_being_removed: reactive_rescue_independent_message_flow_not_built
+  mainline_blocker_being_removed: rescue_chat_ux_packet_and_copy_guard_not_built
 
 capability_dependency_check:
   capability_layer: L9 Same-Truth / UI / Memory / Proactive, with L2/L3/L4 runtime dependencies
@@ -439,7 +439,11 @@ last_merge_evidence:
       pull_request: 1178
       merge_commit: f94ef5c71657aaeeab83f344babfb25dbf0797e8
       result: rescue_degraded_modes_merged
-  latest_dynamic_estimate_after_merge: 15
+    - pr_number: 10
+      pull_request: 1179
+      merge_commit: d9e8680fb10a4b2681e4c933a246cb7614515212
+      result: reactive_rescue_independent_message_flow_merged
+  latest_dynamic_estimate_after_merge: 14
 
 estimate_notes:
   - Initial dynamic estimate is 24 PRs before PR1 merge.
@@ -452,5 +456,6 @@ estimate_notes:
   - After PR7 merge, remaining estimate moved to 17.
   - After PR8 merge, remaining estimate moved to 16.
   - After PR9 merge, remaining estimate moved to 15.
+  - After PR10 merge, remaining estimate moved to 14.
   - This count may increase if L2 data-state or isolated lab ledger contracts are thinner than expected.
   - This count may decrease only when adjacent slices share one reviewable capability and one rollback boundary.
