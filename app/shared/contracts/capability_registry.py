@@ -61,6 +61,14 @@ def build_shared_capability_registry() -> dict[str, Any]:
             tool_binding_status="implemented_in_lab",
             primary_surface="chat",
         ),
+        _capability(
+            capability_id="pending_meal_intent",
+            capability_family="short_term_context",
+            shared_tool_name="pending_meal_intent.update",
+            truth_owner="pending_meal_intent",
+            tool_binding_status="implemented_in_lab",
+            primary_surface="chat",
+        ),
     ]
     return {
         "artifact_type": "shared_capability_registry",

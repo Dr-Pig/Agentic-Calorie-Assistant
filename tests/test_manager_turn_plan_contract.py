@@ -22,6 +22,7 @@ def test_manager_turn_plan_contract_tracks_shared_capability_ids() -> None:
         "rescue",
         "proactive",
         "reusable_meal",
+        "pending_meal_intent",
     ]
     assert artifact["planner_outputs_structure_not_raw_transcript"] is True
     assert artifact["shared_capability_registry_required"] is True
@@ -32,6 +33,9 @@ def test_manager_turn_plan_accepts_multi_intent_shared_capability_shape() -> Non
         primary_workflow="intake_with_optional_rescue_and_recommendation",
         secondary_intents=["answer_budget", "remember_preference"],
         requested_capabilities=[
+            CapabilityRequest(
+                capability_id="pending_meal_intent", request_mode="optional", priority=0
+            ),
             CapabilityRequest(capability_id="intake", request_mode="required", priority=1),
             CapabilityRequest(capability_id="rescue", request_mode="optional", priority=2),
             CapabilityRequest(
@@ -56,6 +60,7 @@ def test_manager_turn_plan_accepts_multi_intent_shared_capability_shape() -> Non
 
     assert plan.primary_workflow == "intake_with_optional_rescue_and_recommendation"
     assert [item.capability_id for item in plan.requested_capabilities] == [
+        "pending_meal_intent",
         "intake",
         "rescue",
         "recommendation",
