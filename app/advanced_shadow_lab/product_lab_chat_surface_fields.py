@@ -61,6 +61,7 @@ def recommendation_offer(packet: Mapping[str, Any]) -> dict[str, Any]:
         "swap_suggestion": dict(_mapping(ux.get("swap_suggestion_packet"))),
         "offer_actions": [dict(item) for item in ux.get("actions") or [] if isinstance(item, Mapping)],
         "intake_handoff_state": str(handoff.get("handoff_state") or ""),
+        "handoff_contract": dict(_mapping(handoff.get("handoff_contract"))),
         "canonical_commit_requested": handoff.get("canonical_commit_requested") is True,
         "requires_explicit_user_intake_action": any(
             item.get("requires_explicit_user_intake_action") is True
