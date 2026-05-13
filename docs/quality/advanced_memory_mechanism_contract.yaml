@@ -82,6 +82,7 @@ memory_feedback_contract:
       - negative_preference
       - suppression_rule
       - golden_order
+      - reusable_personal_meal
       - recall_summary
     polarity_values:
       - positive
@@ -194,6 +195,16 @@ derived_summary_views:
       - proactive_no_send_shadow
       - long_term_chat_context_future
     raw_history_dump_allowed: false
+  - id: personal_meal_template_summary
+    inputs:
+      - committed_meals
+      - repeated_bundle_history
+      - user_confirmed_reuse_decisions
+    consumers:
+      - long_term_chat_context_future
+      - recommendation_shadow
+      - intake_reuse_future
+    raw_history_dump_allowed: false
   - id: golden_order_summary
     inputs:
       - canonical_committed_meal_history
@@ -246,6 +257,10 @@ promotion_rules:
   same_store_item_pattern_min_repeats: 3
   same_item_kind_pattern_min_repeats: 5
   same_time_preference_min_repeats: 5
+  reusable_personal_meal_min_repeats: 3
+  reusable_personal_meal_requires_user_confirmation: true
+  reusable_personal_meal_silent_autocommit_allowed: false
+  reusable_personal_meal_recipe_drift_requires_supersede_or_reestimate: true
   golden_order_min_repeats_in_30_days: 3
   golden_order_recent_observation_max_days: 60
   pattern_to_confirmed:

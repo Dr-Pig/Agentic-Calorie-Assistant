@@ -215,6 +215,7 @@ Live test policy:
 | L2a Statistical Pattern | Deterministic patterns from canonical history | deterministic consolidation | shadow candidates and derived summary fields | durable writes or hidden personalization | recommendation, rescue, proactive, calibration |
 | L2b Semantic Pattern | LLM-extracted pattern candidate from enough evidence | future reviewed memory pipeline | schema design and fake provider cases | live LLM extraction or promotion | recommendation and chat context after activation |
 | L3 Confirmed Memory | Explicit or user-confirmed memory | future durable memory store with review surface | candidate schema and fixture review | durable write, cross-session injection, or automatic promotion | recommendation, proactive, chat context |
+| Reusable Personal Meal | User-scoped reusable meal template backed by canonical meal refs and confirmed estimate posture | future reviewed memory store plus canonical meal/source refs | schema design, fixture cases, and shadow retrieval candidates | silent auto-attach, FoodDB truth replacement, or durable write | intake reuse, long-term chat context, recommendation |
 | Negative Preference Memory | Confirmed dislike, avoidance, opt-out, or inferred avoidance candidate | future reviewed memory store; deterministic guards for suppression | conflict cases and blocking rules | auto-demotion of confirmed negative memory | recommendation and proactive hard guards |
 | Temporary Preference | Time-boxed preference or constraint | future reviewed memory store | validity-window fixtures | indefinite defaults or silent extension | recommendation and proactive ranking |
 | Golden Order | Repeated store plus item bundle materialized from canonical history | canonical history materialized view | deterministic shadow view | treating it as promotion output | recommendation and proactive candidate selection |
@@ -228,6 +229,7 @@ Consumers should read bounded summaries, not raw history.
 | Summary | Inputs | Can answer | Must not answer |
 |---|---|---|---|
 | PreferenceProfileSummary | committed meals, explicit preference candidates, negative preferences, temporary preferences | likely staples, drink style, store affinity, time-of-day tendencies, blockers | final food truth, current intent, or durable preference truth |
+| PersonalMealTemplateSummary | committed meals, repeated bundle history, user-confirmed meal reuse decisions | whether the user likely means a repeated personal meal and which reusable versions are candidates | FoodDB truth, auto-commit authority, or current-turn target selection |
 | GoldenOrderSummary | canonical committed meal history | repeated store and bundle candidates with recency and confidence | confirmed memory, promotion, or current craving |
 | SuppressionSummary | ignored nudges, dismissals, explicit opt-outs, quiet-hour and cooldown events | whether a proactive or recommendation surface should be reduced, delayed, or blocked | permission to send |
 | IntakeCompletenessSummary | meal log completeness and correction history | logging gaps, likely underlogging windows, confidence gaps | budget mutation or body-plan adjustment |
@@ -243,11 +245,13 @@ These rules are copied from canonical memory specs and narrowed for this build s
 - Repeated store and item creates a pattern candidate after the same store plus item repeats at least 3 times.
 - Repeated item kind creates a pattern candidate after the same item kind repeats at least 5 times.
 - Repeated time preference creates a pattern candidate after the same time preference repeats at least 5 times.
+- Reusable personal meal candidate may appear after the same normalized user-scoped meal/bundle repeats at least 3 times or the user explicitly confirms that the meal should be reusable later.
 - Golden order appears when the same normalized store plus bundle repeats at least 3 times in 30 days and has an observation within 60 days.
 - Pattern to confirmed memory requires reinforcement count at least 5, confidence at least 0.8, consistency for 30 days, and user confirmation.
 - LLM extraction may propose a semantic pattern candidate only after the evidence threshold exists; it may not complete promotion.
 - Confirmed negative memory does not auto-demote. It changes only through explicit user cancellation or correction.
 - Temporary preference defaults to a maximum 14-day validity window unless a narrower user-stated window exists.
+- Reusable personal meal drift in recipe, portion, modifiers, or cooking method must create a supersede or re-estimate path; it must not silently overwrite the previous reusable version.
 - Pattern memory not observed for 30 days is downgraded to needs_attention, archived at 60 days, and deleted at 90 days unless refreshed by new evidence.
 - Golden order inactive for 60 days is inactive, archived at 90 days, and may reactivate if the same bundle reappears.
 
@@ -260,7 +264,7 @@ Build consumers against the summary views, not against memory storage.
 | Recommendation shadow | PreferenceProfileSummary, GoldenOrderSummary, negative and temporary preference candidates | candidate generation and user-visible offer/silence gate | live search, served recommendation, durable memory write |
 | Rescue shadow | RescueHistorySummary, AdherenceSummary, IntakeCompletenessSummary, suppression posture | proposal invitation and acceptance boundary | proposal commit, plan rewrite, budget correction |
 | Proactive no-send | SuppressionSummary, InteractionPreferenceSummary, GoldenOrderSummary, PreferenceProfileSummary | deterministic trigger gate and no-send dispatch decision | scheduler activation, push/LINE send, trigger persistence |
-| Long-term chat context | selected PreferenceProfileSummary and confirmed-memory candidates | context packing activation plan | ManagerContextPacket injection |
+| Long-term chat context | selected PreferenceProfileSummary, reusable personal meal candidates, and confirmed-memory candidates | context packing activation plan | ManagerContextPacket injection |
 | Calibration shadow | CalibrationHistorySummary, AdherenceSummary, IntakeCompletenessSummary | proposal candidate scoring | stored-action creation or body-plan mutation |
 
 ## Build Sequence

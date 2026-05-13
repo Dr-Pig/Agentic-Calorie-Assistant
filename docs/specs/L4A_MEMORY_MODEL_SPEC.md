@@ -264,6 +264,51 @@ Golden Order 的核心是：
 
 詳細規則見 [L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md](./L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md) Section 3.3。
 
+### 3.6A `Reusable Personal Meal / Personal Meal Template`
+
+這是一種**使用者範圍內、可重用、結構化**的餐點記憶物件。
+
+適用於：
+
+- 重複出現的自煮菜
+- 不在 FoodDB 內但常常重複吃的固定餐
+- 固定組合的外食套餐
+- 有明確個人做法的飲料或配料組合
+
+核心定位：
+
+- 屬於 long-term memory family
+- 不是 transcript memory
+- 不是 FoodDB truth
+- 不是 global food alias
+- 不是一次估完就自動升級的 cache
+
+它應該至少帶：
+
+- `user_scope`
+- `template_id`
+- `template_label`
+- `source_meal_refs`
+- `estimate_profile`
+- `last_confirmed_at`
+- `superseded_by`
+- `freshness_posture`
+
+規則：
+
+- `Reusable Personal Meal` 必須 reference canonical meal history 或已確認的 estimate 來源，不能憑 LLM 常識建立。
+- 它的 truth posture 是「user-scoped reusable meal memory」，不是 nutrition evidence store。
+- 若使用者說法明顯是在指同一份餐，可以拿來做 reuse / confirm / re-estimate 的候選。
+- 若 recipe、配料、份量、糖冰、烹調方式已改變，應產生 supersede 或 re-estimate，而不是靜默覆蓋舊模板。
+- 它可以提升重複餐點記錄效率，但不得取代 canonical meal thread、budget ledger、FoodDB evidence 或 shared runtime truth。
+
+和 `Golden Order` 的差別：
+
+- `Golden Order`：從 canonical history materialize 出來的重複店家+套餐視圖
+- `Reusable Personal Meal`：可被使用者明確重用、修正、版本化的個人餐點模板
+
+前者偏 observation / ranking basis，後者偏 reuse / confirmation / correction basis。
+
 ### 3.7 `Archive`
 
 不再參與即時 retrieval 的記憶會被移至 Archive。
