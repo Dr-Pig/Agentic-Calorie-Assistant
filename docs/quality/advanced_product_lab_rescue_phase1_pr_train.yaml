@@ -1,0 +1,410 @@
+artifact_type: advanced_product_lab_rescue_phase1_pr_train
+version: 1
+status: active
+owner: AdvancedRescueRuntimeLab
+consumer: advanced_product_lab_followup_planning
+planned_pr_count: 24
+dynamic_remaining_pr_count: 24
+last_completed_pr_number: 0
+current_mainline: advanced_product_lab_rescue_phase1
+is_detour: false
+mainline_blocker_being_removed: rescue_phase1_spec_to_slice_plan_not_recorded
+strategic_verdict: mainline
+
+strategic_gate:
+  current_mainline: advanced_product_lab_rescue_phase1
+  is_detour: false
+  blocked_mainline: null
+  detour_reason: null
+  detour_exit_gate: not_applicable
+  exit_gate_status: not_applicable
+  return_slice_after_exit: not_applicable
+  strategic_verdict: mainline
+  mainline_blocker_being_removed: rescue_phase1_plan_can_drift_without_repo_truth
+
+capability_dependency_check:
+  capability_layer: L9 Same-Truth / UI / Memory / Proactive, with L2/L3/L4 runtime dependencies
+  upstream_dependencies:
+    - layer: L1 InteractionEvent / CurrentTurnContext
+      contract_status: tested
+      risk_if_missing: rescue could attach ambiguous chat turns to the wrong object.
+    - layer: L2 AttachmentDecision / TransitionGuardResult
+      contract_status: contract_backed
+      risk_if_missing: complaint, dismiss, accept, and negotiation could mutate the wrong proposal.
+    - layer: L3 MealThread / Draft / Commit Boundary
+      contract_status: tested
+      risk_if_missing: intake overshoot awareness could accidentally create a rescue proposal.
+    - layer: L4 RetrievalIntent / Source Selection
+      contract_status: tested
+      risk_if_missing: rescue could use long memory or transcript context instead of short structured state.
+    - layer: L8 Mutation / Ledger / Version
+      contract_status: draft
+      risk_if_missing: accepted rescue overlays could bypass ProposalContainer and LedgerEntry audit.
+  slice_mode:
+    - contract_guard
+    - product_capability
+    - live_diagnostic
+    - lab_only_runtime
+  user_facing_behavior_changed: false
+  runtime_truth_changed: false
+  mutation_changed: false
+  safe_to_proceed_now: true
+  why_not_local_next_step_trap: >
+    The first slice records the whole train and clause coverage before adding code,
+    so later runtime work cannot drift toward local harness convenience.
+
+branch_strategy:
+  target_branch: codex/advanced-product-lab
+  short_branch_prefix: codex/advanced-rescue-phase1-pr
+  merge_mainline: main_remains_dormant
+  lab_runtime_surface_may_be_complete: true
+  lab_user_facing_surfaces_allowed: true
+  lab_isolated_mutation_ledger_allowed: true
+  lab_scheduler_simulation_allowed: true
+  live_grokfast_diagnostics_allowed: true
+  kimi_live_calls_allowed: false
+  mainline_activation_enabled: false
+  self_use_v1_affected: false
+  keep_long_lived_lab_branch: true
+
+required_artifact_flags:
+  lab_enabled: true
+  lab_isolated: true
+  lab_product_loop_may_be_complete: true
+  mainline_activation_enabled: false
+  mainline_runtime_connected: false
+  mainline_route_or_api_mount_allowed: false
+  production_manager_mount_allowed: false
+  production_scheduler_delivery_allowed: false
+  canonical_product_db_mutation_allowed: false
+  canonical_product_mutation_allowed: false
+  manager_context_packet_changed_in_mainline: false
+  user_facing_behavior_changed_in_mainline: false
+  durable_product_memory_written_in_mainline: false
+  real_scheduler_or_notification_delivery: false
+  fooddb_expansion_required: false
+
+dynamic_estimate_protocol:
+  update_after_each_merge: true
+  estimate_may_increase: true
+  estimate_may_decrease: true
+  do_not_use_chat_memory_as_only_plan: true
+  update_fields:
+    - dynamic_remaining_pr_count
+    - last_completed_pr_number
+    - last_merge_evidence
+    - estimate_notes
+  persistent_truth_files:
+    - docs/quality/advanced_product_lab_rescue_phase1_pr_train.yaml
+    - docs/quality/advanced_capability_activation_ladder.yaml
+    - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md
+
+spec_coverage_matrix:
+  canonical_source_refs:
+    - docs/specs/L0_PRODUCT_CAPABILITY_SPEC.md
+    - docs/specs/L1_RUNTIME_OWNERSHIP_SPEC.md
+    - docs/specs/L2_DATA_STATE_SPEC.md
+    - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md
+    - docs/specs/L3M_GUARDRAIL_MATH_SPEC.md
+    - docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md
+    - docs/specs/L4C_CONTEXT_PACKING_SPEC.md
+    - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md
+    - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md
+  required_clauses:
+    - coverage_id: intake_rescue_separation
+      source_refs:
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#4.0
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#9.7
+        - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md#F
+      first_pr: 10
+      test_signal: intake reply can contain overshoot awareness but no formal rescue proposal.
+    - coverage_id: guardrail_math_and_safety_floor
+      source_refs:
+        - docs/specs/L3M_GUARDRAIL_MATH_SPEC.md
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#10.2
+      first_pr: 5
+      test_signal: deterministic math owns overshoot, cap, horizon, and safety-floor legality.
+    - coverage_id: trigger_and_viability_node
+      source_refs:
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#6
+      first_pr: 6
+      test_signal: trigger assessment reads structured state, not current intake event context.
+    - coverage_id: option_generation_single_spread
+      source_refs:
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#7
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#8.4
+      first_pr: 7
+      test_signal: v1 produces one spread proposal, not a multi-family menu.
+    - coverage_id: effective_from_11am_boundary
+      source_refs:
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#3.1A
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#13.3
+      first_pr: 8
+      test_signal: accepted rescue takes effect today before 11:00 and tomorrow after 11:00.
+    - coverage_id: degraded_modes
+      source_refs:
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#18
+      first_pr: 9
+      test_signal: missing budget blocks rescue, missing onboarding guides onboarding, provider failure degrades.
+    - coverage_id: proposal_container_accept_dismiss
+      source_refs:
+        - docs/specs/L1_RUNTIME_OWNERSHIP_SPEC.md#3.4
+        - docs/specs/L2_DATA_STATE_SPEC.md#3.9
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#14B
+      first_pr: 15
+      test_signal: accept and dismiss are explicit proposal actions and never implicit mutation.
+    - coverage_id: complaint_not_dismiss_attachment
+      source_refs:
+        - docs/specs/L1_RUNTIME_OWNERSHIP_SPEC.md#4.10
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#9.5A
+      first_pr: 18
+      test_signal: complaint, uncertainty, and feasibility questions remain negotiation or answer-only.
+    - coverage_id: planned_event_budget_allocation
+      source_refs:
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#17A
+        - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md#F2
+      first_pr: 12
+      test_signal: planned event proposals are pre-event rescue variants and require confirmation.
+    - coverage_id: gathering_day_allocation
+      source_refs:
+        - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md#T
+      first_pr: 13
+      test_signal: gathering guidance remains informational unless the user asks to reserve or set budget.
+    - coverage_id: rescue_retrieval_context_pack
+      source_refs:
+        - docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md#7
+        - docs/specs/L4C_CONTEXT_PACKING_SPEC.md#7
+      first_pr: 4
+      test_signal: rescue context uses current budget, recent meals, rescue history, adherence, and open proposals.
+    - coverage_id: recommendation_posture_refresh
+      source_refs:
+        - docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md#11
+        - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md
+      first_pr: 21
+      test_signal: accepted lab rescue overlay refreshes recommendation posture in the lab read model.
+    - coverage_id: proactive_rescue_nudge_boundary
+      source_refs:
+        - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md
+        - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md#N-3
+      first_pr: 22
+      test_signal: proactive rescue nudge is independent, controlled, and chat-first in the lab.
+    - coverage_id: integrated_journey_f_f2_t
+      source_refs:
+        - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md#F
+        - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md#F2
+        - docs/quality/UX_JOURNEY_TO_SLICE_MAP.md#T
+      first_pr: 24
+      test_signal: F, F2, and T pass as an integrated lab E2E without mainline activation.
+
+best_practice_evidence:
+  required: true
+  sources_checked:
+    - openai_agents_guardrails
+    - openai_agent_evals
+    - openai_evaluation_best_practices
+    - openai_agents_sessions
+    - openai_agents_sandbox_memory
+  source_urls:
+    openai_agents_guardrails: https://openai.github.io/openai-agents-python/guardrails/
+    openai_agent_evals: https://platform.openai.com/docs/guides/agent-evals
+    openai_evaluation_best_practices: https://platform.openai.com/docs/guides/evaluation-best-practices
+    openai_agents_sessions: https://openai.github.io/openai-agents-python/sessions/
+    openai_agents_sandbox_memory: https://openai.github.io/openai-agents-python/sandbox/memory/
+  adopted_guidance:
+    - use_tool_guardrails_for_side_effectful_tool_calls
+    - use_reproducible_trace_grading_and_datasets_before_activation
+    - keep_session_history_separate_from_durable_memory
+    - treat memory_as_guidance_not_canonical_truth
+    - use_scope_isolated_memory_layouts
+  rejected_guidance:
+    - hidden_scheduler_delivery_before_user_controls
+    - raw_transcript_dump_into_manager_context
+    - provider_result_as_product_truth_without_validator
+  conflict_with_repo_habits:
+    - existing shadow artifacts are useful but too no-claim-heavy for the complete lab product loop.
+  how_the_design_changed:
+    - the lab branch may complete rescue UX, isolated ledger effects, and E2E loops.
+    - merge-back still records dormant mainline flags and requires separate activation PRs.
+
+llm_deterministic_boundary:
+  decision_surface: rescue_phase1_runtime_lab
+  truth_owner: hybrid
+  deterministic_role:
+    - derive_budget_math
+    - validate_viability
+    - reject_illegal_mutation
+    - derive_effective_from
+    - project_lab_commit_effect
+  llm_role:
+    - shape_proposal_language
+    - present_response
+    - classify_negotiation_when_contract_backed
+  do_not_override:
+    - CurrentBudgetView
+    - BodyPlan.safety_floor_kcal
+    - daily_kcal_adjustment
+    - effective_from
+    - ProposalContainer.status
+    - LedgerEntry.rescue_overlay
+    - explicit_user_acceptance
+    - explicit_user_dismissal
+
+semantic_owner:
+  user_intent: ManagerRuntime_with_attachment_priority_guards
+  food_semantics: FoodDB_and_intake_runtime_contracts
+  rescue_math: deterministic_rescue_guardrail_math
+  proposal_copy: LLM_response_presentation_with_output_guard
+  routing_or_workflow_effect: ManagerRuntime_and_rescue_workflow_contract
+  mutation_legality: ProposalContainer_and_LedgerEntry_validators
+  persistence_truth: lab_isolated_ledger_until_activation_pr
+
+milestones:
+  - milestone_id: fixture_golden_set_replay
+    provider_profile: none
+    blocks_completion: true
+  - milestone_id: simulated_self_use_trace_replay
+    provider_profile: none
+    blocks_completion: true
+  - milestone_id: grokfast_rescue_proposal_shaping_diagnostic
+    provider_profile: builderspace-grok-4-fast
+    blocks_completion: true
+  - milestone_id: grokfast_rescue_response_presentation_diagnostic
+    provider_profile: builderspace-grok-4-fast
+    blocks_completion: true
+  - milestone_id: lab_accept_dismiss_e2e
+    provider_profile: none
+    blocks_completion: true
+  - milestone_id: integrated_f_f2_t_e2e_decision_pack
+    provider_profile: builderspace-grok-4-fast
+    blocks_completion: true
+
+pr_train:
+  - pr_number: 1
+    slice_id: rescue_phase1_spec_to_slice_reconciliation
+    goal: Record this 24-PR rescue Phase 1 train, clause coverage matrix, and dynamic estimate protocol.
+    slice_mode: [contract_guard, wrapper_evidence_wiring]
+    completion_gate: plan is test-backed and indexed without becoming bootstrap truth.
+  - pr_number: 2
+    slice_id: rescue_golden_set_and_rubrics
+    goal: Add F, F2, T, attachment ambiguity, and no-rescue-in-intake golden cases.
+    slice_mode: [fixture_only, eval]
+    completion_gate: CI can prove what rescue behavior means before runtime changes.
+  - pr_number: 3
+    slice_id: self_use_trace_ingress_adapter
+    goal: Convert current self-use calorie, budget, body, and meal traces into lab RescueIngressEvent fixtures.
+    slice_mode: [diagnostic_only, offline_runtime]
+    completion_gate: self-use V1 traces help rescue lab without adding advanced inputs to self-use V1.
+  - pr_number: 4
+    slice_id: rescue_read_model_input_contracts
+    goal: Define rescue input views for CurrentBudgetView, RecentCommittedMealsView, ActiveBodyPlanView, OpenProposalsView, and ProactiveStatusView.
+    slice_mode: [contract_guard, fixture_only]
+    completion_gate: rescue reads structured state first and omits long transcript retrieval.
+  - pr_number: 5
+    slice_id: rescue_guardrail_math_and_safety_floor
+    goal: Implement deterministic overshoot, cap, horizon, and safety-floor math fixtures.
+    slice_mode: [deterministic, product_capability]
+    completion_gate: L3M math boundaries pass without LLM ownership.
+  - pr_number: 6
+    slice_id: trigger_and_viability_assessment_node
+    goal: Implement Node 1 trigger and viability assessment against read models and blockers.
+    slice_mode: [deterministic, product_capability]
+    completion_gate: node does not read current intake event context as its trigger source.
+  - pr_number: 7
+    slice_id: option_generation_single_spread_node
+    goal: Implement Node 2 single-spread option generation with viable, strained, and non-viable outputs.
+    slice_mode: [deterministic, product_capability]
+    completion_gate: no multi-family proposal menu enters v1 rescue.
+  - pr_number: 8
+    slice_id: effective_from_11am_boundary
+    goal: Add deterministic effective_from policy for same-day and tomorrow rescue overlays.
+    slice_mode: [deterministic, product_capability]
+    completion_gate: 11:00 local-time boundary is fixture-covered.
+  - pr_number: 9
+    slice_id: rescue_degraded_modes
+    goal: Add logging-first, provider-unavailable, required-view-unavailable, and onboarding-missing degraded behavior.
+    slice_mode: [contract_guard, deterministic]
+    completion_gate: missing CurrentBudgetView blocks rescue and missing onboarding routes to onboarding guidance.
+  - pr_number: 10
+    slice_id: reactive_rescue_independent_message_flow
+    goal: Add reactive rescue flow that creates an independent rescue message after explicit user request.
+    slice_mode: [lab_only_runtime, product_capability]
+    completion_gate: intake reply never contains formal rescue proposal or ledger overlay.
+  - pr_number: 11
+    slice_id: rescue_chat_ux_packet_and_copy_guard
+    goal: Build chat-first rescue UX packet and output guard for no-shame, future-oriented proposal framing.
+    slice_mode: [lab_only_runtime, ux_packet]
+    completion_gate: proposal copy is guarded and does not become deterministic math truth.
+  - pr_number: 12
+    slice_id: planned_event_budget_allocation_f2
+    goal: Implement pre-event planned_event_budget_allocation proposal flow for known big meals.
+    slice_mode: [lab_only_runtime, product_capability]
+    completion_gate: F2 requires confirmation before future overlay projection.
+  - pr_number: 13
+    slice_id: gathering_day_allocation_t
+    goal: Implement gathering-day planning split between informational allocation and explicit reserve proposal.
+    slice_mode: [lab_only_runtime, product_capability]
+    completion_gate: T escalates to proposal only when the user asks to set or reserve budget.
+  - pr_number: 14
+    slice_id: proposal_shaping_llm_seam
+    goal: Add Node 3 proposal shaping seam with fake provider, Grokfast diagnostic payload, and output validator.
+    slice_mode: [live_diagnostic, provider_seam]
+    completion_gate: live Grokfast output is advisory until deterministic validator accepts shape.
+  - pr_number: 15
+    slice_id: response_presentation_and_card_contract
+    goal: Add Node 4 response presentation, RescueResponseCard, primary actions, and secondary negotiation affordance contract.
+    slice_mode: [live_diagnostic, ux_packet]
+    completion_gate: primary actions are accept_rescue_plan and dismiss_rescue_plan only.
+  - pr_number: 16
+    slice_id: accept_rescue_plan_api_contract
+    goal: Implement lab accept contract for chat, UI, and smart-chip sources.
+    slice_mode: [lab_only_runtime, mutation_bearing_lab]
+    completion_gate: accept requires proposal_id, user_id, accepted_at, cap_mode, and source audit.
+  - pr_number: 17
+    slice_id: dismiss_rescue_plan_contract
+    goal: Implement dismiss contract without backup switching, mandatory reason, permanent mute, or snooze.
+    slice_mode: [lab_only_runtime, product_capability]
+    completion_gate: dismiss removes active lab proposal while preserving history/audit.
+  - pr_number: 18
+    slice_id: complaint_negotiation_attachment_priority
+    goal: Implement attachment priority for complaints, feasibility questions, adjust, explain, accept, and dismiss.
+    slice_mode: [lab_only_runtime, product_capability]
+    completion_gate: ambiguous utterances become answer_only and do not mutate proposal state.
+  - pr_number: 19
+    slice_id: isolated_lab_commit_effect_and_ledger_overlay
+    goal: Project accepted rescue plans into an isolated lab ledger overlay and RescueCommitEffect.
+    slice_mode: [lab_only_runtime, mutation_bearing_lab]
+    completion_gate: lab ledger changes never touch production DB or mainline canonical state.
+  - pr_number: 20
+    slice_id: proposal_inbox_history_audit_read_model
+    goal: Add active proposal inbox mirror, history, and audit read model without raw trace leakage.
+    slice_mode: [read_model, lab_only_runtime]
+    completion_gate: UI mirrors chat-first proposal truth instead of becoming the primary interaction path.
+  - pr_number: 21
+    slice_id: recommendation_posture_refresh_handoff
+    goal: Refresh recommendation posture after accepted lab rescue overlays.
+    slice_mode: [integration, lab_only_runtime]
+    completion_gate: recommendation sees short-term caloric posture without creating recommendation intent state.
+  - pr_number: 22
+    slice_id: rescue_feedback_memory_projection
+    goal: Project rescue accept, dismiss, complaint, correction, and outcome feedback into reviewed memory candidates.
+    slice_mode: [feedback_projection, lab_only_runtime]
+    completion_gate: FeedbackEvent remains audit/input and cannot directly mutate memory truth.
+  - pr_number: 23
+    slice_id: proactive_rescue_nudge_bridge
+    goal: Integrate proactive rescue nudge simulation with cooldown, suppression, dismiss, and chat-first controls.
+    slice_mode: [proactive, lab_only_runtime]
+    completion_gate: lab proactive rescue can complete the loop while mainline scheduler delivery remains disabled.
+  - pr_number: 24
+    slice_id: rescue_phase1_integrated_e2e_decision_pack
+    goal: Run fixture, simulated self-use replay, Grokfast diagnostic, lab accept/dismiss, and F/F2/T integrated E2E decision pack.
+    slice_mode: [e2e, closure, activation_wall]
+    completion_gate: decision pack distinguishes complete lab product loop from dormant mainline merge-back.
+
+last_merge_evidence:
+  completed_prs: []
+  latest_dynamic_estimate_after_merge: 24
+
+estimate_notes:
+  - Initial dynamic estimate is 24 PRs before PR1 merge.
+  - This count may increase if L2 data-state or isolated lab ledger contracts are thinner than expected.
+  - This count may decrease only when adjacent slices share one reviewable capability and one rollback boundary.
