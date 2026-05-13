@@ -439,6 +439,9 @@ bounded_live_probe_execution:
   single_case_probe_preferred_before_full_matrix: true
   full_matrix_requires_prior_single_case_stage_gate: true
   case_order_must_follow_source_artifact_order: true
+  diagnostic_packet_query_normalization_allowed: true
+  diagnostic_packet_query_normalization_requires_same_food_identity: true
+  original_user_utterance_must_be_preserved: true
   purpose:
     - single-case live canary
     - latency and provider attribution

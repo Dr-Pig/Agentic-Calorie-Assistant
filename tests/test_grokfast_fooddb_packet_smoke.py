@@ -733,7 +733,7 @@ def test_grokfast_fooddb_packet_smoke_cli_can_target_single_real_manager_case(
                 "--packet-smoke",
                 str(packet_path),
                 "--case-id",
-                "generic_macro_hidden_boba",
+                "boba_large_half_sugar",
                 "--output",
                 str(output),
             ]
@@ -744,10 +744,44 @@ def test_grokfast_fooddb_packet_smoke_cli_can_target_single_real_manager_case(
     artifact = read_json_artifact(output)
     assert artifact["status"] == "pass"
     assert artifact["packet_artifact_type"] == "accurate_intake_fooddb_real_manager_e2e"
-    assert artifact["selected_case_ids"] == ["generic_macro_hidden_boba"]
+    assert artifact["selected_case_ids"] == ["boba_large_half_sugar"]
     assert artifact["summary"]["case_count"] == 1
     assert artifact["summary"]["pass_count"] == 1
-    assert [case["case_id"] for case in artifact["cases"]] == ["generic_macro_hidden_boba"]
+    assert [case["case_id"] for case in artifact["cases"]] == ["boba_large_half_sugar"]
+
+
+def test_grokfast_fooddb_packet_smoke_cli_can_target_exact_item_live_case_id(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.run_accurate_intake_grokfast_fooddb_packet_smoke import main
+
+    packet_path = tmp_path / "real-manager-packet.json"
+    output = tmp_path / "single-case-exact-item-diagnostic.json"
+    write_json_artifact(packet_path, _real_manager_packet_artifact())
+
+    assert (
+        main(
+            [
+                "--mode",
+                "fixture",
+                "--packet-smoke",
+                str(packet_path),
+                "--case-id",
+                "exact_item_official_label",
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+
+    artifact = read_json_artifact(output)
+    assert artifact["status"] == "pass"
+    assert artifact["selected_case_ids"] == ["exact_item_official_label"]
+    assert artifact["summary"]["case_count"] == 1
+    assert artifact["summary"]["pass_count"] == 1
+    assert [case["case_id"] for case in artifact["cases"]] == ["exact_item_official_label"]
 
 
 def test_grokfast_fooddb_packet_smoke_live_requires_runner_readiness_packet(
