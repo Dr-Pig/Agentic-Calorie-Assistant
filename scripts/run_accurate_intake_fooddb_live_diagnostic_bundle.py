@@ -15,6 +15,9 @@ if str(ROOT) not in sys.path:
 from app.nutrition.application.fooddb_evidence_status_packet import (  # noqa: E402
     build_fooddb_evidence_status_packet,
 )
+from app.nutrition.application.approved_packet_ready_fooddb_artifact import (  # noqa: E402
+    build_approved_packet_ready_fooddb_artifact,
+)
 from app.nutrition.application.fooddb_grokfast_live_diagnostic_case_matrix import (  # noqa: E402
     build_fooddb_grokfast_live_diagnostic_case_matrix_artifact,
 )
@@ -91,6 +94,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--small-anchor-store", default=str(DEFAULT_SMALL_ANCHOR_STORE))
     parser.add_argument("--tfda-source", default=str(DEFAULT_TFDA_SOURCE))
     parser.add_argument("--exact-cards", default=str(DEFAULT_EXACT_CARDS))
+    parser.add_argument("--approved-packet-ready-artifact")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     args = parser.parse_args(argv)
 
@@ -106,6 +110,11 @@ def main(argv: list[str] | None = None) -> int:
         paths=paths,
         source_payloads=source_payloads,
         small_anchor_store_path=Path(args.small_anchor_store),
+        approved_packet_ready_artifact=(
+            read_json_artifact(Path(args.approved_packet_ready_artifact))
+            if args.approved_packet_ready_artifact
+            else None
+        ),
     )
     diagnostic_exit = _run_packet_smoke(
         mode=args.mode,
@@ -130,7 +139,7 @@ def main(argv: list[str] | None = None) -> int:
         report=report,
         preflight=artifacts["preflight"],
         live_runner_readiness=artifacts["live_runner_readiness"],
-        contract_artifacts=contract_artifacts,
+        contract_artifacts={**artifacts, **contract_artifacts},
     )
     write_json_artifact(paths["manifest"], manifest)
     print(
@@ -171,13 +180,25 @@ def _build_pre_provider_artifacts(
     paths: dict[str, Path],
     source_payloads: dict[str, Any],
     small_anchor_store_path: Path | None = None,
+    approved_packet_ready_artifact: dict[str, Any] | None = None,
 ) -> dict[str, dict[str, Any]]:
     local_index = LocalSmallAnchorFoodEvidenceIndex.from_path(
         small_anchor_store_path or DEFAULT_SMALL_ANCHOR_STORE
     )
+    approved_artifact = (
+        approved_packet_ready_artifact
+        if approved_packet_ready_artifact is not None
+        else build_approved_packet_ready_fooddb_artifact(
+            artifact_path=str(paths["approved_packet_ready_artifact"]),
+            selection_profile="full_current_shell",
+        )
+    )
     retrieval_records = local_index.load_records()
     retrieval_eval_wall = build_retrieval_eval_wall(retrieval_records=retrieval_records)
-    manager_packet_smoke = build_fooddb_manager_packet_smoke(retrieval_records=retrieval_records)
+    manager_packet_smoke = build_fooddb_manager_packet_smoke(
+        retrieval_records=retrieval_records,
+        approved_packet_ready_artifact=approved_artifact,
+    )
     index_backend_parity = _build_index_backend_parity(
         local_index=local_index,
         sqlite_db_path=paths["sqlite_db"],
@@ -208,6 +229,7 @@ def _build_pre_provider_artifacts(
     )
 
     artifacts = {
+        "approved_packet_ready_artifact": approved_artifact,
         "retrieval_eval_wall": retrieval_eval_wall,
         "fooddb_status_packet": fooddb_status_packet,
         "manager_packet_smoke": manager_packet_smoke,
@@ -340,6 +362,7 @@ def _build_manifest(
     contract_artifacts: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     contract_probe = contract_artifacts["manager_contract_probe"]
+    approved_artifact = contract_artifacts["approved_packet_ready_artifact"]
     status_packet_inspection = contract_artifacts["fooddb_status_packet_inspection"]
     handoff_inspection = contract_artifacts["manager_contract_handoff_inspection"]
     failure_taxonomy_inspection = contract_artifacts["fooddb_live_failure_taxonomy_inspection"]
@@ -372,6 +395,12 @@ def _build_manifest(
         "readiness_claimed": False,
         "self_use_approved": False,
         "production_selected": False,
+        "approved_packet_ready_selection_profile": approved_artifact.get("summary", {}).get(
+            "selection_profile"
+        ),
+        "approved_packet_ready_item_count": int(
+            approved_artifact.get("summary", {}).get("packet_ready_item_count", 0) or 0
+        ),
         "preflight_clear_to_run_live_diagnostic": preflight.get("clear_to_run_live_diagnostic") is True,
         "preflight_status": preflight.get("status"),
         "live_runner_readiness_status": live_runner_readiness.get("status"),
@@ -400,6 +429,7 @@ def _build_manifest(
             key: str(path)
             for key, path in paths.items()
             if key in {
+                "approved_packet_ready_artifact",
                 "retrieval_eval_wall",
                 "fooddb_status_packet",
                 "manager_packet_smoke",

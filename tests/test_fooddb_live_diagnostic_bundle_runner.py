@@ -20,6 +20,12 @@ def test_fooddb_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_path:
     manifest = read_json_artifact(
         tmp_path / "accurate_intake_fooddb_live_diagnostic_bundle_manifest.json"
     )
+    approved_artifact = read_json_artifact(
+        tmp_path / "accurate_intake_approved_packet_ready_fooddb_full_current_shell.json"
+    )
+    manager_packet_smoke = read_json_artifact(
+        tmp_path / "accurate_intake_fooddb_manager_packet_smoke.json"
+    )
     preflight = read_json_artifact(
         tmp_path / "accurate_intake_grokfast_fooddb_diagnostic_preflight.json"
     )
@@ -50,7 +56,11 @@ def test_fooddb_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_path:
     assert manifest["runtime_truth_changed"] is False
     assert manifest["runtime_mutation_attempted"] is False
     assert manifest["readiness_claimed"] is False
+    assert manifest["approved_packet_ready_selection_profile"] == "full_current_shell"
+    assert manifest["approved_packet_ready_item_count"] == 1000
     assert manifest["seam_status"] == "fixture_only_live_not_checked"
+    assert approved_artifact["summary"]["selection_profile"] == "full_current_shell"
+    assert approved_artifact["summary"]["packet_ready_item_count"] == 1000
     assert preflight["clear_to_run_live_diagnostic"] is True
     assert preflight["next_required_slice"] == "grokfast_fooddb_packet_live_diagnostic"
     router_readiness = read_json_artifact(
@@ -62,6 +72,12 @@ def test_fooddb_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_path:
     assert router_readiness["status"] == "pass"
     assert live_runner_readiness["status"] == "pass"
     assert live_runner_readiness["ready_for_grokfast_fooddb_packet_live_diagnostic"] is True
+    assert manager_packet_smoke["summary"]["approved_packet_ready_case_count"] == 1000
+    assert manager_packet_smoke["summary"]["approved_packet_ready_lane_counts"] == {
+        "exact_item_card": 250,
+        "generic_common_serving": 400,
+        "listed_component": 350,
+    }
     assert diagnostic["live_provider_used"] is False
     assert diagnostic["preflight_ref"]["artifact_type"] == preflight["artifact_type"]
     assert diagnostic["preflight_ref"]["status"] == preflight["status"]
@@ -166,6 +182,12 @@ def test_fooddb_live_diagnostic_bundle_manifest_uses_post_contract_status_packet
         preflight={"clear_to_run_live_diagnostic": True, "status": "clear"},
         live_runner_readiness={"status": "pass"},
         contract_artifacts={
+            "approved_packet_ready_artifact": {
+                "summary": {
+                    "selection_profile": "full_current_shell",
+                    "packet_ready_item_count": 1000,
+                }
+            },
             "manager_contract_probe": {"contract_failure_detected": False},
             "manager_contract_handoff": {
                 "status": "unexpected_new_status",
@@ -209,6 +231,7 @@ def test_fooddb_live_diagnostic_bundle_records_required_artifact_refs(
     )
     required_refs = {
         "retrieval_eval_wall",
+        "approved_packet_ready_artifact",
         "fooddb_status_packet",
         "manager_packet_smoke",
         "index_backend_parity",
@@ -271,12 +294,19 @@ def test_fooddb_live_diagnostic_bundle_uses_configured_small_anchor_store(
             "readiness_claimed": False,
         }
 
-    def _fake_build_manager_packet_smoke(*, retrieval_records: object) -> dict[str, Any]:
+    def _fake_build_manager_packet_smoke(
+        *,
+        retrieval_records: object,
+        approved_packet_ready_artifact: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        assert approved_packet_ready_artifact is not None
+        assert approved_packet_ready_artifact["summary"]["selection_profile"] == "full_current_shell"
         return {
             "artifact_type": "accurate_intake_fooddb_manager_packet_smoke",
             "summary": {
                 "case_count": 5,
                 "compact_packet_pass_count": 5,
+                "approved_packet_ready_case_count": 1000,
                 "raw_source_rows_included": False,
                 "candidate_only_records_included": False,
                 "full_fooddb_included": False,
@@ -287,6 +317,10 @@ def test_fooddb_live_diagnostic_bundle_uses_configured_small_anchor_store(
             "manager_context_changed": False,
             "packetizer_format_changed": False,
             "readiness_claimed": False,
+            "approved_packet_ready_artifact_ref": {
+                "selection_profile": "full_current_shell",
+                "packet_ready_item_count": 1000,
+            },
         }
 
     def _fake_build_index_backend_parity(*, local_index: object, sqlite_db_path: Path) -> dict[str, Any]:
