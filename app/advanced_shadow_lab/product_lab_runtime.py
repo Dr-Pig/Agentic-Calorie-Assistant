@@ -88,6 +88,9 @@ def run_advanced_product_lab_turn(
         prior_control_journal=list(prior_control_journal or []),
     )
     product_recommendation = product_artifacts["recommendation"]
+    product_recommendation_rescue_bridge = product_artifacts[
+        "recommendation_rescue_posture_bridge"
+    ]
     product_rescue = product_artifacts["rescue"]
     product_calibration = product_artifacts["calibration"]
     product_no_plan_degraded = product_artifacts["no_plan_degraded"]
@@ -149,6 +152,9 @@ def run_advanced_product_lab_turn(
         "memory_context_injected": memory_context_pack.get("memory_context_injected") is True,
         "lab_manager_context_injected": memory_context_pack.get("lab_manager_context_injected") is True,
         "product_lab_recommendation_artifact": product_recommendation,
+        "product_lab_recommendation_rescue_posture_bridge_artifact": (
+            product_recommendation_rescue_bridge
+        ),
         "product_lab_rescue_artifact": product_rescue,
         "product_lab_calibration_artifact": product_calibration,
         "product_lab_no_plan_degraded_artifact": product_no_plan_degraded,

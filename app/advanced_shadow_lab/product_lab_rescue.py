@@ -9,6 +9,9 @@ from app.rescue.application.shadow_chain_runner import run_rescue_shadow_chain
 from app.advanced_shadow_lab.product_lab_rescue_handoff import (
     build_pending_rescue_commit_packet,
 )
+from app.rescue.application.recommendation_posture_handoff import (
+    build_rescue_recommendation_posture_handoff,
+)
 
 
 LAB_INTERACTION_INTENTS = [
@@ -24,6 +27,7 @@ LAB_INTERACTION_INTENTS = [
 def run_product_lab_rescue(
     *,
     fixture_inputs: Mapping[str, Any],
+    recommendation_artifact: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     chain = run_rescue_shadow_chain(
         memory_summary_projection=_mapping(fixture_inputs.get("memory_summary_projection")),
@@ -51,7 +55,12 @@ def run_product_lab_rescue(
         primary_actions=primary_actions,
         lifecycle_packets=lifecycle_packets,
     )
+    recommendation_handoff = build_rescue_recommendation_posture_handoff(
+        recommendation_artifact=recommendation_artifact or {},
+    )
     blockers.extend(_blockers("pending_rescue_commit", pending_commit))
+    if recommendation_handoff.get("status") == "blocked":
+        blockers.extend(_blockers("recommendation_posture_handoff", recommendation_handoff))
     return {
         "artifact_type": "advanced_product_lab_rescue_runtime_artifact",
         "artifact_schema_version": "1.0",
@@ -65,6 +74,7 @@ def run_product_lab_rescue(
         "negotiation_affordances": negotiation_affordances,
         "lifecycle_packets": lifecycle_packets,
         "pending_rescue_commit_packet": pending_commit,
+        "recommendation_posture_handoff": recommendation_handoff,
         "proposal_presented_to_lab": not bool(blockers),
         "rescue_lifecycle_enabled": not bool(blockers),
         "rescue_intent_state_created": pending_commit.get("status") == "pass",

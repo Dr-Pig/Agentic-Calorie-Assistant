@@ -16,6 +16,9 @@ from app.advanced_shadow_lab.product_lab_no_plan_degraded import (
 )
 from app.advanced_shadow_lab.product_lab_proactive import run_product_lab_proactive
 from app.advanced_shadow_lab.product_lab_recommendation import run_product_lab_recommendation
+from app.advanced_shadow_lab.product_lab_recommendation_rescue_posture import (
+    build_recommendation_rescue_posture_bridge,
+)
 from app.advanced_shadow_lab.product_lab_rescue import run_product_lab_rescue
 from app.advanced_shadow_lab.product_lab_weekly_insight import (
     run_product_lab_weekly_insight,
@@ -36,19 +39,29 @@ def run_product_lab_product_artifacts(
         fixture_inputs=fixture_inputs,
         enabled=no_plan_enabled,
     )
+    recommendation_rescue_bridge = build_recommendation_rescue_posture_bridge(
+        fixture_inputs=fixture_inputs,
+    )
+    recommendation_inputs = _recommendation_fixture_inputs(
+        fixture_inputs,
+        recommendation_rescue_bridge,
+    )
     recommendation = (
         inactive_recommendation_artifact()
         if no_plan_enabled
         else run_product_lab_recommendation(
             turn=turn,
-            fixture_inputs=fixture_inputs,
+            fixture_inputs=recommendation_inputs,
             memory_context_pack=memory_context_pack,
         )
     )
     rescue = (
         inactive_rescue_artifact()
         if no_plan_enabled
-        else run_product_lab_rescue(fixture_inputs=runtime_inputs)
+        else run_product_lab_rescue(
+            fixture_inputs=runtime_inputs,
+            recommendation_artifact=recommendation,
+        )
     )
     calibration = run_product_lab_calibration(
         fixture_inputs=runtime_inputs,
@@ -86,6 +99,7 @@ def run_product_lab_product_artifacts(
     )
     return {
         "recommendation": recommendation,
+        "recommendation_rescue_posture_bridge": recommendation_rescue_bridge,
         "rescue": rescue,
         "calibration": calibration,
         "no_plan_degraded": no_plan,
@@ -110,6 +124,9 @@ def product_lab_product_artifact_blockers(
         "proactive",
     ]:
         blockers.extend(_blockers(key, artifacts.get(key, {})))
+    bridge = artifacts.get("recommendation_rescue_posture_bridge", {})
+    if bridge.get("status") == "blocked":
+        blockers.extend(_blockers("recommendation_rescue_posture_bridge", bridge))
     weekly = artifacts.get("weekly_insight", {})
     if weekly.get("status") == "blocked":
         blockers.extend(_blockers("weekly_insight", weekly))
@@ -118,6 +135,14 @@ def product_lab_product_artifact_blockers(
 
 def _blockers(name: str, artifact: Mapping[str, Any]) -> list[str]:
     return [f"product_{name}.{blocker}" for blocker in artifact.get("blockers") or []]
+
+
+def _recommendation_fixture_inputs(
+    fixture_inputs: Mapping[str, Any],
+    bridge: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    value = bridge.get("recommendation_fixture_inputs")
+    return value if isinstance(value, Mapping) else fixture_inputs
 
 
 __all__ = [
