@@ -59,6 +59,8 @@ def dispatch_product_lab_manager_tool(
             run_product_lab_recommendation(
                 turn=turn,
                 fixture_inputs=fixture_inputs,
+                manager_turn_plan=_optional_mapping(arguments.get("manager_turn_plan")),
+                tool_arguments=arguments if arguments.get("manager_turn_plan") else None,
                 memory_context_pack=_memory_pack_from_args(arguments, prior_tool_results, turn),
                 reusable_meal_context_pack=_prior_result(
                     arguments, prior_tool_results, "reusable_meal_call_id"
@@ -166,6 +168,14 @@ def _prior_result(
     wrapper = prior_tool_results.get(str(arguments.get(argument_name) or ""))
     result = wrapper.get("result_artifact") if isinstance(wrapper, Mapping) else {}
     return result if isinstance(result, Mapping) else {}
+
+
+def _mapping(value: Any) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
+
+
+def _optional_mapping(value: Any) -> Mapping[str, Any] | None:
+    return value if isinstance(value, Mapping) else None
 
 
 __all__ = ["dispatch_product_lab_manager_tool"]

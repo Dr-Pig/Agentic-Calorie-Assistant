@@ -8,7 +8,12 @@ from app.advanced_shadow_lab.context_engineering_case_loader import (
 from app.advanced_shadow_lab.context_engineering_trace_grader import (
     grade_manager_turn_plan_for_case,
 )
-from app.shared.contracts.capability_registry import build_shared_capability_registry
+from app.advanced_shadow_lab.context_engineering_fixture_planner_support import (
+    mapping,
+    order_capabilities,
+    planner_tool_arguments,
+    tool_name_for_capability,
+)
 from app.shared.contracts.tool_choice_walls import validate_tool_choice_walls
 
 
@@ -32,7 +37,7 @@ class FixtureContextEngineeringPlannerProvider:
     def plan_case(self, case: Mapping[str, Any]) -> dict[str, Any]:
         capabilities = [str(item) for item in case.get("expected_capabilities") or []]
         ordering = [str(item) for item in case.get("expected_ordering_constraints") or []]
-        ordered_capabilities = _order_capabilities(capabilities, ordering)
+        ordered_capabilities = order_capabilities(capabilities, ordering)
         plan = _manager_turn_plan(case, ordered_capabilities, ordering)
         tool_calls = [
             {
@@ -120,15 +125,15 @@ def _manager_turn_plan(
     capabilities: list[str],
     ordering: list[str],
 ) -> dict[str, Any]:
-    final_boundary = _mapping(case.get("expected_trace")).get("final_response_boundary")
+    final_boundary = mapping(case.get("expected_trace")).get("final_response_boundary")
     return {
         "case_id": str(case.get("case_id") or ""),
         "primary_workflow": str(case.get("expected_primary_workflow") or ""),
         "capability_requests": [
             {
                 "capability": capability,
-                "tool_name": _tool_name(capability),
-                "arguments": _tool_arguments(capability),
+                "tool_name": tool_name_for_capability(capability),
+                "arguments": planner_tool_arguments(capability),
             }
             for capability in capabilities
         ],
@@ -139,59 +144,6 @@ def _manager_turn_plan(
         "scheduler_delivery_allowed": False,
         "raw_user_text_semantic_inference_performed": False,
     }
-
-
-def _order_capabilities(capabilities: list[str], ordering_constraints: list[str]) -> list[str]:
-    remaining = list(dict.fromkeys(capabilities))
-    edges: dict[str, set[str]] = {capability: set() for capability in remaining}
-    indegree = {capability: 0 for capability in remaining}
-    for constraint in ordering_constraints:
-        if "_before_" not in constraint:
-            continue
-        first, second = constraint.split("_before_", 1)
-        if first in edges and second in edges and second not in edges[first]:
-            edges[first].add(second)
-            indegree[second] += 1
-    ordered: list[str] = []
-    while remaining:
-        next_capability = next(
-            (capability for capability in remaining if indegree[capability] == 0),
-            remaining[0],
-        )
-        remaining.remove(next_capability)
-        ordered.append(next_capability)
-        for child in edges[next_capability]:
-            indegree[child] -= 1
-    return ordered
-
-
-def _tool_name(capability_id: str) -> str:
-    registry = build_shared_capability_registry()
-    return {
-        str(item["capability_id"]): str(item["shared_tool_name"])
-        for item in registry["capabilities"]
-    }[capability_id]
-
-
-def _tool_arguments(capability_id: str) -> dict[str, Any]:
-    arguments: dict[str, Any] = {
-        "mainline_activation_enabled": False,
-        "canonical_product_mutation_allowed": False,
-        "production_scheduler_delivery_allowed": False,
-        "durable_product_memory_activation_allowed": False,
-    }
-    if capability_id == "intake":
-        arguments["intake_manager_result"] = {
-            "artifact_type": "advanced_lab_intake_manager_result_contract_stub",
-            "status": "available",
-            "canonical_product_mutation_allowed": False,
-        }
-    return arguments
-
-
-def _mapping(value: Any) -> Mapping[str, Any]:
-    return value if isinstance(value, Mapping) else {}
-
 
 __all__ = [
     "FixtureContextEngineeringPlannerProvider",

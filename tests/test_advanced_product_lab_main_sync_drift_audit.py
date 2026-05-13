@@ -56,8 +56,8 @@ def test_main_sync_drift_audit_keeps_activation_wall_and_names_main_changes() ->
 def test_context_engineering_stress_train_marks_slice_one_complete() -> None:
     train = _load(TRAIN_PATH)
 
-    assert train["dynamic_remaining_slice_count"] == 5
-    assert train["last_completed_slice_number"] == 11
+    assert train["dynamic_remaining_slice_count"] == 4
+    assert train["last_completed_slice_number"] == 12
     assert train["active_slice_number"] is None
     assert train["last_merge_evidence"]["completed_slices"][0] == {
         "slice_number": 1,
