@@ -156,7 +156,7 @@ def _case_matrix(
     plan_only: bool = True,
     live_provider_invoked: bool = False,
     websearch_invoked: bool = False,
-    case_count: int = 5,
+    case_count: int = len(REQUIRED_FOODDB_GROKFAST_CASE_IDS),
 ) -> dict:
     return {
         "artifact_type": "accurate_intake_fooddb_grokfast_packet_live_diagnostic_case_matrix",
@@ -185,8 +185,10 @@ def _case_matrix(
             "modifier_guard_cases": 2,
             "bare_basket_cases": 1,
             "listed_basket_cases": 1,
+            "query_only_cases": 1,
+            "macro_hidden_cases": 1,
             "websearch_cases": 0,
-            "exact_card_cases": 0,
+            "exact_card_cases": 1,
         },
         "cases": [{"case_id": case_id} for case_id in REQUIRED_FOODDB_GROKFAST_CASE_IDS],
     }
@@ -211,7 +213,7 @@ def test_grokfast_fooddb_diagnostic_preflight_clears_only_when_all_upstream_gate
     assert artifact["next_required_slice"] == "grokfast_fooddb_packet_live_diagnostic"
     assert artifact["summary"]["case_matrix_status"] == "pass"
     assert artifact["summary"]["case_matrix_plan_only"] is True
-    assert artifact["summary"]["case_matrix_case_count"] == 5
+    assert artifact["summary"]["case_matrix_case_count"] == len(REQUIRED_FOODDB_GROKFAST_CASE_IDS)
     assert artifact["summary"]["case_matrix_non_claim_count"] == 7
     assert is_grokfast_fooddb_preflight_clear(artifact) is True
 
@@ -405,6 +407,7 @@ def test_grokfast_fooddb_preflight_clear_helper_rejects_forged_summary() -> None
             **artifact["summary"],
             "retrieval_eval_fail_count": 1,
             "index_backend_parity_fail_count": 1,
+            "case_matrix_exact_card_cases": 0,
             "case_matrix_shared_contract_changed": True,
             "case_matrix_non_claim_count": 1,
         },
