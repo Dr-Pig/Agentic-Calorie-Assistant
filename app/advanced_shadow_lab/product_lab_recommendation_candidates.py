@@ -20,8 +20,8 @@ from app.advanced_shadow_lab.product_lab_recommendation_candidate_quality import
 from app.recommendation.application.candidate_source_port import (
     normalize_recommendation_candidate_sources,
 )
-from app.recommendation.application.three_node_shadow_policy import (
-    filter_reason_codes,
+from app.advanced_shadow_lab.product_lab_recommendation_guard_boundaries import (
+    candidate_guard_boundary_result,
 )
 
 
@@ -45,6 +45,8 @@ def build_candidate_retrieval_guard_scoring(
     filtered: list[dict[str, Any]] = []
     quality_rejected: list[dict[str, Any]] = []
     candidate_reviews: list[dict[str, Any]] = []
+    hard_blocker_trace: list[dict[str, Any]] = []
+    soft_penalty_trace: list[dict[str, Any]] = []
     memory_action_projection = memory_action_projection_from_context(memory_context_pack)
     memory_negative_ids = [
         str(item) for item in memory_context_pack.get("negative_preference_blockers") or []
@@ -53,11 +55,14 @@ def build_candidate_retrieval_guard_scoring(
     swap = _mapping(_mapping(planning.get("candidate_spec")).get("swap_suggestion"))
     for candidate in source_candidates:
         reasons = premeal_candidate_filter_reason(candidate, premeal)
-        reasons.extend(filter_reason_codes(
+        boundary = candidate_guard_boundary_result(
             candidate,
             payload,
             memory_negative_ids=memory_negative_ids,
-        ))
+        )
+        hard_blocker_trace.extend(boundary["hard_blocker_trace"])
+        soft_penalty_trace.extend(boundary["soft_penalty_trace"])
+        reasons.extend(boundary["hard_reason_codes"])
         reasons.extend(
             recommendation_memory_blocker_reasons(candidate, memory_action_projection)
         )
@@ -71,7 +76,12 @@ def build_candidate_retrieval_guard_scoring(
             )
             candidate_reviews.append(hard_rejected_review(candidate, reasons))
             continue
-        scored, review, quality = reviewed_candidate(candidate, payload)
+        reviewed_input = {
+            **candidate,
+            "soft_penalty_codes": list(boundary["soft_penalty_codes"]),
+            "quality_score_adjustment": boundary["quality_score_adjustment"],
+        }
+        scored, review, quality = reviewed_candidate(reviewed_input, payload)
         candidate_reviews.append(review)
         if not quality.passed:
             quality_rejected.append(
@@ -126,6 +136,8 @@ def build_candidate_retrieval_guard_scoring(
         "candidate_reviews": candidate_reviews,
         "quality_signals": [quality_signal(candidate) for candidate in qualified],
         "scoring_trace": _scoring_trace(qualified),
+        "hard_blocker_trace": hard_blocker_trace,
+        "soft_penalty_trace": soft_penalty_trace,
         "pool_decision": pool["pool_decision"],
         "primary_candidate_id": pool["primary_candidate_id"],
         "backup_candidate_ids": pool["backup_candidate_ids"],

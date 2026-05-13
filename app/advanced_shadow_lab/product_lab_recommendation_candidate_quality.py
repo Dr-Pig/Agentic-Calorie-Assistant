@@ -33,6 +33,9 @@ def quality_score(candidate: Mapping[str, Any], payload: Mapping[str, Any]) -> i
         score += 5
     if candidate.get("user_accessible") is True:
         score += 5
+    adjustment = candidate.get("quality_score_adjustment")
+    if isinstance(adjustment, int):
+        score += adjustment
     remaining = _remaining_kcal(payload)
     kcal_max = _int_or_none(_mapping(candidate.get("estimated_kcal_range")).get("max"))
     if remaining is not None and kcal_max is not None:
@@ -59,6 +62,9 @@ def candidate_review(
         "quality_tier": quality.quality_tier,
         "proactive_intensity": quality.proactive_intensity,
         "quality_signals": list(quality.quality_signals),
+        "soft_penalty_codes": [
+            str(code) for code in candidate.get("soft_penalty_codes", [])
+        ],
         "omission_reason_codes": list(quality.disqualifier_flags),
     }
 
@@ -73,6 +79,7 @@ def hard_rejected_review(
         "quality_tier": "rejected",
         "proactive_intensity": "none",
         "quality_signals": [],
+        "soft_penalty_codes": [],
         "omission_reason_codes": list(reasons),
     }
 
