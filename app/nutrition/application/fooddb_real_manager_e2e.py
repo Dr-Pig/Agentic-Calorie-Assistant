@@ -97,6 +97,7 @@ def build_fooddb_real_manager_e2e(
         "track": "FDB",
         "claim_scope": "real_fooddb_packet_ready_manager_evidence_path",
         "pass_type": "offline_runtime",
+        "status": "pass" if pass_count == len(cases) else "fail",
         "live_provider_used": False,
         "runtime_truth_changed": False,
         "runtime_mutation_attempted": False,

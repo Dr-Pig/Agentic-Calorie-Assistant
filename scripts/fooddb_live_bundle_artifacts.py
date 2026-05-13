@@ -11,6 +11,7 @@ def build_fooddb_live_bundle_artifact_paths(output_dir: Path) -> dict[str, Path]
     return {
         "approved_packet_ready_artifact": output_dir
         / "accurate_intake_approved_packet_ready_fooddb_full_current_shell.json",
+        "real_manager_e2e": output_dir / "accurate_intake_fooddb_real_manager_e2e.json",
         "retrieval_eval_wall": output_dir / "accurate_intake_retrieval_eval_wall.json",
         "fooddb_status_packet": output_dir / "accurate_intake_fooddb_evidence_status_packet.json",
         "manager_packet_smoke": output_dir / "accurate_intake_fooddb_manager_packet_smoke.json",

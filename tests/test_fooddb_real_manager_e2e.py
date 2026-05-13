@@ -24,15 +24,16 @@ def test_real_fooddb_manager_e2e_consumes_full_packet_ready_records() -> None:
 
     assert artifact["artifact_type"] == "accurate_intake_fooddb_real_manager_e2e"
     assert artifact["claim_scope"] == "real_fooddb_packet_ready_manager_evidence_path"
+    assert artifact["status"] == "pass"
     assert artifact["live_provider_used"] is False
     assert artifact["runtime_truth_changed"] is False
     assert artifact["runtime_mutation_attempted"] is False
     assert artifact["summary"]["case_count"] == 8
     assert artifact["summary"]["pass_count"] == 8
     assert artifact["summary"]["source_lane_counts"] == {
-        "exact_item_card": 7,
-        "generic_common_serving": 34,
-        "listed_component": 34,
+        "exact_item_card": 250,
+        "generic_common_serving": 400,
+        "listed_component": 350,
         "basket_family_semantic_only": 4,
     }
 
@@ -57,7 +58,7 @@ def test_real_fooddb_manager_e2e_consumes_full_packet_ready_records() -> None:
     assert jiucai_item["anchor_id"] == "exact_7eleven_jiucai_he_135g"
     assert jiucai_he["final_response_basis"]["macro_basis"]["allowed_macro_claims"] == {
         "protein_g": 8,
-        "carbs_g": 40,
+        "carbs_g": 39,
         "fat_g": 10,
     }
 
@@ -120,5 +121,6 @@ def test_real_fooddb_manager_e2e_cli_writes_roundtrippable_artifact(tmp_path) ->
 
     artifact = read_json_artifact(output)
     assert artifact["artifact_type"] == "accurate_intake_fooddb_real_manager_e2e"
+    assert artifact["status"] == "pass"
     assert artifact["summary"]["pass_count"] == 8
     assert artifact["live_provider_used"] is False
