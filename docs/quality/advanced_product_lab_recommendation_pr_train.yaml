@@ -4,9 +4,9 @@ status: active
 owner: AdvancedProductLabRecommendation
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 3
-last_completed_pr_number: 21
-active_pr_number: 22
+dynamic_remaining_pr_count: 2
+last_completed_pr_number: 22
+active_pr_number: 23
 current_mainline: advanced_product_lab_recommendation_manager_tool_train
 is_detour: false
 mainline_blocker_being_removed: recommendation_must_enter_through_shared_manager_tool_loop
@@ -208,6 +208,7 @@ estimate_notes:
   - After PR19 logical completion, remaining estimate moved to 5.
   - After PR20 logical completion, remaining estimate moved to 4.
   - After PR21 logical completion, remaining estimate moved to 3.
+  - After PR22 logical completion, remaining estimate moved to 2.
 
 last_merge_evidence:
   completed_prs:
@@ -298,3 +299,7 @@ last_merge_evidence:
       pull_request: local_logical_slice
       merge_commit: working_branch_uncommitted
       result: recommendation_latency_cost_omission_trace_completed_locally
+    - pr_number: 22
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: recommendation_quality_decision_pack_completed_locally
