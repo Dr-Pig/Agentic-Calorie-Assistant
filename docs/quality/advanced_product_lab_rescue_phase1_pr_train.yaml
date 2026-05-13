@@ -4,11 +4,11 @@ status: active
 owner: AdvancedRescueRuntimeLab
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 13
-last_completed_pr_number: 11
+dynamic_remaining_pr_count: 12
+last_completed_pr_number: 12
 current_mainline: advanced_product_lab_rescue_phase1
 is_detour: false
-mainline_blocker_being_removed: planned_event_budget_allocation_f2_not_built
+mainline_blocker_being_removed: gathering_day_allocation_t_not_built
 strategic_verdict: mainline
 
 strategic_gate:
@@ -20,7 +20,7 @@ strategic_gate:
   exit_gate_status: not_applicable
   return_slice_after_exit: not_applicable
   strategic_verdict: mainline
-  mainline_blocker_being_removed: planned_event_budget_allocation_f2_not_built
+  mainline_blocker_being_removed: gathering_day_allocation_t_not_built
 
 capability_dependency_check:
   capability_layer: L9 Same-Truth / UI / Memory / Proactive, with L2/L3/L4 runtime dependencies
@@ -447,7 +447,11 @@ last_merge_evidence:
       pull_request: 1181
       merge_commit: af1d7718552df9b313865f6b0684b0ddc4f09e2d
       result: rescue_chat_ux_packet_and_copy_guard_merged
-  latest_dynamic_estimate_after_merge: 13
+    - pr_number: 12
+      pull_request: 1182
+      merge_commit: f11b9534be4033a317114fd291dd93c9426643b3
+      result: planned_event_budget_allocation_f2_merged
+  latest_dynamic_estimate_after_merge: 12
 
 estimate_notes:
   - Initial dynamic estimate is 24 PRs before PR1 merge.
@@ -462,5 +466,6 @@ estimate_notes:
   - After PR9 merge, remaining estimate moved to 15.
   - After PR10 merge, remaining estimate moved to 14.
   - After PR11 merge, remaining estimate moved to 13.
+  - After PR12 merge, remaining estimate moved to 12.
   - This count may increase if L2 data-state or isolated lab ledger contracts are thinner than expected.
   - This count may decrease only when adjacent slices share one reviewable capability and one rollback boundary.
