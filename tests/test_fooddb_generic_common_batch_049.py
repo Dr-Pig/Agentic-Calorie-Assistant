@@ -9,30 +9,30 @@ from app.nutrition.infrastructure.small_anchor_store_loader import (
 
 
 BATCH_IDS = {
-    "generic_snack_rice_cracker_serving",
-    "generic_snack_strawberry_sandwich_cookie_serving",
-    "generic_snack_pancake_one",
-    "generic_snack_corn_crackers_serving",
-    "generic_dessert_phoenix_eye_cake_piece",
-    "generic_dessert_cheesecake_slice",
-    "generic_dessert_sponge_cake_slice",
-    "generic_dessert_honey_cake_plain_slice",
-    "generic_dessert_honey_cake_chocolate_slice",
-    "generic_dessert_honey_cake_cheese_slice",
-    "generic_dessert_date_walnut_cake_piece",
-    "generic_dessert_red_bean_milk_popsicle_one",
-    "generic_dessert_peanut_tofu_pudding_bowl",
-    "generic_dessert_unsweetened_tofu_pudding_bowl",
-    "generic_snack_sugar_roasted_chestnuts_serving",
-    "generic_snack_peanut_candy_piece",
-    "generic_snack_peanut_gong_candy_piece",
-    "generic_snack_lactic_acid_candy_serving",
-    "generic_snack_fruit_gummy_serving",
-    "generic_snack_qq_fruit_gummy_serving",
+    "generic_snack_sesame_egg_roll_serving",
+    "generic_snack_instant_noodle_crisps_pack",
+    "generic_snack_peanut_milk_chocolate_serving",
+    "generic_snack_hazelnut_milk_chocolate_serving",
+    "generic_snack_sugar_coated_chocolate_serving",
+    "generic_snack_white_chocolate_candy_serving",
+    "generic_snack_dark_chocolate_85_serving",
+    "generic_snack_black_sesame_candy_piece",
+    "generic_snack_milk_soft_candy_serving",
+    "generic_snack_chocolate_milk_soft_candy_serving",
+    "generic_snack_toffee_serving",
+    "generic_snack_lotus_root_candy_serving",
+    "generic_snack_loquat_candy_serving",
+    "generic_snack_bitter_tea_candy_serving",
+    "generic_snack_ginger_candy_serving",
+    "generic_snack_chocolate_filled_candy_serving",
+    "generic_snack_red_bean_ball_piece",
+    "generic_snack_green_bean_ball_piece",
+    "generic_snack_marshmallow_serving",
+    "generic_snack_sweet_potato_preserve_serving",
 }
 
 
-def test_generic_common_batch_038_loads_tfda_backed_desserts_and_drinks() -> None:
+def test_generic_common_batch_049_loads_snack_sweets_anchors() -> None:
     records = load_small_anchor_seed_records()
     by_id = {str(record.get("anchor_id") or ""): record for record in records}
 
@@ -45,6 +45,7 @@ def test_generic_common_batch_038_loads_tfda_backed_desserts_and_drinks() -> Non
         assert record["serving_basis"] == "common_serving"
         assert record["source_refs"][0]["runtime_role"] == "source_evidence_only"
         assert record["source_refs"][0]["external_source_role"] == "source_evidence_only"
+        assert record["source_refs"][0]["source_id"] == "taiwan_tfda_open_data"
         assert record["source_provenance"]["source_class"] == "taiwan_tfda_open_data"
         assert record["source_provenance"]["source_url"] == "https://data.gov.tw/dataset/8543"
         assert record["approval_metadata"]["runtime_truth_allowed"] is True
@@ -52,7 +53,7 @@ def test_generic_common_batch_038_loads_tfda_backed_desserts_and_drinks() -> Non
         assert record["kcal_range"][0] <= record["kcal_point"] <= record["kcal_range"][1]
 
 
-def test_generic_common_batch_038_enters_full_current_shell_with_hidden_macros() -> None:
+def test_generic_common_batch_049_enters_full_current_shell_with_hidden_macros() -> None:
     artifact = build_approved_packet_ready_fooddb_artifact(
         artifact_path="artifacts/approved_packet_ready_fooddb_full.json",
         selection_profile="full_current_shell",
@@ -61,10 +62,10 @@ def test_generic_common_batch_038_enters_full_current_shell_with_hidden_macros()
 
     assert artifact["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 334
     expected = {
-        "generic_dessert_cheesecake_slice": (235, [170, 330]),
-        "generic_dessert_red_bean_milk_popsicle_one": (129, [90, 190]),
-        "generic_dessert_peanut_tofu_pudding_bowl": (146, [95, 230]),
-        "generic_snack_fruit_gummy_serving": (123, [90, 175]),
+        "generic_snack_sesame_egg_roll_serving": (164, [120, 220]),
+        "generic_snack_instant_noodle_crisps_pack": (238, [170, 310]),
+        "generic_snack_dark_chocolate_85_serving": (146, [105, 205]),
+        "generic_snack_sweet_potato_preserve_serving": (135, [95, 190]),
     }
     for item_id, (kcal_point, kcal_range) in expected.items():
         item = by_id[item_id]
