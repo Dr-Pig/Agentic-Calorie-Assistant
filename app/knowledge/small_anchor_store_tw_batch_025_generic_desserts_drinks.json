@@ -1,0 +1,1144 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_rice_cracker_serving",
+      "canonical_name": "\u96ea\u9905",
+      "aliases": [
+        "\u96ea\u9905",
+        "rice cracker serving",
+        "senbei rice cracker serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one rice cracker serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 145,
+      "kcal_range": [
+        105,
+        205
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_4af92421dc3d",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 484.668,
+          "tfda_sample_name": "\u96ea\u9905"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_08fe37d2e59e",
+        "raw_row_hash": "02bcc7397f345f3fe760f8a47846e3451f4c2f1e0a0ffc677995e438dbb8055c"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_strawberry_sandwich_cookie_serving",
+      "canonical_name": "\u593e\u5fc3\u9905\u4e7e(\u8349\u8393)",
+      "aliases": [
+        "\u593e\u5fc3\u9905\u4e7e(\u8349\u8393)",
+        "strawberry sandwich cookie serving",
+        "strawberry sandwich biscuits 30g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "strawberry sandwich cookie serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 154,
+      "kcal_range": [
+        115,
+        220
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_4b79e56fe64a",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 514.295,
+          "tfda_sample_name": "\u593e\u5fc3\u9905\u4e7e(\u8349\u8393)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_0053d7e2e6d1",
+        "raw_row_hash": "76daa59d7c8450f3cb61a4ac358fef0695ecd354f7e2745bab7acce79c7d7f15"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_pancake_one",
+      "canonical_name": "\u714e\u9905",
+      "aliases": [
+        "\u714e\u9905",
+        "pancake one",
+        "jianbing one"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 80,
+        "label": "one pancake",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 348,
+      "kcal_range": [
+        260,
+        460
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_2867c7b16108",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 435.3208,
+          "tfda_sample_name": "\u714e\u9905"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7a422e3d214a",
+        "raw_row_hash": "6a1218c2b329deefb613b97ed840913324021eefab383c683e000a59b3a01134"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_corn_crackers_serving",
+      "canonical_name": "\u7389\u7c73\u9905\u4e7e(\u539f\u5473)",
+      "aliases": [
+        "\u7389\u7c73\u9905\u4e7e(\u539f\u5473)",
+        "corn crackers serving",
+        "original corn crackers 30g"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "corn crackers serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 148,
+      "kcal_range": [
+        110,
+        210
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_62ad97b85d17",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 493.8009,
+          "tfda_sample_name": "\u7389\u7c73\u9905\u4e7e(\u539f\u5473)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_519b957e68fd",
+        "raw_row_hash": "a33cb949f3b21e8da4549fea3e6026909901ce5017d278962bbcc01a1d32ce82"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_phoenix_eye_cake_piece",
+      "canonical_name": "\u9cf3\u773c\u7cd5",
+      "aliases": [
+        "\u9cf3\u773c\u7cd5",
+        "phoenix eye cake piece",
+        "fengyan cake piece"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 35,
+        "label": "one phoenix eye cake piece",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 132,
+      "kcal_range": [
+        95,
+        180
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_8344c330e958",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 377.1615,
+          "tfda_sample_name": "\u9cf3\u773c\u7cd5"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_6c8cc3b11e2e",
+        "raw_row_hash": "dd8e3896ec56bb41bd2e4ae7007de0d5010b95b3314339b5ce4606b83fa52f9d"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_cheesecake_slice",
+      "canonical_name": "\u4e73\u916a\u86cb\u7cd5",
+      "aliases": [
+        "\u4e73\u916a\u86cb\u7cd5",
+        "cheesecake slice",
+        "cheese cake slice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "slice",
+        "portion_quantity": 1,
+        "portion_grams": 80,
+        "label": "one cheesecake slice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 235,
+      "kcal_range": [
+        170,
+        330
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_ca1b9f035cd0",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 294.2182,
+          "tfda_sample_name": "\u4e73\u916a\u86cb\u7cd5"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_602713a98a4b",
+        "raw_row_hash": "765f91f532d07577e514fbf5c087daab16ec0c5e1073c21658454fd13a546c75"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_sponge_cake_slice",
+      "canonical_name": "\u6d77\u7dbf\u86cb\u7cd5(\u5713\u5f62)",
+      "aliases": [
+        "\u6d77\u7dbf\u86cb\u7cd5(\u5713\u5f62)",
+        "sponge cake slice",
+        "round sponge cake slice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "slice",
+        "portion_quantity": 1,
+        "portion_grams": 60,
+        "label": "one sponge cake slice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 203,
+      "kcal_range": [
+        150,
+        280
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_5f709f06ae33",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 338.8291,
+          "tfda_sample_name": "\u6d77\u7dbf\u86cb\u7cd5(\u5713\u5f62)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_3c551bc1deb1",
+        "raw_row_hash": "87b5b50cb3ddc332ff8c9084b901cf2f8568190b4ef994e28e4f3042fd785b25"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_honey_cake_plain_slice",
+      "canonical_name": "\u8702\u871c\u86cb\u7cd5(\u539f\u5473)",
+      "aliases": [
+        "\u8702\u871c\u86cb\u7cd5(\u539f\u5473)",
+        "plain honey cake slice",
+        "honey cake plain slice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "slice",
+        "portion_quantity": 1,
+        "portion_grams": 60,
+        "label": "one plain honey cake slice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 207,
+      "kcal_range": [
+        150,
+        300
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_d1ffff8cb77c",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 345.1932,
+          "tfda_sample_name": "\u8702\u871c\u86cb\u7cd5(\u539f\u5473)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_2db22eb4eeec",
+        "raw_row_hash": "3587ca17e6651216155b96038d5930627d5107afccc8ec8099b627bc0ecb0036"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_honey_cake_chocolate_slice",
+      "canonical_name": "\u8702\u871c\u86cb\u7cd5(\u5de7\u514b\u529b)",
+      "aliases": [
+        "\u8702\u871c\u86cb\u7cd5(\u5de7\u514b\u529b)",
+        "chocolate honey cake slice",
+        "honey cake chocolate slice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "slice",
+        "portion_quantity": 1,
+        "portion_grams": 60,
+        "label": "one chocolate honey cake slice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 203,
+      "kcal_range": [
+        150,
+        300
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_387e96d69f25",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 337.9444,
+          "tfda_sample_name": "\u8702\u871c\u86cb\u7cd5(\u5de7\u514b\u529b)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_f0e3ba1ea00b",
+        "raw_row_hash": "b338f8876e2127a4c0539a8ca7131dd2b65c87feac8ea423d3f8eb418d3151b7"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_honey_cake_cheese_slice",
+      "canonical_name": "\u8702\u871c\u86cb\u7cd5(\u8d77\u53f8)",
+      "aliases": [
+        "\u8702\u871c\u86cb\u7cd5(\u8d77\u53f8)",
+        "cheese honey cake slice",
+        "honey cake cheese slice"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "slice",
+        "portion_quantity": 1,
+        "portion_grams": 60,
+        "label": "one cheese honey cake slice",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 211,
+      "kcal_range": [
+        155,
+        305
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_90b0555efe24",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 350.9358,
+          "tfda_sample_name": "\u8702\u871c\u86cb\u7cd5(\u8d77\u53f8)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_633cf99e9c02",
+        "raw_row_hash": "dd08c218ec9cdcca038b8f7ba9de3f55603a1536112292698a4f2e18d2721ea2"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_date_walnut_cake_piece",
+      "canonical_name": "\u6838\u68d7\u7cd5",
+      "aliases": [
+        "\u6838\u68d7\u7cd5",
+        "date walnut cake piece",
+        "jujube walnut cake piece"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 40,
+        "label": "one date walnut cake piece",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 169,
+      "kcal_range": [
+        125,
+        240
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_ab7d0b8e794a",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 422.4442,
+          "tfda_sample_name": "\u6838\u68d7\u7cd5"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_28cf1e94d48c",
+        "raw_row_hash": "53c83695c8c855bc2d298348be3c6b7c1b1832d5152f8f2fbe7f300678533181"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_red_bean_milk_popsicle_one",
+      "canonical_name": "\u7d05\u8c46\u725b\u5976\u51b0\u68d2",
+      "aliases": [
+        "\u7d05\u8c46\u725b\u5976\u51b0\u68d2",
+        "red bean milk popsicle one",
+        "red bean milk ice bar"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "bar",
+        "portion_quantity": 1,
+        "portion_grams": 85,
+        "label": "one red bean milk popsicle",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 129,
+      "kcal_range": [
+        90,
+        190
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_8fed8f12e685",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 151.6009,
+          "tfda_sample_name": "\u7d05\u8c46\u725b\u5976\u51b0\u68d2"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_446528347cd1",
+        "raw_row_hash": "d4c268799b6c2e07b523f0ba3ebefbe871e89c5486c013ee603795be991790ff"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_peanut_tofu_pudding_bowl",
+      "canonical_name": "\u8c46\u82b1(\u82b1\u751f)",
+      "aliases": [
+        "\u8c46\u82b1(\u82b1\u751f)",
+        "peanut tofu pudding bowl",
+        "peanut douhua bowl"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "bowl",
+        "portion_quantity": 1,
+        "portion_grams": 250,
+        "label": "one peanut tofu pudding bowl",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 146,
+      "kcal_range": [
+        95,
+        230
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_289052478254",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 58.5071,
+          "tfda_sample_name": "\u8c46\u82b1(\u82b1\u751f)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_6d1af0109335",
+        "raw_row_hash": "4ac550db5c1b3f40f1320100e3a0f8387435000e0ed7cb6778bc5e7c66e23d37"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_dessert_unsweetened_tofu_pudding_bowl",
+      "canonical_name": "\u50b3\u7d71\u8c46\u82b1(\u672a\u52a0\u7cd6)",
+      "aliases": [
+        "\u50b3\u7d71\u8c46\u82b1(\u672a\u52a0\u7cd6)",
+        "unsweetened tofu pudding bowl",
+        "unsweetened douhua bowl"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "bowl",
+        "portion_quantity": 1,
+        "portion_grams": 250,
+        "label": "one unsweetened tofu pudding bowl",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 93,
+      "kcal_range": [
+        65,
+        150
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_375986f8a203",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 37.3633,
+          "tfda_sample_name": "\u50b3\u7d71\u8c46\u82b1(\u672a\u52a0\u7cd6)"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_cfcda14242b5",
+        "raw_row_hash": "95d2f12676bcaa20530dcfb4d1c188d2e06800fdb18efe3a04e403a8c264ed49"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_sugar_roasted_chestnuts_serving",
+      "canonical_name": "\u7cd6\u7092\u6817\u5b50",
+      "aliases": [
+        "\u7cd6\u7092\u6817\u5b50",
+        "sugar roasted chestnuts serving",
+        "roasted chestnuts serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "sugar roasted chestnuts serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 198,
+      "kcal_range": [
+        145,
+        280
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_49195a70eb70",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 197.71,
+          "tfda_sample_name": "\u7cd6\u7092\u6817\u5b50"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_dc79c34840e8",
+        "raw_row_hash": "238032e5422aa9e310558a88d299fd26e8edda559be80a8528e3022831f9b620"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_peanut_candy_piece",
+      "canonical_name": "\u82b1\u751f\u7cd6",
+      "aliases": [
+        "\u82b1\u751f\u7cd6",
+        "peanut candy piece",
+        "peanut candy serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 25,
+        "label": "one peanut candy piece",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 139,
+      "kcal_range": [
+        100,
+        190
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_3b93851fac94",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 556.3645,
+          "tfda_sample_name": "\u82b1\u751f\u7cd6"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_748eeaeb6366",
+        "raw_row_hash": "c7bcf2aa5dee2c8a2248b788c323fdc07b6581910d99aefb5743a832e5f19145"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_peanut_gong_candy_piece",
+      "canonical_name": "\u82b1\u751f\u8ca2\u7cd6",
+      "aliases": [
+        "\u82b1\u751f\u8ca2\u7cd6",
+        "peanut gong candy piece",
+        "kinmen peanut candy piece"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 25,
+        "label": "one peanut gong candy piece",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 126,
+      "kcal_range": [
+        95,
+        180
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_7f3fcbbe6610",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 503.9425,
+          "tfda_sample_name": "\u82b1\u751f\u8ca2\u7cd6"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_7ac39ca3acab",
+        "raw_row_hash": "2d15c1b3a171689a8b2581daa72be02f0281654e2e7e095e5785c4c03ec69f0b"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_lactic_acid_candy_serving",
+      "canonical_name": "\u4e73\u9178\u7403",
+      "aliases": [
+        "\u4e73\u9178\u7403",
+        "lactic acid candy serving",
+        "yogurt candy serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "lactic acid candy serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 135,
+      "kcal_range": [
+        95,
+        190
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_c197716ce371",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 451.1366,
+          "tfda_sample_name": "\u4e73\u9178\u7403"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_ded60f3da5a0",
+        "raw_row_hash": "dd47d0a549739e62c8a7fc4df46471c72090485d1f4ecd5c36716193842e02fb"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_fruit_gummy_serving",
+      "canonical_name": "\u6c34\u679c\u8edf\u7cd6",
+      "aliases": [
+        "\u6c34\u679c\u8edf\u7cd6",
+        "fruit gummy serving",
+        "fruit soft candy serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "fruit gummy serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 123,
+      "kcal_range": [
+        90,
+        175
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_d9280e4107e5",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 411.2392,
+          "tfda_sample_name": "\u6c34\u679c\u8edf\u7cd6"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_c7eae0bbee85",
+        "raw_row_hash": "c45df30b3c1e993834801c9ab74fd4dbe04ef2d4a970e9ef5e25ce789fe0ad83"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_snack_qq_fruit_gummy_serving",
+      "canonical_name": "\u6c34\u679cQQ\u8edf\u7cd6",
+      "aliases": [
+        "\u6c34\u679cQQ\u8edf\u7cd6",
+        "qq fruit gummy serving",
+        "fruit qq gummy serving"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "composition_posture": "estimable_with_refinement",
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "qq fruit gummy serving",
+        "derived_from": [
+          "tfda_open_data_dataset_8543",
+          "common_serving_portion_policy"
+        ]
+      },
+      "kcal_point": 103,
+      "kcal_range": [
+        75,
+        155
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_7c8f9d4d1b9e",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 342.4042,
+          "tfda_sample_name": "\u6c34\u679cQQ\u8edf\u7cd6"
+        }
+      ],
+      "source_provenance": {
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": "https://data.gov.tw/dataset/8543",
+        "record_id": "cand_tfda_fda_food_nutrition_2024_4170c7c3d463",
+        "raw_row_hash": "8143f032727140fe410368ef362e2243ed98ffefb6c58f653460635aaf314ffe"
+      },
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "tfda_dataset_8543_common_serving_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact"
+    }
+  ]
+}
