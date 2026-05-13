@@ -22,8 +22,12 @@ def test_rescue_phase1_train_records_twenty_four_right_sized_prs() -> None:
     assert plan["artifact_type"] == "advanced_product_lab_rescue_phase1_pr_train"
     assert plan["status"] == "active"
     assert plan["planned_pr_count"] == 24
-    assert plan["dynamic_remaining_pr_count"] == 24
-    assert plan["last_completed_pr_number"] == 0
+    assert plan["dynamic_remaining_pr_count"] == 23
+    assert plan["last_completed_pr_number"] == 1
+    assert (
+        plan["planned_pr_count"] - plan["last_completed_pr_number"]
+        == plan["dynamic_remaining_pr_count"]
+    )
 
     prs = plan["pr_train"]
     assert len(prs) == 24
