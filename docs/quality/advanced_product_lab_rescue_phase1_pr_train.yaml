@@ -4,11 +4,11 @@ status: active
 owner: AdvancedRescueRuntimeLab
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 9
-last_completed_pr_number: 15
+dynamic_remaining_pr_count: 8
+last_completed_pr_number: 16
 current_mainline: advanced_product_lab_rescue_phase1
 is_detour: false
-mainline_blocker_being_removed: accept_rescue_plan_api_contract_not_built
+mainline_blocker_being_removed: dismiss_rescue_plan_contract_not_built
 strategic_verdict: mainline
 
 strategic_gate:
@@ -20,7 +20,7 @@ strategic_gate:
   exit_gate_status: not_applicable
   return_slice_after_exit: not_applicable
   strategic_verdict: mainline
-  mainline_blocker_being_removed: accept_rescue_plan_api_contract_not_built
+  mainline_blocker_being_removed: dismiss_rescue_plan_contract_not_built
 
 capability_dependency_check:
   capability_layer: L9 Same-Truth / UI / Memory / Proactive, with L2/L3/L4 runtime dependencies
@@ -463,7 +463,11 @@ last_merge_evidence:
       pull_request: 1189
       merge_commit: 1dc1e68fb8670a44b014afa0083750b44f25caad
       result: response_presentation_and_card_contract_merged_with_live_grokfast_pass
-  latest_dynamic_estimate_after_merge: 9
+    - pr_number: 16
+      pull_request: 1190
+      merge_commit: 73c2f2dcf8f3bb44d2d24fef5b61b38b445e420f
+      result: accept_rescue_plan_api_contract_merged
+  latest_dynamic_estimate_after_merge: 8
 
 estimate_notes:
   - Initial dynamic estimate is 24 PRs before PR1 merge.
@@ -482,5 +486,6 @@ estimate_notes:
   - After PR13 merge, remaining estimate moved to 11.
   - After PR14 merge, remaining estimate moved to 10; Grokfast live diagnostic passed after top-level output contract hardening, so no extra PR was added.
   - After PR15 merge, remaining estimate moved to 9; Grokfast response presentation passed after secondary negotiation affordance was made a validator-enforced contract, so no extra PR was added.
+  - After PR16 merge, remaining estimate moved to 8; accept projection stays a lab-only API contract and intentionally defers ledger overlay to PR19, so no extra PR was added.
   - This count may increase if L2 data-state or isolated lab ledger contracts are thinner than expected.
   - This count may decrease only when adjacent slices share one reviewable capability and one rollback boundary.
