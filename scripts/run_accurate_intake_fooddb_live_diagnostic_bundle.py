@@ -45,6 +45,9 @@ from app.nutrition.application.fooddb_manager_contract_handoff_inspection import
 from app.nutrition.application.fooddb_manager_packet_smoke import (  # noqa: E402
     build_fooddb_manager_packet_smoke,
 )
+from app.nutrition.application.fooddb_real_manager_e2e import (  # noqa: E402
+    build_fooddb_real_manager_e2e,
+)
 from app.nutrition.application.fooddb_manager_contract_probe import (  # noqa: E402
     build_fooddb_manager_contract_probe,
 )
@@ -199,6 +202,9 @@ def _build_pre_provider_artifacts(
         retrieval_records=retrieval_records,
         approved_packet_ready_artifact=approved_artifact,
     )
+    real_manager_e2e = build_fooddb_real_manager_e2e(
+        approved_packet_ready_artifact=approved_artifact,
+    )
     index_backend_parity = _build_index_backend_parity(
         local_index=local_index,
         sqlite_db_path=paths["sqlite_db"],
@@ -230,6 +236,7 @@ def _build_pre_provider_artifacts(
 
     artifacts = {
         "approved_packet_ready_artifact": approved_artifact,
+        "real_manager_e2e": real_manager_e2e,
         "retrieval_eval_wall": retrieval_eval_wall,
         "fooddb_status_packet": fooddb_status_packet,
         "manager_packet_smoke": manager_packet_smoke,
@@ -363,6 +370,7 @@ def _build_manifest(
 ) -> dict[str, Any]:
     contract_probe = contract_artifacts["manager_contract_probe"]
     approved_artifact = contract_artifacts["approved_packet_ready_artifact"]
+    real_manager_e2e = contract_artifacts["real_manager_e2e"]
     status_packet_inspection = contract_artifacts["fooddb_status_packet_inspection"]
     handoff_inspection = contract_artifacts["manager_contract_handoff_inspection"]
     failure_taxonomy_inspection = contract_artifacts["fooddb_live_failure_taxonomy_inspection"]
@@ -401,6 +409,9 @@ def _build_manifest(
         "approved_packet_ready_item_count": int(
             approved_artifact.get("summary", {}).get("packet_ready_item_count", 0) or 0
         ),
+        "real_manager_e2e_status": real_manager_e2e.get("status"),
+        "real_manager_e2e_case_count": int(real_manager_e2e.get("summary", {}).get("case_count", 0) or 0),
+        "real_manager_e2e_pass_count": int(real_manager_e2e.get("summary", {}).get("pass_count", 0) or 0),
         "preflight_clear_to_run_live_diagnostic": preflight.get("clear_to_run_live_diagnostic") is True,
         "preflight_status": preflight.get("status"),
         "live_runner_readiness_status": live_runner_readiness.get("status"),
@@ -430,6 +441,7 @@ def _build_manifest(
             for key, path in paths.items()
             if key in {
                 "approved_packet_ready_artifact",
+                "real_manager_e2e",
                 "retrieval_eval_wall",
                 "fooddb_status_packet",
                 "manager_packet_smoke",

@@ -23,6 +23,7 @@ def test_fooddb_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_path:
     approved_artifact = read_json_artifact(
         tmp_path / "accurate_intake_approved_packet_ready_fooddb_full_current_shell.json"
     )
+    real_manager_e2e = read_json_artifact(tmp_path / "accurate_intake_fooddb_real_manager_e2e.json")
     manager_packet_smoke = read_json_artifact(
         tmp_path / "accurate_intake_fooddb_manager_packet_smoke.json"
     )
@@ -58,9 +59,15 @@ def test_fooddb_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_path:
     assert manifest["readiness_claimed"] is False
     assert manifest["approved_packet_ready_selection_profile"] == "full_current_shell"
     assert manifest["approved_packet_ready_item_count"] == 1000
+    assert manifest["real_manager_e2e_status"] == "pass"
+    assert manifest["real_manager_e2e_case_count"] == 8
+    assert manifest["real_manager_e2e_pass_count"] == 8
     assert manifest["seam_status"] == "fixture_only_live_not_checked"
     assert approved_artifact["summary"]["selection_profile"] == "full_current_shell"
     assert approved_artifact["summary"]["packet_ready_item_count"] == 1000
+    assert real_manager_e2e["artifact_type"] == "accurate_intake_fooddb_real_manager_e2e"
+    assert real_manager_e2e["summary"]["case_count"] == 8
+    assert real_manager_e2e["summary"]["pass_count"] == 8
     assert preflight["clear_to_run_live_diagnostic"] is True
     assert preflight["next_required_slice"] == "grokfast_fooddb_packet_live_diagnostic"
     router_readiness = read_json_artifact(
@@ -188,6 +195,13 @@ def test_fooddb_live_diagnostic_bundle_manifest_uses_post_contract_status_packet
                     "packet_ready_item_count": 1000,
                 }
             },
+            "real_manager_e2e": {
+                "status": "pass",
+                "summary": {
+                    "case_count": 8,
+                    "pass_count": 8,
+                },
+            },
             "manager_contract_probe": {"contract_failure_detected": False},
             "manager_contract_handoff": {
                 "status": "unexpected_new_status",
@@ -232,6 +246,7 @@ def test_fooddb_live_diagnostic_bundle_records_required_artifact_refs(
     required_refs = {
         "retrieval_eval_wall",
         "approved_packet_ready_artifact",
+        "real_manager_e2e",
         "fooddb_status_packet",
         "manager_packet_smoke",
         "index_backend_parity",
@@ -343,6 +358,24 @@ def test_fooddb_live_diagnostic_bundle_uses_configured_small_anchor_store(
             "readiness_claimed": False,
         }
 
+    def _fake_build_real_manager_e2e(
+        *,
+        approved_packet_ready_artifact: dict[str, Any],
+        semantic_small_anchor_records: object | None = None,
+    ) -> dict[str, Any]:
+        assert approved_packet_ready_artifact["summary"]["selection_profile"] == "full_current_shell"
+        return {
+            "artifact_type": "accurate_intake_fooddb_real_manager_e2e",
+            "status": "pass",
+            "summary": {
+                "case_count": 8,
+                "pass_count": 8,
+            },
+            "live_provider_used": False,
+            "runtime_truth_changed": False,
+            "runtime_mutation_attempted": False,
+        }
+
     def _fake_case_matrix() -> dict[str, Any]:
         return {
             "artifact_type": "accurate_intake_fooddb_grokfast_packet_live_diagnostic_case_matrix",
@@ -416,6 +449,10 @@ def test_fooddb_live_diagnostic_bundle_uses_configured_small_anchor_store(
         patch(
             "scripts.run_accurate_intake_fooddb_live_diagnostic_bundle._build_index_backend_parity",
             side_effect=_fake_build_index_backend_parity,
+        ),
+        patch(
+            "scripts.run_accurate_intake_fooddb_live_diagnostic_bundle.build_fooddb_real_manager_e2e",
+            side_effect=_fake_build_real_manager_e2e,
         ),
         patch(
             "scripts.run_accurate_intake_fooddb_live_diagnostic_bundle.build_fooddb_grokfast_live_diagnostic_case_matrix_artifact",
