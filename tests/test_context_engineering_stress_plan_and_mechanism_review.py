@@ -31,7 +31,7 @@ def test_context_engineering_stress_pr_train_records_dynamic_slice_plan() -> Non
     assert plan["artifact_type"] == "advanced_product_lab_context_engineering_stress_pr_train"
     assert plan["status"] == "planned"
     assert plan["planned_slice_count_likely"] == 16
-    assert plan["dynamic_remaining_slice_count"] == 4
+    assert plan["dynamic_remaining_slice_count"] == 3
     assert plan["slice_count_range"] == {
         "optimistic": 14,
         "likely": 16,
@@ -41,13 +41,13 @@ def test_context_engineering_stress_pr_train_records_dynamic_slice_plan() -> Non
     assert plan["slice_train"][0]["slice_id"] == "main_to_lab_sync_and_contract_drift_audit"
     assert plan["slice_train"][-1]["slice_id"] == "decision_pack_and_proactive_entry_gate"
 
-    assert plan["last_completed_slice_number"] == 12
+    assert plan["last_completed_slice_number"] == 13
     assert plan["last_merge_evidence"]["completed_slices"][-1] == {
-        "slice_number": 12,
-        "slice_id": "bounded_react_replanning_after_tool_results",
-        "result": "bounded_react_replan_trace_completed",
-        "artifact": "app/advanced_shadow_lab/context_engineering_bounded_react_runner.py",
-        "dynamic_remaining_slice_count_after": 4,
+        "slice_number": 13,
+        "slice_id": "final_response_boundary_packet",
+        "result": "final_response_boundary_grade_completed",
+        "artifact": "app/advanced_shadow_lab/context_engineering_final_response_boundary.py",
+        "dynamic_remaining_slice_count_after": 3,
     }
 
 

@@ -139,6 +139,10 @@ def _capability_id_for_tool_name(tool_name: str) -> str | None:
         return "query"
     if tool_name.startswith("memory.") or tool_name == "conversation_recall.search":
         return "memory"
+    if tool_name == "intake.run":
+        return "intake"
+    if tool_name == "query.run":
+        return "query"
     if tool_name == "recommendation.run":
         return "recommendation"
     if tool_name == "rescue.run":

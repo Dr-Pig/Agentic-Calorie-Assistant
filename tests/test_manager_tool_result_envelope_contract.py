@@ -62,6 +62,34 @@ def test_normalize_manager_tool_result_handles_advanced_lab_memory_wrapper() -> 
     assert artifact["payload_summary"]["selected_record_ids"] == ["memory-1"]
 
 
+def test_normalize_manager_tool_result_maps_advanced_lab_intake_and_query_tools() -> None:
+    intake = normalize_manager_tool_result(
+        {
+            "artifact_type": "advanced_product_lab_manager_tool_result",
+            "status": "pass",
+            "tool_name": "intake.run",
+            "returned_to_manager": True,
+            "result_artifact": {"artifact_type": "advanced_product_lab_intake_bridge_trace"},
+            "blockers": [],
+        }
+    )
+    query = normalize_manager_tool_result(
+        {
+            "artifact_type": "advanced_product_lab_manager_tool_result",
+            "status": "pass",
+            "tool_name": "query.run",
+            "returned_to_manager": True,
+            "result_artifact": {"artifact_type": "advanced_product_lab_query_runtime_artifact"},
+            "blockers": [],
+        }
+    )
+
+    assert intake["status"] == "pass"
+    assert intake["capability_id"] == "intake"
+    assert query["status"] == "pass"
+    assert query["capability_id"] == "query"
+
+
 def test_normalize_manager_tool_result_propagates_blocked_advanced_lab_wrapper() -> None:
     artifact = normalize_manager_tool_result(
         {
