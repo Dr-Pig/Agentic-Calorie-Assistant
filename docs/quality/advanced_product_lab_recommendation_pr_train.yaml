@@ -4,9 +4,9 @@ status: active
 owner: AdvancedProductLabRecommendation
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 23
-last_completed_pr_number: 1
-active_pr_number: 2
+dynamic_remaining_pr_count: 22
+last_completed_pr_number: 2
+active_pr_number: 3
 current_mainline: advanced_product_lab_recommendation_manager_tool_train
 is_detour: false
 mainline_blocker_being_removed: recommendation_must_enter_through_shared_manager_tool_loop
@@ -188,6 +188,7 @@ estimate_notes:
   - Initial dynamic estimate is 24 PRs after context engineering PR29 closeout.
   - Estimate may increase if manager-tool integration exposes missing candidate source or UX feedback contracts.
   - After PR1 logical completion, remaining estimate moved to 23.
+  - After PR2 logical completion, remaining estimate moved to 22.
 
 last_merge_evidence:
   completed_prs:
@@ -196,3 +197,7 @@ last_merge_evidence:
       merge_commit: working_branch_uncommitted
       result: recommendation_parent_entry_and_gate_alignment_completed_locally
       gate_artifact: artifacts/advanced_product_lab_recommendation_parent_entry_gate_pr1.json
+    - pr_number: 2
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: recommendation_tool_argument_contract_completed_locally

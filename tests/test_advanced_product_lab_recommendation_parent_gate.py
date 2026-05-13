@@ -79,22 +79,20 @@ def test_recommendation_train_records_pr1_completion_and_next_active_slice() -> 
     plan = yaml.safe_load(TRAIN_PATH.read_text(encoding="utf-8-sig"))
 
     assert plan["planned_pr_count"] == 24
-    assert plan["dynamic_remaining_pr_count"] == 23
-    assert plan["last_completed_pr_number"] == 1
-    assert plan["active_pr_number"] == 2
-    assert plan["last_merge_evidence"]["completed_prs"] == [
-        {
-            "pr_number": 1,
-            "pull_request": "local_logical_slice",
-            "merge_commit": "working_branch_uncommitted",
-            "result": "recommendation_parent_entry_and_gate_alignment_completed_locally",
-            "gate_artifact": "artifacts/advanced_product_lab_recommendation_parent_entry_gate_pr1.json",
-        }
-    ]
+    assert plan["dynamic_remaining_pr_count"] <= 23
+    assert plan["last_completed_pr_number"] >= 1
+    assert plan["active_pr_number"] >= 2
+    assert plan["last_merge_evidence"]["completed_prs"][0] == {
+        "pr_number": 1,
+        "pull_request": "local_logical_slice",
+        "merge_commit": "working_branch_uncommitted",
+        "result": "recommendation_parent_entry_and_gate_alignment_completed_locally",
+        "gate_artifact": "artifacts/advanced_product_lab_recommendation_parent_entry_gate_pr1.json",
+    }
     assert plan["pr_train"][1]["slice_id"] == "recommendation_tool_argument_contract"
-    assert plan["estimate_notes"][-1] == (
-        "After PR1 logical completion, remaining estimate moved to 23."
-    )
+    assert "After PR1 logical completion, remaining estimate moved to 23." in plan[
+        "estimate_notes"
+    ]
 
 
 def _train(*, active_pr_number: int) -> dict[str, object]:

@@ -12,6 +12,9 @@ from app.shared.contracts.manager_style_convergence import (
     ORCHESTRATION_STANCE,
     build_shared_manager_style_convergence_contract,
 )
+from app.shared.contracts.recommendation_tool_arguments import (
+    build_recommendation_tool_argument_contract,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -91,7 +94,7 @@ def build_product_lab_manager_tool_registry() -> dict[str, Any]:
 
 
 def _tool_spec(tool_name: str) -> dict[str, Any]:
-    return {
+    spec = {
         "tool_name": tool_name,
         "capability_family": TOOL_FAMILIES[tool_name],
         "tool_mode": TOOL_MODES[tool_name],
@@ -100,6 +103,9 @@ def _tool_spec(tool_name: str) -> dict[str, Any]:
         "mainline_activation_enabled": False,
         "canonical_mutation_allowed": False,
     }
+    if tool_name == "recommendation.run":
+        spec["argument_contract"] = build_recommendation_tool_argument_contract()
+    return spec
 
 
 __all__ = [
