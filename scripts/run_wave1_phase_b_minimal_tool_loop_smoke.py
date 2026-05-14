@@ -20,7 +20,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.runtime.agent.manager import SINGLE_MANAGER_SYSTEM_PROMPT, run_intake_manager
+from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+from app.runtime.application.manager_service import run_intake_manager
 from app.runtime.agent.phase_b1_selection import (
     PHASE_B1_PASS_1_COMMON_COMMERCIAL_DRINK_ID,
     PHASE_B1_PASS_1_COMMON_COMMERCIAL_MEAL_ID,
@@ -1651,6 +1652,28 @@ def _renderer_trace(*, item_results: list[dict[str, Any]], mutation: dict[str, A
     }
 
 
+def _append_allowed_fixture_tool_outputs(
+    *,
+    case_id: str,
+    message: str,
+    router_trace: dict[str, Any],
+    read_tool_executions: list[dict[str, Any]],
+    packetizer_outputs: list[dict[str, Any]],
+) -> None:
+    for tool_name in router_trace["allowed_tools"]:
+        for food_name in _food_names_for_message(message):
+            raw_output = _raw_stub_output(case_id=case_id, tool_name=tool_name, food_name=food_name)
+            packet = _fixture_packet(case_id=case_id, tool_name=tool_name, food_name=food_name)
+            read_tool_executions.append(
+                {
+                    "tool_name": tool_name,
+                    "raw_tool_output_ref": f"artifacts/raw/{case_id}_{tool_name}_{_hash(food_name)}.json",
+                    "output": raw_output,
+                }
+            )
+            packetizer_outputs.append(packet)
+
+
 def _mutation_trace(*, message: str, item_results: list[dict[str, Any]]) -> dict[str, Any]:
     if _is_no_mutation_query(message) or _is_self_selected_basket_without_ingredients(message):
         return {"mutation_attempted": False, "reason": "no_mutation_intent", "mutation_result": None}
@@ -1924,18 +1947,13 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
         requested_tools = [str(call.get("name") or call.get("tool_name") or "") for call in tool_calls if isinstance(call, dict)]
         requested_tools = [tool for tool in requested_tools if tool]
         router_trace = _route_tools(message=message, requested_tools=requested_tools)
-        for tool_name in router_trace["allowed_tools"]:
-            for food_name in _food_names_for_message(message):
-                raw_output = _raw_stub_output(case_id=case_id, tool_name=tool_name, food_name=food_name)
-                packet = _fixture_packet(case_id=case_id, tool_name=tool_name, food_name=food_name)
-                read_tool_executions.append(
-                    {
-                        "tool_name": tool_name,
-                        "raw_tool_output_ref": f"artifacts/raw/{case_id}_{tool_name}_{_hash(food_name)}.json",
-                        "output": raw_output,
-                    }
-                )
-                packetizer_outputs.append(packet)
+        _append_allowed_fixture_tool_outputs(
+            case_id=case_id,
+            message=message,
+            router_trace=router_trace,
+            read_tool_executions=read_tool_executions,
+            packetizer_outputs=packetizer_outputs,
+        )
         if _is_self_selected_basket_without_ingredients(message) and not packetizer_outputs:
             packetizer_outputs.append(
                 {
@@ -2180,6 +2198,17 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
         stage="pass_1_tool_request",
         round_index=0,
     )
+    if not router_trace["requested_read_tools"]:
+        requested_tools = _tool_call_names(pass1_decision)
+        if requested_tools:
+            router_trace = _route_tools(message=message, requested_tools=requested_tools)
+            _append_allowed_fixture_tool_outputs(
+                case_id=case_id,
+                message=message,
+                router_trace=router_trace,
+                read_tool_executions=read_tool_executions,
+                packetizer_outputs=packetizer_outputs,
+            )
     if _should_complete_b1_004_pass2_trace(
         case_id=case_id,
         message=message,

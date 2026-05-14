@@ -1080,8 +1080,10 @@ async def test_phase_b1_runtime_smoke_calls_provider_exactly_twice_and_emits_tra
     assert report["runtime_latency"]["latency_budget_type"] == "b1_full_smoke_reporting_target"
     assert report["runtime_latency"]["not_user_runtime_budget"] is True
     assert report["runtime_latency"]["total_latency_ms"] >= trace["case_latency_ms"]
-    assert provider.calls[1]["user_payload"]["tool_results"][0]["packetizer_outputs"]
-    assert "raw_stub_output" not in provider.calls[1]["user_payload"]["tool_results"][0]
+    pass2_tool_result = provider.calls[1]["user_payload"]["tool_results"][0]
+    assert pass2_tool_result["prompt_payload_kind"] == "manager_tool_result_prompt_compact"
+    assert "packetizer_outputs" not in pass2_tool_result
+    assert "raw_stub_output" not in pass2_tool_result
     assert trace["packetizer"]["outputs"][0]["fixture_id"]
     assert trace["packetizer"]["outputs"][0]["fixture_hash"]
     assert trace["packetizer"]["outputs"][0]["fixture_only"] is True

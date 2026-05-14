@@ -65,6 +65,12 @@ docs/_spec_snapshots/
 artifacts/session_records/
 artifacts/refs/
 data_build/
+!data_build/
+data_build/*
+!data_build/__init__.py
+!data_build/wide_research/
+data_build/wide_research/*
+!data_build/wide_research/*.py
 workspace_data/
 workspace_data/**
 artifacts/
