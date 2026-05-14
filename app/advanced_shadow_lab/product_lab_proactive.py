@@ -5,22 +5,18 @@ from typing import Any, Mapping
 from app.advanced_shadow_lab.product_lab_proactive_delivery import (
     build_product_lab_proactive_delivery_packet,
 )
-from app.advanced_shadow_lab.product_lab_proactive_action_state import (
-    action_state_source_refs,
-    pending_intake_followup_candidate,
-    rescue_omission_trace,
-)
+from app.advanced_shadow_lab.product_lab_proactive_action_state import action_state_source_refs, rescue_omission_trace
 from app.advanced_shadow_lab.product_lab_proactive_candidate import (
     product_lab_proactive_candidate,
     product_lab_proactive_candidate_blockers,
-)
-from app.advanced_shadow_lab.product_lab_proactive_recommendation_bridge import (
-    build_recommendation_proactive_candidate_bridge,
 )
 from app.advanced_shadow_lab.product_lab_proactive_gate import (
     review_product_lab_proactive_candidates,
 )
 from app.advanced_shadow_lab import product_lab_proactive_rescue_feedback as rf
+from app.advanced_shadow_lab.product_lab_proactive_wake_sources import (
+    build_product_lab_proactive_wake_sources,
+)
 
 
 def run_product_lab_proactive(
@@ -41,20 +37,15 @@ def run_product_lab_proactive(
         rescue_omission_trace(current_action_state)
         or rf.rescue_feedback_omission_trace(feedback_projection)
     )
-    recommendation_bridge = build_recommendation_proactive_candidate_bridge(
-        recommendation_artifact=recommendation_artifact,
+    wake_source_adapter = build_product_lab_proactive_wake_sources(
         fixture_inputs=fixture_inputs,
+        memory_context_pack=memory_context_pack,
+        recommendation_artifact=recommendation_artifact,
+        rescue_artifact=rescue_artifact,
+        weekly_insight_artifact=weekly_insight_artifact,
+        action_state=current_action_state,
+        rescue_omission_active=rescue_omission is not None,
     )
-    specs = [
-        recommendation_bridge.get("candidate_spec"),
-        pending_intake_followup_candidate(
-            action_state=current_action_state,
-            control_model=_control_model(fixture_inputs, "pending_intake_followup"),
-        ),
-    ]
-    if rescue_omission is None:
-        specs.append(_rescue_candidate(rescue_artifact, fixture_inputs))
-    specs.append(_weekly_insight_candidate(weekly_insight_artifact or {}, fixture_inputs))
     prepared_candidates = [
         product_lab_proactive_candidate(
             trigger_type=str(spec.get("trigger_type") or ""),
@@ -64,13 +55,13 @@ def run_product_lab_proactive(
             control_model=_mapping(spec.get("control_model")),
             next_signal_fallback=str(spec.get("next_signal_fallback") or ""),
         )
-        for spec in specs
-        if spec is not None
+        for spec in wake_source_adapter.get("candidate_specs") or []
+        if isinstance(spec, Mapping)
     ]
     bridge_blockers = [
-        f"recommendation_bridge.{blocker}"
-        for blocker in recommendation_bridge.get("blockers") or []
-        if recommendation_bridge.get("status") == "blocked"
+        f"wake_source_adapter.{blocker}"
+        for blocker in wake_source_adapter.get("blockers") or []
+        if wake_source_adapter.get("status") == "blocked"
     ]
     blockers = [
         *bridge_blockers,
@@ -104,7 +95,10 @@ def run_product_lab_proactive(
         "chat_first": True,
         "candidate_count": len(passed),
         "candidates": passed,
-        "recommendation_proactive_candidate_bridge": recommendation_bridge,
+        "wake_source_adapter": wake_source_adapter,
+        "recommendation_proactive_candidate_bridge": dict(
+            wake_source_adapter.get("recommendation_proactive_candidate_bridge") or {}
+        ),
         "delivery_packet": delivery,
         "pre_delivery_review": review,
         "pre_delivery_review_summary": dict(review.get("summary") or {}),
@@ -122,6 +116,7 @@ def run_product_lab_proactive(
             str((weekly_insight_artifact or {}).get("artifact_type") or ""),
             str(current_action_state.get("artifact_type") or ""),
             str(feedback_projection.get("artifact_type") or ""),
+            str(wake_source_adapter.get("artifact_type") or ""),
         ],
         "lab_chat_delivery_allowed": not bool(blockers),
         "scheduler_delivery_allowed": False,
@@ -135,55 +130,6 @@ def run_product_lab_proactive(
         "manager_context_packet_changed": False,
         "blockers": blockers,
     }
-
-
-def _rescue_candidate(
-    rescue: Mapping[str, Any],
-    fixture_inputs: Mapping[str, Any],
-) -> dict[str, Any]:
-    card = _mapping(rescue.get("proposal_card"))
-    return {
-        "trigger_type": "rescue_nudge",
-        "candidate_kind": "same_day_rescue_proposal",
-        "source_output_refs": [
-            str(rescue.get("artifact_type") or ""),
-            f"proposal:{card.get('card_kind') or ''}",
-        ],
-        "source_status": str(rescue.get("status") or ""),
-        "control_model": _control_model(fixture_inputs, "rescue_nudge"),
-        "next_signal_fallback": "material_budget_change_or_user_reopens_rescue",
-    }
-
-
-def _weekly_insight_candidate(
-    weekly_insight: Mapping[str, Any],
-    fixture_inputs: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    if (
-        weekly_insight.get("status") != "pass"
-        or weekly_insight.get("weekly_insight_chat_candidate_allowed") is not True
-    ):
-        return None
-    report = _mapping(weekly_insight.get("weekly_insight_report"))
-    return {
-        "trigger_type": "weekly_insight",
-        "candidate_kind": "weekly_behavior_insight_report",
-        "source_output_refs": [
-            str(weekly_insight.get("artifact_type") or ""),
-            f"weekly_report:{report.get('report_id') or ''}",
-        ],
-        "source_status": str(weekly_insight.get("status") or ""),
-        "control_model": _control_model(fixture_inputs, "weekly_insight"),
-        "next_signal_fallback": "new_weekly_insight_window",
-    }
-
-
-def _control_model(
-    fixture_inputs: Mapping[str, Any],
-    trigger_type: str,
-) -> Mapping[str, Any]:
-    models = _mapping(fixture_inputs.get("user_control_models"))
-    return _mapping(models.get(trigger_type))
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:
