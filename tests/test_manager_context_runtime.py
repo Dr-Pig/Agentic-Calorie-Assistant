@@ -317,3 +317,103 @@ def test_runtime_manager_context_packet_exposes_active_meal_estimate_basis_read_
     assert item_candidates[0]["confidence_tier"] == "medium"
     assert all(candidate["read_only"] is True for candidate in candidates)
     assert all(candidate["mutation_authority"] is False for candidate in candidates)
+
+
+def test_runtime_manager_context_packet_hides_llm_only_active_meal_macros() -> None:
+    engine, db = _session()
+    try:
+        user = get_or_create_user(db, "context-user")
+        thread = MealThreadRecord(user_id=user.id, title="breakfast shop teppan set", active_version_id=None)
+        db.add(thread)
+        db.commit()
+        db.refresh(thread)
+        version = MealVersionRecord(
+            meal_thread_id=thread.id,
+            version_status="active",
+            version_reason="new_intake",
+            resolution_status="completed_meal",
+            meal_title="breakfast shop teppan set",
+            raw_input="breakfast shop teppan set",
+            local_date="2026-05-04",
+            source_request_id="turn-breakfast",
+            total_kcal=400,
+            protein_g=18,
+            carb_g=42,
+            fat_g=12,
+        )
+        db.add(version)
+        db.commit()
+        db.refresh(version)
+        thread.active_version_id = version.id
+        db.add_all(
+            [
+                thread,
+                MealItemRecord(
+                    meal_version_id=version.id,
+                    item_index=0,
+                    name="breakfast shop teppan set",
+                    source="llm",
+                    evidence_role="none",
+                    estimate_basis="llm_only",
+                    confidence_tier="low",
+                    estimated_kcal=400,
+                    protein_g=18,
+                    carb_g=42,
+                    fat_g=12,
+                    evidence_ids_json=[],
+                ),
+            ]
+        )
+        db.commit()
+
+        packet = build_runtime_manager_context_packet_v1(
+            db=db,
+            current_turn_context=_context(),
+            user_external_id="context-user",
+            local_date="2026-05-04",
+            session_id="session-1",
+        )
+    finally:
+        db.close()
+        engine.dispose()
+
+    basis = packet["active_day_state"]["active_meal_estimate_basis"]
+    assert basis["macro_summary"] == {
+        "protein_g": None,
+        "carb_g": None,
+        "fat_g": None,
+        "macro_visibility_status": "hidden_missing_source",
+        "macro_guard_reason": "unsupported_macro_source",
+    }
+    assert basis["items"][0]["protein_g"] is None
+    assert basis["items"][0]["carb_g"] is None
+    assert basis["items"][0]["fat_g"] is None
+    assert basis["items"][0]["source"] == "unverified_estimate"
+    assert basis["items"][0]["estimate_basis"] == "rough_estimate_without_source"
+    assert basis["items"][0]["macro_visibility_status"] == "hidden_missing_source"
+
+
+def test_runtime_manager_context_packet_separates_context_evidence_readonly_from_turn_mutability() -> None:
+    engine, db = _session()
+    try:
+        get_or_create_user(db, "context-user")
+        packet = build_runtime_manager_context_packet_v1(
+            db=db,
+            current_turn_context=_context(),
+            user_external_id="context-user",
+            local_date="2026-05-04",
+            session_id="session-1",
+        )
+    finally:
+        db.close()
+        engine.dispose()
+
+    assert packet is not None
+    current_turn = packet["current_turn"]
+    assert current_turn["context_evidence_read_only"] is True
+    assert current_turn["user_utterance_may_request_mutation"] is True
+    assert current_turn["semantic_owner"] == "manager_llm"
+    assert current_turn["read_only"] is True
+    assert current_turn["mutation_authority"] is False
+    assert current_turn["read_only_scope"] == "context_packet_evidence"
+    assert current_turn["mutation_authority_scope"] == "context_packet_not_product_action"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from app.composition.accurate_intake_call_topology_expectations import call_topology_check
@@ -20,12 +21,26 @@ from app.composition.accurate_intake_trace_expectation_primitives import (
 from app.composition.accurate_intake_live_trace_expectation_catalog import EXPECTED_TRACE_BY_CASE_ID
 
 
+_INTERNAL_ESTIMATE_LABEL_RE = re.compile(
+    r"\b(?:llm(?:_only)?|rough\s+estimate|rough_estimate_without_source|unverified_estimate|confidence_tier)\b",
+    re.IGNORECASE,
+)
+_MACRO_GRAM_CLAIM_RE = re.compile(
+    r"(\u86cb\u767d\u8cea|\u78b3\u6c34|\u8102\u80aa|protein|carb|fat)[^\n]{0,16}\d+\s*g",
+    re.IGNORECASE,
+)
+
+
 def grade_teppan_breakfast(case: dict[str, Any]) -> dict[str, Any]:
     case_id = "teppan_breakfast_explain_refine_dogfood"
     turn2 = _turn(case, 2)
     turn3 = _turn(case, 3)
     turn2_delta = _delta(turn2)
     turn2_basis = _dict(turn2.get("answer_basis"))
+    turn2_basis_has_active_meal_evidence = bool(
+        turn2_basis.get("meal_thread_id") or str(turn2_basis.get("basis_text") or "").strip()
+    )
+    turn2_reply_text = str(turn2.get("coach_message") or "")
     turn3_delta = _delta(turn3)
     turn3_estimation = _dict(turn3.get("estimation_summary"))
     turn3_components = _list(turn3_estimation.get("component_names"))
@@ -49,10 +64,20 @@ def grade_teppan_breakfast(case: dict[str, Any]) -> dict[str, Any]:
         ),
         _check(
             "turn2_uses_active_meal_basis",
-            bool(turn2_basis.get("meal_thread_id"))
+            turn2_basis_has_active_meal_evidence
             and turn2_basis.get("references_active_meal") is True
             and turn2_basis.get("assumption_or_composition_explained") is True,
             {"answer_basis": turn2_basis},
+        ),
+        _check(
+            "turn2_reply_hides_internal_estimate_labels",
+            not _INTERNAL_ESTIMATE_LABEL_RE.search(turn2_reply_text),
+            {"coach_message": turn2_reply_text},
+        ),
+        _check(
+            "turn2_reply_does_not_show_unsupported_macro_grams",
+            not _MACRO_GRAM_CLAIM_RE.search(turn2_reply_text),
+            {"coach_message": turn2_reply_text},
         ),
         _check(
             "turn3_refines_existing_meal",

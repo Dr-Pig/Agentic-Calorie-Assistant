@@ -1956,6 +1956,12 @@ def test_founder_live_contract_policy_names_existing_query_only_and_followup_inv
         "no_commit",
         "answer_only",
     ]
+    assert policy["composition_refinement_after_basis_query_rule"]["semantic_intent"] == "correct_meal"
+    assert policy["composition_refinement_after_basis_query_rule"]["intent_type"] == "correct_meal"
+    assert policy["composition_refinement_after_basis_query_rule"]["forbidden_substitute_final_actions"] == [
+        "answer_only",
+        "ask_followup_for_replacement_confirmation",
+    ]
     assert policy["followup_question_rule"]["fallback_postures_when_no_question"] == [
         "none",
         "refinement_optional",
@@ -1967,6 +1973,7 @@ def test_founder_live_contract_policy_names_existing_query_only_and_followup_inv
     assert "query-only" in description
     assert "estimate-basis inquiry" in description
     assert "answer_contract.answer_basis" in description
+    assert "without exposing LLM/llm_only/internal enum labels or unsupported macro gram claims" in description
     assert "answer_only" in description
     assert "correct_meal" in description
     assert "self-selected basket" in description
@@ -1975,6 +1982,7 @@ def test_founder_live_contract_policy_names_existing_query_only_and_followup_inv
     assert "do not call estimate_nutrition for composition-unknown baskets" in description
     assert "tool_calls=[] for composition-unknown ask_followup" in description
     assert "listed-item follow-up" in description
+    assert "composition refinement after an estimate-basis inquiry" in description
     assert "do not repeat the same composition clarification" in description
     assert "evidence_posture to requires_tool" in description
     assert "invalid evidence-required candidate pattern" in description
@@ -1987,6 +1995,13 @@ def test_founder_live_contract_policy_names_existing_query_only_and_followup_inv
     )
     assert composition_unknown["invalid"]["manager_action"] == "call_tools"
     assert composition_unknown["invalid"]["tool_calls"] == [{"name": "estimate_nutrition"}]
+    composition_refinement = next(
+        item
+        for item in FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES
+        if item["name"] == "composition_refinement_after_estimate_basis_query"
+    )
+    assert composition_refinement["valid"]["semantic_decision"]["current_turn_intent"] == "correct_meal"
+    assert composition_refinement["invalid"]["semantic_decision"]["current_turn_intent"] == "answer_query"
     assert "case_id" not in str(FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES)
 
 
@@ -2128,6 +2143,7 @@ def test_founder_live_manager_contract_uses_synthetic_tool_transport_with_schema
         "Do not collapse query-only, estimate-basis inquiry, or correction turns into log_meal"
         in transport_request["tools"][0]["function"]["description"]
     )
+    assert "composition refinement after an estimate-basis inquiry" in transport_request["tools"][0]["function"]["description"]
     assert "estimate_nutrition" in transport_request["tools"][0]["function"]["description"]
     assert transport_request["tools"][0]["function"]["parameters"]["required"] == [
         "manager_action",

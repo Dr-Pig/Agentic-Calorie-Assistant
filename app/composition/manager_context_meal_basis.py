@@ -50,6 +50,7 @@ def build_active_meal_estimate_basis(
         .all()
     )
     item_basis = [_item_basis_snapshot(item) for item in items]
+    macro_summary = _macro_summary_snapshot(version, item_basis)
     return {
         "meal_thread_id": thread.id,
         "meal_version_id": version.id,
@@ -59,14 +60,7 @@ def build_active_meal_estimate_basis(
         "resolution_status": str(version.resolution_status or ""),
         "source_request_id": version.source_request_id,
         "total_kcal": int(version.total_kcal or 0),
-        "macro_summary": {
-            "protein_g": int(version.protein_g or 0),
-            "carb_g": int(version.carb_g or 0),
-            "fat_g": int(version.fat_g or 0),
-            "macro_visibility_status": "present"
-            if any((version.protein_g, version.carb_g, version.fat_g))
-            else "unknown",
-        },
+        "macro_summary": macro_summary,
         "items": item_basis,
         "truth_owner": "canonical_meal_read_model",
         "read_only": True,
@@ -119,22 +113,65 @@ def active_meal_basis_target_candidates(snapshot: dict[str, Any] | None) -> list
 
 def _item_basis_snapshot(item: MealItemRecord) -> dict[str, Any]:
     evidence_ids = item.evidence_ids_json if isinstance(item.evidence_ids_json, list) else []
+    macro_visible = bool(evidence_ids) and any((item.protein_g, item.carb_g, item.fat_g))
     return {
         "meal_item_id": item.id,
         "item_index": int(item.item_index or 0),
         "canonical_name": str(item.name or ""),
         "quantity_hint": item.quantity_hint,
         "estimated_kcal": int(item.estimated_kcal or 0),
-        "estimate_basis": str(item.estimate_basis or ""),
+        "estimate_basis": _context_estimate_basis(item),
         "confidence_tier": str(item.confidence_tier or ""),
-        "source": str(item.source or ""),
+        "source": _context_source(item),
         "evidence_role": str(item.evidence_role or ""),
-        "protein_g": int(item.protein_g or 0),
-        "carb_g": int(item.carb_g or 0),
-        "fat_g": int(item.fat_g or 0),
+        "protein_g": int(item.protein_g or 0) if macro_visible else None,
+        "carb_g": int(item.carb_g or 0) if macro_visible else None,
+        "fat_g": int(item.fat_g or 0) if macro_visible else None,
+        "macro_visibility_status": "visible" if macro_visible else "hidden_missing_source",
         "evidence_id_count": len(evidence_ids),
         "read_only": True,
         "mutation_authority": False,
+    }
+
+
+def _context_estimate_basis(item: MealItemRecord) -> str:
+    estimate_basis = str(item.estimate_basis or "")
+    source = str(item.source or "")
+    if estimate_basis in {"llm_only", "llm_hint"} or source in {"llm", "llm_hint"}:
+        return "rough_estimate_without_source"
+    return estimate_basis
+
+
+def _context_source(item: MealItemRecord) -> str:
+    source = str(item.source or "")
+    if source in {"llm", "llm_hint"}:
+        return "unverified_estimate"
+    return source
+
+
+def _macro_summary_snapshot(version: MealVersionRecord, item_basis: list[dict[str, Any]]) -> dict[str, Any]:
+    has_macro_values = any((version.protein_g, version.carb_g, version.fat_g))
+    if not has_macro_values:
+        return {
+            "protein_g": None,
+            "carb_g": None,
+            "fat_g": None,
+            "macro_visibility_status": "unknown",
+            "macro_guard_reason": "no_macro_data",
+        }
+    if not any(item.get("macro_visibility_status") == "visible" for item in item_basis):
+        return {
+            "protein_g": None,
+            "carb_g": None,
+            "fat_g": None,
+            "macro_visibility_status": "hidden_missing_source",
+            "macro_guard_reason": "unsupported_macro_source",
+        }
+    return {
+        "protein_g": int(version.protein_g or 0),
+        "carb_g": int(version.carb_g or 0),
+        "fat_g": int(version.fat_g or 0),
+        "macro_visibility_status": "present",
     }
 
 

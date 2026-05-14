@@ -760,6 +760,7 @@ def test_accurate_intake_live_trace_expectation_allows_teppan_explain_then_refin
             },
             {
                 "turn": 2,
+                "coach_message": "這是依照上一筆餐點的粗估基礎回答：目前只有早餐店鐵板麵套餐這個描述，沒有明確份量或配料，所以先抓 400 kcal。三大營養素資料不足，先不顯示。",
                 "manager_final_action": "answer_only",
                 "workflow_effect": "answer_only",
                 "state_delta": {
@@ -769,9 +770,9 @@ def test_accurate_intake_live_trace_expectation_allows_teppan_explain_then_refin
                     "old_version_superseded": False,
                 },
                 "answer_basis": {
-                    "meal_thread_id": "meal-1",
                     "references_active_meal": True,
                     "assumption_or_composition_explained": True,
+                    "basis_text": "based on active meal estimate basis",
                 },
                 "manager_rounds": [{"decision": {"tool_calls": [], "final_action": "answer_only"}}],
             },
@@ -810,6 +811,8 @@ def test_accurate_intake_live_trace_expectation_allows_teppan_explain_then_refin
         "turn2_no_tools": "pass",
         "turn2_no_mutation": "pass",
         "turn2_uses_active_meal_basis": "pass",
+        "turn2_reply_hides_internal_estimate_labels": "pass",
+        "turn2_reply_does_not_show_unsupported_macro_grams": "pass",
         "turn3_refines_existing_meal": "pass",
         "turn3_component_basis_present": "pass",
         "same_truth_pass": "pass",
@@ -884,7 +887,139 @@ def test_accurate_intake_live_trace_expectation_catches_teppan_query_logged_as_m
     assert checks["turn2_no_tools"] == "fail"
     assert checks["turn2_no_mutation"] == "fail"
     assert checks["turn2_uses_active_meal_basis"] == "fail"
+    assert checks["turn2_reply_hides_internal_estimate_labels"] == "pass"
+    assert checks["turn2_reply_does_not_show_unsupported_macro_grams"] == "pass"
     assert checks["turn3_component_basis_present"] == "fail"
+
+
+def test_accurate_intake_live_trace_expectation_catches_teppan_internal_label_reply() -> None:
+    from app.composition.accurate_intake_live_trace_expectations import grade_live_trace_expectations
+
+    case = {
+        "case_id": "teppan_breakfast_explain_refine_dogfood",
+        "provider_invocations": [
+            {"diagnostic_turn": 1, "manager_loop_scope": "turn_entry_or_read_only"},
+            {"diagnostic_turn": 1, "manager_loop_scope": "intake_execution"},
+            {"diagnostic_turn": 2, "manager_loop_scope": "turn_entry_or_read_only"},
+            {"diagnostic_turn": 3, "manager_loop_scope": "turn_entry_or_read_only"},
+            {"diagnostic_turn": 3, "manager_loop_scope": "intake_execution"},
+        ],
+        "turns": [
+            {
+                "turn": 1,
+                "manager_final_action": "commit",
+                "workflow_effect": "commit",
+                "state_delta": {
+                    "canonical_commit": True,
+                    "ledger_updated": True,
+                    "new_meal_version_created": True,
+                    "old_version_superseded": False,
+                },
+                "manager_rounds": [{"decision": {"tool_calls": [{"name": "estimate_nutrition"}]}}],
+            },
+            {
+                "turn": 2,
+                "manager_final_action": "answer_only",
+                "workflow_effect": "answer_only",
+                "coach_message": "基於 LLM llm_only 估算，蛋白質 18g、碳水 42g、脂肪 12g。",
+                "state_delta": {
+                    "canonical_commit": False,
+                    "ledger_updated": False,
+                    "new_meal_version_created": False,
+                    "old_version_superseded": False,
+                },
+                "answer_basis": {
+                    "references_active_meal": True,
+                    "assumption_or_composition_explained": True,
+                    "basis_text": "based on active meal estimate basis",
+                },
+                "manager_rounds": [{"decision": {"tool_calls": [], "final_action": "answer_only"}}],
+            },
+            {
+                "turn": 3,
+                "manager_final_action": "correction_applied",
+                "workflow_effect": "commit",
+                "state_delta": {
+                    "canonical_commit": True,
+                    "ledger_updated": True,
+                    "new_meal_version_created": True,
+                    "old_version_superseded": True,
+                },
+                "estimation_summary": {
+                    "component_names": ["teppan noodles", "pork slice", "fried egg"],
+                    "used_default_fallback_400_macro": False,
+                },
+                "manager_rounds": [{"decision": {"tool_calls": [{"name": "estimate_nutrition"}], "final_action": "commit"}}],
+            },
+        ],
+        "debug_surface": {"model": {"same_truth": {"status": "pass"}}},
+    }
+
+    checks = {check["check_id"]: check["status"] for check in grade_live_trace_expectations(case)["checks"]}
+
+    assert checks["turn2_reply_hides_internal_estimate_labels"] == "fail"
+    assert checks["turn2_reply_does_not_show_unsupported_macro_grams"] == "fail"
+
+
+def test_live_turn_answer_basis_preserves_reference_flag_when_model_returns_basis_text() -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    basis = module._turn_answer_basis(
+        {
+            "answer_contract": {
+                "answer_basis": "基於 active_meal_estimate_basis 的餐點快照。",
+                "references_active_meal": True,
+            },
+            "trace": {
+                "manager_rounds": [
+                    {
+                        "phase_a_input": {
+                            "manager_context_packet_v1": {
+                                "active_day_state": {
+                                    "active_meal_estimate_basis": {
+                                        "meal_thread_id": 7,
+                                        "meal_version_id": 11,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+        }
+    )
+
+    assert basis == {
+        "meal_thread_id": 7,
+        "meal_version_id": 11,
+        "references_active_meal": True,
+        "assumption_or_composition_explained": True,
+        "basis_text": "基於 active_meal_estimate_basis 的餐點快照。",
+    }
+
+
+def test_live_turn_answer_basis_detects_reference_when_model_embeds_flag_in_basis_text() -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    basis = module._turn_answer_basis(
+        {
+            "answer_contract": {
+                "answer_basis": (
+                    "基於 active_meal_estimate_basis，references_active_meal: true，"
+                    "macro_visibility_status: hidden_missing_source。"
+                ),
+            },
+        }
+    )
+
+    assert basis == {
+        "references_active_meal": True,
+        "assumption_or_composition_explained": True,
+        "basis_text": (
+            "基於 active_meal_estimate_basis，references_active_meal: true，"
+            "macro_visibility_status: hidden_missing_source。"
+        ),
+    }
 
 
 def test_accurate_intake_live_trace_expectation_marks_entry_tool_call_as_ideal_target_gap() -> None:
