@@ -77,6 +77,11 @@ trace_layers:
     - ui_event_trace
     - feedback_linkage
 grading_policy:
+  generalization_policy:
+    exact_utterance_only_pass_blocks: true
+    keyword_or_fixture_shortcut_blocks: true
+    case_pass_represents_failure_family: true
+    holdout_coverage_required_before_self_use_closeout: true
   deterministic_hard_fail:
     - semantic_owner_violation
     - missing_blocking_trace_layer
