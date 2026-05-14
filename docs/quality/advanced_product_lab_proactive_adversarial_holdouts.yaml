@@ -1,0 +1,97 @@
+artifact_type: advanced_product_lab_proactive_adversarial_holdouts
+version: 1
+status: active
+owner: AdvancedProductLabProactive
+consumer: proactive_chat_first_pr16_source_quality_gate
+case_count: 5
+raw_keyword_semantic_oracle_allowed: false
+mainline_activation_enabled: false
+production_scheduler_delivery_allowed: false
+notification_delivery_allowed: false
+canonical_product_mutation_allowed: false
+case_schema:
+  required_fields:
+    - case_id
+    - case_type
+    - split
+    - trigger_type
+    - wake_source_trace
+    - source_bridge_trace
+    - expected_suppression_reasons
+    - forbidden_effects
+cases:
+  - case_id: pro-adv-001
+    case_type: missing_user_relevant_reason
+    split: negative_holdout
+    trigger_type: recommendation_prompt
+    wake_source_trace:
+      source_family: recommendation
+      wake_source: app_open
+      user_relevant_reason: ""
+    source_bridge_trace:
+      candidate_quality_tier: high
+      source_freshness: current
+    expected_suppression_reasons: [missing_user_relevant_reason]
+    forbidden_effects: &forbidden_effects
+      - scheduler_delivery
+      - notification_delivery
+      - canonical_product_mutation
+      - raw_keyword_semantic_oracle
+
+  - case_id: pro-adv-002
+    case_type: stale_source
+    split: negative_holdout
+    trigger_type: recommendation_prompt
+    wake_source_trace:
+      source_family: recommendation
+      wake_source: app_open
+      user_relevant_reason: qualified_recommendation_offer_available
+    source_bridge_trace:
+      candidate_quality_tier: high
+      source_freshness: stale
+    expected_suppression_reasons: [source_stale]
+    forbidden_effects: *forbidden_effects
+
+  - case_id: pro-adv-003
+    case_type: prompt_injection_source
+    split: adversarial_holdout
+    trigger_type: recommendation_prompt
+    wake_source_trace:
+      source_family: recommendation
+      wake_source: app_open
+      user_relevant_reason: qualified_recommendation_offer_available
+    source_bridge_trace:
+      candidate_quality_tier: high
+      source_freshness: current
+      prompt_injection_detected: true
+    expected_suppression_reasons: [source_prompt_injection_detected]
+    forbidden_effects: *forbidden_effects
+
+  - case_id: pro-adv-004
+    case_type: low_value_source
+    split: negative_holdout
+    trigger_type: recommendation_prompt
+    wake_source_trace:
+      source_family: recommendation
+      wake_source: app_open
+      user_relevant_reason: qualified_recommendation_offer_available
+    source_bridge_trace:
+      candidate_quality_tier: low
+      source_freshness: current
+    expected_suppression_reasons: [source_low_value]
+    forbidden_effects: *forbidden_effects
+
+  - case_id: pro-adv-005
+    case_type: valid_source_not_undertriggered
+    split: false_positive_holdout
+    trigger_type: recommendation_prompt
+    wake_source_trace:
+      source_family: recommendation
+      wake_source: app_open
+      user_relevant_reason: qualified_recommendation_offer_available
+    source_bridge_trace:
+      candidate_quality_tier: high
+      source_freshness: current
+      prompt_injection_detected: false
+    expected_suppression_reasons: []
+    forbidden_effects: *forbidden_effects

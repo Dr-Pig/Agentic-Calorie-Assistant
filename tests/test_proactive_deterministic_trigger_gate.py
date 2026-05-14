@@ -79,13 +79,18 @@ def test_product_lab_pre_delivery_review_exposes_deterministic_gate_result() -> 
     artifact = review_product_lab_proactive_candidates(
         turn={"surface": "chat", "lab_now_minute": 780},
         candidates=[
-            {
-                "candidate_id": "recommendation_prompt:0",
-                "trigger_type": "recommendation_prompt",
-                "status": "pass",
-                "source_output_refs": ["recommendation:offer-1"],
-            }
-        ],
+                {
+                    "candidate_id": "recommendation_prompt:0",
+                    "trigger_type": "recommendation_prompt",
+                    "status": "pass",
+                    "source_output_refs": ["recommendation:offer-1"],
+                    "pre_delivery_candidate_trace": {
+                        "user_relevant_reason": (
+                            "qualified_recommendation_offer_available"
+                        )
+                    },
+                }
+            ],
         memory_context_pack={},
         prior_control_journal=[],
     )

@@ -122,7 +122,18 @@ def _control_reasons(control_state: Mapping[str, Any] | None) -> list[str]:
 
 
 def _source_reasons(candidate: Mapping[str, Any]) -> list[str]:
-    return [] if candidate.get("status") == "pass" else ["source_status_not_pass"]
+    reasons = [] if candidate.get("status") == "pass" else ["source_status_not_pass"]
+    trace = _mapping(candidate.get("pre_delivery_candidate_trace"))
+    bridge = _mapping(candidate.get("source_bridge_trace"))
+    if not str(trace.get("user_relevant_reason") or "").strip():
+        reasons.append("missing_user_relevant_reason")
+    if str(bridge.get("source_freshness") or "") == "stale":
+        reasons.append("source_stale")
+    if bridge.get("prompt_injection_detected") is True:
+        reasons.append("source_prompt_injection_detected")
+    if str(candidate.get("candidate_quality_tier") or "") == "low":
+        reasons.append("source_low_value")
+    return reasons
 
 
 def _omission(review: Mapping[str, Any]) -> dict[str, Any]:
