@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Mapping, Protocol
 
-from app.advanced_shadow_lab.product_lab_pending_meal_intent_store_support import (
+from app.advanced_shadow_lab.product_lab_pending_meal_intent_store_parts import (
     history,
     history_event,
     segment_blockers,

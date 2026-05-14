@@ -5,13 +5,13 @@ from typing import Any, Mapping
 from app.advanced_shadow_lab.context_engineering_case_loader import (
     load_context_engineering_golden_set,
 )
-from app.advanced_shadow_lab.context_engineering_fixture_planner_provider import (
-    FixtureContextEngineeringPlannerProvider,
+from app.advanced_shadow_lab.context_engineering_fixture_turn_plan_provider import (
+    FixtureContextEngineeringTurnPlanProvider,
 )
 
 
 def build_context_engineering_holdout_gate() -> dict[str, Any]:
-    provider = FixtureContextEngineeringPlannerProvider(model_profile="fixture-manager")
+    provider = FixtureContextEngineeringTurnPlanProvider(model_profile="fixture-manager")
     cases = [
         case
         for case in load_context_engineering_golden_set()["cases"]

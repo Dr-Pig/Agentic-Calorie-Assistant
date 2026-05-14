@@ -51,7 +51,7 @@ def build_manager_turn_plan_contract() -> dict[str, Any]:
         "allowed_mutation_postures": ["read_only", "proposal_only", "mutation_guarded"],
         "allowed_clarification_postures": ["none", "optional", "required"],
         "allowed_response_modes": ["chat_first", "answer_only", "proposal", "mixed"],
-        "planner_outputs_structure_not_raw_transcript": True,
+        "turn_plan_outputs_structure_not_raw_transcript": True,
         "shared_capability_registry_required": True,
         "blockers": [],
     }

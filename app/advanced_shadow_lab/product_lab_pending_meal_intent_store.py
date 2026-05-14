@@ -8,7 +8,7 @@ from app.advanced_shadow_lab.product_lab_pending_meal_intent_lifecycle import (
     expire_stale_intents,
     mutate_intent,
 )
-from app.advanced_shadow_lab.product_lab_pending_meal_intent_store_support import (
+from app.advanced_shadow_lab.product_lab_pending_meal_intent_store_parts import (
     history,
     history_event,
     records_path,

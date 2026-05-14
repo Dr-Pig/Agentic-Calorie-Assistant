@@ -8,8 +8,8 @@ import yaml
 from app.advanced_shadow_lab.context_engineering_final_response_boundary import (
     build_context_engineering_final_response_boundary_grade,
 )
-from app.advanced_shadow_lab.context_engineering_fixture_planner_provider import (
-    build_context_engineering_fixture_planner_trace,
+from app.advanced_shadow_lab.context_engineering_fixture_turn_plan_provider import (
+    build_context_engineering_fixture_turn_plan_trace,
 )
 from app.advanced_shadow_lab.context_engineering_holdout_gate import (
     build_context_engineering_holdout_gate,
@@ -22,7 +22,7 @@ TRAIN_PATH = ROOT / "docs" / "quality" / "advanced_product_lab_context_engineeri
 
 
 def build_ce_stress_decision_pack() -> dict[str, Any]:
-    fixture = build_context_engineering_fixture_planner_trace(
+    fixture = build_context_engineering_fixture_turn_plan_trace(
         case_ids=["ce-stress-001", "ce-stress-006", "ce-stress-007", "ce-stress-012"]
     )
     holdout = build_context_engineering_holdout_gate()

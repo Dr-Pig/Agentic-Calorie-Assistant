@@ -29,7 +29,7 @@ def order_capabilities(capabilities: list[str], ordering_constraints: list[str])
     return ordered
 
 
-def planner_tool_arguments(capability_id: str) -> dict[str, Any]:
+def turn_plan_tool_arguments(capability_id: str) -> dict[str, Any]:
     arguments: dict[str, Any] = {
         "scope_keys": {
             "user_id": "lab-user",
@@ -105,7 +105,7 @@ def _intake_manager_result_stub() -> dict[str, Any]:
 __all__ = [
     "mapping",
     "order_capabilities",
-    "planner_tool_arguments",
+    "turn_plan_tool_arguments",
     "recommendation_turn_plan_projection",
     "tool_name_for_capability",
 ]

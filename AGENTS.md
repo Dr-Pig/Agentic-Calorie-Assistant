@@ -40,7 +40,7 @@ Two-layer strategy: inside this branch, treat the lab as a complete product buil
 - Long-term memory must expose auditable human-readable surfaces such as `user.md` and provenance files such as `source.md`; they are not raw transcript dumps.
 - Repeated or reusable meals are shared product objects such as `UserFoodEntity` or `RecurringMealTemplate`; memory is only a retrieval hint, recall summary, or promotion evidence.
 
-## Truth Rules
+## Product Truth Priority
 
 Default truth families:
 
@@ -63,6 +63,8 @@ Eval assets validate product truth; they do not design it. If test assets are gr
 Semantic contracts must be wide enough to represent ambiguity, multi-capability turns, no-op/no-mutation outcomes, false positives, and holdouts. Keep schema, provenance, mutation, and activation contracts narrow, but do not narrow user-intent or workflow enums because a fixture set is easier to pass.
 
 ## Planning Gates
+
+Strategic Sequencing Gate: for non-trivial or PR-producing work, decide whether the slice is current-mainline or an allowed detour before choosing implementation files, tests, or local next steps.
 
 Use these gates for non-trivial or PR-producing work. Skip them for fast-path edits unless the task escalates.
 

@@ -5,10 +5,10 @@ from typing import Any, Mapping
 from app.advanced_shadow_lab.context_engineering_case_loader import (
     load_context_engineering_golden_set,
 )
-from app.advanced_shadow_lab.context_engineering_fixture_planner_provider import (
-    FixtureContextEngineeringPlannerProvider,
+from app.advanced_shadow_lab.context_engineering_fixture_turn_plan_provider import (
+    FixtureContextEngineeringTurnPlanProvider,
 )
-from app.advanced_shadow_lab.context_engineering_fixture_planner_support import (
+from app.advanced_shadow_lab.context_engineering_fixture_turn_plan_parts import (
     mapping,
     recommendation_turn_plan_projection,
 )
@@ -31,7 +31,7 @@ def run_context_engineering_bounded_react_trace(
     if max_manager_passes < 2:
         return _blocked(case_id, ["react_pass_budget.too_low_for_replan"])
     case = _case(case_id)
-    planner_trace = FixtureContextEngineeringPlannerProvider(
+    planner_trace = FixtureContextEngineeringTurnPlanProvider(
         model_profile="fixture-manager"
     ).plan_case(case)
     if planner_trace["status"] != "pass":

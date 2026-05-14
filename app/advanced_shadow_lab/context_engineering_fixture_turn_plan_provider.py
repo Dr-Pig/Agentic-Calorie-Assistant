@@ -8,10 +8,10 @@ from app.advanced_shadow_lab.context_engineering_case_loader import (
 from app.advanced_shadow_lab.context_engineering_trace_grader import (
     grade_manager_turn_plan_for_case,
 )
-from app.advanced_shadow_lab.context_engineering_fixture_planner_support import (
+from app.advanced_shadow_lab.context_engineering_fixture_turn_plan_parts import (
     mapping,
     order_capabilities,
-    planner_tool_arguments,
+    turn_plan_tool_arguments,
     tool_name_for_capability,
 )
 from app.shared.contracts.tool_choice_walls import validate_tool_choice_walls
@@ -28,8 +28,8 @@ FORBIDDEN_PLANNER_FIELDS = {
 }
 
 
-class FixtureContextEngineeringPlannerProvider:
-    provider_name = "fixture_context_engineering_manager_planner"
+class FixtureContextEngineeringTurnPlanProvider:
+    provider_name = "fixture_context_engineering_manager_turn_plan"
 
     def __init__(self, *, model_profile: str) -> None:
         self.model_profile = model_profile
@@ -48,7 +48,7 @@ class FixtureContextEngineeringPlannerProvider:
             for request in plan["capability_requests"]
         ]
         artifact = {
-            "artifact_type": "advanced_product_lab_fixture_planner_trace",
+            "artifact_type": "advanced_product_lab_fixture_turn_plan_trace",
             "artifact_schema_version": "1.0",
             "status": "pass",
             "provider_mode": "fixture_provider_contract",
@@ -67,16 +67,16 @@ class FixtureContextEngineeringPlannerProvider:
             "mainline_activation_enabled": False,
             "canonical_product_mutation_allowed": False,
         }
-        artifact["blockers"] = fixture_planner_output_blockers(artifact)
+        artifact["blockers"] = fixture_turn_plan_output_blockers(artifact)
         if artifact["blockers"]:
             artifact["status"] = "blocked"
         return artifact
 
 
-def build_context_engineering_fixture_planner_trace(
+def build_context_engineering_fixture_turn_plan_trace(
     *, case_ids: list[str] | None = None
 ) -> dict[str, Any]:
-    provider = FixtureContextEngineeringPlannerProvider(model_profile="fixture-manager")
+    provider = FixtureContextEngineeringTurnPlanProvider(model_profile="fixture-manager")
     golden_set = load_context_engineering_golden_set()
     requested_ids = set(case_ids or [])
     selected_cases = [
@@ -91,7 +91,7 @@ def build_context_engineering_fixture_planner_trace(
         for blocker in trace.get("blockers", [])
     ]
     return {
-        "artifact_type": "advanced_product_lab_fixture_planner_suite_trace",
+        "artifact_type": "advanced_product_lab_fixture_turn_plan_suite_trace",
         "artifact_schema_version": "1.0",
         "status": "pass" if not blockers else "blocked",
         "case_count": len(case_traces),
@@ -104,9 +104,9 @@ def build_context_engineering_fixture_planner_trace(
     }
 
 
-def fixture_planner_output_blockers(artifact: Mapping[str, Any]) -> list[str]:
+def fixture_turn_plan_output_blockers(artifact: Mapping[str, Any]) -> list[str]:
     blockers = [
-        f"planner_output.forbidden_field:{field}"
+        f"turn_plan_output.forbidden_field:{field}"
         for field in sorted(FORBIDDEN_PLANNER_FIELDS)
         if field in artifact
     ]
@@ -133,7 +133,7 @@ def _manager_turn_plan(
             {
                 "capability": capability,
                 "tool_name": tool_name_for_capability(capability),
-                "arguments": planner_tool_arguments(capability),
+                "arguments": turn_plan_tool_arguments(capability),
             }
             for capability in capabilities
         ],
@@ -146,7 +146,7 @@ def _manager_turn_plan(
     }
 
 __all__ = [
-    "FixtureContextEngineeringPlannerProvider",
-    "build_context_engineering_fixture_planner_trace",
-    "fixture_planner_output_blockers",
+    "FixtureContextEngineeringTurnPlanProvider",
+    "build_context_engineering_fixture_turn_plan_trace",
+    "fixture_turn_plan_output_blockers",
 ]

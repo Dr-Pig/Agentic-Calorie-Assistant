@@ -24,7 +24,7 @@ def test_manager_turn_plan_contract_tracks_shared_capability_ids() -> None:
         "reusable_meal",
         "pending_meal_intent",
     ]
-    assert artifact["planner_outputs_structure_not_raw_transcript"] is True
+    assert artifact["turn_plan_outputs_structure_not_raw_transcript"] is True
     assert artifact["shared_capability_registry_required"] is True
 
 
