@@ -33,65 +33,68 @@ _MACRO_GRAM_CLAIM_RE = re.compile(
 
 def grade_teppan_breakfast(case: dict[str, Any]) -> dict[str, Any]:
     case_id = "teppan_breakfast_explain_refine_dogfood"
+    turn1 = _turn(case, 1)
     turn2 = _turn(case, 2)
     turn3 = _turn(case, 3)
+    turn1_delta = _delta(turn1)
     turn2_delta = _delta(turn2)
-    turn2_basis = _dict(turn2.get("answer_basis"))
-    turn2_basis_has_active_meal_evidence = bool(
-        turn2_basis.get("meal_thread_id") or str(turn2_basis.get("basis_text") or "").strip()
-    )
-    turn2_reply_text = str(turn2.get("coach_message") or "")
+    turn2_estimation = _dict(turn2.get("estimation_summary"))
+    turn2_components = _list(turn2_estimation.get("component_names"))
     turn3_delta = _delta(turn3)
-    turn3_estimation = _dict(turn3.get("estimation_summary"))
-    turn3_components = _list(turn3_estimation.get("component_names"))
+    turn3_basis = _dict(turn3.get("answer_basis"))
+    turn2_basis_has_active_meal_evidence = bool(
+        turn3_basis.get("meal_thread_id") or str(turn3_basis.get("basis_text") or "").strip()
+    )
+    turn3_reply_text = str(turn3.get("coach_message") or "")
     checks = [
-        _check("three_turn_explain_refine_path", len(_turns(case)) == 3, {"turn_count": len(_turns(case))}),
+        _check("three_turn_pending_commit_explain_path", len(_turns(case)) == 3, {"turn_count": len(_turns(case))}),
         call_topology_check(case_id, case),
-        _turn_estimate_commit_check(case, 1, no_supersede=True),
         _check(
-            "turn2_answer_only_workflow",
-            _effect(turn2) == "answer_only" and _final(turn2) == "answer_only",
-            {"workflow_effect": _effect(turn2), "final_action": _final(turn2)},
+            "turn1_asks_followup_without_commit",
+            _effect(turn1) == "ask_followup"
+            and _final(turn1) == "ask_followup"
+            and turn1_delta.get("canonical_commit") is False
+            and turn1_delta.get("ledger_updated") is False
+            and turn1_delta.get("draft_saved") is True,
+            {"final_action": _final(turn1), "workflow_effect": _effect(turn1), "state_delta": turn1_delta},
         ),
-        _check("turn2_no_tools", _turn_tools(turn2) == [], {"tool_names": _turn_tools(turn2)}),
+        _check("turn1_no_estimate_tools", _turn_tools(turn1) == [], {"tool_names": _turn_tools(turn1)}),
+        _turn_estimate_commit_check(case, 2, no_supersede=True),
         _check(
-            "turn2_no_mutation",
-            turn2_delta.get("canonical_commit") is False
-            and turn2_delta.get("ledger_updated") is False
-            and turn2_delta.get("new_meal_version_created") is False
-            and turn2_delta.get("old_version_superseded") is False,
-            {"state_delta": turn2_delta},
+            "turn2_component_basis_present",
+            len(turn2_components) >= 3 and turn2_estimation.get("used_default_fallback_400_macro") is not True,
+            {"estimation_summary": turn2_estimation},
         ),
         _check(
-            "turn2_uses_active_meal_basis",
+            "turn3_answer_only_workflow",
+            _effect(turn3) == "answer_only" and _final(turn3) == "answer_only",
+            {"workflow_effect": _effect(turn3), "final_action": _final(turn3)},
+        ),
+        _check("turn3_no_tools", _turn_tools(turn3) == [], {"tool_names": _turn_tools(turn3)}),
+        _check(
+            "turn3_no_mutation",
+            turn3_delta.get("canonical_commit") is False
+            and turn3_delta.get("ledger_updated") is False
+            and turn3_delta.get("new_meal_version_created") is False
+            and turn3_delta.get("old_version_superseded") is False,
+            {"state_delta": turn3_delta},
+        ),
+        _check(
+            "turn3_uses_active_meal_basis",
             turn2_basis_has_active_meal_evidence
-            and turn2_basis.get("references_active_meal") is True
-            and turn2_basis.get("assumption_or_composition_explained") is True,
-            {"answer_basis": turn2_basis},
+            and turn3_basis.get("references_active_meal") is True
+            and turn3_basis.get("assumption_or_composition_explained") is True,
+            {"answer_basis": turn3_basis},
         ),
         _check(
-            "turn2_reply_hides_internal_estimate_labels",
-            not _INTERNAL_ESTIMATE_LABEL_RE.search(turn2_reply_text),
-            {"coach_message": turn2_reply_text},
+            "turn3_reply_hides_internal_estimate_labels",
+            not _INTERNAL_ESTIMATE_LABEL_RE.search(turn3_reply_text),
+            {"coach_message": turn3_reply_text},
         ),
         _check(
-            "turn2_reply_does_not_show_unsupported_macro_grams",
-            not _MACRO_GRAM_CLAIM_RE.search(turn2_reply_text),
-            {"coach_message": turn2_reply_text},
-        ),
-        _check(
-            "turn3_refines_existing_meal",
-            _final(turn3) in {"commit", "correction_applied"}
-            and "estimate_nutrition" in _turn_tools(turn3)
-            and turn3_delta.get("old_version_superseded") is True
-            and turn3_delta.get("new_meal_version_created") is True
-            and turn3_delta.get("ledger_updated") is True,
-            {"final_action": _final(turn3), "tool_names": _turn_tools(turn3), "state_delta": turn3_delta},
-        ),
-        _check(
-            "turn3_component_basis_present",
-            len(turn3_components) >= 2 and turn3_estimation.get("used_default_fallback_400_macro") is not True,
-            {"estimation_summary": turn3_estimation},
+            "turn3_reply_does_not_show_unsupported_macro_grams",
+            not _MACRO_GRAM_CLAIM_RE.search(turn3_reply_text),
+            {"coach_message": turn3_reply_text},
         ),
         _check("same_truth_pass", _same_truth(case) == "pass", {"same_truth_status": _same_truth(case)}),
     ]

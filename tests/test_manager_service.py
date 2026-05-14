@@ -613,6 +613,8 @@ async def test_run_intake_manager_infers_latency_scope_from_tool_surface(
 
 @pytest.mark.asyncio
 async def test_run_intake_manager_keeps_prompt_registry_in_trace_only() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT_VERSION
+
     provider = FakeLoopProvider(
         [
             {
@@ -649,7 +651,7 @@ async def test_run_intake_manager_keeps_prompt_registry_in_trace_only() -> None:
         "registry_version": "manager_prompt_registry.v1",
         "manager_loop_stage": "intake_manager_round",
         "system_prompt_id": "single_manager_system_prompt",
-        "system_prompt_version": "v18",
+        "system_prompt_version": SINGLE_MANAGER_SYSTEM_PROMPT_VERSION,
         "model_prompt_contract_id": "single_manager_user_payload_contract",
         "model_prompt_contract_version": "v1",
         "tool_surface_version": "current_shell_public_tools.v1",

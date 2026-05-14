@@ -739,12 +739,25 @@ def test_accurate_intake_live_trace_expectation_allows_teppan_explain_then_refin
             {"diagnostic_turn": 1, "manager_loop_scope": "turn_entry_or_read_only"},
             {"diagnostic_turn": 1, "manager_loop_scope": "intake_execution"},
             {"diagnostic_turn": 2, "manager_loop_scope": "turn_entry_or_read_only"},
+            {"diagnostic_turn": 2, "manager_loop_scope": "intake_execution"},
             {"diagnostic_turn": 3, "manager_loop_scope": "turn_entry_or_read_only"},
-            {"diagnostic_turn": 3, "manager_loop_scope": "intake_execution"},
         ],
         "turns": [
             {
                 "turn": 1,
+                "manager_final_action": "ask_followup",
+                "workflow_effect": "ask_followup",
+                "state_delta": {
+                    "canonical_commit": False,
+                    "ledger_updated": False,
+                    "draft_saved": True,
+                    "new_meal_version_created": False,
+                    "old_version_superseded": False,
+                },
+                "manager_rounds": [{"decision": {"tool_calls": [], "final_action": "ask_followup"}}],
+            },
+            {
+                "turn": 2,
                 "manager_final_action": "commit",
                 "workflow_effect": "commit",
                 "state_delta": {
@@ -753,14 +766,18 @@ def test_accurate_intake_live_trace_expectation_allows_teppan_explain_then_refin
                     "new_meal_version_created": True,
                     "old_version_superseded": False,
                 },
+                "estimation_summary": {
+                    "component_names": ["teppan noodles", "pork slice", "fried egg", "black tea"],
+                    "used_default_fallback_400_macro": False,
+                },
                 "manager_rounds": [
                     {"decision": {"tool_calls": [{"name": "estimate_nutrition"}], "final_action": "commit"}},
                     {"decision": {"tool_calls": [], "final_action": "commit"}},
                 ],
             },
             {
-                "turn": 2,
-                "coach_message": "這是依照上一筆餐點的粗估基礎回答：目前只有早餐店鐵板麵套餐這個描述，沒有明確份量或配料，所以先抓 400 kcal。三大營養素資料不足，先不顯示。",
+                "turn": 3,
+                "coach_message": "\u6211\u662f\u6839\u64da\u4f60\u88dc\u5145\u7684\u9435\u677f\u9eb5\u3001\u8c6c\u8089\u7247\u3001\u8377\u5305\u86cb\u548c\u7d05\u8336\u4f86\u4f30\u3002",
                 "manager_final_action": "answer_only",
                 "workflow_effect": "answer_only",
                 "state_delta": {
@@ -776,25 +793,6 @@ def test_accurate_intake_live_trace_expectation_allows_teppan_explain_then_refin
                 },
                 "manager_rounds": [{"decision": {"tool_calls": [], "final_action": "answer_only"}}],
             },
-            {
-                "turn": 3,
-                "manager_final_action": "correction_applied",
-                "workflow_effect": "commit",
-                "state_delta": {
-                    "canonical_commit": True,
-                    "ledger_updated": True,
-                    "new_meal_version_created": True,
-                    "old_version_superseded": True,
-                },
-                "estimation_summary": {
-                    "component_names": ["teppan noodles", "pork slice", "fried egg"],
-                    "used_default_fallback_400_macro": False,
-                },
-                "manager_rounds": [
-                    {"decision": {"tool_calls": [{"name": "estimate_nutrition"}], "final_action": "commit"}},
-                    {"decision": {"tool_calls": [], "final_action": "correction_applied"}},
-                ],
-            },
         ],
         "debug_surface": {"model": {"same_truth": {"status": "pass"}}},
     }
@@ -804,17 +802,18 @@ def test_accurate_intake_live_trace_expectation_allows_teppan_explain_then_refin
     assert grade["expectation_id"] == "teppan_breakfast_explain_refine_dogfood.trace.v1"
     assert grade["required_status"] == "pass"
     assert {check["check_id"]: check["status"] for check in grade["checks"]} == {
-        "three_turn_explain_refine_path": "pass",
+        "three_turn_pending_commit_explain_path": "pass",
         "call_topology_matches_expected": "pass",
-        "turn1_estimate_and_commit": "pass",
-        "turn2_answer_only_workflow": "pass",
-        "turn2_no_tools": "pass",
-        "turn2_no_mutation": "pass",
-        "turn2_uses_active_meal_basis": "pass",
-        "turn2_reply_hides_internal_estimate_labels": "pass",
-        "turn2_reply_does_not_show_unsupported_macro_grams": "pass",
-        "turn3_refines_existing_meal": "pass",
-        "turn3_component_basis_present": "pass",
+        "turn1_asks_followup_without_commit": "pass",
+        "turn1_no_estimate_tools": "pass",
+        "turn2_estimate_and_commit": "pass",
+        "turn2_component_basis_present": "pass",
+        "turn3_answer_only_workflow": "pass",
+        "turn3_no_tools": "pass",
+        "turn3_no_mutation": "pass",
+        "turn3_uses_active_meal_basis": "pass",
+        "turn3_reply_hides_internal_estimate_labels": "pass",
+        "turn3_reply_does_not_show_unsupported_macro_grams": "pass",
         "same_truth_pass": "pass",
     }
 
@@ -883,13 +882,13 @@ def test_accurate_intake_live_trace_expectation_catches_teppan_query_logged_as_m
     assert grade["required_status"] == "fail"
     checks = {check["check_id"]: check["status"] for check in grade["checks"]}
     assert checks["call_topology_matches_expected"] == "fail"
-    assert checks["turn2_answer_only_workflow"] == "fail"
-    assert checks["turn2_no_tools"] == "fail"
-    assert checks["turn2_no_mutation"] == "fail"
-    assert checks["turn2_uses_active_meal_basis"] == "fail"
-    assert checks["turn2_reply_hides_internal_estimate_labels"] == "pass"
-    assert checks["turn2_reply_does_not_show_unsupported_macro_grams"] == "pass"
-    assert checks["turn3_component_basis_present"] == "fail"
+    assert checks["turn1_asks_followup_without_commit"] == "fail"
+    assert checks["turn3_answer_only_workflow"] == "fail"
+    assert checks["turn3_no_tools"] == "fail"
+    assert checks["turn3_no_mutation"] == "fail"
+    assert checks["turn3_uses_active_meal_basis"] == "fail"
+    assert checks["turn3_reply_hides_internal_estimate_labels"] == "pass"
+    assert checks["turn3_reply_does_not_show_unsupported_macro_grams"] == "pass"
 
 
 def test_accurate_intake_live_trace_expectation_catches_teppan_internal_label_reply() -> None:
@@ -901,12 +900,25 @@ def test_accurate_intake_live_trace_expectation_catches_teppan_internal_label_re
             {"diagnostic_turn": 1, "manager_loop_scope": "turn_entry_or_read_only"},
             {"diagnostic_turn": 1, "manager_loop_scope": "intake_execution"},
             {"diagnostic_turn": 2, "manager_loop_scope": "turn_entry_or_read_only"},
+            {"diagnostic_turn": 2, "manager_loop_scope": "intake_execution"},
             {"diagnostic_turn": 3, "manager_loop_scope": "turn_entry_or_read_only"},
-            {"diagnostic_turn": 3, "manager_loop_scope": "intake_execution"},
         ],
         "turns": [
             {
                 "turn": 1,
+                "manager_final_action": "ask_followup",
+                "workflow_effect": "ask_followup",
+                "state_delta": {
+                    "canonical_commit": False,
+                    "ledger_updated": False,
+                    "draft_saved": True,
+                    "new_meal_version_created": False,
+                    "old_version_superseded": False,
+                },
+                "manager_rounds": [{"decision": {"tool_calls": [], "final_action": "ask_followup"}}],
+            },
+            {
+                "turn": 2,
                 "manager_final_action": "commit",
                 "workflow_effect": "commit",
                 "state_delta": {
@@ -915,13 +927,20 @@ def test_accurate_intake_live_trace_expectation_catches_teppan_internal_label_re
                     "new_meal_version_created": True,
                     "old_version_superseded": False,
                 },
-                "manager_rounds": [{"decision": {"tool_calls": [{"name": "estimate_nutrition"}]}}],
+                "estimation_summary": {
+                    "component_names": ["teppan noodles", "pork slice", "fried egg", "black tea"],
+                    "used_default_fallback_400_macro": False,
+                },
+                "manager_rounds": [
+                    {"decision": {"tool_calls": [{"name": "estimate_nutrition"}], "final_action": "commit"}},
+                    {"decision": {"tool_calls": [], "final_action": "commit"}},
+                ],
             },
             {
-                "turn": 2,
+                "turn": 3,
                 "manager_final_action": "answer_only",
                 "workflow_effect": "answer_only",
-                "coach_message": "基於 LLM llm_only 估算，蛋白質 18g、碳水 42g、脂肪 12g。",
+                "coach_message": "LLM llm_only estimate: protein 18g, carb 42g, fat 12g.",
                 "state_delta": {
                     "canonical_commit": False,
                     "ledger_updated": False,
@@ -935,30 +954,14 @@ def test_accurate_intake_live_trace_expectation_catches_teppan_internal_label_re
                 },
                 "manager_rounds": [{"decision": {"tool_calls": [], "final_action": "answer_only"}}],
             },
-            {
-                "turn": 3,
-                "manager_final_action": "correction_applied",
-                "workflow_effect": "commit",
-                "state_delta": {
-                    "canonical_commit": True,
-                    "ledger_updated": True,
-                    "new_meal_version_created": True,
-                    "old_version_superseded": True,
-                },
-                "estimation_summary": {
-                    "component_names": ["teppan noodles", "pork slice", "fried egg"],
-                    "used_default_fallback_400_macro": False,
-                },
-                "manager_rounds": [{"decision": {"tool_calls": [{"name": "estimate_nutrition"}], "final_action": "commit"}}],
-            },
         ],
         "debug_surface": {"model": {"same_truth": {"status": "pass"}}},
     }
 
     checks = {check["check_id"]: check["status"] for check in grade_live_trace_expectations(case)["checks"]}
 
-    assert checks["turn2_reply_hides_internal_estimate_labels"] == "fail"
-    assert checks["turn2_reply_does_not_show_unsupported_macro_grams"] == "fail"
+    assert checks["turn3_reply_hides_internal_estimate_labels"] == "fail"
+    assert checks["turn3_reply_does_not_show_unsupported_macro_grams"] == "fail"
 
 
 def test_live_turn_answer_basis_preserves_reference_flag_when_model_returns_basis_text() -> None:
@@ -1320,15 +1323,32 @@ def test_accurate_intake_live_single_case_probe_teppan_explain_refine_contract(t
     case = report["cases"][0]
     assert case["verdict"] == "pass"
     assert case["trace_expectation_grade"]["required_status"] == "pass"
+    turn1 = next(turn for turn in case["turns"] if turn["turn"] == 1)
+    assert turn1["manager_intent"] == "log_meal"
+    assert turn1["manager_final_action"] == "ask_followup"
+    assert turn1["state_delta"]["canonical_commit"] is False
+    assert turn1["state_delta"]["draft_saved"] is True
     turn2 = next(turn for turn in case["turns"] if turn["turn"] == 2)
-    assert turn2["manager_intent"] == "answer_query"
-    assert turn2["manager_final_action"] == "answer_only"
-    assert turn2["state_delta"]["canonical_commit"] is False
-    assert turn2["answer_basis"]["references_active_meal"] is True
+    assert turn2["manager_intent"] == "log_meal"
+    assert turn2["manager_final_action"] == "commit"
+    assert turn2["state_delta"]["canonical_commit"] is True
+    assert turn2["state_delta"]["ledger_updated"] is True
+    assert len(turn2["estimation_summary"]["component_names"]) >= 3
+    nutrition_payloads = [
+        tool_result["evidence"]["nutrition_payload"]
+        for round_item in turn2["manager_rounds"]
+        for tool_result in round_item.get("tool_results", [])
+        if tool_result.get("tool_name") == "estimate_nutrition"
+    ]
+    assert nutrition_payloads
+    trace_contract = nutrition_payloads[0]["trace_contract"]
+    assert trace_contract["shadow_stub"] is False
+    assert trace_contract["approved_fooddb_evidence_trace"]["runtime_truth_allowed"] is True
     turn3 = next(turn for turn in case["turns"] if turn["turn"] == 3)
-    assert turn3["manager_intent"] == "correct_meal"
-    assert turn3["state_delta"]["old_version_superseded"] is True
-    assert len(turn3["estimation_summary"]["component_names"]) >= 2
+    assert turn3["manager_intent"] == "answer_query"
+    assert turn3["manager_final_action"] == "answer_only"
+    assert turn3["state_delta"]["canonical_commit"] is False
+    assert turn3["answer_basis"]["references_active_meal"] is True
 
 
 def test_accurate_intake_live_luwei_trace_expectation_blocks_bare_basket_commit(

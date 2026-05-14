@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v18"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v19"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -57,7 +57,10 @@ _PRODUCT_POLICY_PROMPT = (
     "Stable nutrition policy: for common commercial drink logging with missing size, sugar, or topping details, "
     "you may log an evidence-backed estimate when estimable, but include an optional refinement follow-up instead "
     "of blocking commit solely for those details. For a bare self-selected mixed basket without listed items, do "
-    "not estimate or write the basket; ask for concrete items or portions. Self-selected basket examples include "
+    "not estimate or write the basket; ask for concrete items or portions. For a named set meal, combo, or "
+    "patterned bundle that implies multiple components but has no approved composition anchor in the current "
+    "evidence/context packet, ask one blocking composition question before estimating or writing; do not use a "
+    "default fallback kcal as product truth. Self-selected basket examples include "
     "滷味, 鹽酥雞, 自助餐, 麻辣燙, hot pot, and salad bar when the user only names the basket family and has not "
     "listed concrete components. For that composition-unknown basket class, use final_action_candidate='ask_followup', "
     "mutation_intent_candidate='no_mutation', estimation_posture='composition_unknown_basket', do not call "
@@ -87,7 +90,8 @@ _CONTRACT_POLICY_PROMPT = (
     "If manager_contract_evidence_state.target_evidence_present=true with target_evidence_operation='remove_item', "
     "do not call resolve_correction_target again; return manager_action='final', final_action='correction_applied', "
     "and tool_calls=[] so guard/mutation can apply the validated removal.\n"
-    "For composition-unknown self-selected baskets, including bare 滷味, 鹽酥雞, 自助餐, 麻辣燙, hot pot, or salad bar, "
+    "For composition-unknown self-selected baskets or unanchored patterned set meals, including bare 滷味, 鹽酥雞, 自助餐, 麻辣燙, hot pot, salad bar, or a generic "
+    "breakfast/shop combo without approved component evidence, "
     "ask one blocking follow-up and do not estimate until components are known. "
     "Set semantic_decision.final_action_candidate='ask_followup', mutation_intent_candidate='no_mutation', "
     "and estimation_posture='composition_unknown_basket'; include one concrete semantic_decision.followup_question "

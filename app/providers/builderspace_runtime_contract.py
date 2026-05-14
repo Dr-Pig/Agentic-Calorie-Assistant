@@ -38,9 +38,9 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
             "as a substitute. If evidence_posture says requires_tool/evidence_missing/evidence_pending or "
             "semantic_decision.estimation_posture says pending_tool_call/tool_pending, this field must be call_tools. "
             "Exception: explicit remove_item correction uses target evidence from resolve_correction_target, not estimate_nutrition. "
-            "If target_evidence_present is true with target_evidence_operation remove_item, return final correction_applied and do not call resolve_correction_target again. Exception: composition-unknown baskets are not tool evidence missing; return final "
+            "If target_evidence_present is true with target_evidence_operation remove_item, return final correction_applied and do not call resolve_correction_target again. Exception: composition-unknown baskets or unanchored patterned combos are not tool evidence missing; return final "
             "ask_followup with tool_calls=[] instead of call_tools; manager_action=call_tools is invalid for composition-unknown "
-            "baskets. Every call_tools response must include a non-empty "
+            "baskets or unanchored patterned combos. Every call_tools response must include a non-empty "
             "tool_calls array."
         )
     evidence_posture = properties.get("evidence_posture")
@@ -48,7 +48,7 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
         evidence_posture["description"] = (
             "Evidence status for this manager round. Values like requires_tool, evidence_missing, or "
             "evidence_pending mean manager_action must be call_tools with estimate_nutrition; do not pair those "
-            "values with manager_action=final. For composition-unknown baskets, use a composition_unknown or "
+            "values with manager_action=final. For composition-unknown baskets or unanchored patterned combos, use a composition_unknown or "
             "insufficient_details posture and final ask_followup with tool_calls=[]; do not use evidence_missing "
             "to trigger estimate_nutrition before components are known."
         )
@@ -107,7 +107,7 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
         estimation_posture["description"] = (
             "Estimation state for this turn. pending_tool_call or tool_pending means the same payload must use "
             "manager_action=call_tools with estimate_nutrition; do not return manager_action=final until tool "
-            "results provide current-loop nutrition evidence. composition_unknown_basket is not pending_tool_call; "
+            "results provide current-loop nutrition evidence. composition_unknown_basket or unanchored_patterned_combo is not pending_tool_call; "
             "the LLM semantic decision must pair it with final ask_followup/no_mutation and tool_calls=[]."
         )
     followup_posture = semantic_properties.get("followup_posture")

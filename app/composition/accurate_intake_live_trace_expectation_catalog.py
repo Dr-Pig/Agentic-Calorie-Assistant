@@ -37,10 +37,10 @@ EXPECTED_TRACE_BY_CASE_ID = {
         "turn2: commit only after clarification",
     ],
     "teppan_breakfast_explain_refine_dogfood": [
-        "turn1: estimate and commit initial breakfast set",
-        "turn2: answer estimate/composition question without tools or mutation",
-        "turn3: attach supplied components to active meal",
-        "turn3: estimate updated version and supersede prior version",
+        "turn1: ask blocking composition follow-up and save pending state without ledger mutation",
+        "turn2: attach supplied components to pending combo",
+        "turn2: estimate components and commit only after clarification",
+        "turn3: answer estimate/composition question without tools or mutation",
     ],
     "today_consumed_query_only": [
         "entry: answer current-day budget query",
