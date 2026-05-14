@@ -247,11 +247,11 @@ LAUNCHPAD_NON_CLAIMS = {
 }
 REQUIRED_FETCH_METHODS = {
     "/accurate-intake/chat-history": "GET",
+    "/accurate-intake/chat-turn": "POST",
     "/accurate-intake/feedback": "POST",
     "/accurate-intake/local-data-hygiene": "GET",
     "/accurate-intake/local-data-hygiene/backup": "POST",
     "/accurate-intake/local-data-hygiene/export": "POST",
-    "/estimate": "POST",
     "/today/current-budget": "GET",
     "/body-plan/active": "GET",
     "/weight/observations": "GET",
@@ -1541,7 +1541,7 @@ def _run_body_ui_weight_chat_readback_sequence(
         item
         for item in result["fetch_sequence"]
         if isinstance(item, dict)
-        and "/estimate" in str(item.get("url") or "")
+        and "/accurate-intake/chat-turn" in str(item.get("url") or "")
         and str(item.get("method") or "GET").upper() == "POST"
     ]
     weight_mutation_posts = [
@@ -1995,6 +1995,12 @@ def _run_feedback_capture_sequence(
         timeout=timeout_ms,
     )
     result["feedback_page_loaded"] = True
+    feedback.evaluate(
+        """() => {
+          const details = document.querySelector("#advanced-context-fields");
+          if (details) details.open = true;
+        }"""
+    )
     feedback.fill("#trace-id", DEFAULT_FEEDBACK_TRACE_ID)
     feedback.fill("#message-id", DEFAULT_FEEDBACK_MESSAGE_ID)
     feedback.select_option("#category", "nutrition_estimate")
@@ -2157,6 +2163,12 @@ def _run_protected_pages_cookie_only_sequence(
         )
         page.wait_for_selector(surface_selector, timeout=timeout_ms)
         if page_name == "feedback":
+            page.evaluate(
+                """() => {
+                  const details = document.querySelector("#advanced-context-fields");
+                  if (details) details.open = true;
+                }"""
+            )
             page.fill("#trace-id", DEFAULT_FEEDBACK_TRACE_ID)
             page.select_option("#category", "bug")
             page.select_option("#severity", "low")
@@ -3513,19 +3525,19 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     for endpoint in ("/today/deficit-summary", "/today/effective-budget", "/today/weekly-progress"):
         if not any(endpoint in url and f"local_date={local_date}" in url for url in fetch_urls):
             blockers.append(f"body_budget_read_model_fetch_missing:{endpoint}")
-    estimate_posts = [
+    turn_posts = [
         str(item.get("body") or "")
         for item in fetches
         if isinstance(item, dict)
-        and "/estimate" in str(item.get("url") or "")
+        and "/accurate-intake/chat-turn" in str(item.get("url") or "")
         and str(item.get("method") or "GET").upper() == "POST"
     ]
-    if not estimate_posts:
-        blockers.append("estimate_post_missing")
-    for body in estimate_posts:
+    if not turn_posts:
+        blockers.append("chat_turn_post_missing")
+    for body in turn_posts:
         compact = body.replace(" ", "")
         if '"allow_search":false' not in compact or '"allow_search":true' in compact:
-            blockers.append("estimate_allow_search_not_false")
+            blockers.append("chat_turn_allow_search_not_false")
             break
     required_post_fragments = {
         "/weight/observation": ('"user_id"', '"local_date"'),

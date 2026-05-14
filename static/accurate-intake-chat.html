@@ -645,7 +645,7 @@
       clearHistory();
       const messages = Array.isArray(payload.messages) ? payload.messages : [];
       if (!messages.length) {
-        appendMessage("bot", "這一天還沒有聊天紀錄。");
+        appendMessage("bot", "這一天還沒有聊天紀錄。目前沒有可顯示的助理回覆。");
         return;
       }
       for (const message of messages) {
