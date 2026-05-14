@@ -526,6 +526,9 @@ def test_component_supplement_correction_replaces_default_active_meal_with_compo
     assert active_version["total_kcal"] > 400
     assert debug_payload["model"]["today_summary"]["consumed_kcal"] == active_version["total_kcal"]
     assert [item["name"] for item in active_items] == [teppan_noodle, fried_egg, pork_slices]
+    assert "已更新" in result["assistant_message"]
+    assert "今天還剩約" in result["assistant_message"]
+    assert not any(word in result["assistant_message"] for word in ("Logged", "Updated", "Total", "Remaining", "commit"))
     assert {round_info["tool_name"] for round_info in result["intake_execution_manager"]["manager_rounds"][0]["tool_results"]} == {
         "resolve_correction_target",
         "estimate_nutrition",

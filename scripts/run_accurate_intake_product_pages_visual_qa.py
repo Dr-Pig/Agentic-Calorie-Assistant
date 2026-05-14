@@ -38,6 +38,7 @@ from scripts.run_accurate_intake_product_pages_browser_smoke import (  # noqa: E
     _session_factory,
     _storage_state,
     _wait_for_http,
+    _wait_for_chat_kcal_reply,
 )
 
 
@@ -128,10 +129,7 @@ def _capture_product_page(
     try:
         if page_name == "chat":
             page.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
-            page.wait_for_function(
-                """() => (document.querySelector("#chat-scroll")?.textContent || "").includes("Logged.") """,
-                timeout=timeout_ms,
-            )
+            _wait_for_chat_kcal_reply(page, timeout_ms=timeout_ms)
         if page_name == "today":
             page.wait_for_selector('[data-surface-role="today-diary"]', timeout=timeout_ms)
             page.wait_for_function(
@@ -203,10 +201,7 @@ def _run_browser_sequence(
             )
             chat.fill("#message-input", cjk_message)
             chat.click("#send-button")
-            chat.wait_for_function(
-                """() => (document.querySelector("#chat-scroll")?.textContent || "").includes("Logged.") """,
-                timeout=timeout_ms,
-            )
+            _wait_for_chat_kcal_reply(chat, message=cjk_message, timeout_ms=timeout_ms)
             result["fetch_sequence"].extend(_capture_fetches(chat))
             chat.close()
 
