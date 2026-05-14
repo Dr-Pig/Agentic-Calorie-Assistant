@@ -16,11 +16,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.composition.accurate_intake_debug_routes import build_accurate_intake_debug_payload
-from app.composition.non_fooddb_read_only_turn import NON_FOODDB_READ_ONLY_MANAGER_TOOLS
-from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
-from app.database import get_or_create_user
-from app.models import Base
+from app.composition.accurate_intake_debug_routes import build_accurate_intake_debug_payload  # noqa: E402
+from app.composition.non_fooddb_read_only_turn import NON_FOODDB_READ_ONLY_MANAGER_TOOLS  # noqa: E402
+from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date  # noqa: E402
+from app.database import get_or_create_user  # noqa: E402
+from app.models import Base  # noqa: E402
 
 DEFAULT_ARTIFACT_PATH = ROOT / "artifacts" / "accurate_intake_mvp_manager_style_smoke.json"
 DEFAULT_DB_PATH = ROOT / "artifacts" / "accurate_intake_mvp_manager_style_smoke.sqlite3"
@@ -121,6 +121,17 @@ class DeterministicSelfUseManagerProvider:
                 mutation_intent_candidate="ledger_read",
                 estimation_posture="not_applicable",
                 evidence_posture="read_only_state",
+            )
+        if "smaller" in normalized or "correct" in normalized:
+            return self._final(
+                intent_type="log_meal",
+                current_turn_intent="correct_meal",
+                final_action="correction_applied",
+                workflow_effect="route_to_intake",
+                mutation_intent_candidate="correction_write",
+                target_attachment={"mode": "target_committed_thread"},
+                estimation_posture="estimable",
+                evidence_posture="needs_tool_evidence",
             )
         return self._final(
             intent_type="log_meal",

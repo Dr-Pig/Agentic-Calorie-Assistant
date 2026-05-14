@@ -23,6 +23,9 @@ from app.nutrition.application.fooddb_retrieval_policy import (
 from app.nutrition.application.fooddb_retrieval_estimate_artifacts import (
     build_fooddb_retrieval_artifact,
 )
+from app.nutrition.application.manager_listed_component_anchor_artifact import (
+    build_manager_listed_component_anchor_artifact,
+)
 from app.nutrition.application.retrieval_intent import build_raw_text_retrieval_hint
 from app.nutrition.application.retrieval_semantic_decision import B2ManagerSemanticDecision
 from app.nutrition.application.web_extract_port import WebExtractPort
@@ -105,11 +108,23 @@ async def estimate_nutrition_tool(
         contextualized_query=contextualized_query,
     )
     if canary_outcome.trace.get("attempted") is not True:
+        component_anchor_artifact = build_manager_listed_component_anchor_artifact(
+            db,
+            user_external_id=user_external_id,
+            raw_user_input=raw_user_input,
+            local_date=local_date or datetime.now().date().isoformat(),
+            manager_semantic_decision=manager_semantic_decision,
+        )
+        if component_anchor_artifact is not None:
+            normalize_live_payload(component_anchor_artifact.payload, raw_user_input=raw_user_input)
+            _attach_web_runtime_trace(component_anchor_artifact.payload, canary_outcome.trace)
+            return component_anchor_artifact
         fooddb_artifact = _approved_fooddb_retrieval_artifact(
             db,
             user_external_id=user_external_id,
             raw_user_input=raw_user_input,
             local_date=local_date or datetime.now().date().isoformat(),
+            manager_semantic_decision=manager_semantic_decision,
         )
         if fooddb_artifact is not None:
             normalize_live_payload(fooddb_artifact.payload, raw_user_input=raw_user_input)
@@ -177,13 +192,15 @@ def _approved_fooddb_retrieval_artifact(
     user_external_id: str,
     raw_user_input: str,
     local_date: str,
+    manager_semantic_decision: B2ManagerSemanticDecision | None = None,
 ) -> EstimatedNutritionArtifact | None:
     anchors = load_small_anchor_seed_records()
     if not anchors:
         return None
     retrieval_records = build_runtime_retrieval_records_from_small_anchor_payload({"anchors": anchors})
+    retrieval_query = _manager_owned_retrieval_query(manager_semantic_decision) or raw_user_input
     retrieval_result = retrieve_fooddb_candidates(
-        raw_user_input,
+        retrieval_query,
         retrieval_records=retrieval_records,
         limit=8,
     )
@@ -194,6 +211,18 @@ def _approved_fooddb_retrieval_artifact(
         local_date=local_date,
         retrieval_result=retrieval_result,
     )
+
+
+def _manager_owned_retrieval_query(
+    manager_semantic_decision: B2ManagerSemanticDecision | None,
+) -> str | None:
+    if manager_semantic_decision is None:
+        return None
+    base_dish = str(getattr(manager_semantic_decision, "base_dish", "") or "").strip()
+    retrieval_goal = str(getattr(manager_semantic_decision, "retrieval_goal", "") or "").strip()
+    if base_dish and retrieval_goal in {"generic_anchor_lookup", "listed_item_lookup"}:
+        return base_dish
+    return None
 
 
 def _default_web_runtime_trace() -> dict[str, Any]:

@@ -9,7 +9,7 @@ from app.runtime.agent.manager_system_prompt import (
 
 
 def test_self_selected_basket_blocking_clarify_policy_is_explicit_static_prompt_guidance() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v18"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v19"
     assert "Self-selected basket examples include" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "滷味" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "鹽酥雞" in SINGLE_MANAGER_SYSTEM_PROMPT
@@ -21,12 +21,16 @@ def test_self_selected_basket_blocking_clarify_policy_is_explicit_static_prompt_
     assert "semantic_decision.followup_question" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "do not call estimate_nutrition" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "do not create a canonical commit" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "named set meal, combo, or patterned bundle" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "no approved composition anchor" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "ask one blocking composition question" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
 def test_self_selected_basket_blocking_clarify_policy_is_tool_guidance_not_raw_text_router() -> None:
     description = founder_live_manager_tool_description()
 
     assert "self-selected basket" in description
+    assert "unanchored patterned combo" in description
     assert "tool_calls=[]" in description
     assert "final ask_followup" in description
     assert "do not call estimate_nutrition" in description
@@ -46,6 +50,7 @@ def test_self_selected_basket_blocking_clarify_schema_guidance_keeps_llm_as_sema
 
     action_description = schema["properties"]["manager_action"]["description"]
     posture_description = schema["properties"]["semantic_decision"]["properties"]["estimation_posture"]["description"]
-    assert "composition-unknown baskets are not tool evidence missing" in action_description
-    assert "composition_unknown_basket is not pending_tool_call" in posture_description
+    assert "composition-unknown baskets or unanchored patterned combos are not tool evidence missing" in action_description
+    assert "unanchored patterned combos are not tool evidence missing" in action_description
+    assert "composition_unknown_basket or unanchored_patterned_combo is not pending_tool_call" in posture_description
     assert "LLM semantic decision" in posture_description

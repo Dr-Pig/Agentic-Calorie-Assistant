@@ -5,6 +5,10 @@ from typing import Any
 from .fooddb_retrieval_query import ALIAS_EXPANSIONS, lookup_key
 from .fooddb_retrieval_records import IndexedFoodRecord
 
+_LOCAL_ALIAS_EXPANSIONS = {
+    "chicken sandwich": "\u4e09\u660e\u6cbb",
+}
+
 
 def _best_match(term: str, records: tuple[IndexedFoodRecord, ...]) -> dict[str, Any] | None:
     term_key = lookup_key(term)
@@ -27,6 +31,14 @@ def _best_match(term: str, records: tuple[IndexedFoodRecord, ...]) -> dict[str, 
                 "record": record,
                 "match_path": "canonical_or_alias_substring",
                 "score": 92,
+                "confidence": "medium_high",
+                "requires_manager_disambiguation": True,
+            }
+        elif term_key and any(key and key in term_key for key in name_keys):
+            candidate = {
+                "record": record,
+                "match_path": "query_contains_canonical_or_alias",
+                "score": 90,
                 "confidence": "medium_high",
                 "requires_manager_disambiguation": True,
             }
@@ -58,7 +70,8 @@ def _best_match(term: str, records: tuple[IndexedFoodRecord, ...]) -> dict[str, 
 
 
 def _alias_expansion_match(term: str, term_key: str) -> dict[str, Any]:
-    direct = ALIAS_EXPANSIONS.get(term) or ALIAS_EXPANSIONS.get(term_key)
+    alias_expansions = {**ALIAS_EXPANSIONS, **_LOCAL_ALIAS_EXPANSIONS}
+    direct = alias_expansions.get(term) or alias_expansions.get(term_key)
     if direct:
         return {
             "expanded": direct,
@@ -69,8 +82,18 @@ def _alias_expansion_match(term: str, term_key: str) -> dict[str, Any]:
         }
 
     best_alias: tuple[int, str] | None = None
-    for alias, expanded in ALIAS_EXPANSIONS.items():
-        score = _similarity(term_key, lookup_key(alias))
+    for alias, expanded in alias_expansions.items():
+        alias_key = lookup_key(alias)
+        if alias_key and alias_key in term_key:
+            local_exact_alias = alias in _LOCAL_ALIAS_EXPANSIONS
+            return {
+                "expanded": expanded,
+                "match_path": "alias_expansion_contained_in_query",
+                "score": 90,
+                "confidence": "medium_high",
+                "requires_manager_disambiguation": not local_exact_alias,
+            }
+        score = _similarity(term_key, alias_key)
         if score < 85:
             continue
         if best_alias is None or score > best_alias[0]:

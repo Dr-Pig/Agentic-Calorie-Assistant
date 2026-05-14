@@ -30,8 +30,8 @@ EXPECTED_CALL_TOPOLOGY_BY_CASE_ID = {
     },
     "teppan_breakfast_explain_refine_dogfood": {
         1: ["turn_entry_or_read_only", "intake_execution"],
-        2: ["turn_entry_or_read_only"],
-        3: ["turn_entry_or_read_only", "intake_execution"],
+        2: ["turn_entry_or_read_only", "intake_execution"],
+        3: ["turn_entry_or_read_only"],
     },
     "today_consumed_query_only": {1: ["turn_entry_or_read_only"]},
     "no_plan_consumed_without_budget_target": {1: ["turn_entry_or_read_only"]},
@@ -43,9 +43,6 @@ ACCEPTED_ALTERNATE_CALL_TOPOLOGY_BY_CASE_ID = {
     },
     "luwei_bare_to_listed_basket": {
         2: [["turn_entry_or_read_only", "intake_execution"]],
-    },
-    "teppan_breakfast_explain_refine_dogfood": {
-        3: [["turn_entry_or_read_only", "intake_execution", "intake_execution"]],
     },
 }
 

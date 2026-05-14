@@ -449,6 +449,11 @@ class ScriptedAccurateIntakeLiveProvider:
             calls = [{"name": "estimate_nutrition"}]
             if self._current_step.get("compare_budget") and "compare_against_budget" in available_tools:
                 calls.append({"name": "compare_against_budget"})
+            semantic_extras = {
+                key: self._current_step[key]
+                for key in ("base_dish", "listed_items", "retrieval_goal")
+                if key in self._current_step
+            }
             return {
                 "manager_action": "call_tools",
                 "response_mode": "tool_call",
@@ -459,6 +464,7 @@ class ScriptedAccurateIntakeLiveProvider:
                     "final_action_candidate": final_action,
                     "estimation_posture": "pending_tool_call",
                     "mutation_intent_candidate": str(self._current_step.get("mutation_intent") or "canonical_write"),
+                    **semantic_extras,
                 },
             }
         return self._final(
@@ -514,7 +520,7 @@ class ScriptedAccurateIntakeLiveProvider:
             target["correction_operation"] = self._current_step.get("correction_operation")
         if self._current_step.get("target_canonical_name"):
             target["canonical_name"] = self._current_step.get("target_canonical_name")
-        answer_contract = {"reply_text": workflow_effect}
+        answer_contract = {"reply_text": str(self._current_step.get("reply_text") or workflow_effect)}
         if self._current_step.get("correction_operation"):
             answer_contract["correction_operation"] = self._current_step.get("correction_operation")
         if followup_question:
@@ -1302,7 +1308,13 @@ def _case_inventory() -> list[LiveCase]:
                     1,
                     "new_meal",
                     "雞肉飯和湯",
-                    {"entry_intent": "log_meal", "semantic_intent": "log_meal", "final_action": "commit"},
+                    {
+                        "entry_intent": "log_meal",
+                        "semantic_intent": "log_meal",
+                        "final_action": "commit",
+                        "listed_items": ["雞肉飯", "湯"],
+                        "retrieval_goal": "listed_item_lookup",
+                    },
                 ),
                 LiveStep(
                     2,
@@ -1316,6 +1328,8 @@ def _case_inventory() -> list[LiveCase]:
                         "mutation_intent": "correction_write",
                         "target_mode": "target_committed_thread",
                         "target_canonical_name": "\u96de\u8089\u98ef",
+                        "listed_items": ["雞肉飯少一點"],
+                        "retrieval_goal": "listed_item_lookup",
                     },
                 ),
                 LiveStep(
@@ -1351,7 +1365,13 @@ def _case_inventory() -> list[LiveCase]:
                     1,
                     "new_meal",
                     "珍珠奶茶",
-                    {"entry_intent": "log_meal", "semantic_intent": "log_meal", "final_action": "commit"},
+                    {
+                        "entry_intent": "log_meal",
+                        "semantic_intent": "log_meal",
+                        "final_action": "commit",
+                        "listed_items": ["珍珠奶茶"],
+                        "retrieval_goal": "listed_item_lookup",
+                    },
                 ),
                 LiveStep(
                     2,
@@ -1362,6 +1382,8 @@ def _case_inventory() -> list[LiveCase]:
                         "semantic_intent": "log_meal",
                         "final_action": "commit",
                         "target_mode": "target_committed_thread",
+                        "listed_items": ["半糖大杯珍珠奶茶"],
+                        "retrieval_goal": "listed_item_lookup",
                     },
                 ),
             ),
@@ -1387,47 +1409,60 @@ def _case_inventory() -> list[LiveCase]:
                     2,
                     "listed_basket",
                     "有豆干、海帶、貢丸",
-                    {"entry_intent": "log_meal", "semantic_intent": "log_meal", "final_action": "commit"},
+                    {
+                        "entry_intent": "log_meal",
+                        "semantic_intent": "log_meal",
+                        "final_action": "commit",
+                        "listed_items": ["豆干", "海帶", "貢丸"],
+                        "retrieval_goal": "listed_item_lookup",
+                    },
                 ),
             ),
         ),
         LiveCase(
             case_id="teppan_breakfast_explain_refine_dogfood",
-            description="Dogfood breakfast set: initial estimate, read-only basis question, then component correction.",
+            description="Dogfood breakfast combo: unanchored combo asks first, listed components commit, then basis question stays read-only.",
             user_external_id="live-diag-teppan-breakfast",
             body_plan_seeded=True,
             steps=(
                 LiveStep(
                     1,
-                    "new_meal",
+                    "patterned_combo_without_anchor",
                     "\u6211\u65e9\u9910\u5403\u65e9\u9910\u5e97\u9435\u677f\u9eb5\u5957\u9910",
-                    {"entry_intent": "log_meal", "semantic_intent": "log_meal", "final_action": "commit"},
+                    {
+                        "entry_intent": "log_meal",
+                        "semantic_intent": "log_meal",
+                        "final_action": "ask_followup",
+                        "followup_question": "\u9019\u500b\u9435\u677f\u9eb5\u5957\u9910\u6709\u54ea\u4e9b\u5167\u5bb9\uff1f\u4f8b\u5982\u86cb\u3001\u8c6c\u6392\u6216\u98f2\u6599\u3002",
+                        "reply_text": "\u9019\u500b\u5957\u9910\u6211\u9084\u4e0d\u78ba\u5b9a\u7d44\u6210\uff0c\u5148\u4e0d\u5e6b\u4f60\u8a18\u5165\u3002\u53ef\u4ee5\u544a\u8a34\u6211\u6709\u9435\u677f\u9eb5\u4ee5\u5916\u7684\u5167\u5bb9\u55ce\uff1f",
+                    },
                 ),
                 LiveStep(
                     2,
-                    "estimate_basis_question",
-                    "\u4f60\u662f\u600e\u9ebc\u4f30\u7684\uff1f\u4f60\u662f\u4e0d\u662f\u8a8d\u70ba\u6709\u4ec0\u9ebc\u7d44\u6210\uff1f",
-                    {"entry_intent": "answer_query"},
-                ),
-                LiveStep(
-                    3,
-                    "component_refinement",
-                    "\u6211\u525b\u525b\u7684\u65e9\u9910\u6709\u9435\u677f\u9eb5\u3001\u8377\u5305\u86cb\u548c\u8c6c\u8089\u7247",
+                    "component_followup",
+                    "\u6709\u9435\u677f\u9eb5\u3001\u8c6c\u8089\u7247\u3001\u8377\u5305\u86cb\uff0c\u9084\u6709\u4e00\u676f\u7d05\u8336",
                     {
                         "entry_intent": "log_meal",
-                        "semantic_intent": "correct_meal",
-                        "final_action": "correction_applied",
-                        "workflow_effect": "correction",
-                        "mutation_intent": "correction_write",
-                        "target_mode": "target_committed_thread",
-                        "target_canonical_name": "\u65e9\u9910\u5e97\u9435\u677f\u9eb5\u5957\u9910",
+                        "semantic_intent": "log_meal",
+                        "final_action": "commit",
+                        "target_mode": "target_pending_followup",
                         "base_dish": "\u65e9\u9910\u5e97\u9435\u677f\u9eb5\u5957\u9910",
                         "listed_items": [
                             "\u9435\u677f\u9eb5",
-                            "\u8377\u5305\u86cb",
                             "\u65e9\u9910\u5e97\u8c6c\u8089\u7247",
+                            "\u8377\u5305\u86cb",
+                            "\u7d05\u8336",
                         ],
                         "retrieval_goal": "listed_item_lookup",
+                    },
+                ),
+                LiveStep(
+                    3,
+                    "estimate_basis_question",
+                    "\u4f60\u662f\u600e\u9ebc\u4f30\u7684\uff1f\u4f60\u662f\u4e0d\u662f\u8a8d\u70ba\u6709\u4ec0\u9ebc\u7d44\u6210\uff1f",
+                    {
+                        "entry_intent": "answer_query",
+                        "reply_text": "\u6211\u662f\u6839\u64da\u4f60\u88dc\u5145\u7684\u9435\u677f\u9eb5\u3001\u8c6c\u8089\u7247\u3001\u8377\u5305\u86cb\u548c\u7d05\u8336\u4f86\u4f30\uff0c\u6c92\u6709\u518d\u984d\u5916\u5047\u8a2d\u5176\u4ed6\u914d\u6599\u3002",
                     },
                 ),
             ),
@@ -1530,6 +1565,8 @@ def _generic_common_food_range_case() -> LiveCase:
                     "entry_intent": "log_meal",
                     "semantic_intent": "log_meal",
                     "final_action": "commit",
+                    "base_dish": "\u725b\u8089\u9eb5",
+                    "retrieval_goal": "generic_anchor_lookup",
                 },
             ),
         ),
