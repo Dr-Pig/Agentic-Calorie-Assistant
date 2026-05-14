@@ -13,7 +13,7 @@ from app.composition.intake_turn_orchestrator import execute_intake_turn
 from app.composition.non_fooddb_read_only_turn import NON_FOODDB_READ_ONLY_MANAGER_TOOLS
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_or_create_user
-from app.models import Base
+from app.models import Base, MealThreadRecord, MealVersionRecord
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -102,6 +102,7 @@ class ScriptedManagerDecisionProvider:
                 "available_tools": sorted(available_tools),
                 "round_index": int(user_payload.get("round_index") or 0),
                 "raw_user_input_seen_by_manager": str(user_payload.get("raw_user_input") or ""),
+                "manager_context_packet_v1": user_payload.get("manager_context_packet_v1"),
             }
         )
         if set(NON_FOODDB_READ_ONLY_MANAGER_TOOLS).intersection(available_tools):
@@ -279,6 +280,86 @@ def test_runtime_does_not_mutate_when_manager_fixture_selects_read_only_even_for
     assert result["state_delta"]["canonical_commit"] is False
     assert debug_payload["model"]["today_summary"]["consumed_kcal"] == 0
     assert provider.calls[0]["raw_user_input_seen_by_manager"] == "I ate a tea egg"
+
+
+def test_runtime_keeps_estimate_explanation_query_read_only_even_with_active_meal_context() -> None:
+    db = _session()
+    user_external_id = "ux-semantic-estimate-explanation"
+    local_date = "2026-05-02"
+    _seed_body_plan(db, user_external_id=user_external_id, local_date=local_date)
+    user = get_or_create_user(db, user_external_id)
+    db.add(
+        MealThreadRecord(
+            user_id=user.id,
+            title="早餐店鐵板麵套餐",
+            active_version_id=None,
+        )
+    )
+    db.commit()
+    thread = db.query(MealThreadRecord).filter_by(user_id=user.id).one()
+    version = MealVersionRecord(
+        meal_thread_id=thread.id,
+        version_status="active",
+        version_reason="new_intake",
+        meal_title="早餐店鐵板麵套餐",
+        raw_input="我早餐吃個早點店的鐵板麵套餐",
+        resolution_status="completed_meal",
+        total_kcal=620,
+        protein_g=24,
+        carb_g=70,
+        fat_g=22,
+        local_date=local_date,
+    )
+    db.add(version)
+    db.commit()
+    thread.active_version_id = version.id
+    db.add(thread)
+    db.commit()
+    provider = ScriptedManagerDecisionProvider(
+        entry=_final_payload(
+            intent_type="answer_query",
+            current_turn_intent="answer_query",
+            final_action="answer_only",
+            workflow_effect="answer_only",
+            mutation_intent_candidate="no_mutation",
+            target_attachment={
+                "mode": "target_committed_thread",
+                "target_object_type": "meal_thread",
+                "target_object_id": str(thread.id),
+            },
+            evidence_posture="active_meal_basis_read_only",
+        )
+    )
+
+    result = asyncio.run(
+        execute_intake_turn(
+            db,
+            user_external_id=user_external_id,
+            raw_user_input="你是怎麼估的？你估的組成是什麼？",
+            onboarding_payload=None,
+            local_date=local_date,
+            allow_search=False,
+            manager_provider=provider,
+            provider=provider,
+        )
+    )
+    debug_payload = build_accurate_intake_debug_payload(db, user_external_id=user_external_id, local_date=local_date)
+
+    assert result["manager_decision"]["intent_type"] == "answer_query"
+    assert result["state_delta"]["canonical_commit"] is False
+    assert result["state_delta"]["draft_saved"] is False
+    assert result["intake_execution_manager"]["decision_1"] is None
+    assert result["assistant_message"] == "answer_only"
+    assert debug_payload["model"]["today_summary"]["consumed_kcal"] == 620
+    assert db.query(MealThreadRecord).count() == 1
+    assert db.query(MealVersionRecord).count() == 1
+    assert provider.calls[0]["raw_user_input_seen_by_manager"] == "你是怎麼估的？你估的組成是什麼？"
+    manager_packet = provider.calls[0]["manager_context_packet_v1"]
+    assert isinstance(manager_packet, dict)
+    meal_basis = manager_packet["active_day_state"]["active_meal_estimate_basis"]
+    assert meal_basis["meal_thread_id"] == thread.id
+    assert meal_basis["total_kcal"] == 620
+    assert meal_basis["mutation_authority"] is False
 
 
 def test_runtime_can_commit_query_like_text_only_when_manager_fixture_authorizes_logging(monkeypatch) -> None:
