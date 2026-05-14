@@ -34,8 +34,8 @@ def test_estimable_payload_no_commit_diagnostic_artifact_contract(tmp_path: Path
     assert primary["case_id"] == "pearl_milk_tea_logged_followup"
     assert primary["nutrition_payload_present"] is True
     assert primary["estimated_kcal"] > 0
-    assert primary["attachment_decision"]["disposition"] == "answer_only"
-    assert primary["transition_guard_result"]["verdict"] == "answer_only"
+    assert primary["attachment_decision"]["source"] == "manager_semantic_decision"
+    assert primary["transition_guard_result"]["verdict"] == "pass"
     assert primary["root_cause"] == "resolved_manager_semantic_contract"
     assert "transition_guard_blocked" not in primary["contributing_root_causes"]
     assert primary["commit_boundary_preflight"]["manager_final_action"] == "commit"

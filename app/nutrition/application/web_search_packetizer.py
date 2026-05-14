@@ -10,6 +10,8 @@ from .websearch_market_variant_policy import has_unrequested_market_token
 from .web_search_packetizer_policy import (
     SIZE_ALIAS_GROUPS as _SIZE_ALIAS_GROUPS,
     VARIANT_TOKENS as _VARIANT_TOKENS,
+    normalize_identity_aliases as _normalize_identity_aliases,
+    size_or_serving_match as _size_or_serving_match,
 )
 
 def build_web_search_candidate_packet(
@@ -30,7 +32,7 @@ def build_web_search_candidate_packet(
         requested_name=requested_name,
         brand_match=brand_match,
     )
-    size_or_serving_match = _size_or_serving_match(intent, candidate, title=title)
+    size_or_serving_match = _size_or_serving_match(intent.size_hint, title=title, snippet=snippet)
     modifier_match = _modifier_match(intent, title=title)
     source_quality_label = _source_quality_label(candidate, brand_match=brand_match)
     matched_terms = _matched_terms(
@@ -176,25 +178,6 @@ def _match_type(
     return "no_match"
 
 
-def _size_or_serving_match(
-    intent: RetrievalIntent,
-    candidate: dict[str, object],
-    *,
-    title: str,
-) -> str:
-    requested_size = _text(intent.size_hint)
-    if not requested_size:
-        return "not_applicable"
-
-    requested_group = _size_group_for_text(requested_size)
-    title_group = _size_group_for_text(title)
-    if requested_group and title_group:
-        return "same" if requested_group == title_group else "different"
-    if requested_group and _contains_any_size_alias(title):
-        return "different"
-    return "unknown"
-
-
 def _modifier_match(intent: RetrievalIntent, *, title: str) -> str:
     if not intent.modifier_hints:
         return "not_applicable"
@@ -254,19 +237,7 @@ def _identity_core(text: str, *, brand_hint: str, size_hint: str) -> str:
     for aliases in _SIZE_ALIAS_GROUPS.values():
         for alias in aliases:
             cleaned = cleaned.replace(alias, " ")
-    return normalize_text(cleaned)
-
-
-def _size_group_for_text(text: str) -> str:
-    haystack = normalize_text(text).lower()
-    for canonical, aliases in _SIZE_ALIAS_GROUPS.items():
-        if any(alias.lower() in haystack for alias in aliases):
-            return canonical
-    return ""
-
-
-def _contains_any_size_alias(text: str) -> bool:
-    return bool(_size_group_for_text(text))
+    return normalize_text(_normalize_identity_aliases(cleaned))
 
 
 def _has_substantial_overlap(left: str, right: str) -> bool:

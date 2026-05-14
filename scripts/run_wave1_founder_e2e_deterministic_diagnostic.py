@@ -144,15 +144,25 @@ class DeterministicFounderProvider:
         raw = str(user_payload.get("raw_user_input") or "")
         if not raw.strip():
             return self._final(intent_type="complete_onboarding", final_action="commit", workflow_effect="commit")
-        if "今天" in raw and ("多少" in raw or "目前" in raw):
+        if _is_today_ledger_read_query(raw):
             return self._final(
                 intent_type="answer_remaining_budget",
                 final_action="answer_only",
                 workflow_effect="answer_only",
+                response_summary="today_ledger_read_model",
+                target_attachment={"mode": "none"},
             )
         return self._final(intent_type="log_meal", final_action="commit", workflow_effect="route_to_intake")
 
     def _intake_execution_decision(self, *, raw: str, available_tools: set[str], round_index: int) -> dict[str, Any]:
+        if _is_today_ledger_read_query(raw):
+            return self._final(
+                intent_type="answer_remaining_budget",
+                final_action="answer_only",
+                workflow_effect="answer_only",
+                response_summary="today_ledger_read_model",
+                target_attachment={"mode": "none"},
+            )
         if "滷味" in raw:
             return self._final(
                 intent_type="log_meal",
@@ -383,19 +393,111 @@ def _tool_results(trace: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def _nutrition_payload(trace: dict[str, Any]) -> dict[str, Any] | None:
+def _is_today_ledger_read_query(raw: str) -> bool:
+    return "\u4eca\u5929" in raw and any(
+        token in raw
+        for token in (
+            "\u76ee\u524d",
+            "\u591a\u5c11",
+            "\u5269",
+            "\u5df2\u8a18\u9304",
+        )
+    )
+
+
+def _manager_rounds(result: dict[str, Any], trace: dict[str, Any]) -> list[dict[str, Any]]:
+    intake_rounds = _list(_dict(result.get("intake_execution_manager")).get("manager_rounds"))
+    if intake_rounds:
+        return [dict(item) for item in intake_rounds if isinstance(item, dict)]
+    decision_rounds = _list(_dict(_dict(result.get("manager_decision")).get("trace")).get("manager_rounds"))
+    if decision_rounds:
+        return [dict(item) for item in decision_rounds if isinstance(item, dict)]
+    trace_rounds = _list(_dict(trace.get("manager_final_decision")).get("manager_rounds"))
+    return [dict(item) for item in trace_rounds if isinstance(item, dict)]
+
+
+def _final_decision_from_rounds(rounds: list[dict[str, Any]]) -> dict[str, Any]:
+    for item in reversed(rounds):
+        decision = _dict(item.get("decision"))
+        if decision.get("manager_action") == "final":
+            return decision
+    return {}
+
+
+def _latest_sidecar_meal(result: dict[str, Any]) -> dict[str, Any]:
+    meals = _list(_dict(_dict(_dict(result.get("sidecar")).get("ui")).get("today")).get("meals"))
+    if not meals:
+        return {}
+    latest = meals[-1]
+    return dict(latest) if isinstance(latest, dict) else {}
+
+
+def _sidecar_trace_contract(result: dict[str, Any]) -> dict[str, Any]:
+    evidence = _dict(_dict(result.get("sidecar")).get("evidence"))
+    db_hit_type = str(evidence.get("db_hit_type") or "")
+    eligibility = str(evidence.get("eligibility") or "")
+    exact = db_hit_type == "exact_truth" or eligibility == "exact"
+    return {
+        "diagnostic_surface": "runtime_sidecar_read_model",
+        "retrieval_intent_source": "manager_semantic_decision",
+        "source_selection": {
+            "source_path": "exact_fooddb" if exact else "runtime_fooddb_or_generic_anchor",
+            "evidence_required": "exact_packet" if exact else "generic_or_approved_packet",
+            "product_policy_status": "source_selection_only",
+            "decides_logged_or_draft": False,
+            "web_allowed": False,
+            "read_only": True,
+        },
+        "packet_consumption_trace": {
+            "source": "runtime_sidecar_evidence",
+            "accepted_packets": [
+                {
+                    "accepted_usage": "exact" if exact else "generic",
+                    "db_hit_type": db_hit_type,
+                    "eligibility": eligibility,
+                }
+            ],
+        },
+        "web_runtime_trace": {
+            "attempted": False,
+            "search_attempt_count": int(evidence.get("search_attempt_count") or 0),
+            "skip_reason": "exact_db_hit" if exact else "runtime_web_disabled",
+        },
+    }
+
+
+def _nutrition_payload(result: dict[str, Any], trace: dict[str, Any]) -> dict[str, Any] | None:
     for item in _tool_results(trace):
         payload = _dict(_dict(item.get("evidence")).get("nutrition_payload"))
         if payload:
             return payload
-    return None
+    state_delta = _dict(result.get("state_delta")) or _dict(trace.get("state_delta"))
+    if state_delta.get("canonical_commit") is not True:
+        return None
+    meal = _latest_sidecar_meal(result)
+    estimated_kcal = int(meal.get("total_kcal") or 0)
+    if estimated_kcal <= 0:
+        return None
+    semantic_decision = _manager_semantic_decision(result, trace)
+    return {
+        "meal_title": meal.get("meal_title"),
+        "estimated_kcal": estimated_kcal,
+        "total_kcal": estimated_kcal,
+        "followup_question": semantic_decision.get("followup_question"),
+        "trace_contract": _sidecar_trace_contract(result),
+        "diagnostic_payload_source": "runtime_sidecar_read_model",
+        "nutrition_payload_fabricated": False,
+    }
 
 
-def _evidence_summary(trace: dict[str, Any]) -> dict[str, Any]:
+def _evidence_summary(result: dict[str, Any], trace: dict[str, Any]) -> dict[str, Any]:
     for item in _tool_results(trace):
         evidence = _dict(_dict(item.get("provenance")).get("evidence_summary"))
         if evidence:
             return evidence
+    sidecar_evidence = _dict(_dict(result.get("sidecar")).get("evidence"))
+    if sidecar_evidence:
+        return sidecar_evidence
     return {}
 
 
@@ -406,6 +508,12 @@ def _manager_final_action(result: dict[str, Any], trace: dict[str, Any]) -> str 
     decision = _dict(trace.get("manager_final_decision"))
     if decision.get("final_action"):
         return str(decision["final_action"])
+    final_round_decision = _final_decision_from_rounds(_manager_rounds(result, trace))
+    if final_round_decision.get("final_action"):
+        return str(final_round_decision["final_action"])
+    semantic_decision = _dict(_dict(result.get("manager_decision")).get("semantic_decision"))
+    if semantic_decision.get("final_action_candidate"):
+        return str(semantic_decision["final_action_candidate"])
     manager_decision = _dict(result.get("manager_decision"))
     return str(manager_decision.get("intent_type") or "") or None
 
@@ -417,8 +525,27 @@ def _manager_semantic_decision(result: dict[str, Any], trace: dict[str, Any]) ->
     manager_decision = _dict(result.get("manager_decision"))
     if _dict(manager_decision.get("semantic_decision")):
         return _dict(manager_decision.get("semantic_decision"))
+    final_round_decision = _final_decision_from_rounds(_manager_rounds(result, trace))
+    if _dict(final_round_decision.get("semantic_decision")):
+        return _dict(final_round_decision.get("semantic_decision"))
+    manager_pass_final = _dict(_dict(_dict(result.get("intake_execution_manager")).get("react_trace")).get("manager_pass_final"))
+    manager_pass_decision = _dict(manager_pass_final.get("decision_payload"))
+    if _dict(manager_pass_decision.get("semantic_decision")):
+        return _dict(manager_pass_decision.get("semantic_decision"))
     trace_decision = _dict(trace.get("manager_final_decision"))
     return _dict(trace_decision.get("semantic_decision"))
+
+
+def _nutrition_final_mapping(result: dict[str, Any], payload: dict[str, Any] | None) -> dict[str, Any]:
+    if not payload:
+        return {}
+    state_delta = _dict(result.get("state_delta"))
+    return {
+        "final_mapping_owner": "nutrition_final_mapping",
+        "payload_source": payload.get("diagnostic_payload_source") or "runtime_trace",
+        "canonical_write_allowed": state_delta.get("canonical_commit") is True,
+        "fabricated": False,
+    }
 
 
 def _case_shell(
@@ -430,8 +557,8 @@ def _case_shell(
     trace: dict[str, Any],
 ) -> dict[str, Any]:
     state_delta = _dict(result.get("state_delta")) or _dict(trace.get("state_delta"))
-    payload = _nutrition_payload(trace)
-    evidence = _evidence_summary(trace)
+    payload = _nutrition_payload(result, trace)
+    evidence = _evidence_summary(result, trace)
     phase_a = _dict(result.get("phase_a_trace")) or _dict(trace.get("phase_a_trace"))
     phase_c = _dict(result.get("phase_c_trace")) or _dict(trace.get("phase_c_trace"))
     final_mapping = {
@@ -439,9 +566,10 @@ def _case_shell(
         "manager_final_action": _manager_final_action(result, trace),
         "manager_semantic_decision": _manager_semantic_decision(result, trace),
         "boundary_projection": _dict(phase_a.get("boundary_projection")),
+        "b2_final_mapping": _nutrition_final_mapping(result, payload),
         "persistence_result_observable": bool(_dict(result.get("intake_execution_manager")).get("persistence_result")),
     }
-    manager_rounds = _list(_dict(result.get("intake_execution_manager")).get("manager_rounds"))
+    manager_rounds = _manager_rounds(result, trace)
     return {
         "case_id": case_id,
         "input": input_text,

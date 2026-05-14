@@ -12,7 +12,7 @@ def test_shared_capability_registry_declares_all_core_capability_families() -> N
     assert registry["artifact_type"] == "shared_capability_registry"
     assert registry["status"] == "pass"
     by_id = {item["capability_id"]: item for item in registry["capabilities"]}
-    assert set(by_id) == {
+    assert set(registry["core_product_capability_ids"]) == {
         "intake",
         "query",
         "memory",
@@ -21,10 +21,16 @@ def test_shared_capability_registry_declares_all_core_capability_families() -> N
         "proactive",
         "reusable_meal",
     }
+    assert set(by_id) == {
+        *registry["core_product_capability_ids"],
+        "pending_meal_intent",
+    }
     assert by_id["intake"]["tool_binding_status"] == "bridge_required"
     assert by_id["query"]["tool_binding_status"] == "implemented_in_lab"
     assert by_id["memory"]["tool_binding_status"] == "implemented_in_lab"
     assert by_id["reusable_meal"]["tool_binding_status"] == "implemented_in_lab"
+    assert by_id["pending_meal_intent"]["capability_kind"] == "short_term_state"
+    assert by_id["pending_meal_intent"]["capability_family"] == "short_term_context"
 
 
 def test_shared_capability_registry_normalizes_shared_tool_vocabulary() -> None:
@@ -38,6 +44,17 @@ def test_shared_capability_registry_normalizes_shared_tool_vocabulary() -> None:
         "rescue.run",
         "proactive.run",
         "reusable_meal.search",
+        "pending_meal_intent.update",
+    ]
+    assert registry["manager_addressable_capability_ids"] == [
+        "intake",
+        "query",
+        "memory",
+        "recommendation",
+        "rescue",
+        "proactive",
+        "reusable_meal",
+        "pending_meal_intent",
     ]
     assert registry["planner_reads_capability_ids_not_raw_branch_paths"] is True
     assert registry["branch_specific_activation_is_separate_from_registry"] is True

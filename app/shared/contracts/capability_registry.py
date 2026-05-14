@@ -68,13 +68,23 @@ def build_shared_capability_registry() -> dict[str, Any]:
             truth_owner="pending_meal_intent",
             tool_binding_status="implemented_in_lab",
             primary_surface="chat",
+            capability_kind="short_term_state",
         ),
+    ]
+    core_product_capability_ids = [
+        str(item["capability_id"])
+        for item in capabilities
+        if item["capability_kind"] == "product_capability"
     ]
     return {
         "artifact_type": "shared_capability_registry",
         "artifact_schema_version": "1.0",
         "status": "pass",
         "capabilities": capabilities,
+        "core_product_capability_ids": core_product_capability_ids,
+        "manager_addressable_capability_ids": [
+            str(item["capability_id"]) for item in capabilities
+        ],
         "shared_tool_vocabulary": [item["shared_tool_name"] for item in capabilities],
         "planner_reads_capability_ids_not_raw_branch_paths": True,
         "branch_specific_activation_is_separate_from_registry": True,
@@ -90,10 +100,12 @@ def _capability(
     truth_owner: str,
     tool_binding_status: str,
     primary_surface: str,
+    capability_kind: str = "product_capability",
 ) -> dict[str, Any]:
     return {
         "capability_id": capability_id,
         "capability_family": capability_family,
+        "capability_kind": capability_kind,
         "shared_tool_name": shared_tool_name,
         "truth_owner": truth_owner,
         "tool_binding_status": tool_binding_status,

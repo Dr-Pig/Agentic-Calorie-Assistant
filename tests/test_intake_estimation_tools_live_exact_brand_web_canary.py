@@ -20,6 +20,9 @@ sys.modules.setdefault(
 
 from app.composition.intake_estimation_tools import estimate_nutrition_tool  # noqa: E402
 import app.nutrition.application.estimate_artifacts as estimate_artifacts_module  # noqa: E402
+from app.nutrition.application.retrieval_semantic_decision import (  # noqa: E402
+    B2ManagerSemanticDecision,
+)
 
 
 class _ProviderStub:
@@ -45,6 +48,19 @@ class _FakeExtractPort:
     async def extract_rows(self, *, urls: list[str], query: str) -> list[dict[str, Any]]:
         self.calls.append({"urls": list(urls), "query": query})
         return list(self._rows)
+
+
+def _manager_exact_brand_decision() -> B2ManagerSemanticDecision:
+    return B2ManagerSemanticDecision(
+        base_dish="超級抹茶歐蕾",
+        aliases=["統一超級抹茶歐蕾"],
+        brand_hint="統一",
+        size_hint=None,
+        modifier_hints=[],
+        listed_items=[],
+        retrieval_goal="exact_brand_lookup",
+        semantic_authority_source="synthetic_manager_structured_fixture",
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -78,6 +94,7 @@ async def test_exact_db_hit_bypasses_live_exact_brand_canary() -> None:
         search_port=search_port,
         extract_port=extract_port,
         allow_search=True,
+        manager_semantic_decision=_manager_exact_brand_decision(),
     )
 
     assert artifact.payload.best_estimate_mode == "exact_item"
@@ -102,6 +119,7 @@ async def test_exact_db_hit_bypasses_live_exact_brand_canary_for_prefixed_starbu
         search_port=search_port,
         extract_port=extract_port,
         allow_search=True,
+        manager_semantic_decision=_manager_exact_brand_decision(),
     )
 
     assert artifact.payload.best_estimate_mode == "exact_item"
@@ -155,6 +173,7 @@ async def test_exact_brand_canary_success_keeps_user_facing_fallback_unchanged_b
         search_port=search_port,
         extract_port=extract_port,
         allow_search=True,
+        manager_semantic_decision=_manager_exact_brand_decision(),
     )
 
     assert artifact.payload.best_estimate_mode is None
@@ -214,6 +233,7 @@ async def test_exact_brand_canary_failure_keeps_fallback_and_records_failure_rea
         search_port=search_port,
         extract_port=extract_port,
         allow_search=True,
+        manager_semantic_decision=_manager_exact_brand_decision(),
     )
 
     assert artifact.payload.best_estimate_mode is None

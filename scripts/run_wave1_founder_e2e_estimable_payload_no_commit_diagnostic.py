@@ -87,6 +87,8 @@ def _contains_mojibake_or_private_use(text: str | None) -> bool:
 def _manager_round_items(trace: dict[str, Any]) -> list[dict[str, Any]]:
     wrapped_rounds = _list(trace.get("manager_rounds"))
     if wrapped_rounds:
+        if any(_dict(item).get("decision") for item in wrapped_rounds if isinstance(item, dict)):
+            return [dict(item) for item in wrapped_rounds if isinstance(item, dict)]
         decision = _dict(wrapped_rounds[0].get("decision") if isinstance(wrapped_rounds[0], dict) else {})
         nested = _list(decision.get("manager_rounds"))
         if nested:
@@ -101,11 +103,13 @@ def _manager_round_summary(trace: dict[str, Any]) -> dict[str, Any]:
     final_decision = _dict(trace.get("manager_final_decision"))
     pre_guard_final_actions: list[str] = []
     normalized_rounds: list[dict[str, Any]] = []
+    last_final_action: str | None = None
     for item in rounds:
         decision = _dict(item.get("decision"))
         final_action = decision.get("final_action")
         if decision.get("manager_action") == "final" and final_action:
             pre_guard_final_actions.append(str(final_action))
+            last_final_action = str(final_action)
         normalized_rounds.append(
             {
                 "round_index": item.get("round_index"),
@@ -118,7 +122,7 @@ def _manager_round_summary(trace: dict[str, Any]) -> dict[str, Any]:
     return {
         "rounds": normalized_rounds,
         "pre_guard_intended_final_actions": pre_guard_final_actions,
-        "post_guard_final_action": final_decision.get("final_action"),
+        "post_guard_final_action": final_decision.get("final_action") or last_final_action,
         "request_failure_family": final_decision.get("request_failure_family"),
         "guard_outcome": _dict(final_decision.get("guard_outcome")),
         "repair_round_used": bool(final_decision.get("repair_round_used")),
@@ -306,8 +310,26 @@ def _build_case_diagnostic(detail: dict[str, Any], *, primary: bool) -> dict[str
     trace = _dict(detail.get("trace"))
     result = _dict(detail.get("result"))
     phase_a = _dict(case.get("phase_a"))
+    guard_preflight = _dict(
+        _dict(_dict(_dict(result.get("intake_execution_manager")).get("react_trace")).get("guard_result")).get(
+            "phase_a_transition_guard_preflight"
+        )
+    )
+    transition_guard_result = _dict(phase_a.get("transition_guard_result"))
+    if not transition_guard_result and guard_preflight:
+        transition_guard_result = {
+            "verdict": guard_preflight.get("transition_guard_verdict"),
+            "reason": guard_preflight.get("transition_guard_reason"),
+            "source": "intake_execution_manager.react_trace.guard_result",
+        }
+    commit_boundary_preflight = _dict(phase_a.get("phase_a_commit_boundary_preflight")) or guard_preflight
+    attachment_decision = _dict(phase_a.get("attachment_decision")) or {
+        "status": "not_emitted_by_current_runtime",
+        "source": "manager_semantic_decision",
+    }
     payload = _first_payload(case)
-    manager_rounds = _manager_round_summary(trace)
+    trace_for_rounds = trace or {"manager_rounds": _list(_dict(case.get("actual_behavior")).get("manager_rounds"))}
+    manager_rounds = _manager_round_summary(trace_for_rounds)
     root_cause, contributing = _classify_root_cause(case=case, trace=trace, manager_rounds=manager_rounds)
     if root_cause not in ROOT_CAUSE_ENUM:
         root_cause = "unknown"
@@ -325,10 +347,10 @@ def _build_case_diagnostic(detail: dict[str, Any], *, primary: bool) -> dict[str
         "followup_question_present": bool(followup_question),
         "followup_question": followup_question,
         "output_text_encoding_issue_detected": _contains_mojibake_or_private_use(followup_question),
-        "attachment_decision": _dict(phase_a.get("attachment_decision")),
-        "transition_guard_result": _dict(phase_a.get("transition_guard_result")),
+        "attachment_decision": attachment_decision,
+        "transition_guard_result": transition_guard_result,
         "manager_rounds": manager_rounds,
-        "commit_boundary_preflight": _dict(phase_a.get("phase_a_commit_boundary_preflight")),
+        "commit_boundary_preflight": commit_boundary_preflight,
         "boundary_projection": _dict(_dict(case.get("final_mapping")).get("boundary_projection")),
         "persistence_attempted": bool(persistence),
         "persistence_result": _json_safe(persistence),

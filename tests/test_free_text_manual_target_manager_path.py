@@ -118,7 +118,7 @@ def test_free_text_manual_target_uses_manager_decision_and_existing_target_servi
 
     assert response.status_code == 200
     payload = response.json()["payload"]
-    assert response.json()["coach_message"] == "Daily target updated to 1600 kcal. Consumed 0 kcal today; remaining 1600 kcal."
+    assert response.json()["coach_message"] == "已把今天目標改成 1600 kcal。今天已記錄 0 kcal，還剩約 1600 kcal。"
     assert payload["manager_decision"]["intent_type"] == "set_manual_daily_target"
     assert payload["manager_decision"]["workflow_effect"] == "manual_daily_target_update"
     assert payload["manager_decision"]["semantic_decision"]["mutation_intent_candidate"] == "budget_target_write"
