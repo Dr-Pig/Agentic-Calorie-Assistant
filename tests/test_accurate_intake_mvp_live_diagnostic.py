@@ -1430,10 +1430,11 @@ def test_accurate_intake_live_original_multiturn_blocks_noop_removal_turn() -> N
 
 
 def test_accurate_intake_live_local_evidence_preserves_chicken_rice_and_soup_components() -> None:
-    from app.nutrition.application.estimate_artifacts import _shadow_stub_components  # noqa: PLC2701
+    from app.nutrition.application.local_component_stub_catalog import component_estimates_from_manager_listed_items
 
-    components = _shadow_stub_components("\u96de\u8089\u98ef\u548c\u6e6f")
+    components = component_estimates_from_manager_listed_items(["\u96de\u8089\u98ef", "\u6e6f"])
 
+    assert components is not None
     assert [(component.name, int(component.estimated_kcal or 0)) for component in components] == [
         ("\u96de\u8089\u98ef", 500),
         ("\u6e6f", 150),

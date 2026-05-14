@@ -9,11 +9,9 @@ from app.intake.application.intake_tool_runtime import looks_like_multi_item_inp
 from app.nutrition.agent.exact_item_packets import build_exact_item_lane_packet
 from app.nutrition.application.estimate_artifacts import (
     EstimatedNutritionArtifact,
+    build_evidence_unavailable_artifact,
     build_exact_item_artifact,
-    build_shadow_stub_artifact,
-    shadow_stub_estimate_enabled,
 )
-from app.nutrition.application.evidence_eligibility import classify_query_family, is_high_variance_family
 from app.nutrition.application.exact_brand_web_canary import LANE_ID as WEB_CANARY_LANE_ID
 from app.nutrition.application.exact_brand_web_canary import run_exact_brand_web_canary
 from app.nutrition.application.fooddb_retrieval_policy import (
@@ -26,7 +24,6 @@ from app.nutrition.application.fooddb_retrieval_estimate_artifacts import (
 from app.nutrition.application.manager_listed_component_anchor_artifact import (
     build_manager_listed_component_anchor_artifact,
 )
-from app.nutrition.application.retrieval_intent import build_raw_text_retrieval_hint
 from app.nutrition.application.retrieval_semantic_decision import B2ManagerSemanticDecision
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
@@ -77,7 +74,7 @@ async def estimate_nutrition_tool(
     manager_semantic_decision: B2ManagerSemanticDecision | None = None,
 ) -> EstimatedNutritionArtifact:
     del request_id
-    active_provider = manager_provider or provider
+    del manager_provider, provider
     exact_packet = build_exact_item_lane_packet(raw_user_input, limit=3)
     top_exact_candidate = exact_packet.get("top_exact_candidate")
     if isinstance(top_exact_candidate, dict) and not looks_like_multi_item_input(raw_user_input):
@@ -98,7 +95,7 @@ async def estimate_nutrition_tool(
         )
         return artifact
 
-    canary_decision = manager_semantic_decision or _raw_text_exact_brand_decision(raw_user_input)
+    canary_decision = manager_semantic_decision
     canary_outcome = await run_exact_brand_web_canary(
         raw_user_input=raw_user_input,
         manager_decision=canary_decision,
@@ -131,23 +128,11 @@ async def estimate_nutrition_tool(
             _attach_web_runtime_trace(fooddb_artifact.payload, canary_outcome.trace)
             return fooddb_artifact
 
-    if shadow_stub_estimate_enabled(provider=active_provider):
-        artifact = build_shadow_stub_artifact(
-            db,
-            user_external_id=user_external_id,
-            raw_user_input=raw_user_input,
-            local_date=local_date or datetime.now().date().isoformat(),
-            manager_semantic_decision=manager_semantic_decision,
-        )
-        _attach_web_runtime_trace(artifact.payload, canary_outcome.trace)
-        return artifact
-
-    artifact = build_shadow_stub_artifact(
+    artifact = build_evidence_unavailable_artifact(
         db,
         user_external_id=user_external_id,
         raw_user_input=raw_user_input,
         local_date=local_date or datetime.now().date().isoformat(),
-        manager_semantic_decision=manager_semantic_decision,
     )
     if force_new_meal_context:
         if hasattr(artifact.runtime_context, "latest_log"):
@@ -159,31 +144,9 @@ async def estimate_nutrition_tool(
                 if pending_state is not None and hasattr(pending_state, "is_open"):
                     pending_state.is_open = False
     _fill_missing_trace_dates(artifact.payload)
-    normalize_live_payload(
-        artifact.payload,
-        raw_user_input=raw_user_input,
-        family_rule=classify_query_family(raw_user_input),
-        high_variance=is_high_variance_family(raw_user_input),
-    )
+    normalize_live_payload(artifact.payload, raw_user_input=raw_user_input)
     _attach_web_runtime_trace(artifact.payload, canary_outcome.trace)
     return artifact
-
-
-def _raw_text_exact_brand_decision(raw_user_input: str) -> B2ManagerSemanticDecision | None:
-    """Support legacy web canary diagnostics without granting mutation authority."""
-    hint = build_raw_text_retrieval_hint(raw_user_input)
-    if hint.retrieval_goal != "exact_brand_lookup":
-        return None
-    return B2ManagerSemanticDecision(
-        base_dish=hint.base_dish,
-        aliases=hint.aliases,
-        brand_hint=hint.brand_hint,
-        size_hint=hint.size_hint,
-        modifier_hints=hint.modifier_hints,
-        listed_items=hint.listed_items,
-        retrieval_goal="exact_brand_lookup",
-        semantic_authority_source="synthetic_manager_structured_fixture",
-    )
 
 
 def _approved_fooddb_retrieval_artifact(

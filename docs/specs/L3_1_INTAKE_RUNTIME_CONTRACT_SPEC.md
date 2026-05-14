@@ -213,6 +213,16 @@ Guard 不允許：
 - semantic rewrite
 - renderer-side semantic masking
 
+### 3.4B Semantic Ownership Boundary
+
+Manager owns open-world food semantics. This includes composition sufficiency, whether the food is estimable now, whether a follow-up is required, exact/generic/component/basket/patterned-combo posture, target attachment, correction/removal target, and final action.
+
+Deterministic runtime may validate only after Manager-owned structured output or Manager-requested evidence exists. It may reject an illegal commit, hide disallowed facts, downgrade visibility, block mutation, or request one bounded repair round.
+
+Deterministic runtime must not use raw user input, food-name keyword checks, case IDs, fixture labels, or local food-family heuristics before the Manager pass to decide `composition_unknown`, `evidence_ineligible`, `ask_followup`, `estimate_allowed`, target attachment, or workflow effect. If a model cannot reliably make this first-pass decision, the allowed remedies are prompt/context/tool contract improvement, model-profile change, or post-Manager guard repair; the remedy is not a pre-Manager deterministic semantic shortcut.
+
+Active intake runtime must not produce shadow/stub fallback nutrition facts. When exact, FoodDB, component, and approved web evidence are all unavailable, the estimate tool returns an `evidence_unavailable` packet with `estimated_kcal=0`, macros hidden, and canonical write denied. This packet is not a user-facing answer and not a mutation authority; Manager decides whether to ask follow-up, answer only, or attempt another allowed tool path.
+
 若 manager 宣稱 `exact`，但 evidence 只支撐 `anchored` / `heuristic` / `unknown`：
 
 - `honesty_guard` 必須 fail

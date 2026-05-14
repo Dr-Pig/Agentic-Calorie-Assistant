@@ -36,6 +36,7 @@ def _round_summary(round_payload: dict[str, Any] | None) -> dict[str, Any] | Non
         "tool_calls": json_safe(list(decision.get("tool_calls") or [])),
         "decision_payload": json_safe(decision),
         "provider_trace": json_safe(dict(round_payload.get("trace") or {})),
+        "guard_feedback_input": json_safe(dict(round_payload.get("guard_feedback_input") or {})),
         "prompt_registry": json_safe(dict(round_payload.get("prompt_registry") or {})),
         "prompt_layer_contract": json_safe(dict(round_payload.get("prompt_layer_contract") or {})),
     }

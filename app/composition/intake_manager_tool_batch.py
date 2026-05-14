@@ -11,94 +11,16 @@ from app.composition.intake_tool_context import (
     correction_target_resolved,
 )
 from app.composition.intake_read_tools import compare_against_budget_tool
-from app.composition.payload_macro_summary import build_payload_macro_summary
+from app.composition.intake_tool_evidence_summary import (
+    evidence_summary,
+    macro_summary,
+    payload_trace_contract,
+    payload_unresolved_info,
+)
 from app.intake.application.target_evidence_artifacts import payload_is_target_evidence
-from app.nutrition.application.evidence_eligibility import classify_query_family, summarize_eligibility_results
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
 from app.shared.contracts.correction_operation import structured_correction_operation
-
-def payload_trace_contract(payload: Any) -> dict[str, Any]:
-    return dict(getattr(payload, "trace_contract", None) or {})
-def payload_unresolved_info(payload: Any) -> list[str]:
-    raw = payload_trace_contract(payload).get("unresolved_info") or []
-    return [str(item) for item in raw if str(item).strip()]
-def macro_summary(payload: Any | None) -> dict[str, Any]:
-    return build_payload_macro_summary(payload)
-
-def evidence_summary(*, raw_user_input: str, payload: Any | None) -> dict[str, Any]:
-    trace_contract = payload_trace_contract(payload) if payload is not None else {}
-    if payload_is_target_evidence(payload):
-        target_contract = dict(trace_contract.get("target_evidence_contract") or {})
-        return {
-            "eligibility": "target_evidence",
-            "candidate_count": 0,
-            "exact_count": 0,
-            "near_exact_count": 0,
-            "generic_count": 0,
-            "high_variance_family": False,
-            "family_rule": None,
-            "why_not_exact": [],
-            "intake_execution_guard_family": trace_contract.get("intake_execution_guard_family"),
-            "search_attempt_count": 0,
-            "search_query": None,
-            "db_hit_type": None,
-            "nutrition_evidence_present": False,
-            "target_evidence_present": True,
-            "target_evidence_source": target_contract.get("source"),
-        }
-    component_breakdown = list(getattr(payload, "component_breakdown", None) or []) if payload is not None else []
-    grounding_summary = dict(trace_contract.get("grounding_summary") or {})
-    db_hit_type = str(trace_contract.get("db_hit_type") or "")
-    exact_truth_detected = (
-        bool(grounding_summary.get("exact_truth_present"))
-        or db_hit_type == "exact_truth"
-        or "exact_truth" in {str(item) for item in (grounding_summary.get("evidence_roles") or [])}
-        or int(((trace_contract.get("reasoning_state") or {}).get("exact_lane_count") or 0)) > 0
-    )
-    if exact_truth_detected:
-        eligibility = {
-            "candidate_count": max(1, int(grounding_summary.get("retrieved_knowledge_count") or 1)),
-            "exact_count": 1,
-            "near_exact_count": 0,
-            "generic_count": 0,
-            "provisional_eligibility": "exact",
-            "high_variance_family": bool(classify_query_family(raw_user_input)),
-            "family_rule": classify_query_family(raw_user_input),
-            "why_not_exact": [],
-        }
-    elif component_breakdown:
-        eligibility = summarize_eligibility_results(component_breakdown, query=raw_user_input)
-    else:
-        raw_why_not_exact = trace_contract.get("why_not_exact") or []
-        why_not_exact = [raw_why_not_exact] if isinstance(raw_why_not_exact, str) and raw_why_not_exact.strip() else []
-        if not isinstance(raw_why_not_exact, str):
-            why_not_exact = [str(item) for item in raw_why_not_exact if str(item).strip()]
-        eligibility = {
-            "candidate_count": 0,
-            "exact_count": 0,
-            "near_exact_count": 0,
-            "generic_count": 0,
-            "provisional_eligibility": "generic" if classify_query_family(raw_user_input) else "unusable",
-            "high_variance_family": bool(classify_query_family(raw_user_input)),
-            "family_rule": classify_query_family(raw_user_input),
-            "why_not_exact": why_not_exact,
-        }
-    return {
-        "eligibility": eligibility.get("provisional_eligibility", "unusable"),
-        "candidate_count": int(eligibility.get("candidate_count") or 0),
-        "exact_count": int(eligibility.get("exact_count") or 0),
-        "near_exact_count": int(eligibility.get("near_exact_count") or 0),
-        "generic_count": int(eligibility.get("generic_count") or 0),
-        "high_variance_family": bool(eligibility.get("high_variance_family")),
-        "family_rule": eligibility.get("family_rule"),
-        "why_not_exact": list(eligibility.get("why_not_exact") or []),
-        "intake_execution_guard_family": trace_contract.get("intake_execution_guard_family"),
-        "search_attempt_count": int(trace_contract.get("search_attempt_count") or 0),
-        "search_query": trace_contract.get("search_query"),
-        "db_hit_type": db_hit_type or None,
-    }
-
 
 def validate_manager_target_proposal(
     *,

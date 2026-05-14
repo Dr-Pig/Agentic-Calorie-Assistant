@@ -65,6 +65,29 @@ RULES: tuple[RiskRule, ...] = (
         rationale="Semantic payload fields should not be rewritten after an LLM/manager pass except by explicit validation, downgrade, or bounded repair.",
     ),
     RiskRule(
+        risk_id="pre_manager_estimability_or_followup_shortcut",
+        severity="high",
+        markers=(
+            "initial_guard_feedback",
+            "entry_handoff_seed_commit_boundary_validation",
+            "pre_manager_followup",
+        ),
+        paths=("app/composition", "app/runtime/agent"),
+        rationale="Composition sufficiency, estimability, and follow-up necessity must be Manager decisions before deterministic guard repair.",
+    ),
+    RiskRule(
+        risk_id="active_shadow_or_fallback_estimate_path",
+        severity="high",
+        markers=(
+            "build_shadow_stub_artifact",
+            "shadow_stub_estimate_enabled",
+            "classify_query_family(",
+            "is_high_variance_family(",
+        ),
+        paths=("app/composition", "app/runtime/agent"),
+        rationale="Active runtime must not use deterministic raw-text fallback estimates or food-family rules to supply kcal, macro, estimability, or follow-up semantics.",
+    ),
+    RiskRule(
         risk_id="followup_or_clarify_as_commit_gate",
         severity="high",
         markers=(
@@ -252,6 +275,8 @@ def build_report(*, stage: str = "report") -> dict[str, object]:
         "semantic_owner_policy": {
             "deterministic_diagnostic_mode_is_not_semantic_ownership": True,
             "llm_or_manager_structured_output_owns_ambiguous_intent_and_food_semantics": True,
+            "manager_owns_composition_estimability_and_followup_necessity_before_guard": True,
+            "active_runtime_forbids_shadow_stub_and_raw_text_food_family_fallbacks": True,
             "deterministic_code_owns_validation_guards_schema_persistence_legality_trace_and_evals": True,
             "legacy_scan_matches_are_supporting_evidence_only": True,
         },

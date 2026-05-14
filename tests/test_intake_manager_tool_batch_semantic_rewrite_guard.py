@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.composition.intake_manager_tool_batch import apply_final_action_to_payload
+from app.composition.intake_manager_tool_batch import apply_final_action_to_payload, evidence_summary
 from app.shared.contracts.intake_results import EstimatePayload
 
 
@@ -59,3 +59,12 @@ def test_manager_owned_followup_projection_does_not_rewrite_route_semantics() ->
     assert payload.followup_question == "What size and sugar level was it?"
     assert payload.trace_contract["manager_followup_projection"]["source"] == "manager_answer_contract"
     assert payload.trace_contract["manager_followup_projection"]["deterministic_role"] == "projection_only_no_followup_creation"
+
+
+def test_evidence_summary_does_not_classify_raw_text_when_payload_has_no_evidence() -> None:
+    summary = evidence_summary(raw_user_input="luwei buffet basket", payload=None)
+
+    assert summary["eligibility"] == "unavailable"
+    assert summary["candidate_count"] == 0
+    assert summary["high_variance_family"] is False
+    assert summary["family_rule"] is None
