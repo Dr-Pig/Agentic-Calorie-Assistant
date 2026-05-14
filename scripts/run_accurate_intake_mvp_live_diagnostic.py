@@ -27,6 +27,7 @@ from app.database import get_or_create_user  # noqa: E402
 from app.intake.infrastructure.models import MealItemRecord  # noqa: E402
 from app.models import Base  # noqa: E402
 from app.runtime.agent.founder_live_manager_contract import (  # noqa: E402
+    FOUNDER_LIVE_MANAGER_INTENT_TYPE_BY_SEMANTIC_INTENT,
     FOUNDER_LIVE_MANAGER_SCHEMA_NAME,
     FOUNDER_LIVE_MANAGER_SCHEMA_VERSION,
     FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS,
@@ -336,9 +337,10 @@ class ScriptedAccurateIntakeLiveProvider:
                 evidence_posture="read_only_state",
                 estimation_posture="not_applicable",
             )
+        current_turn_intent = str(self._current_step.get("semantic_intent") or "log_meal")
         payload = self._final(
-            intent_type="log_meal",
-            current_turn_intent=str(self._current_step.get("semantic_intent") or "log_meal"),
+            intent_type=_intent_type_for_semantic_intent(current_turn_intent),
+            current_turn_intent=current_turn_intent,
             final_action="no_commit",
             workflow_effect="route_to_intake",
             mutation_intent_candidate="canonical_write",
@@ -447,7 +449,7 @@ class ScriptedAccurateIntakeLiveProvider:
                 },
             }
         return self._final(
-            intent_type="log_meal",
+            intent_type=_intent_type_for_semantic_intent(str(self._current_step.get("semantic_intent") or "log_meal")),
             current_turn_intent=str(self._current_step.get("semantic_intent") or "log_meal"),
             final_action=final_action,
             workflow_effect=str(self._current_step.get("workflow_effect") or final_action),
@@ -2492,6 +2494,10 @@ def _optional_int(value: Any) -> int | None:
         except ValueError:
             return None
     return None
+
+
+def _intent_type_for_semantic_intent(semantic_intent: str) -> str:
+    return FOUNDER_LIVE_MANAGER_INTENT_TYPE_BY_SEMANTIC_INTENT.get(semantic_intent, "log_meal")
 
 
 def _usage_prompt_tokens(usage: dict[str, Any]) -> int:

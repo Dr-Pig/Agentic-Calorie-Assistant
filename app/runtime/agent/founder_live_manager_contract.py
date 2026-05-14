@@ -55,11 +55,8 @@ FOUNDER_LIVE_MANAGER_FIELD_CONSUMERS = {
 }
 
 FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES = [
-    "complete_onboarding",
-    "answer_remaining_budget",
-    "onboarding_required",
-    "manager_unavailable",
-    "log_meal",
+    "complete_onboarding", "answer_remaining_budget", "onboarding_required", "manager_unavailable",
+    "answer_query", "log_meal", "correct_meal",
 ]
 FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS = [
     "commit",
@@ -95,9 +92,9 @@ FOUNDER_LIVE_MANAGER_FOLLOWUP_QUESTION_REQUIRED_POSTURES = {
 FOUNDER_LIVE_MANAGER_INTENT_TYPE_BY_SEMANTIC_INTENT = {
     "complete_onboarding": "complete_onboarding",
     "answer_remaining_budget": "answer_remaining_budget",
-    "answer_query": "log_meal",
+    "answer_query": "answer_query",
     "log_meal": "log_meal",
-    "correct_meal": "log_meal",
+    "correct_meal": "correct_meal",
 }
 FOUNDER_LIVE_MANAGER_CONTRACT_POLICY = {
     "intent_type_by_semantic_intent": dict(FOUNDER_LIVE_MANAGER_INTENT_TYPE_BY_SEMANTIC_INTENT),
@@ -105,12 +102,14 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY = {
     "required_tool_when_evidence_missing": "estimate_nutrition",
     "query_only_rule": {
         "semantic_intent": "answer_query",
+        "intent_type": "answer_query",
         "workflow_effect": "answer_only",
         "final_action": "answer_only",
         "mutation_intent_candidate": "no_mutation",
     },
     "correction_rule": {
         "semantic_intent": "correct_meal",
+        "intent_type": "correct_meal",
         "final_action": "correction_applied",
         "mutation_intent_candidate": "correction_write",
     },
@@ -154,7 +153,8 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY = {
 }
 FOUNDER_LIVE_MANAGER_CONTRACT_POLICY_SUMMARY = (
     "Founder live manager contract policy: keep intent_type aligned with semantic_decision.current_turn_intent "
-    "(answer_query/log_meal/correct_meal all route through intent_type=log_meal except onboarding/budget lanes); "
+    "by workflow effect: answer_query -> answer_query, log_meal -> log_meal, correct_meal -> correct_meal, "
+    "with onboarding/budget lanes using their own explicit intent_type; "
     "if no current estimate_nutrition tool result exists, call estimate_nutrition before final commit, "
     "nutrition-changing correction_applied, or overshoot_note; query-only nutrition questions must answer_only with no mutation; "
     "correct_meal must update the prior target with correction_applied/correction_write, not commit as a new meal; "
@@ -370,9 +370,9 @@ def founder_live_manager_tool_description() -> str:
         "Return the ManagerRuntime structured decision payload. Follow the system prompt and founder live "
         "manager contract; this tool description is compact transport guidance, not product truth. Always include "
         "required top-level fields. Use tool_calls=[] when manager_action is final; use a non-empty tool_calls "
-        "array with supported tool names when manager_action is call_tools. Keep contract intent mapping such as "
-        "correct_meal -> log_meal. For query-only nutrition questions, use "
-        "answer_only/no_mutation; correct_meal uses correction_applied/correction_write. Do not use ask_followup, "
+        "array with supported tool names when manager_action is call_tools. Do not collapse query-only or "
+        "correction turns into log_meal: answer_query uses intent_type='answer_query' and no mutation; "
+        "correct_meal uses intent_type='correct_meal' with correction_applied/correction_write. Do not use ask_followup, "
         "no_commit, or answer_only as substitutes for evidence-required commit/correction_applied/overshoot_note; "
         "call estimate_nutrition first. If you set evidence_posture to requires_tool or evidence_missing, use "
         "manager_action call_tools with estimate_nutrition; the invalid evidence-required candidate pattern is "

@@ -260,7 +260,7 @@ async def execute_intake_turn(
                 "state_mutation": "none",
             },
         )
-    elif manager_decision.intent_type == "log_meal":
+    elif manager_decision.intent_type in {"log_meal", "correct_meal"}:
         if not raw_user_input or not raw_user_input.strip():
             raise ValueError("raw_user_input is required for intake logging.")
         return await process_intake_execution_turn(

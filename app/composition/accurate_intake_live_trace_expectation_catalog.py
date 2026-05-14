@@ -36,6 +36,12 @@ EXPECTED_TRACE_BY_CASE_ID = {
         "turn2: estimate listed basket",
         "turn2: commit only after clarification",
     ],
+    "teppan_breakfast_explain_refine_dogfood": [
+        "turn1: estimate and commit initial breakfast set",
+        "turn2: answer estimate/composition question without tools or mutation",
+        "turn3: attach supplied components to active meal",
+        "turn3: estimate updated version and supersede prior version",
+    ],
     "today_consumed_query_only": [
         "entry: answer current-day budget query",
         "runtime: read state only",
