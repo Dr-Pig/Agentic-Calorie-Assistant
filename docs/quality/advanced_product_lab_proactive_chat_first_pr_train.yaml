@@ -1,12 +1,12 @@
 artifact_type: advanced_product_lab_proactive_chat_first_pr_train
 version: 1
-status: active
+status: completed
 owner: AdvancedProductLabProactive
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 1
-last_completed_pr_number: 23
-active_pr_number: 24
+dynamic_remaining_pr_count: 0
+last_completed_pr_number: 24
+active_pr_number: null
 current_mainline: advanced_product_lab_proactive_chat_first_integration
 is_detour: false
 mainline_blocker_being_removed: proactive_needs_chat_first_manager_style_integration_after_recommendation_closeout
@@ -199,6 +199,25 @@ dynamic_estimate_protocol:
     - docs/quality/advanced_product_lab_proactive_golden_set.yaml
     - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md
 
+next_capability_plan:
+  primary_next_train: advanced_product_lab_real_dogfood_and_activation_calibration
+  first_slice: collect_dogfood_traces_for_memory_recommendation_rescue_proactive
+  estimated_pr_range:
+    optimistic: 8
+    likely: 14
+    conservative: 22
+  dependencies_confirmed:
+    memory: completed
+    context_engineering: completed
+    rescue_phase1: completed
+    recommendation: completed
+    proactive: completed
+  do_not_build_yet:
+    - mainline_route_mount
+    - production_notification_delivery
+    - production_db_migration
+    - generic_workflow_engine
+
 pr_train:
   - pr_number: 1
     slice_id: proactive_entry_contract_from_memory_rescue_recommendation_outputs
@@ -298,6 +317,7 @@ estimate_notes:
   - After PR21 logical completion, remaining estimate moved to 3 after paired baseline product output, candidate-only, and lab chat delivery comparison passed for active and silent paths.
   - After PR22 logical completion, remaining estimate moved to 2 after latency, provider usage posture, degraded omission, and no retry-expansion report passed without claiming billing truth.
   - After PR23 logical completion, remaining estimate moved to 1 after mainline dormancy gate passed route, scheduler, production DB migration, durable memory, and activation-wall checks.
+  - After PR24 logical completion, remaining estimate moved to 0 after quality closeout and next capability plan were recorded.
   - Estimate may increase if lab chat delivery exposes missing control-state or dashboard mirror contracts.
 
 last_merge_evidence:
@@ -423,3 +443,8 @@ last_merge_evidence:
       merge_commit: working_branch_uncommitted
       result: mainline_dormancy_gate_completed_locally
       dynamic_remaining_pr_count_after: 1
+    - pr_number: 24
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: proactive_train_closeout_and_next_capability_plan_completed_locally
+      dynamic_remaining_pr_count_after: 0

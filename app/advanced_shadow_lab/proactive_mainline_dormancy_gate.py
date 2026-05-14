@@ -79,8 +79,8 @@ def _train_blockers(train: Mapping[str, Any]) -> list[str]:
     blockers: list[str] = []
     if train.get("artifact_type") != "advanced_product_lab_proactive_chat_first_pr_train":
         blockers.append("proactive_pr_train.unsupported_artifact_type")
-    if train.get("status") != "active":
-        blockers.append("proactive_pr_train.status_not_active")
+    if train.get("status") not in {"active", "completed"}:
+        blockers.append("proactive_pr_train.status_not_active_or_completed")
     if int(train.get("last_completed_pr_number") or 0) < 22:
         blockers.append("proactive_pr_train.pr22_not_completed")
     flags = _mapping(train.get("required_artifact_flags"))
@@ -116,7 +116,7 @@ def _migration_blockers(root: Path) -> list[str]:
 
 def _train_ready(train: Mapping[str, Any]) -> bool:
     return (
-        train.get("status") == "active"
+        train.get("status") in {"active", "completed"}
         and int(train.get("last_completed_pr_number") or 0) >= 22
     )
 
