@@ -273,6 +273,7 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
         "chinese_chicken_rice_correction_removal_debug",
         "bubble_milk_tea_refinement",
         "luwei_bare_to_listed_basket",
+        "teppan_breakfast_explain_refine_dogfood",
         "today_consumed_query_only",
         "no_plan_consumed_without_budget_target",
     ]
@@ -467,6 +468,7 @@ def test_accurate_intake_live_full_suite_can_run_after_strict_offline_replay(tmp
         "chinese_chicken_rice_correction_removal_debug",
         "bubble_milk_tea_refinement",
         "luwei_bare_to_listed_basket",
+        "teppan_breakfast_explain_refine_dogfood",
         "today_consumed_query_only",
         "no_plan_consumed_without_budget_target",
     ]
@@ -1164,6 +1166,34 @@ def test_accurate_intake_live_single_case_probe_bubble_refinement_inventory_cont
     ]
     assert tool_names == ["estimate_nutrition", "estimate_nutrition"]
     assert case["debug_surface"]["model"]["same_truth"]["status"] == "pass"
+
+
+def test_accurate_intake_live_single_case_probe_teppan_explain_refine_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    report = module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+        provider_override=module.ScriptedAccurateIntakeLiveProvider(),
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+        stage="single_case_live_probe",
+        case_id="teppan_breakfast_explain_refine_dogfood",
+    )
+
+    assert report["stages"][-1]["case_ids"] == ["teppan_breakfast_explain_refine_dogfood"]
+    case = report["cases"][0]
+    assert case["verdict"] == "pass"
+    assert case["trace_expectation_grade"]["required_status"] == "pass"
+    turn2 = next(turn for turn in case["turns"] if turn["turn"] == 2)
+    assert turn2["manager_intent"] == "answer_query"
+    assert turn2["manager_final_action"] == "answer_only"
+    assert turn2["state_delta"]["canonical_commit"] is False
+    assert turn2["answer_basis"]["references_active_meal"] is True
+    turn3 = next(turn for turn in case["turns"] if turn["turn"] == 3)
+    assert turn3["manager_intent"] == "correct_meal"
+    assert turn3["state_delta"]["old_version_superseded"] is True
+    assert len(turn3["estimation_summary"]["component_names"]) >= 2
 
 
 def test_accurate_intake_live_luwei_trace_expectation_blocks_bare_basket_commit(

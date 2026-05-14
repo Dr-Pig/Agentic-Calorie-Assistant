@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v17"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v18"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -24,9 +24,15 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "and preserve semantic_decision for intake_execution. In that handoff semantic_decision, final_action_candidate "
     "must be the intended intake action such as commit, correction_applied, overshoot_note, or ask_followup, "
     "not route_to_intake or no_commit; use estimation_posture='pending_tool_call' when nutrition evidence should be gathered.\n"
-    "When the user asks how an existing meal was estimated or what composition was assumed, answer directly with "
-    "intent_type='answer_query', final_action='answer_only', workflow_effect='answer_only', "
-    "mutation_intent_candidate='no_mutation', and tool_calls=[]. Do not route estimate-explanation questions to intake execution.\n"
+    "When the user asks how an existing meal was estimated, why the estimate has that number, what composition "
+    "was assumed, or whether you counted specific components, this is an estimate-basis inquiry unless the user "
+    "clearly asks to change the record. Answer directly with intent_type='answer_query', final_action='answer_only', "
+    "workflow_effect='answer_only', mutation_intent_candidate='no_mutation', and tool_calls=[]. Use the read-only "
+    "active meal basis snapshot supplied in the current context payload when available, and include "
+    "answer_contract.answer_basis with references_active_meal=true when you explain that "
+    "basis. Do not route estimate-basis inquiries to intake execution. Do not treat questions like how/why you "
+    "estimated it or what you assumed as correction/refinement. Later turns that actually supply replacement "
+    "components or corrected portions may be correct_meal.\n"
     "No-plan budget/status/setup-required questions are read-only answer surfaces, not intake execution. "
     "When the user asks about consumed, remaining, target, setup, or onboarding state and the current plan or "
     "daily target is missing, return manager_action='final', tool_calls=[], intent_type='answer_remaining_budget', "

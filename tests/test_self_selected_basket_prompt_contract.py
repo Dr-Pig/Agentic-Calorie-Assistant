@@ -9,7 +9,7 @@ from app.runtime.agent.manager_system_prompt import (
 
 
 def test_self_selected_basket_blocking_clarify_policy_is_explicit_static_prompt_guidance() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v17"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v18"
     assert "Self-selected basket examples include" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "滷味" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "鹽酥雞" in SINGLE_MANAGER_SYSTEM_PROMPT
