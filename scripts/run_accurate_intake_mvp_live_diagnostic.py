@@ -308,14 +308,15 @@ class ScriptedAccurateIntakeLiveProvider:
             }
         )
         if PUBLIC_ENTRY_READ_TOOLS.intersection(available_tools):
-            return self._entry_decision(), self._trace("entry_decision")
+            return self._entry_decision(user_payload=user_payload), self._trace("entry_decision")
         return self._execution_decision(
             available_tools=available_tools,
             round_index=round_index,
             user_payload=user_payload,
         ), self._trace("execution_decision")
 
-    def _entry_decision(self) -> dict[str, Any]:
+    def _entry_decision(self, *, user_payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        user_payload = _dict(user_payload)
         entry_intent = str(self._current_step.get("entry_intent") or "log_meal")
         if entry_intent == "answer_remaining_budget":
             return self._final(
@@ -326,6 +327,18 @@ class ScriptedAccurateIntakeLiveProvider:
                 mutation_intent_candidate="ledger_read",
                 evidence_posture="read_only_state",
                 estimation_posture="not_applicable",
+            )
+        if entry_intent == "answer_query":
+            answer_basis = _active_meal_answer_basis_from_context_packet(user_payload)
+            return self._final(
+                intent_type="answer_query",
+                current_turn_intent="answer_query",
+                final_action="answer_only",
+                workflow_effect="answer_only",
+                mutation_intent_candidate="no_mutation",
+                evidence_posture="active_meal_basis_read_only",
+                estimation_posture="not_applicable",
+                answer_basis=answer_basis,
             )
         if entry_intent == "onboarding_required":
             return self._final(
@@ -494,6 +507,7 @@ class ScriptedAccurateIntakeLiveProvider:
         evidence_posture: str,
         estimation_posture: str,
         followup_question: str = "",
+        answer_basis: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         target = dict(target_attachment or {"mode": "none"})
         if self._current_step.get("correction_operation"):
@@ -505,6 +519,13 @@ class ScriptedAccurateIntakeLiveProvider:
             answer_contract["correction_operation"] = self._current_step.get("correction_operation")
         if followup_question:
             answer_contract["followup_question"] = followup_question
+        if answer_basis:
+            answer_contract["answer_basis"] = answer_basis
+        semantic_extras = {
+            key: self._current_step[key]
+            for key in ("base_dish", "listed_items", "retrieval_goal")
+            if key in self._current_step
+        }
         return {
             "manager_action": "final",
             "intent": intent_type,
@@ -536,6 +557,7 @@ class ScriptedAccurateIntakeLiveProvider:
                 "source": "scripted_accurate_intake_live_fixture",
                 "semantic_owner": "manager",
                 "deterministic_role": "fixture_simulates_manager_output_only",
+                **semantic_extras,
             },
         }
 
@@ -1370,6 +1392,47 @@ def _case_inventory() -> list[LiveCase]:
             ),
         ),
         LiveCase(
+            case_id="teppan_breakfast_explain_refine_dogfood",
+            description="Dogfood breakfast set: initial estimate, read-only basis question, then component correction.",
+            user_external_id="live-diag-teppan-breakfast",
+            body_plan_seeded=True,
+            steps=(
+                LiveStep(
+                    1,
+                    "new_meal",
+                    "\u6211\u65e9\u9910\u5403\u65e9\u9910\u5e97\u9435\u677f\u9eb5\u5957\u9910",
+                    {"entry_intent": "log_meal", "semantic_intent": "log_meal", "final_action": "commit"},
+                ),
+                LiveStep(
+                    2,
+                    "estimate_basis_question",
+                    "\u4f60\u662f\u600e\u9ebc\u4f30\u7684\uff1f\u4f60\u662f\u4e0d\u662f\u8a8d\u70ba\u6709\u4ec0\u9ebc\u7d44\u6210\uff1f",
+                    {"entry_intent": "answer_query"},
+                ),
+                LiveStep(
+                    3,
+                    "component_refinement",
+                    "\u6211\u525b\u525b\u7684\u65e9\u9910\u6709\u9435\u677f\u9eb5\u3001\u8377\u5305\u86cb\u548c\u8c6c\u8089\u7247",
+                    {
+                        "entry_intent": "log_meal",
+                        "semantic_intent": "correct_meal",
+                        "final_action": "correction_applied",
+                        "workflow_effect": "correction",
+                        "mutation_intent": "correction_write",
+                        "target_mode": "target_committed_thread",
+                        "target_canonical_name": "\u65e9\u9910\u5e97\u9435\u677f\u9eb5\u5957\u9910",
+                        "base_dish": "\u65e9\u9910\u5e97\u9435\u677f\u9eb5\u5957\u9910",
+                        "listed_items": [
+                            "\u9435\u677f\u9eb5",
+                            "\u8377\u5305\u86cb",
+                            "\u65e9\u9910\u5e97\u8c6c\u8089\u7247",
+                        ],
+                        "retrieval_goal": "listed_item_lookup",
+                    },
+                ),
+            ),
+        ),
+        LiveCase(
             case_id="today_consumed_query_only",
             description="Today consumed query reads state and must not mutate.",
             user_external_id="live-diag-query-only",
@@ -1575,6 +1638,7 @@ def _turn_summary(
 ) -> dict[str, Any]:
     execution = _dict(result.get("intake_execution_manager"))
     final = _dict(execution.get("final"))
+    manager_decision = _dict(result.get("manager_decision"))
     manager_rounds = _json_safe(_list(execution.get("manager_rounds")))
     invocation_summary = _provider_invocation_summary(provider_invocations or [])
     provider_latency_ms = int(invocation_summary.get("provider_invocation_latency_ms") or 0)
@@ -1595,9 +1659,11 @@ def _turn_summary(
         "coach_message": result.get("coach_message") or result.get("assistant_message"),
         "show_macro": result.get("show_macro"),
         "macro_guard_reason": result.get("macro_guard_reason"),
-        "manager_intent": _dict(result.get("manager_decision")).get("intent_type"),
-        "manager_final_action": final.get("final_action") or _dict(result.get("manager_decision")).get("final_action"),
-        "workflow_effect": final.get("workflow_effect") or _dict(result.get("manager_decision")).get("workflow_effect"),
+        "manager_intent": manager_decision.get("intent_type"),
+        "manager_final_action": final.get("final_action") or manager_decision.get("final_action"),
+        "workflow_effect": final.get("workflow_effect") or manager_decision.get("workflow_effect"),
+        "answer_basis": _turn_answer_basis(manager_decision),
+        "estimation_summary": _turn_estimation_summary(manager_rounds),
         "state_delta": _json_safe(_dict(result.get("state_delta"))),
         "remaining_budget": _json_safe(_dict(result.get("remaining_budget"))),
         "manager_rounds": manager_rounds,
@@ -1607,6 +1673,47 @@ def _turn_summary(
         "runtime_stage_timing_summary": _runtime_stage_timing_summary(runtime_stage_timings),
         "hard_fail_conditions": list(result.get("hard_fail_conditions") or []),
         "runtime_error": None,
+    }
+
+
+def _turn_answer_basis(manager_decision: dict[str, Any]) -> dict[str, Any]:
+    answer_contract = _dict(manager_decision.get("answer_contract"))
+    basis = _dict(answer_contract.get("answer_basis"))
+    if basis:
+        return _json_safe(basis)
+    return {}
+
+
+def _turn_estimation_summary(manager_rounds: list[dict[str, Any]]) -> dict[str, Any]:
+    component_names: list[str] = []
+    estimated_kcal_values: list[int] = []
+    for round_item in _list(manager_rounds):
+        round_dict = _dict(round_item)
+        decision = _dict(round_dict.get("decision"))
+        semantic_decision = _dict(decision.get("semantic_decision"))
+        for item in _list(semantic_decision.get("listed_items")):
+            name = str(item or "").strip()
+            if name:
+                component_names.append(name)
+        for tool_result in _list(round_dict.get("tool_results")):
+            nutrition_payload = _dict(_dict(tool_result).get("evidence")).get("nutrition_payload")
+            nutrition_payload = _dict(nutrition_payload)
+            if nutrition_payload.get("estimated_kcal") is not None:
+                estimated_kcal_values.append(int(nutrition_payload.get("estimated_kcal") or 0))
+            trace_contract = _dict(nutrition_payload.get("trace_contract"))
+            for item in _list(trace_contract.get("components")):
+                name = str(item or "").strip()
+                if name:
+                    component_names.append(name)
+            for item in _list(trace_contract.get("component_breakdown")):
+                name = str(_dict(item).get("name") or _dict(item).get("canonical_name") or "").strip()
+                if name:
+                    component_names.append(name)
+    deduped = list(dict.fromkeys(component_names))
+    return {
+        "component_names": deduped,
+        "estimated_kcal_values": estimated_kcal_values,
+        "used_default_fallback_400_macro": bool(not deduped and 400 in estimated_kcal_values),
     }
 
 
@@ -2458,6 +2565,31 @@ def _target_reference_from_manager_context_packet(user_payload: dict[str, Any]) 
         "meal_thread_id": selected.get("meal_thread_id"),
         "meal_version_id": selected.get("meal_version_id"),
         "item_candidates": item_candidates,
+    }
+
+
+def _active_meal_answer_basis_from_context_packet(user_payload: dict[str, Any]) -> dict[str, Any]:
+    packet = _dict(user_payload.get("manager_context_packet_v1"))
+    active_meal = _dict(_dict(packet.get("active_day_state")).get("active_meal_estimate_basis"))
+    if not active_meal:
+        return {
+            "references_active_meal": False,
+            "assumption_or_composition_explained": False,
+            "source": "manager_context_packet_v1",
+        }
+    return {
+        "meal_thread_id": active_meal.get("meal_thread_id"),
+        "meal_version_id": active_meal.get("meal_version_id"),
+        "meal_title": active_meal.get("meal_title"),
+        "total_kcal": active_meal.get("total_kcal"),
+        "component_names": [
+            str(_dict(item).get("canonical_name") or "").strip()
+            for item in _list(active_meal.get("items"))
+            if str(_dict(item).get("canonical_name") or "").strip()
+        ],
+        "references_active_meal": True,
+        "assumption_or_composition_explained": True,
+        "source": "manager_context_packet_v1.active_day_state.active_meal_estimate_basis",
     }
 
 

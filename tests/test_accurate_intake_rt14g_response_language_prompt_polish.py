@@ -23,7 +23,7 @@ def test_rt14g_prompt_polish_contract_passes() -> None:
     assert artifact["summary"] == {
         "case_count": 6,
         "passed_case_count": 6,
-        "system_prompt_version": "v17",
+        "system_prompt_version": "v18",
         "prompt_cache_safe_static_policy": True,
     }
 
@@ -44,7 +44,7 @@ def test_rt14g_prompt_policy_preserves_prompt_cache_static_prefix_boundary() -> 
     by_id = {case["case_id"]: case for case in artifact["cases"]}
 
     observed = by_id["prompt_cache_static_prefix_policy"]["observed"]
-    assert observed["system_prompt_version"] == "v17"
+    assert observed["system_prompt_version"] == "v18"
     assert observed["dynamic_request_markers_absent"] is True
     assert observed["stable_policy_in_system_prompt"] is True
 
