@@ -12,6 +12,9 @@ from app.shared.contracts.manager_style_convergence import (
     ORCHESTRATION_STANCE,
     build_shared_manager_style_convergence_contract,
 )
+from app.shared.contracts.proactive_tool_arguments import (
+    build_proactive_tool_argument_contract,
+)
 from app.shared.contracts.recommendation_tool_arguments import (
     build_recommendation_tool_argument_contract,
 )
@@ -108,6 +111,8 @@ def _tool_spec(tool_name: str) -> dict[str, Any]:
     }
     if tool_name == "recommendation.run":
         spec["argument_contract"] = build_recommendation_tool_argument_contract()
+    if tool_name == "proactive.run":
+        spec["argument_contract"] = build_proactive_tool_argument_contract()
     return spec
 
 
