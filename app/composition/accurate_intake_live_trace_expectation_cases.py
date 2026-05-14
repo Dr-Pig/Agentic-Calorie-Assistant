@@ -23,6 +23,7 @@ from app.composition.accurate_intake_trace_expectation_primitives import (
     _decision_tools,
 )
 from app.composition.accurate_intake_call_topology_expectations import call_topology_check
+from app.composition.accurate_intake_live_trace_expectation_dogfood_cases import grade_teppan_breakfast
 from app.composition.accurate_intake_live_trace_expectation_catalog import EXPECTED_TRACE_BY_CASE_ID
 
 
@@ -231,6 +232,7 @@ _GRADERS_BY_CASE_ID: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "chinese_chicken_rice_correction_removal_debug": _grade_chicken_rice,
     "bubble_milk_tea_refinement": _grade_bubble_tea,
     "luwei_bare_to_listed_basket": _grade_luwei,
+    "teppan_breakfast_explain_refine_dogfood": grade_teppan_breakfast,
     "today_consumed_query_only": _grade_today_query,
     "no_plan_consumed_without_budget_target": _grade_no_plan_query,
 }
