@@ -198,7 +198,7 @@ def test_budget_query_and_no_plan_context_preserve_truth_posture_without_fake_re
                 "local_date": "2026-05-02",
                 "budget_kcal": 0,
                 "consumed_kcal": 0,
-                "remaining_kcal": 0,
+                "remaining_kcal": None,
                 "active_meal_count": 1,
                 "has_active_plan": False,
                 "has_day_budget_ledger": False,
@@ -212,7 +212,7 @@ def test_budget_query_and_no_plan_context_preserve_truth_posture_without_fake_re
     assert pack.manager_context["current_budget_snapshot"]["has_active_plan"] is False
     assert pack.manager_context["current_budget_snapshot"]["has_day_budget_ledger"] is False
     assert pack.manager_context["current_budget_snapshot"]["no_plan_posture"] == "onboarding_required"
-    assert pack.manager_context["current_budget_snapshot"]["remaining_kcal"] == 0
+    assert pack.manager_context["current_budget_snapshot"]["remaining_kcal"] is None
     assert "active_body_plan_snapshot" in pack.manager_context
 
 

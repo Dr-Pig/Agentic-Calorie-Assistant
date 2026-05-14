@@ -126,7 +126,7 @@ def _current_budget_snapshot(payload: Any, *, has_active_plan: bool) -> dict[str
         "local_date": budget.get("local_date"),
         "budget_kcal": int(budget.get("budget_kcal") or 0),
         "consumed_kcal": int(budget.get("consumed_kcal") or 0),
-        "remaining_kcal": int(budget.get("remaining_kcal") or 0),
+        "remaining_kcal": None if not has_active_plan or budget.get("remaining_kcal") is None else int(budget["remaining_kcal"]),
         "active_meal_count": int(budget.get("active_meal_count") or 0),
         "has_active_plan": bool(budget.get("has_active_plan") if "has_active_plan" in budget else has_active_plan),
         "has_day_budget_ledger": bool(budget.get("has_day_budget_ledger", False)),

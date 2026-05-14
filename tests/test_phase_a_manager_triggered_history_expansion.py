@@ -127,10 +127,20 @@ class _HistoryRequestProvider:
                 {"round": 1},
             )
         assert payload["phase_a_history_expansion_enabled"] is False
-        assert payload["phase_a_current_turn_context"]["candidate_attachment_targets"][0]["target_object_id"] == "77"
-        manager_context_pack = payload["phase_a_manager_context_pack"]
-        manager_context = manager_context_pack.get("manager_context_summary") or manager_context_pack.get("manager_context")
-        assert manager_context["candidate_attachment_targets"][0]["target_object_id"] == "77"
+        packet = payload["manager_context_packet_v1"]
+        if isinstance(packet, dict):
+            target = packet["target_candidates"]["for_correction_or_removal"][0]
+            assert target["target_object_id"] == "77"
+            assert target["source"] == "retrieved_meal_record"
+            assert target["attachment_disposition_hint"] == "attach_existing_thread"
+            assert packet["target_candidates"]["mutation_authority"] is False
+            assert packet["active_day_state"]["read_only"] is True
+        else:
+            context = payload["phase_a_current_turn_context"]
+            assert context["candidate_attachment_targets"][0]["target_object_id"] == "77"
+            manager_context_pack = payload["phase_a_manager_context_pack"]
+            manager_context = manager_context_pack.get("manager_context_summary") or manager_context_pack.get("manager_context")
+            assert manager_context["candidate_attachment_targets"][0]["target_object_id"] == "77"
         return (
             {
                 "manager_action": "final",

@@ -49,7 +49,7 @@ _TARGET_CANDIDATE_FIELDS = (
     "target_object_type",
     "target_object_id",
     "display_name", "canonical_name", "estimated_kcal", "estimate_basis",
-    "confidence_tier", "source", "evidence_role", "uniqueness_status",
+    "confidence", "confidence_tier", "source", "evidence_role", "uniqueness_status", "attachment_disposition_hint",
 )
 _TARGET_CANDIDATE_BOOL_FIELDS = ("removable", "eligible")
 

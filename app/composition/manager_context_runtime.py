@@ -155,6 +155,7 @@ def build_runtime_manager_context_packet_v1(
     )
     target_candidates = [
         *active_meal_basis_target_candidates(active_meal_basis),
+        *list(current_turn_context.candidate_attachment_targets or []),
         *list(current_turn_context.recent_item_targets or []),
     ]
     packet_context = (

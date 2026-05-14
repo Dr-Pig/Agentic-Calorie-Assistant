@@ -15,7 +15,6 @@ from app.shared.infra.models import MessageBuffer
 from .conversation_state_loader import load_conversation_state
 from app.text_integrity import sanitize_text_structure, sanitize_text_value
 
-
 @dataclass(frozen=True)
 class V2ResolvedState:
     user_external_id: str
@@ -147,13 +146,14 @@ def _target_meal_reference(*, active_meal: dict[str, Any] | None, conversation_s
 
 
 def _overshoot_posture(current_budget_view: Any) -> dict[str, Any]:
+    remaining_kcal = int(current_budget_view.remaining_kcal or 0) if int(current_budget_view.budget_kcal or 0) > 0 else None
     return {
         "budget_kcal": int(current_budget_view.budget_kcal or 0),
         "consumed_kcal_before": int(current_budget_view.consumed_kcal or 0),
         "predicted_consumed_kcal_after": int(current_budget_view.consumed_kcal or 0),
-        "predicted_remaining_kcal_after": int(current_budget_view.remaining_kcal or 0),
-        "overshoot_detected": int(current_budget_view.remaining_kcal or 0) < 0,
-        "overshoot_kcal": abs(min(int(current_budget_view.remaining_kcal or 0), 0)),
+        "predicted_remaining_kcal_after": remaining_kcal,
+        "overshoot_detected": remaining_kcal is not None and remaining_kcal < 0,
+        "overshoot_kcal": abs(min(remaining_kcal, 0)) if remaining_kcal is not None else 0,
     }
 
 
@@ -249,13 +249,13 @@ def _injected_context(
             "local_date": current_budget_view.local_date,
             "budget_kcal": int(current_budget_view.budget_kcal or 0),
             "consumed_kcal": int(current_budget_view.consumed_kcal or 0),
-            "remaining_kcal": int(current_budget_view.remaining_kcal or 0),
+            "remaining_kcal": int(current_budget_view.remaining_kcal or 0) if has_active_plan else None,
             "active_meal_count": int(current_budget_view.active_meal_count or 0),
             "has_active_plan": has_active_plan,
             "has_day_budget_ledger": has_day_budget_ledger,
             "ledger_last_recomputed_at": ledger_last_recomputed_at,
             "no_plan_posture": "not_applicable" if has_active_plan else "onboarding_required",
-            "overshoot_status": "overshoot" if int(current_budget_view.remaining_kcal or 0) < 0 else "within_budget",
+            "overshoot_status": "not_applicable" if not has_active_plan else "overshoot" if int(current_budget_view.remaining_kcal or 0) < 0 else "within_budget",
             "freshness_status": "current_turn",
         },
         "ACTIVE_BODY_PLAN": {

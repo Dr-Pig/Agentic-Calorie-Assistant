@@ -208,6 +208,42 @@ def test_runtime_manager_context_packet_loads_same_day_pending_draft_pin() -> No
     }
 
 
+def test_runtime_manager_context_packet_includes_history_expansion_targets() -> None:
+    context = _context().model_copy(
+        update={
+            "candidate_attachment_targets": [
+                {
+                    "target_object_type": "meal_thread",
+                    "target_object_id": "77",
+                    "source": "history_expansion",
+                    "confidence": "high",
+                    "attachment_disposition_hint": "attach_existing_thread",
+                }
+            ]
+        }
+    )
+
+    packet = build_runtime_manager_context_packet_v1(
+        db=None,
+        current_turn_context=context,
+        user_external_id="context-user",
+        local_date="2026-05-04",
+        session_id="session-1",
+    )
+
+    target = packet["target_candidates"]["for_correction_or_removal"][0]
+    assert target == {
+        "target_object_type": "meal_thread",
+        "target_object_id": "77",
+        "source": "history_expansion",
+        "confidence": "high",
+        "attachment_disposition_hint": "attach_existing_thread",
+        "uniqueness_status": "candidate",
+        "read_only": True,
+        "mutation_authority": False,
+    }
+
+
 def test_runtime_manager_context_packet_exposes_active_meal_estimate_basis_read_only() -> None:
     engine, db = _session()
     try:

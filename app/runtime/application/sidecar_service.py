@@ -20,17 +20,51 @@ def build_deterministic_sidecar(
         today["budget_kcal"] = 0
         today["remaining_kcal"] = 0
         today["adjustment_kcal"] = 0
+    macro_summary_supplied = bool(macro)
     if not macro:
         macro = {
-            "protein_g": int(today.get("consumed_protein") or 0),
-            "carbs_g": int(today.get("consumed_carbs") or 0),
-            "fat_g": int(today.get("consumed_fat") or 0),
-            "display_status": "show" if bool(today.get("show_macro")) else "hide",
-            "guard_reason": str(today.get("macro_guard_reason") or "no_macro_data"),
             "macro_kcal_delta": 0,
         }
     else:
         macro.setdefault("macro_kcal_delta", 0)
+    today_display_status = "show" if bool(today.get("show_macro")) else "hide"
+    summary_display_status = str(macro.get("display_status") or today_display_status)
+    display_status = "show" if today_display_status == "show" and summary_display_status == "show" else "hide"
+    if macro_summary_supplied and summary_display_status == "hide":
+        guard_reason = str(macro.get("guard_reason") or "no_macro_data")
+        protein_g = int(macro.get("protein_g") or 0)
+        carbs_g = int(macro.get("carbs_g") or 0)
+        fat_g = int(macro.get("fat_g") or 0)
+    else:
+        guard_reason = (
+            str(today.get("macro_guard_reason") or "no_macro_data")
+            if today_display_status == "hide"
+            else str(macro.get("guard_reason") or today.get("macro_guard_reason") or "no_macro_data")
+        )
+        protein_g = int(
+            macro.get("protein_g")
+            if macro.get("protein_g") is not None
+            else today.get("consumed_protein") or 0
+        )
+        carbs_g = int(
+            macro.get("carbs_g")
+            if macro.get("carbs_g") is not None
+            else today.get("consumed_carbs") or 0
+        )
+        fat_g = int(
+            macro.get("fat_g")
+            if macro.get("fat_g") is not None
+            else today.get("consumed_fat") or 0
+        )
+    macro.update(
+        {
+            "protein_g": protein_g,
+            "carbs_g": carbs_g,
+            "fat_g": fat_g,
+            "display_status": display_status,
+            "guard_reason": guard_reason,
+        }
+    )
     return {
         "ui": {
             "body_plan": body_plan,

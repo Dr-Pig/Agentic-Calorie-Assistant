@@ -152,7 +152,8 @@ def test_resolved_state_no_plan_budget_snapshot_preserves_no_ledger_posture() ->
     assert budget["has_day_budget_ledger"] is False
     assert budget["no_plan_posture"] == "onboarding_required"
     assert budget["freshness_status"] == "current_turn"
-    assert budget["remaining_kcal"] == 0
+    assert budget["remaining_kcal"] is None
+    assert budget["overshoot_status"] == "not_applicable"
 
 
 def test_resolved_state_budget_snapshot_reports_active_plan_and_ledger_freshness() -> None:
