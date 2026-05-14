@@ -56,6 +56,7 @@ This entry is an operating layer, not a new semantic owner.
 - Provider, model, transport, DB, and storage quirks must not become product semantics.
 - Split by reason to change, not file length alone.
 - Fake providers, test helpers, and local bridges must not become hidden semantic owners.
+- Manager semantic ownership is mandatory for composition sufficiency, estimability, follow-up necessity, target attachment, correction/removal target, and final action. Deterministic runtime may validate, reject, downgrade, hide disallowed facts, block mutation, or request one bounded post-Manager repair round; it must not use raw user text, food names, keyword heuristics, fixture labels, or case IDs to decide those semantics before the Manager pass. Active runtime must not synthesize fallback/shadow 400 kcal or macro packets; missing approved nutrition evidence is represented as evidence unavailable, not as a default estimate.
 
 ## Read Order
 

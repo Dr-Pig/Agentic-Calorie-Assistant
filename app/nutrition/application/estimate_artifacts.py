@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import os
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -11,9 +10,6 @@ from app.nutrition.application.fooddb_macro_contract import (
     APPROVED_PACKET_READY_SCHEMA_VERSION,
     APPROVED_PACKET_READY_SOURCE_QUALITY,
     MACRO_CONTRACT,
-)
-from app.nutrition.application.local_component_stub_catalog import (
-    component_estimates_from_manager_listed_items,
 )
 from ...shared.contracts.common import EstimateRequest
 from ...shared.contracts.intake import ComponentEstimate, EstimatePayload
@@ -26,90 +22,12 @@ class EstimatedNutritionArtifact:
     payload: EstimatePayload
 
 
-def shadow_stub_estimate_enabled(*, provider: Any) -> bool:
-    if os.getenv("V2_INTAKE_TURN_ALLOW_STUB_ESTIMATE", "").strip() == "1":
-        return True
-    readiness = provider.readiness() if hasattr(provider, "readiness") else {}
-    return readiness.get("configured") is not True
-
-
-def _shadow_stub_components(
-    raw_user_input: str,
-    *,
-    manager_semantic_decision: Any | None = None,
-) -> list[ComponentEstimate]:
-    listed_items = getattr(manager_semantic_decision, "listed_items", None)
-    manager_components = component_estimates_from_manager_listed_items(listed_items)
-    if manager_components:
-        return manager_components
-    normalized = raw_user_input.strip().lower()
-    chicken_rice = "\u96de\u8089\u98ef"
-    soup = "\u6e6f"
-    less = "\u5c11\u4e00\u9ede"
-    if chicken_rice in raw_user_input and soup in raw_user_input:
-        return [
-            ComponentEstimate(name=chicken_rice, quantity_hint="1 bowl", estimated_kcal=500, protein_g=30, carb_g=64, fat_g=15),
-            ComponentEstimate(name=soup, quantity_hint="1 bowl", estimated_kcal=150, protein_g=5, carb_g=6, fat_g=4),
-        ]
-    if chicken_rice in raw_user_input and less in raw_user_input:
-        return [
-            ComponentEstimate(name=chicken_rice, quantity_hint="smaller portion", estimated_kcal=320, protein_g=24, carb_g=42, fat_g=9),
-        ]
-    if chicken_rice in raw_user_input:
-        return [
-            ComponentEstimate(name=chicken_rice, quantity_hint="1 bowl", estimated_kcal=500, protein_g=30, carb_g=64, fat_g=15),
-        ]
-    if "滷肉飯" in raw_user_input and "無糖豆漿" in raw_user_input:
-        return [
-            ComponentEstimate(name="滷肉飯", quantity_hint="1 bowl", estimated_kcal=550, protein_g=18, carb_g=58, fat_g=24),
-            ComponentEstimate(name="無糖豆漿", quantity_hint="1 cup", estimated_kcal=80, protein_g=7, carb_g=4, fat_g=4),
-        ]
-    if "排骨便當" in raw_user_input and "無糖綠茶" in raw_user_input and "茶葉蛋" in raw_user_input:
-        return [
-            ComponentEstimate(name="排骨便當", quantity_hint="1 box", estimated_kcal=720, protein_g=28, carb_g=78, fat_g=30),
-            ComponentEstimate(name="無糖綠茶", quantity_hint="1 cup", estimated_kcal=0, protein_g=0, carb_g=0, fat_g=0),
-            ComponentEstimate(name="茶葉蛋", quantity_hint="1 egg", estimated_kcal=80, protein_g=7, carb_g=1, fat_g=5),
-        ]
-    if "牛肉麵" in raw_user_input and "豆漿" in raw_user_input:
-        soy = "有糖豆漿" if "有糖" in raw_user_input else "無糖豆漿"
-        soy_kcal = 150 if "有糖" in raw_user_input else 80
-        soy_carbs = 18 if "有糖" in raw_user_input else 4
-        return [
-            ComponentEstimate(name="牛肉麵", quantity_hint="1 bowl", estimated_kcal=600, protein_g=26, carb_g=66, fat_g=24),
-            ComponentEstimate(name=soy, quantity_hint="1 cup", estimated_kcal=soy_kcal, protein_g=7, carb_g=soy_carbs, fat_g=4),
-        ]
-    if "牛肉麵" in raw_user_input:
-        return [
-            ComponentEstimate(name="牛肉麵", quantity_hint="1 bowl", estimated_kcal=600, protein_g=26, carb_g=66, fat_g=24),
-        ]
-    if "chicken sandwich" in normalized:
-        return [
-            ComponentEstimate(name="chicken sandwich", quantity_hint="1 sandwich", estimated_kcal=480, protein_g=24, carb_g=35, fat_g=14),
-        ]
-    if "sandwich" in normalized:
-        return [
-            ComponentEstimate(name="sandwich", quantity_hint="1 sandwich", estimated_kcal=430, protein_g=18, carb_g=38, fat_g=13),
-        ]
-    if "milk tea" in normalized or "bubble tea" in normalized:
-        return [
-            ComponentEstimate(name="bubble milk tea", quantity_hint="1 cup", estimated_kcal=350, protein_g=4, carb_g=56, fat_g=10),
-        ]
-    if "salad" in normalized:
-        return [
-            ComponentEstimate(name="salad", quantity_hint="1 bowl", estimated_kcal=260, protein_g=14, carb_g=18, fat_g=12),
-        ]
-    return [
-        ComponentEstimate(name=raw_user_input.strip() or "meal", quantity_hint="1 serving", estimated_kcal=400, protein_g=18, carb_g=42, fat_g=12),
-    ]
-
-
-def build_shadow_stub_artifact(
+def build_evidence_unavailable_artifact(
     db: Session,
     *,
     user_external_id: str,
     raw_user_input: str,
     local_date: str,
-    manager_semantic_decision: Any | None = None,
 ) -> EstimatedNutritionArtifact:
     request = EstimateRequest(
         text=raw_user_input,
@@ -119,40 +37,57 @@ def build_shadow_stub_artifact(
     runtime_context = load_request_runtime_context(
         request=request,
         db=db,
-        provider=type("StubProvider", (), {"readiness": lambda self: {"configured": False}})(),
+        provider=type("EvidenceUnavailableProvider", (), {"readiness": lambda self: {"configured": True}})(),
     )
-    component_estimates = _shadow_stub_components(
-        raw_user_input,
-        manager_semantic_decision=manager_semantic_decision,
-    )
-    meal_title = " + ".join(component.name for component in component_estimates)
-    kcal = sum(int(component.estimated_kcal or 0) for component in component_estimates)
-    protein_g = sum(int(component.protein_g or 0) for component in component_estimates)
-    carb_g = sum(int(component.carb_g or 0) for component in component_estimates)
-    fat_g = sum(int(component.fat_g or 0) for component in component_estimates)
-    reply_text = "; ".join(f"{component.name} {int(component.estimated_kcal or 0)} kcal" for component in component_estimates)
     payload = EstimatePayload(
-        request_id="intake_turn-shadow-stub",
-        meal_title=meal_title,
-        components=[component.name for component in component_estimates],
-        component_estimates=component_estimates,
-        estimated_kcal=kcal,
-        protein_g=protein_g,
-        carb_g=carb_g,
-        fat_g=fat_g,
-        reply_text=f"{reply_text}. Total {kcal} kcal.",
-        action_taken="direct_answer",
-        route_target="direct_answer",
-        source_decision="ready",
-        answer_mode="direct_answer",
+        request_id="intake_execution-evidence-unavailable",
+        meal_title=raw_user_input.strip() or "meal",
+        components=[],
+        component_estimates=[],
+        estimated_kcal=0,
+        protein_g=0,
+        carb_g=0,
+        fat_g=0,
+        reply_text="",
+        action_taken="clarify_before_estimate",
+        route_target="clarify_user_private",
+        source_decision="ask_user",
+        answer_mode=None,
+        best_answer_source="evidence_unavailable",
         trace_contract={
             "local_date": local_date,
             "occurred_at": f"{local_date}T12:00:00+08:00",
             "timezone": "Asia/Taipei",
-            "shadow_stub": True,
+            "route_family": "food_logging",
+            "evidence_unavailable": True,
+            "shadow_stub": False,
+            "db_hit_type": "none",
+            "response_mode_hint": "clarify_first",
+            "reason_not_direct_answer": "nutrition_evidence_unavailable",
+            "unresolved_info": ["composition_or_approved_evidence"],
+            "missing_slots": ["composition_or_approved_evidence"],
+            "blocking_slots": ["nutrition_evidence"],
+            "canonical_write_decision": {
+                "can_write_canonical": False,
+                "source": "evidence_unavailable",
+                "failure_family": "nutrition_evidence_unavailable",
+                "blockers": ["no_approved_runtime_evidence"],
+            },
             "macro_display_authorized": False,
             "macro_visibility_status": "hidden_missing_source",
             "macro_guard_reason": "no_macro_data",
+            "grounding_summary": {
+                "exact_truth_present": False,
+                "retrieved_knowledge_count": 0,
+                "evidence_roles": [],
+            },
+            "reasoning_state": {
+                "exact_lane_count": 0,
+                "search_attempt_count": 0,
+            },
+            "search_attempt_count": 0,
+            "search_query": None,
+            "websearch_evidence_used": False,
         },
     )
     return EstimatedNutritionArtifact(

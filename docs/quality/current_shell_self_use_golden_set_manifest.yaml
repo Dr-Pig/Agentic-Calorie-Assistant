@@ -27,13 +27,16 @@ global_invariants:
     rule: Fixtures may seed state only; runtime trace or correlated browser trace must prove the behavior.
   - invariant_id: G1_semantic_owner
     gate: hard
-    rule: Manager owns semantic intent, action, attachment, correction/removal target, and final action.
+    rule: Manager owns semantic intent, composition sufficiency, estimability, ask-followup necessity, action, attachment, correction/removal target, and final action.
+  - invariant_id: G1A_no_pre_manager_estimability_shortcut
+    gate: hard
+    rule: Deterministic runtime must not inspect raw user text, food names, case IDs, fixtures, or keyword heuristics before the Manager pass to decide that food is not estimable, composition is unknown, a follow-up is needed, or a specific final action should happen.
   - invariant_id: G2_context_engineering
     gate: hard
     rule: Context packets provide current turn, session, pending state, recent threads, candidates, and read-model summaries without choosing final semantics.
   - invariant_id: G3_evidence_and_food_truth
     gate: hard
-    rule: Nutrition and source facts come only from user facts, approved packets, approved synthesis, or read models.
+    rule: Nutrition and source facts come only from user facts, approved packets, approved synthesis, or read models; active runtime must not synthesize fallback/shadow 400 kcal or macro packets when evidence is unavailable.
   - invariant_id: G4_manager_react_loop
     gate: hard
     rule: Manager pass1, tools, compact packets, pass2, guard, mutation, renderer basis, and response basis must be traceable.
@@ -84,6 +87,8 @@ grading_policy:
     holdout_coverage_required_before_self_use_closeout: true
   deterministic_hard_fail:
     - semantic_owner_violation
+    - deterministic_pre_manager_estimability_shortcut
+    - active_shadow_or_fallback_estimate_path
     - missing_blocking_trace_layer
     - illegal_mutation
     - invented_kcal_macro_remaining_or_source_exactness
@@ -221,12 +226,13 @@ cases:
       - turn: 1
         utterance_zh_tw: 早餐吃早餐店鐵板麵套餐
     seed_state: {body_plan: active, fooddb_packets: no_approved_teppan_combo_anchor}
-    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G5_nutrition_synthesis, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G9_pending_and_durability, G10_observability_and_latency, G11_activation_boundary]
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G1A_no_pre_manager_estimability_shortcut, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G5_nutrition_synthesis, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G9_pending_and_durability, G10_observability_and_latency, G11_activation_boundary]
     required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, filtered_tool_plan, executed_tools, compact_packets, manager_pass_2_synthesis, guard_result, mutation_result, final_response_basis, latency_cost_cache_usage]
     expected_runtime:
       workflow_effect: ask_followup
       mutation_allowed: false
       fallback_400_allowed: false
+      pre_manager_estimability_shortcut_allowed: false
       pending_followup_saved: true
       assumed_slot_question_required: true
     ui_assertions: {today_consumed_updates: false, pending_question_visible: true, frontend_nutrition_math_allowed: false}

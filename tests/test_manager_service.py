@@ -301,6 +301,7 @@ async def test_run_intake_manager_executes_tools_and_feeds_results_into_next_rou
             "manager_action": "call_tools",
             "final_action": None,
             "workflow_effect": None,
+            "guard_feedback_input": {},
             "tool_calls": [{"name": "budget.get_today_summary"}],
             "decision_payload": {"manager_action": "call_tools", "tool_calls": [{"name": "budget.get_today_summary"}]},
             "provider_trace": {"source": "fake", "call_index": 1},
@@ -336,6 +337,7 @@ async def test_run_intake_manager_executes_tools_and_feeds_results_into_next_rou
             "manager_action": "final",
             "final_action": "commit",
             "workflow_effect": "commit",
+            "guard_feedback_input": {},
             "tool_calls": [],
             "decision_payload": {
                 "manager_action": "final",
@@ -1029,6 +1031,40 @@ async def test_run_intake_manager_sends_compact_tool_results_to_provider_only() 
     assert "raw_candidates" not in str(prompt_tool_result)
     assert "debug_blob" not in str(prompt_tool_result)
     assert result.tool_results[0]["evidence"]["nutrition_payload"]["trace_contract"]["web_runtime_trace"]["debug_blob"]
+
+
+def test_compact_tool_results_suppresses_shadow_stub_kcal_as_allowed_fact() -> None:
+    compact = compact_tool_results_prompt_payload(
+        [
+            {
+                "tool_name": "estimate_nutrition",
+                "evidence": {
+                    "nutrition_payload": {
+                        "meal_title": "breakfast combo",
+                        "estimated_kcal": 400,
+                        "reply_text": "breakfast combo 400 kcal",
+                        "trace_contract": {
+                            "shadow_stub": True,
+                            "canonical_write_decision": {
+                                "can_write_canonical": False,
+                                "failure_family": "nutrition_evidence_not_commit_eligible",
+                            },
+                            "macro_visibility_status": "hidden_missing_source",
+                        },
+                    }
+                },
+                "confidence": "available",
+                "failure_family": None,
+            }
+        ]
+    )
+
+    prompt_nutrition = compact[0]["evidence"]["nutrition_payload"]
+    assert "estimated_kcal" not in prompt_nutrition
+    assert "reply_text" not in prompt_nutrition
+    assert prompt_nutrition["trace_contract"]["shadow_stub"] is True
+    assert prompt_nutrition["trace_contract"]["canonical_write_decision"]["can_write_canonical"] is False
+    assert prompt_nutrition["disallowed_fact_policy"] == "nutrition_payload_values_hidden_until_commit_eligible"
 
 
 @pytest.mark.asyncio

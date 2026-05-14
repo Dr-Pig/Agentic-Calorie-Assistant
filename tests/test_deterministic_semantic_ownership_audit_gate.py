@@ -17,6 +17,10 @@ def test_audit_report_mode_remains_non_blocking_for_known_legacy_inventory() -> 
     assert report["fails_build"] is False
     assert report["gate_stage"] == "report"
     assert report["semantic_owner_policy"]["legacy_scan_matches_are_supporting_evidence_only"] is True
+    assert (
+        report["semantic_owner_policy"]["manager_owns_composition_estimability_and_followup_necessity_before_guard"]
+        is True
+    )
 
 
 def test_audit_zero_high_risk_stage_passes_when_active_runtime_is_clean() -> None:
@@ -70,6 +74,47 @@ def rewrite(payload):
     assert report["fails_build"] is True
     markers = {finding["marker"] for finding in report["unauthorized_findings"]}
     assert {"payload.follow_up_needed =", "payload.action_taken ="} <= markers
+
+
+def test_audit_detects_synthetic_pre_manager_estimability_shortcut(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(audit, "ROOT", tmp_path)
+    _write(
+        tmp_path / "app/composition/intake_runtime.py",
+        """
+def run(seed):
+    initial_guard_feedback = {"failure_family": "nutrition_evidence_not_commit_eligible"}
+    return initial_guard_feedback
+""",
+    )
+
+    report = audit.build_report(stage="active-runtime-zero")
+
+    assert report["fails_build"] is True
+    assert any(
+        finding["risk_id"] == "pre_manager_estimability_or_followup_shortcut"
+        for finding in report["unauthorized_findings"]
+    )
+
+
+def test_audit_detects_synthetic_active_shadow_fallback_estimate(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(audit, "ROOT", tmp_path)
+    _write(
+        tmp_path / "app/composition/intake_estimation_tools.py",
+        """
+from app.nutrition.application.estimate_artifacts import build_shadow_stub_artifact
+
+def estimate():
+    return build_shadow_stub_artifact()
+""",
+    )
+
+    report = audit.build_report(stage="active-runtime-zero")
+
+    assert report["fails_build"] is True
+    assert any(
+        finding["risk_id"] == "active_shadow_or_fallback_estimate_path"
+        for finding in report["unauthorized_findings"]
+    )
 
 
 def test_audit_detects_synthetic_legacy_resolution_pipeline(tmp_path, monkeypatch) -> None:

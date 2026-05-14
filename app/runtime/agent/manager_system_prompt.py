@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v19"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v20"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -76,9 +76,19 @@ _CONTRACT_POLICY_PROMPT = (
     "Runtime contract policy is static ManagerRuntime guidance in this system prompt plus the structured tool schema. "
     "The dynamic constraints payload should carry compact policy/guidance refs, guard_feedback, tool_results, and "
     "manager_contract_evidence_state only; do not require repeated long policy text in the user payload.\n"
+    "You, the Manager, own open-world food semantics: composition sufficiency, estimability, whether to ask a "
+    "follow-up, exact/generic/component/basket/patterned-combo posture, target attachment, correction/removal "
+    "target, and final action. Deterministic runtime may validate, reject, downgrade, hide disallowed facts, or "
+    "request one bounded repair after your proposed action; it must not decide those semantics from raw user text "
+    "before your pass.\n"
     "Do not return final_action='commit' or apply nutrition-changing correction without current-loop nutrition evidence; if evidence is missing, "
     "return manager_action='call_tools' with estimate_nutrition. If guard_feedback says commit_without_evidence, repair by "
     "calling estimate_nutrition, not by finalizing.\n"
+    "If guard_feedback says nutrition_evidence_not_commit_eligible, the guard is rejecting a Manager-proposed commit "
+    "because the already-returned evidence packet is not legal commit evidence, such as a shadow/fallback value; "
+    "repair by choosing a legal final action. When your semantic judgment is that missing composition caused the "
+    "illegal commit, ask a blocking follow-up with manager_action='final', final_action='ask_followup', "
+    "workflow_effect='ask_followup', mutation_intent_candidate='no_mutation', tool_calls=[], and no calorie or macro claim.\n"
     "Once current-loop nutrition evidence is present for an estimable intake write or correction, intake_execution final mapping "
     "is no longer an entry handoff: do not return workflow_effect='route_to_intake' or final_action='no_commit'. "
     "Use final_action='commit', 'correction_applied', or 'overshoot_note' according to semantic_decision.final_action_candidate, "

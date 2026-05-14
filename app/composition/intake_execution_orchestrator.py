@@ -14,8 +14,8 @@ from sqlalchemy.orm import Session
 
 from app.composition.intake_execution_response import build_intake_execution_response, finalized_budget_summary
 from app.composition.intake_entry_handoff import execute_entry_handoff_seed
+from app.composition.intake_commit_guard_repair import commit_boundary_guard_repair_outcome
 from app.composition.manager_context_runtime import build_runtime_manager_context_packet_v1
-from app.composition.request_runtime_context import load_request_runtime_context
 from app.composition.remove_item_target_evidence import (
     build_remove_item_target_evidence_artifact,
     remove_item_target_evidence_ready,
@@ -27,6 +27,7 @@ from app.composition.intake_manager_tool_batch import (
     nutrition_tool_output,
 )
 from app.composition.intake_manager_target_validation import validate_final_manager_target_attachment
+from app.composition.manager_ask_followup_draft import build_manager_ask_followup_draft_artifact
 from app.composition.state_resolver import resolve_intake_state
 from app.composition.commit_boundary_preflight import run_commit_boundary_preflight
 from app.intake.application.context_injection_policy import build_manager_context_pack
@@ -43,14 +44,11 @@ from app.composition.intake_execution_persistence import initial_state_mutation_
 from app.intake.application.intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool
 from app.intake.application.phase_a_runtime_context import prepare_phase_a_runtime_context
 from app.nutrition.application.manager_policy_hints import nutrition_manager_policy_hints
-from app.nutrition.application.estimate_artifacts import EstimatedNutritionArtifact
 from app.nutrition.application.owner_lineage_trace import attach_owner_lineage_trace
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
 from app.runtime.application.manager_service import run_intake_manager
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
-from app.shared.contracts.common import EstimateRequest
-from app.shared.contracts.intake import EstimatePayload
 
 
 _MANAGER_LOOP_GUARD_PERSISTENCE_ACTIONS = PERSISTENCE_EFFECT_ACTIONS - frozenset({"ask_followup"})
@@ -71,100 +69,6 @@ def _manager_result_payload(manager_result: Any) -> dict[str, Any]:
         "answer_contract": dict(getattr(manager_result, "answer_contract", {}) or {}),
         "semantic_decision": dict(getattr(manager_result, "semantic_decision", {}) or {}),
     }
-
-
-def _manager_ask_followup_question(manager_result: Any) -> str:
-    answer_contract = dict(getattr(manager_result, "answer_contract", {}) or {})
-    semantic_decision = dict(getattr(manager_result, "semantic_decision", {}) or {})
-    return str(
-        answer_contract.get("followup_question")
-        or semantic_decision.get("followup_question")
-        or ""
-    ).strip()
-
-
-def _manager_ask_followup_support_ready(manager_result: Any) -> bool:
-    if str(getattr(manager_result, "manager_action", "") or "") != "final":
-        return False
-    if str(getattr(manager_result, "final_action", "") or "") != "ask_followup":
-        return False
-    semantic_decision = dict(getattr(manager_result, "semantic_decision", {}) or {})
-    semantic_final_action = str(semantic_decision.get("final_action_candidate") or "")
-    semantic_workflow = str(semantic_decision.get("workflow_effect") or "")
-    if semantic_final_action and semantic_final_action != "ask_followup":
-        return False
-    if semantic_workflow and semantic_workflow != "ask_followup":
-        return False
-    if str(semantic_decision.get("mutation_intent_candidate") or "no_mutation") not in {"", "no_mutation"}:
-        return False
-    return bool(_manager_ask_followup_question(manager_result))
-
-
-def _build_manager_ask_followup_draft_artifact(
-    db: Session,
-    *,
-    user_external_id: str,
-    raw_user_input: str,
-    local_date: str,
-    request_id: str,
-    manager_result: Any,
-) -> EstimatedNutritionArtifact | None:
-    if not _manager_ask_followup_support_ready(manager_result):
-        return None
-
-    followup_question = _manager_ask_followup_question(manager_result)
-    answer_contract = dict(getattr(manager_result, "answer_contract", {}) or {})
-    semantic_decision = dict(getattr(manager_result, "semantic_decision", {}) or {})
-    request = EstimateRequest(text=raw_user_input, allow_search=False, user_id=user_external_id)
-    runtime_context = load_request_runtime_context(
-        request=request,
-        db=db,
-        provider=type("ManagerAskFollowupDraftProvider", (), {"readiness": lambda self: {"configured": False}})(),
-    )
-    meal_title = str(
-        semantic_decision.get("meal_title")
-        or answer_contract.get("meal_title")
-        or raw_user_input
-        or "pending meal"
-    ).strip()
-    payload = EstimatePayload(
-        request_id=request_id,
-        meal_title=meal_title or "pending meal",
-        estimated_kcal=0,
-        source_decision="ask_user",
-        answer_mode=None,
-        action_taken="clarify_before_estimate",
-        route_target="clarify_user_private",
-        followup_question=followup_question,
-        follow_up_needed=True,
-        follow_up_reasoning="manager_final_ask_followup",
-        reply_text=str(answer_contract.get("reply_text") or followup_question),
-        trace_contract={
-            "local_date": local_date,
-            "occurred_at": f"{local_date}T12:00:00+08:00",
-            "timezone": "Asia/Taipei",
-            "response_mode_hint": "clarify_first",
-            "followup_question": followup_question,
-            "missing_slots": ["composition_details"],
-            "blocking_slots": ["composition_details"],
-            "unresolved_info": ["composition_details"],
-            "route_family": "component_driven_meal",
-            "canonical_write_decision": {
-                "can_write_canonical": False,
-                "source": "manager_ask_followup_draft",
-            },
-            "manager_ask_followup_draft_contract": {
-                "source": "manager_structured_final_action",
-                "manager_final_action": "ask_followup",
-                "nutrition_evidence_required": False,
-                "deterministic_role": "persist_manager_owned_pending_followup_only",
-                "raw_text_semantic_inference": False,
-                "manager_semantic_decision": semantic_decision,
-            },
-        },
-        quality_signals={"estimate_mode": "ask_followup_only"},
-    )
-    return EstimatedNutritionArtifact(request=request, runtime_context=runtime_context, payload=payload)
 
 
 async def process_intake_execution_turn(
@@ -353,6 +257,16 @@ async def process_intake_execution_turn(
                 "failure_family": "commit_without_evidence",
                 "phase_a_transition_guard_preflight": preflight_trace,
             }
+        repair_outcome = commit_boundary_guard_repair_outcome(
+            payload=payload,
+            final_action=final_action,
+            active_body_plan_present=bool(getattr(state_before, "onboarding_ready", False)),
+            correction_target=tool_state["correction_target"],
+            manager_semantic_decision=dict(manager_payload.get("semantic_decision") or {}),
+            transition_preflight_trace=preflight_trace,
+        )
+        if repair_outcome is not None:
+            return repair_outcome
         return {"ok": True, "phase_a_transition_guard_preflight": preflight_trace}
 
     entry_handoff_seed = await execute_entry_handoff_seed(
@@ -427,18 +341,18 @@ async def process_intake_execution_turn(
         )
         tool_state["nutrition_artifact"] = nutrition_artifact
         payload = nutrition_artifact.payload
-    if payload is None:
-        nutrition_artifact = _build_manager_ask_followup_draft_artifact(
-            db,
-            user_external_id=user_external_id,
-            raw_user_input=raw_user_input,
-            local_date=local_date,
-            request_id=request_id,
-            manager_result=manager_result,
-        )
-        if nutrition_artifact is not None:
-            tool_state["nutrition_artifact"] = nutrition_artifact
-            payload = nutrition_artifact.payload
+    manager_followup_artifact = build_manager_ask_followup_draft_artifact(
+        db,
+        user_external_id=user_external_id,
+        raw_user_input=raw_user_input,
+        local_date=local_date,
+        request_id=request_id,
+        manager_result=manager_result,
+    )
+    if manager_followup_artifact is not None:
+        nutrition_artifact = manager_followup_artifact
+        tool_state["nutrition_artifact"] = nutrition_artifact
+        payload = nutrition_artifact.payload
     apply_final_action_to_payload(
         payload=payload,
         raw_user_input=raw_user_input,
@@ -466,7 +380,11 @@ async def process_intake_execution_turn(
     phase_a_trace = dict(phase_a_trace or {})
     if manager_triggered_history_trace is not None:
         phase_a_trace["manager_triggered_history_expansion"] = manager_triggered_history_trace
-    phase_a_trace["phase_a_commit_boundary_preflight"] = commit_boundary_preflight.trace_payload()
+    commit_boundary_trace_payload = commit_boundary_preflight.trace_payload()
+    guard_blocked_commit_preflight = dict(manager_result.guard_outcome.get("phase_a_commit_boundary_preflight") or {})
+    if manager_result.request_failure_family and guard_blocked_commit_preflight.get("blocked") is True:
+        commit_boundary_trace_payload = guard_blocked_commit_preflight
+    phase_a_trace["phase_a_commit_boundary_preflight"] = commit_boundary_trace_payload
     if commit_boundary_preflight.blocked:
         manager_trace = dict(getattr(manager_result, "trace", {}) or {})
         manager_trace["phase_a_commit_boundary_preflight"] = commit_boundary_preflight.trace_payload()
@@ -483,7 +401,11 @@ async def process_intake_execution_turn(
         )
 
     persistence_result = None
-    if not commit_boundary_preflight.blocked:
+    guard_blocked_for_side_effects = bool(manager_result.request_failure_family) and manager_result.final_action == "no_commit"
+    persistence_allowed = not commit_boundary_preflight.blocked and not (
+        guard_blocked_for_side_effects
+    )
+    if persistence_allowed:
         persistence_result = persist_intake_execution_artifact(
             db,
             nutrition_artifact=nutrition_artifact,
@@ -511,7 +433,9 @@ async def process_intake_execution_turn(
                 refreshed_tool_results[index] = refreshed_nutrition_output
                 break
     tool_outputs = {"tool_results": refreshed_tool_results}
-    if budget_summary is not None and (state_mutation_summary.get("canonical_commit") or commit_boundary_preflight.blocked):
+    if budget_summary is not None and (
+        state_mutation_summary.get("canonical_commit") or commit_boundary_preflight.blocked or guard_blocked_for_side_effects
+    ):
         budget_summary = finalized_budget_summary(
             budget_summary=budget_summary,
             state_before=state_before,

@@ -354,6 +354,128 @@ class _Provider:
         )
 
 
+class _RepairingProvider:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    def readiness(self) -> dict[str, object]:
+        return {"configured": True}
+
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        self.calls.append(dict(kwargs))
+        if len(self.calls) == 1:
+            return {"manager_action": "call_tools", "tool_calls": [{"name": "estimate_nutrition"}]}, {"source": "fake"}
+        if len(self.calls) == 2:
+            return (
+                {
+                    "manager_action": "final",
+                    "intent": "log_meal",
+                    "final_action": "commit",
+                    "workflow_effect": "commit",
+                    "target_attachment": {"mode": "new_meal"},
+                    "exactness": "estimated",
+                    "confidence": "medium",
+                    "evidence_posture": "tool_estimated",
+                    "repair_ack": False,
+                    "answer_contract": {"reply_text": "logged"},
+                    "uncertainty_posture": "bounded",
+                    "evidence_honesty_posture": "tool_estimated",
+                    "semantic_decision": {
+                        "semantic_authority": "manager_llm",
+                        "current_turn_intent": "log_meal",
+                        "target_attachment": {"mode": "new_workflow"},
+                        "workflow_effect": "commit",
+                        "final_action_candidate": "commit",
+                        "estimation_posture": "estimable",
+                        "followup_posture": "none",
+                        "mutation_intent_candidate": "canonical_write",
+                        "uncertainty_posture": "bounded_estimate",
+                        "source": "test_provider",
+                    },
+                },
+                {"source": "fake"},
+            )
+        return (
+            {
+                "manager_action": "final",
+                "intent": "log_meal",
+                "intent_type": "log_meal",
+                "final_action": "ask_followup",
+                "workflow_effect": "ask_followup",
+                "target_attachment": {"mode": "new_workflow"},
+                "exactness": "unknown",
+                "confidence": "low",
+                "evidence_posture": "composition_unknown",
+                "repair_ack": True,
+                "answer_contract": {
+                    "reply_text": "I need the combo contents first.",
+                    "followup_question": "What did the combo include?",
+                },
+                "uncertainty_posture": "composition_unknown_basket",
+                "evidence_honesty_posture": "needs_user_details",
+                "semantic_decision": {
+                    "semantic_authority": "manager_llm",
+                    "current_turn_intent": "log_meal",
+                    "target_attachment": {"mode": "new_workflow"},
+                    "workflow_effect": "ask_followup",
+                    "final_action_candidate": "ask_followup",
+                    "estimation_posture": "composition_unknown_basket",
+                    "followup_posture": "refinement_not_commit_gate",
+                    "mutation_intent_candidate": "no_mutation",
+                    "uncertainty_posture": "composition_unknown_basket",
+                    "followup_question": "What did the combo include?",
+                    "source": "test_provider_repair",
+                },
+            },
+            {"source": "fake"},
+        )
+
+
+class _FirstPassAskProvider:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    def readiness(self) -> dict[str, object]:
+        return {"configured": True}
+
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        self.calls.append(dict(kwargs))
+        return (
+            {
+                "manager_action": "final",
+                "intent": "log_meal",
+                "intent_type": "log_meal",
+                "final_action": "ask_followup",
+                "workflow_effect": "ask_followup",
+                "target_attachment": {"mode": "new_workflow"},
+                "exactness": "unknown",
+                "confidence": "low",
+                "evidence_posture": "composition_unknown",
+                "repair_ack": False,
+                "answer_contract": {
+                    "reply_text": "I need the combo contents first.",
+                    "followup_question": "What did the combo include?",
+                },
+                "uncertainty_posture": "composition_unknown_basket",
+                "evidence_honesty_posture": "needs_user_details",
+                "semantic_decision": {
+                    "semantic_authority": "manager_llm",
+                    "current_turn_intent": "log_meal",
+                    "target_attachment": {"mode": "new_workflow"},
+                    "workflow_effect": "ask_followup",
+                    "final_action_candidate": "ask_followup",
+                    "estimation_posture": "composition_unknown_basket",
+                    "followup_posture": "refinement_not_commit_gate",
+                    "mutation_intent_candidate": "no_mutation",
+                    "uncertainty_posture": "composition_unknown_basket",
+                    "followup_question": "What did the combo include?",
+                    "source": "test_provider_first_pass_ask",
+                },
+            },
+            {"source": "fake"},
+        )
+
+
 @pytest.mark.asyncio
 async def test_process_intake_execution_turn_blocks_commit_boundary_contradiction_before_persistence(
     monkeypatch: pytest.MonkeyPatch,
@@ -493,3 +615,149 @@ async def test_process_intake_execution_turn_blocks_shadow_stub_commit_before_pe
     assert result["budget_summary"]["predicted_consumed_kcal_after"] == 0
     assert result["budget_summary"]["predicted_remaining_kcal_after"] == 1312
     assert result["state_mutation_summary"]["canonical_commit"] is False
+
+
+@pytest.mark.asyncio
+async def test_process_intake_execution_turn_repairs_shadow_stub_commit_to_manager_followup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.composition import intake_execution_orchestrator as module
+
+    provider = _RepairingProvider()
+    resolved_state = _resolved_state()
+    resolved_state.current_budget_view = SimpleNamespace(
+        budget_kcal=1312,
+        consumed_kcal=0,
+        remaining_kcal=1312,
+    )
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="I ate a breakfast shop combo",
+        resolved_state=resolved_state,
+    )
+    nutrition_artifact = SimpleNamespace(
+        payload=_payload(estimated_kcal=400),
+    )
+    nutrition_artifact.payload.trace_contract["shadow_stub"] = True
+    persisted: list[object] = []
+
+    async def _fake_execute_manager_tool_calls(**kwargs: object) -> list[dict[str, object]]:
+        kwargs["tool_state"]["nutrition_artifact"] = nutrition_artifact
+        return [{"tool_name": "estimate_nutrition", "failure_family": None}]
+
+    monkeypatch.setattr(module, "execute_manager_tool_calls", _fake_execute_manager_tool_calls)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", lambda *args, **kwargs: persisted.append((args, kwargs)))
+    monkeypatch.setattr(
+        module,
+        "build_intake_execution_response",
+        lambda *_, **kwargs: {
+            "manager_result": kwargs["manager_result"],
+            "persistence_result": kwargs["persistence_result"],
+            "phase_a_trace": kwargs["phase_a_trace"],
+            "nutrition_payload": getattr(kwargs["nutrition_artifact"], "payload", None),
+        },
+    )
+
+    result = await module.process_intake_execution_turn(
+        None,
+        user_external_id="user-1",
+        raw_user_input="I ate a breakfast shop combo",
+        local_date="2026-04-29",
+        allow_search=False,
+        provider=provider,
+        state_before=resolved_state,
+        manager_decision=SimpleNamespace(intent_type="log_meal", tool_calls=(), llm_used=False),
+        request_id="req-shadow-stub-repair",
+        stage_timings=[],
+        current_turn_context=current_turn_context,
+        phase_a_trace={},
+    )
+
+    manager_result = result["manager_result"]
+    payload = result["nutrition_payload"]
+    assert len(provider.calls) == 3
+    assert provider.calls[2]["user_payload"]["guard_feedback"]["failure_family"] == "nutrition_evidence_not_commit_eligible"
+    assert manager_result.final_action == "ask_followup"
+    assert manager_result.workflow_effect == "ask_followup"
+    assert manager_result.repair_round_used is True
+    assert persisted
+    assert getattr(payload, "estimated_kcal", None) == 0
+    assert payload.trace_contract["manager_ask_followup_draft_contract"]["raw_text_semantic_inference"] is False
+
+
+@pytest.mark.asyncio
+async def test_entry_handoff_shadow_stub_does_not_supply_initial_guard_feedback_before_intake_provider_round(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.composition import intake_execution_orchestrator as module
+
+    provider = _FirstPassAskProvider()
+    resolved_state = _resolved_state()
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="I ate a breakfast shop combo",
+        resolved_state=resolved_state,
+    )
+    nutrition_artifact = SimpleNamespace(payload=_payload(estimated_kcal=400))
+    nutrition_artifact.payload.trace_contract["shadow_stub"] = True
+    persisted: list[object] = []
+
+    async def _fake_execute_manager_tool_calls(**kwargs: object) -> list[dict[str, object]]:
+        kwargs["tool_state"]["nutrition_artifact"] = nutrition_artifact
+        return [{"tool_name": "estimate_nutrition", "failure_family": None}]
+
+    monkeypatch.setattr(module, "execute_manager_tool_calls", _fake_execute_manager_tool_calls)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", lambda *args, **kwargs: persisted.append((args, kwargs)))
+    monkeypatch.setattr(
+        module,
+        "build_intake_execution_response",
+        lambda *_, **kwargs: {
+            "manager_result": kwargs["manager_result"],
+            "nutrition_payload": getattr(kwargs["nutrition_artifact"], "payload", None),
+        },
+    )
+    entry_manager_decision = SimpleNamespace(
+        workflow_effect="route_to_intake",
+        intent_type="log_meal",
+        target_attachment={},
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {},
+            "workflow_effect": "route_to_intake",
+            "final_action_candidate": "commit",
+            "estimation_posture": "pending_tool_call",
+            "mutation_intent_candidate": "canonical_write",
+            "uncertainty_posture": "medium",
+            "source": "entry_manager_test",
+        },
+    )
+
+    result = await module.process_intake_execution_turn(
+        None,
+        user_external_id="user-1",
+        raw_user_input="I ate a breakfast shop combo",
+        local_date="2026-04-29",
+        allow_search=False,
+        provider=provider,
+        state_before=resolved_state,
+        manager_decision=entry_manager_decision,
+        request_id="req-entry-shadow-stub-initial-repair",
+        stage_timings=[],
+        current_turn_context=current_turn_context,
+        phase_a_trace={},
+    )
+
+    manager_result = result["manager_result"]
+    payload = result["nutrition_payload"]
+    assert len(provider.calls) == 1
+    assert provider.calls[0]["user_payload"]["guard_feedback"] is None
+    assert manager_result.final_action == "ask_followup"
+    assert manager_result.repair_round_used is False
+    assert persisted
+    assert getattr(payload, "estimated_kcal", None) == 0
+    assert payload.trace_contract["manager_ask_followup_draft_contract"]["raw_text_semantic_inference"] is False

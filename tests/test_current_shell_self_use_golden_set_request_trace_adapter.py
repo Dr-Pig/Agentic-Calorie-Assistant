@@ -193,6 +193,114 @@ def test_request_trace_adapter_preserves_fixture_provider_blocker() -> None:
     assert "fixture_decisions.action_not_allowed" in grade["blockers"]
 
 
+def test_request_trace_adapter_blocks_pre_manager_guard_feedback_shortcut() -> None:
+    trace = _gs5_request_trace()
+    react_trace = dict(trace["react_trace"])  # type: ignore[index]
+    pass_1 = dict(react_trace["manager_pass_1"])  # type: ignore[index]
+    pass_1["guard_feedback_input"] = {"failure_family": "nutrition_evidence_not_commit_eligible"}
+    react_trace["manager_pass_1"] = pass_1
+    trace["react_trace"] = react_trace
+
+    case_trace = build_golden_case_trace_from_request_trace("GS5", trace)
+    grade = grade_golden_case_trace("GS5", case_trace)
+
+    assert grade["status"] == "blocked"
+    assert "runtime.pre_manager_estimability_shortcut_allowed_expected:False_actual:True" in grade["blockers"]
+
+
+def test_request_trace_adapter_detects_live_provider_from_final_manager_pass() -> None:
+    trace = _gs5_request_trace()
+    react_trace = dict(trace["react_trace"])  # type: ignore[index]
+    pass_1 = dict(react_trace["manager_pass_1"])  # type: ignore[index]
+    pass_1["provider_trace"] = {}
+    final_pass = dict(react_trace["manager_pass_final"])  # type: ignore[index]
+    final_pass["provider_trace"] = {
+        "provider": "builderspace",
+        "provider_profile_id": "grokfast-self-use",
+        "live_llm_invoked": True,
+        "semantic_owner": "manager_llm",
+    }
+    react_trace["manager_pass_1"] = pass_1
+    react_trace["manager_pass_final"] = final_pass
+    trace["react_trace"] = react_trace
+
+    case_trace = build_golden_case_trace_from_request_trace("GS5", trace)
+
+    assert case_trace["manager_provider"]["provider"] == "builderspace"
+    assert case_trace["manager_provider"]["live_llm_invoked"] is True
+    assert case_trace["manager_provider"]["semantic_owner"] == "manager_llm"
+
+
+def test_request_trace_adapter_defaults_configured_provider_trace_to_live_invoked() -> None:
+    trace = _gs5_request_trace()
+    react_trace = dict(trace["react_trace"])  # type: ignore[index]
+    pass_1 = dict(react_trace["manager_pass_1"])  # type: ignore[index]
+    pass_1["provider_trace"] = {}
+    final_pass = dict(react_trace["manager_pass_final"])  # type: ignore[index]
+    final_pass["provider_trace"] = {
+        "provider": "builderspace",
+        "model": "grok-4-fast",
+        "request_payload": {"messages": []},
+    }
+    react_trace["manager_pass_1"] = pass_1
+    react_trace["manager_pass_final"] = final_pass
+    trace["react_trace"] = react_trace
+
+    case_trace = build_golden_case_trace_from_request_trace("GS5", trace)
+
+    assert case_trace["manager_provider"]["provider"] == "builderspace"
+    assert case_trace["manager_provider"]["live_llm_invoked"] is True
+
+
+def test_request_trace_adapter_blocks_visible_kcal_when_fallback_400_is_not_allowed() -> None:
+    trace = _gs5_request_trace()
+    trace["renderer_output"] = {"assistant_message": "About 400 kcal. What was in the combo?"}
+
+    case_trace = build_golden_case_trace_from_request_trace("GS5", trace)
+    grade = grade_golden_case_trace("GS5", case_trace)
+
+    assert case_trace["runtime"]["fallback_400_allowed"] is False
+    assert case_trace["response"]["invented_nutrition_fact"] is True
+    assert "response.invented_nutrition_fact" in grade["blockers"]
+
+
+def test_request_trace_adapter_detects_shadow_stub_from_manager_final_tool_results() -> None:
+    trace = _gs5_request_trace()
+    trace.pop("runtime", None)
+    trace["tool_outputs"] = {
+        "tool_results": [
+            {
+                "tool_name": "estimate_nutrition",
+                "evidence": {
+                    "nutrition_payload": {
+                        "estimated_kcal": 0,
+                        "trace_contract": {
+                            "manager_ask_followup_draft_contract": {"source": "manager_structured_final_action"}
+                        },
+                    }
+                },
+            }
+        ]
+    }
+    manager_final = dict(trace["manager_final_decision"])  # type: ignore[index]
+    manager_final["tool_results"] = [
+        {
+            "tool_name": "estimate_nutrition",
+            "evidence": {
+                "nutrition_payload": {
+                    "estimated_kcal": 400,
+                    "trace_contract": {"shadow_stub": True},
+                }
+            },
+        }
+    ]
+    trace["manager_final_decision"] = manager_final
+
+    case_trace = build_golden_case_trace_from_request_trace("GS5", trace)
+
+    assert case_trace["runtime"]["fallback_400_allowed"] is False
+
+
 def test_request_trace_artifact_builder_groups_projected_cases() -> None:
     case_trace = build_golden_case_trace_from_request_trace("GS5", _gs5_request_trace())
     artifact = build_golden_trace_artifact_from_request_traces([case_trace])

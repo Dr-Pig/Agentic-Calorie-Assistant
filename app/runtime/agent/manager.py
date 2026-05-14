@@ -77,8 +77,8 @@ async def run_intake_manager(
         )
     manager_rounds: list[dict[str, Any]] = [dict(item) for item in (initial_manager_rounds or [])]
     tool_results: list[dict[str, Any]] = [dict(item) for item in (initial_tool_results or [])]
-    repair_round_used = False
     guard_feedback: dict[str, Any] | None = None
+    repair_round_used = False
     effective_history_expansion_policy = history_expansion_policy or HistoryExpansionPolicy()
     effective_manager_loop_scope = str(manager_loop_scope or default_manager_loop_scope(normalized_available_tools))
     observability = ManagerLoopObservability()
@@ -149,6 +149,7 @@ async def run_intake_manager(
                 "latency_ms": provider_latency_ms,
                 "decision": json_safe(parsed),
                 "trace": json_safe(trace),
+                "guard_feedback_input": json_safe(guard_feedback) if isinstance(guard_feedback, dict) else None,
                 "phase_a_input": json_safe(manager_context_trace),
                 "prompt_registry": json_safe(prompt_registry),
                 "prompt_layer_contract": json_safe(prompt_layer_contract),

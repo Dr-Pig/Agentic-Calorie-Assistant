@@ -40,14 +40,29 @@ def manager_provider(
     explicit = _dict(request_trace.get("manager_provider"))
     if explicit:
         return explicit
-    provider_trace = _dict(_dict(trace.get("manager_pass_1")).get("provider_trace"))
-    if provider_trace:
-        return {
-            "provider": provider_trace.get("provider") or provider_trace.get("provider_profile_id"),
-            "semantic_owner": provider_trace.get("semantic_owner"),
+    first_observed_provider: dict[str, Any] = {}
+    for pass_key in ("manager_pass_1", "manager_pass_final"):
+        provider_trace = _dict(_dict(trace.get(pass_key)).get("provider_trace"))
+        provider = provider_trace.get("provider") or provider_trace.get("provider_profile_id")
+        live_llm_invoked = provider_trace.get("live_llm_invoked")
+        if live_llm_invoked is None and (
+            str(provider or "").strip() in {"builderspace"}
+            or provider_trace.get("request_payload") is not None
+            or provider_trace.get("response_payload") is not None
+        ):
+            live_llm_invoked = True
+        observed = {
+            "provider": provider,
+            "semantic_owner": provider_trace.get("semantic_owner") or ("manager_llm" if live_llm_invoked is True else None),
             "semantic_source": provider_trace.get("semantic_source"),
-            "live_llm_invoked": provider_trace.get("live_llm_invoked"),
+            "live_llm_invoked": live_llm_invoked,
         }
+        if provider_trace and not first_observed_provider:
+            first_observed_provider = observed
+        if provider or provider_trace.get("live_llm_invoked") is True:
+            return observed
+    if first_observed_provider:
+        return first_observed_provider
     decision_trace = _dict(manager_final.get("trace"))
     if str(decision_trace.get("decision_source") or "").strip():
         return {
