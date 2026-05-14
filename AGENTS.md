@@ -68,6 +68,7 @@ Strategic Sequencing Gate: for non-trivial or PR-producing work, decide whether 
 
 Use these gates for non-trivial or PR-producing work. Skip them for fast-path edits unless the task escalates.
 
+- Required gate fields include `current_mainline`, `is_detour`, `blocked_mainline`, `detour_reason`, `detour_exit_gate`, `exit_gate_status`, `return_slice_after_exit`, and `strategic_verdict`.
 - Strategic sequencing: state whether the slice is current-mainline or an allowed detour, why it is safe now, and what returns work to the mainline.
 - Capability order: do not use product journey order or local momentum as implementation order.
 - Capability pyramid: `L0 Product Operating Rules`, `L1 InteractionEvent / CurrentTurnContext`, `L2 AttachmentDecision / TransitionGuardResult`, `L3 MealThread / Draft / Commit Boundary`, `L4 RetrievalIntent / Source Selection`, `L5 Evidence / Packet Layer`, `L6 Nutrition Synthesis`, `L7 Final Mapping Boundary`, `L8 Mutation / Ledger / Version`, `L9 Same-Truth / UI / Memory / Proactive`.

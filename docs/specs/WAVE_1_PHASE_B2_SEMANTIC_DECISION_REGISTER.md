@@ -205,6 +205,11 @@ pending:
     question: What error range and influence scope are acceptable before user-facing canary?
     default_until_approved: diagnostic_only_until_shadow_comparison_green
 
+  homemade_dish_minimum_estimability:
+    status: pending
+    question: Should the approved homemade-food rule widen from narrow listed dishes to broader homemade dish families?
+    default_until_approved: use_approved_homemade_food_minimum_estimability_only
+
   founder_human_e2e_required_journeys:
     status: pending
     question: Which journeys are mandatory founder gates before a readiness claim?
