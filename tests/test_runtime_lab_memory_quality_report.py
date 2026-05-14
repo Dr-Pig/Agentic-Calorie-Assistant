@@ -185,9 +185,9 @@ def test_quality_report_covers_fixture_holdout_negative_and_regression(
     assert report["coverage"]["split_counts"] == {
         "fixture": 17,
         "holdout": 3,
-        "negative": 4,
+        "negative": 3,
     }
-    assert report["coverage"]["fixture_case_count"] == 24
+    assert report["coverage"]["fixture_case_count"] == 23
     assert report["coverage"]["dogfood_replay_candidate_count"] == 1
     assert report["coverage"]["lab_injection_compared"] is True
 
