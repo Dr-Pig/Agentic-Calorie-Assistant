@@ -1,0 +1,39 @@
+{
+  "pack_id": "rescue_official_canonical_pack_v1",
+  "pack_mode": "official_canonical",
+  "authority_level": "canonical",
+  "approval_status": "batch_1_approved",
+  "suite_archetype": "utterance_governed",
+  "approval_mode": "user_required",
+  "truth_source": "product_semantic_decision",
+  "canonical_primary_oracle_fields": [
+    "expected_target_object_type",
+    "expected_target_workflow_family",
+    "expected_disposition",
+    "expected_workflow_effect",
+    "expected_adjust_direction"
+  ],
+  "cases": [
+    {
+      "case_id": "rescue_accept_official_001",
+      "suite_id": "rescue_accept_action_golden_v1",
+      "promoted_from_candidate_case_id": "rescue_candidate_001",
+      "utterance": "ok use that rescue plan",
+      "expected_target_object_type": "proposal",
+      "expected_target_workflow_family": "rescue",
+      "expected_disposition": "accept",
+      "expected_workflow_effect": "accept_rescue_plan"
+    },
+    {
+      "case_id": "rescue_adjust_official_001",
+      "suite_id": "rescue_adjust_action_golden_v1",
+      "promoted_from_candidate_case_id": "rescue_candidate_002",
+      "utterance": "make it a longer plan",
+      "expected_target_object_type": "proposal",
+      "expected_target_workflow_family": "rescue",
+      "expected_disposition": "adjust",
+      "expected_workflow_effect": "adjust_rescue_plan",
+      "expected_adjust_direction": "longer"
+    }
+  ]
+}

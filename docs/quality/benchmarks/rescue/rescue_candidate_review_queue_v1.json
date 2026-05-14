@@ -1,0 +1,31 @@
+{
+  "pack_id": "rescue_candidate_review_queue_v1",
+  "authority_level": "candidate_only",
+  "review_unit": "per_case_primary_outcome",
+  "suite_archetype": "utterance_governed",
+  "approval_mode": "user_required",
+  "truth_source": "product_semantic_decision",
+  "cases": [
+    {
+      "candidate_case_id": "rescue_candidate_001",
+      "candidate_suite_id": "rescue_accept_action_golden_v1",
+      "review_status": "approved_for_promotion",
+      "approval_notes": "Accepting a rescue proposal chooses the proposal without direct meal mutation.",
+      "candidate_target_object_type": "proposal",
+      "candidate_target_workflow_family": "rescue",
+      "candidate_disposition": "accept",
+      "candidate_workflow_effect": "accept_rescue_plan"
+    },
+    {
+      "candidate_case_id": "rescue_candidate_002",
+      "candidate_suite_id": "rescue_adjust_action_golden_v1",
+      "review_status": "approved_for_promotion",
+      "approval_notes": "User asks for a longer rescue horizon.",
+      "candidate_target_object_type": "proposal",
+      "candidate_target_workflow_family": "rescue",
+      "candidate_disposition": "adjust",
+      "candidate_workflow_effect": "adjust_rescue_plan",
+      "candidate_adjust_direction": "longer"
+    }
+  ]
+}

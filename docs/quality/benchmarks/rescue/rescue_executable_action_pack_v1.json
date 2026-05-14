@@ -1,0 +1,59 @@
+{
+  "pack_id": "rescue_executable_action_pack_v1",
+  "pack_mode": "executable_action",
+  "authority_level": "derived_from_official_canonical",
+  "derived_from_pack_id": "rescue_official_canonical_pack_v1",
+  "non_authority_note": "This pack is executable input only and must not be treated as a separate source of product truth.",
+  "runner_input_contract": {
+    "workflow_family": "rescue"
+  },
+  "cases": [
+    {
+      "executable_case_id": "rescue_executable_accept_001",
+      "source_official_case_id": "rescue_accept_official_001",
+      "suite_id": "rescue_accept_action_golden_v1",
+      "derivation_status": "contract_ready",
+      "input_text_source": {
+        "source_official_case_id": "rescue_accept_official_001",
+        "source_field": "utterance"
+      },
+      "proposal_seed": {
+        "proposal_id": "rescue-proposal-001"
+      },
+      "execution_mode": "fixture_only",
+      "expected_runtime_outcome": {
+        "expected_target_object_type": "proposal",
+        "expected_target_workflow_family": "rescue",
+        "expected_disposition": "accept",
+        "expected_workflow_effect": "accept_rescue_plan"
+      },
+      "runtime_action": {
+        "action": "accept_rescue_plan"
+      }
+    },
+    {
+      "executable_case_id": "rescue_executable_adjust_001",
+      "source_official_case_id": "rescue_adjust_official_001",
+      "suite_id": "rescue_adjust_action_golden_v1",
+      "derivation_status": "contract_ready",
+      "input_text_source": {
+        "source_official_case_id": "rescue_adjust_official_001",
+        "source_field": "utterance"
+      },
+      "proposal_seed": {
+        "proposal_id": "rescue-proposal-002"
+      },
+      "execution_mode": "fixture_only",
+      "expected_runtime_outcome": {
+        "expected_target_object_type": "proposal",
+        "expected_target_workflow_family": "rescue",
+        "expected_disposition": "adjust",
+        "expected_workflow_effect": "adjust_rescue_plan",
+        "expected_adjust_direction": "longer"
+      },
+      "runtime_action": {
+        "action": "extend_rescue_plan"
+      }
+    }
+  ]
+}

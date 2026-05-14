@@ -1,0 +1,22 @@
+[
+  {"id": "cal_simple_001", "category": "simple_anchored_foods", "query": "tea egg", "expected_mode": "anchor_estimate"},
+  {"id": "cal_simple_002", "category": "simple_anchored_foods", "query": "banana", "expected_mode": "anchor_estimate"},
+  {"id": "cal_simple_003", "category": "simple_anchored_foods", "query": "plain rice", "expected_mode": "portion_anchor"},
+  {"id": "cal_simple_004", "category": "simple_anchored_foods", "query": "boiled chicken breast", "expected_mode": "portion_anchor"},
+  {"id": "cal_brand_001", "category": "exact_branded_items", "query": "MOS pork burger", "expected_mode": "exact_item_lookup"},
+  {"id": "cal_brand_002", "category": "exact_branded_items", "query": "7-11 oyakodon", "expected_mode": "exact_item_lookup"},
+  {"id": "cal_brand_003", "category": "exact_branded_items", "query": "Starbucks grande latte", "expected_mode": "official_menu_lookup"},
+  {"id": "cal_brand_004", "category": "exact_branded_items", "query": "Yoshinoya large beef bowl", "expected_mode": "official_menu_lookup"},
+  {"id": "cal_composite_001", "category": "composite_cooked_dishes", "query": "fried rice", "expected_mode": "component_or_range"},
+  {"id": "cal_composite_002", "category": "composite_cooked_dishes", "query": "ramen", "expected_mode": "component_or_range"},
+  {"id": "cal_composite_003", "category": "composite_cooked_dishes", "query": "hotpot", "expected_mode": "component_or_range"},
+  {"id": "cal_composite_004", "category": "composite_cooked_dishes", "query": "salmon ikura don", "expected_mode": "component_sum"},
+  {"id": "cal_drink_001", "category": "customizable_drinks", "query": "bubble milk tea", "expected_mode": "ask_or_estimate_with_followup"},
+  {"id": "cal_drink_002", "category": "customizable_drinks", "query": "half sugar milk tea", "expected_mode": "modifier_adjusted_estimate"},
+  {"id": "cal_drink_003", "category": "customizable_drinks", "query": "large latte", "expected_mode": "size_sensitive_estimate"},
+  {"id": "cal_drink_004", "category": "customizable_drinks", "query": "black coffee", "expected_mode": "low_calorie_anchor"},
+  {"id": "cal_missing_001", "category": "quantity_missing_home_meals", "query": "some stir fry", "expected_mode": "clarify_quantity"},
+  {"id": "cal_missing_002", "category": "quantity_missing_home_meals", "query": "a bowl my mom bought", "expected_mode": "clarify_identity_or_portion"},
+  {"id": "cal_missing_003", "category": "quantity_missing_home_meals", "query": "shared hotpot", "expected_mode": "clarify_share"},
+  {"id": "cal_missing_004", "category": "quantity_missing_home_meals", "query": "luwei", "expected_mode": "clarify_components"}
+]

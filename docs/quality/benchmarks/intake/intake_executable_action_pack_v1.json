@@ -1,0 +1,32 @@
+{
+  "pack_id": "intake_executable_action_pack_v1",
+  "pack_mode": "executable_action",
+  "authority_level": "derived_from_official_canonical",
+  "derived_from_pack_id": "intake_official_canonical_pack_v1",
+  "non_authority_note": "This pack is executable input only and must not be treated as a separate source of product truth.",
+  "runner_input_contract": {
+    "workflow_family": "intake"
+  },
+  "cases": [
+    {
+      "executable_case_id": "intake_executable_001",
+      "source_official_case_id": "intake_official_001",
+      "suite_id": "intake_founder_fit_primary_golden_v1",
+      "derivation_status": "contract_ready",
+      "input_text_source": {
+        "source_official_case_id": "intake_official_001",
+        "source_field": "utterance"
+      },
+      "state_seed": {
+        "local_date": "2026-04-18"
+      },
+      "execution_mode": "fixture_only",
+      "expected_runtime_outcome": {
+        "expected_target_object_type": "meal_thread",
+        "expected_target_workflow_family": "intake",
+        "expected_disposition": "create",
+        "expected_workflow_effect": "estimate_and_commit_meal"
+      }
+    }
+  ]
+}

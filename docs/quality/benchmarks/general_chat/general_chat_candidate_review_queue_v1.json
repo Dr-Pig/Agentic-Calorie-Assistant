@@ -1,0 +1,43 @@
+{
+  "pack_id": "general_chat_candidate_review_queue_v1",
+  "authority_level": "candidate_only",
+  "review_unit": "per_case_primary_outcome",
+  "suite_archetype": "utterance_governed",
+  "approval_mode": "user_required",
+  "truth_source": "product_semantic_decision",
+  "cases": [
+    {
+      "candidate_case_id": "general_chat_candidate_001",
+      "candidate_suite_id": "general_chat_budget_query_golden_v1",
+      "review_status": "approved_for_promotion",
+      "approval_notes": "Read-only current-budget answer.",
+      "candidate_target_object_type": "none",
+      "candidate_target_workflow_family": "general_chat",
+      "candidate_disposition": "answer_only",
+      "candidate_workflow_effect": "answer_budget_summary_without_state_mutation",
+      "candidate_required_read_surfaces": ["CurrentBudgetView", "ActiveBodyPlanView"]
+    },
+    {
+      "candidate_case_id": "general_chat_candidate_002",
+      "candidate_suite_id": "general_chat_goal_query_golden_v1",
+      "review_status": "approved_for_promotion",
+      "approval_notes": "Read-only active goal answer.",
+      "candidate_target_object_type": "none",
+      "candidate_target_workflow_family": "general_chat",
+      "candidate_disposition": "answer_only",
+      "candidate_workflow_effect": "answer_goal_summary_without_state_mutation",
+      "candidate_required_read_surfaces": ["ActiveBodyPlanView"]
+    },
+    {
+      "candidate_case_id": "general_chat_candidate_003",
+      "candidate_suite_id": "general_chat_open_workflow_boundary_golden_v1",
+      "review_status": "approved_for_promotion",
+      "approval_notes": "General chat refuses to mutate and hands off to a formal workflow.",
+      "candidate_target_object_type": "none",
+      "candidate_target_workflow_family": "general_chat",
+      "candidate_disposition": "open_new_workflow",
+      "candidate_workflow_effect": "handoff_to_formal_workflow",
+      "candidate_required_read_surfaces": []
+    }
+  ]
+}

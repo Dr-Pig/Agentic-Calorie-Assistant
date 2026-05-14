@@ -1,0 +1,50 @@
+[
+  {
+    "path": "scripts/run_founder_golden_audit.py",
+    "audit_name": "founder_golden_audit",
+    "suite_id": "intake_founder_fit_primary_golden_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "intake",
+    "capability_family": "accurate_intake",
+    "validation_layer": "workflow_canonical_action",
+    "suite_archetype": "utterance_governed",
+    "approval_mode": "user_required",
+    "truth_source": "product_semantic_decision"
+  },
+  {
+    "path": "scripts/run_turn2_hybrid_replay.py",
+    "audit_name": "turn2_hybrid_replay",
+    "suite_id": "intake_turn2_hybrid_replay_golden_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "intake",
+    "capability_family": "accurate_intake",
+    "validation_layer": "cross_turn_progression",
+    "suite_archetype": "executable_workflow",
+    "approval_mode": "user_required",
+    "truth_source": "runtime_contract_derivation"
+  },
+  {
+    "path": "scripts/run_rescue_executable_pack.py",
+    "audit_name": "rescue_executable_pack",
+    "suite_id": "rescue_runtime_smoke_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "rescue",
+    "capability_family": "rescue",
+    "validation_layer": "workflow_canonical_action",
+    "suite_archetype": "executable_workflow",
+    "approval_mode": "user_required",
+    "truth_source": "runtime_contract_derivation"
+  },
+  {
+    "path": "scripts/run_general_chat_official_pack.py",
+    "audit_name": "general_chat_official_pack",
+    "suite_id": "general_chat_budget_query_golden_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "general_chat",
+    "capability_family": "general_chat",
+    "validation_layer": "response_contract",
+    "suite_archetype": "utterance_governed",
+    "approval_mode": "user_required",
+    "truth_source": "product_semantic_decision"
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "pack_id": "__PACK_ID__",
+  "pack_mode": "official_canonical",
+  "authority_level": "canonical",
+  "approval_status": "__APPROVAL_STATUS__",
+  "suite_archetype": "__SUITE_ARCHETYPE__",
+  "approval_mode": "__APPROVAL_MODE__",
+  "truth_source": "__TRUTH_SOURCE__",
+  "canonical_primary_oracle_fields": [
+    "__PRIMARY_ORACLE_FIELD__"
+  ],
+  "cases": [
+    {
+      "case_id": "__CASE_ID__",
+      "suite_id": "__SUITE_ID__",
+      "promoted_from_candidate_case_id": "",
+      "derivation_basis": [
+        "template_scaffold"
+      ],
+      "expected_service_outcome": {
+        "status": "template_scaffold"
+      }
+    }
+  ]
+}

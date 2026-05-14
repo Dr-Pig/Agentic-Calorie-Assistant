@@ -1,0 +1,21 @@
+{
+  "pack_id": "body_observation_candidate_review_queue_v1",
+  "authority_level": "candidate_only",
+  "review_unit": "per_case_primary_outcome",
+  "suite_archetype": "utterance_governed",
+  "approval_mode": "user_required",
+  "truth_source": "product_semantic_decision",
+  "cases": [
+    {
+      "candidate_case_id": "body_observation_candidate_001",
+      "candidate_suite_id": "body_observation_weight_update_golden_v1",
+      "review_status": "approved_for_promotion",
+      "approval_notes": "Weight update creates a body observation through the body workflow.",
+      "candidate_target_object_type": "body_observation",
+      "candidate_target_workflow_family": "body_observation",
+      "candidate_disposition": "create",
+      "candidate_workflow_effect": "record_body_observation",
+      "candidate_observation_action": "create_observation"
+    }
+  ]
+}

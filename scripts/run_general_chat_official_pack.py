@@ -44,6 +44,7 @@ class RuntimeCase:
     expected_disposition: str
     expected_workflow_effect: str
     expected_required_read_surfaces: list[str]
+    general_chat_mode: str
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -97,11 +98,22 @@ def _load_runtime_cases(*, case_id: str | None) -> list[RuntimeCase]:
                     for item in list(raw_case.get("expected_required_read_surfaces") or [])
                     if isinstance(item, str)
                 ],
+                general_chat_mode=str(raw_case.get("general_chat_mode") or _general_chat_mode_for_suite_id(str(raw_case.get("suite_id") or ""))),
             )
         )
     if case_id is not None and not selected:
         raise SystemExit(f"unknown case_id: {case_id}")
     return selected
+
+
+def _general_chat_mode_for_suite_id(suite_id: str) -> str:
+    if suite_id == "general_chat_budget_query_golden_v1":
+        return "budget_summary"
+    if suite_id == "general_chat_goal_query_golden_v1":
+        return "goal_summary"
+    if suite_id == "general_chat_open_workflow_boundary_golden_v1":
+        return "workflow_handoff"
+    return "fallback_answer"
 
 
 def _session_factory() -> sessionmaker[Session]:
@@ -220,6 +232,7 @@ def _build_case_result(*, db: Session, case: RuntimeCase, user_external_id: str,
         db,
         user_external_id=user_external_id,
         raw_user_input=case.utterance,
+        mode=case.general_chat_mode,  # type: ignore[arg-type]
         local_date=local_date,
     )
     after_counts = {

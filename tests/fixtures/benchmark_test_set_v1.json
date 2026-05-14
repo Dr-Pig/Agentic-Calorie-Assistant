@@ -1,0 +1,151 @@
+[
+  {
+    "id": "case_001",
+    "input": "MOS pork burger",
+    "expected_behavior": {"mode": "exact_item_lookup"},
+    "expected_evidence_outcome": {"evidence_family": "official_or_exact"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot. final answer 189 kcal.",
+    "parsed_truth": {"exact_kcal": 189.0, "reference_kcal": 189.0, "kcal_mentions": [189.0], "macro_truth": null}
+  },
+  {
+    "id": "case_002",
+    "input": "medium latte",
+    "expected_behavior": {"mode": "anchored_estimate"},
+    "expected_evidence_outcome": {"evidence_family": "generic_anchor"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  },
+  {
+    "id": "case_003",
+    "input": "MOS breakfast combo",
+    "expected_behavior": {"mode": "component_sum"},
+    "expected_evidence_outcome": {"evidence_family": "component_breakdown"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot. final answer 503.17 kcal.",
+    "parsed_truth": {"exact_kcal": 503.17, "reference_kcal": 503.17, "kcal_mentions": [503.17], "macro_truth": null}
+  },
+  {
+    "id": "case_004",
+    "input": "ramen bowl",
+    "expected_behavior": {"mode": "high_variance_estimate"},
+    "expected_evidence_outcome": {"evidence_family": "range_required"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  },
+  {
+    "id": "case_005",
+    "input": "hotpot meal",
+    "expected_behavior": {"mode": "multi_component_estimate"},
+    "expected_evidence_outcome": {"evidence_family": "portion_sensitive"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  },
+  {
+    "id": "case_006",
+    "input": "7-11 oyakodon with sides",
+    "expected_behavior": {"mode": "macro_contract"},
+    "expected_evidence_outcome": {"evidence_family": "macro_truth_available"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot. P 31.0g / F 56.3g / C 145.1g.",
+    "parsed_truth": {
+      "exact_kcal": null,
+      "reference_kcal": null,
+      "kcal_mentions": [],
+      "macro_truth": {"protein_g": 31.0, "fat_g": 56.3, "carb_g": 145.1}
+    }
+  },
+  {
+    "id": "case_007",
+    "input": "Yoshinoya large beef bowl",
+    "expected_behavior": {"mode": "external_official_escalation"},
+    "expected_evidence_outcome": {"evidence_family": "official_menu_preferred"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  },
+  {
+    "id": "case_008",
+    "input": "plain rice bowl",
+    "expected_behavior": {"mode": "simple_anchor"},
+    "expected_evidence_outcome": {"evidence_family": "portion_anchor"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  },
+  {
+    "id": "case_009",
+    "input": "fried rice",
+    "expected_behavior": {"mode": "generic_common_dish"},
+    "expected_evidence_outcome": {"evidence_family": "range_required"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  },
+  {
+    "id": "case_010",
+    "input": "shared stir fry",
+    "expected_behavior": {"mode": "insufficient_quantity"},
+    "expected_evidence_outcome": {"evidence_family": "clarify_or_suppress_kcal"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  },
+  {
+    "id": "case_011",
+    "input": "shared stir fry with partial details",
+    "expected_behavior": {"mode": "component_sum_with_uncertainty"},
+    "expected_evidence_outcome": {"evidence_family": "component_breakdown"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  },
+  {
+    "id": "case_012",
+    "input": "fried chicken bento",
+    "expected_behavior": {"mode": "branded_or_generic_resolution"},
+    "expected_evidence_outcome": {"evidence_family": "identity_resolution_required"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  },
+  {
+    "id": "case_013",
+    "input": "salmon poke with spicy mayo",
+    "expected_behavior": {"mode": "local_anchor_estimate"},
+    "expected_evidence_outcome": {"evidence_family": "anchor_plus_modifier"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  },
+  {
+    "id": "case_014",
+    "input": "generic zhajiangmian",
+    "expected_behavior": {"mode": "regional_generic"},
+    "expected_evidence_outcome": {"evidence_family": "range_required"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  },
+  {
+    "id": "case_015",
+    "input": "Taiwanese zhajiangmian",
+    "expected_behavior": {"mode": "regional_variant"},
+    "expected_evidence_outcome": {"evidence_family": "component_breakdown"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  },
+  {
+    "id": "case_016",
+    "input": "salmon ikura don",
+    "expected_behavior": {"mode": "composite_bowl"},
+    "expected_evidence_outcome": {"evidence_family": "component_breakdown"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  },
+  {
+    "id": "case_017",
+    "input": "luwei",
+    "expected_behavior": {"mode": "template_only_until_details"},
+    "expected_evidence_outcome": {"evidence_family": "suppress_kcal_until_components"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  },
+  {
+    "id": "case_018",
+    "input": "luwei with tofu, egg, vegetables, noodles",
+    "expected_behavior": {"mode": "component_sum"},
+    "expected_evidence_outcome": {"evidence_family": "component_breakdown"},
+    "source_of_truth": "Legacy benchmark v1 fixture snapshot.",
+    "parsed_truth": {"exact_kcal": null, "reference_kcal": null, "kcal_mentions": [], "macro_truth": null}
+  }
+]

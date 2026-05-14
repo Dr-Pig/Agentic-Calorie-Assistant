@@ -1,0 +1,42 @@
+{
+  "pack_id": "intake_official_canonical_pack_v1",
+  "pack_mode": "official_canonical",
+  "authority_level": "canonical",
+  "approval_status": "batch_1_approved",
+  "suite_archetype": "utterance_governed",
+  "approval_mode": "user_required",
+  "truth_source": "product_semantic_decision",
+  "canonical_primary_oracle_fields": [
+    "expected_target_object_type",
+    "expected_target_workflow_family",
+    "expected_disposition",
+    "expected_workflow_effect"
+  ],
+  "cases": [
+    {
+      "case_id": "intake_official_001",
+      "suite_id": "intake_founder_fit_primary_golden_v1",
+      "promoted_from_candidate_case_id": "intake_candidate_001",
+      "utterance": "log one beef bowl for lunch",
+      "expected_target_object_type": "meal_thread",
+      "expected_target_workflow_family": "intake",
+      "expected_disposition": "create",
+      "expected_workflow_effect": "estimate_and_commit_meal",
+      "expected_decision_next_action": "run_tool_lookup",
+      "expected_commit_posture": "commit"
+    },
+    {
+      "case_id": "intake_official_002",
+      "suite_id": "intake_task_meal_link_golden_v1",
+      "promoted_from_candidate_case_id": "intake_candidate_002",
+      "utterance": "make that half sugar",
+      "expected_target_object_type": "meal_thread",
+      "expected_target_workflow_family": "intake",
+      "expected_disposition": "continue",
+      "expected_workflow_effect": "attach_followup_to_existing_meal",
+      "expected_meal_link_action": "link_existing_thread",
+      "expected_decision_next_action": "run_clarify",
+      "expected_commit_posture": "no_commit"
+    }
+  ]
+}

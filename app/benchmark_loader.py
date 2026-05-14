@@ -91,16 +91,17 @@ def _normalize_structured_case(item: dict[str, Any], *, fixture_path: Path | Non
         source_path = Path(source_fixture)
         if fixture_path is not None and not source_path.is_absolute():
             source_path = fixture_path.resolve().parents[2] / source_path
-        source_cases = load_benchmark_cases(source_path)
-        source_case = next((case for case in source_cases if str(case.get("id") or "") == source_case_id), None)
-        if source_case:
-            resolved_input = source_case.get("input", resolved_input)
-            if not source_expected_behavior:
-                source_expected_behavior = dict(source_case.get("expected_behavior") or {})
-            if not source_expected_evidence_outcome:
-                source_expected_evidence_outcome = dict(source_case.get("expected_evidence_outcome") or {})
-            if not source_source_of_truth:
-                source_source_of_truth = dict(source_case.get("source_of_truth") or {})
+        if source_path.exists():
+            source_cases = load_benchmark_cases(source_path)
+            source_case = next((case for case in source_cases if str(case.get("id") or "") == source_case_id), None)
+            if source_case:
+                resolved_input = source_case.get("input", resolved_input)
+                if not source_expected_behavior:
+                    source_expected_behavior = dict(source_case.get("expected_behavior") or {})
+                if not source_expected_evidence_outcome:
+                    source_expected_evidence_outcome = dict(source_case.get("expected_evidence_outcome") or {})
+                if not source_source_of_truth:
+                    source_source_of_truth = dict(source_case.get("source_of_truth") or {})
 
     source_of_truth = source_source_of_truth
     target = dict(source_of_truth.get("target_calories_kcal") or {})

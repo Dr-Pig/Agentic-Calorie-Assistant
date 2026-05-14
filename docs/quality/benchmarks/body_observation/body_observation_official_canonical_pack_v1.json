@@ -1,0 +1,29 @@
+{
+  "pack_id": "body_observation_official_canonical_pack_v1",
+  "pack_mode": "official_canonical",
+  "authority_level": "canonical",
+  "approval_status": "batch_1_approved",
+  "suite_archetype": "utterance_governed",
+  "approval_mode": "user_required",
+  "truth_source": "product_semantic_decision",
+  "canonical_primary_oracle_fields": [
+    "expected_target_object_type",
+    "expected_target_workflow_family",
+    "expected_disposition",
+    "expected_workflow_effect",
+    "expected_observation_action"
+  ],
+  "cases": [
+    {
+      "case_id": "body_observation_official_001",
+      "suite_id": "body_observation_weight_update_golden_v1",
+      "promoted_from_candidate_case_id": "body_observation_candidate_001",
+      "utterance": "my weight is 81.2 kg today",
+      "expected_target_object_type": "body_observation",
+      "expected_target_workflow_family": "body_observation",
+      "expected_disposition": "create",
+      "expected_workflow_effect": "record_body_observation",
+      "expected_observation_action": "create_observation"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "pack_id": "__PACK_ID__",
+  "pack_mode": "executable_action",
+  "authority_level": "derived_from_official_canonical",
+  "derived_from_pack_id": "__DERIVED_FROM_PACK_ID__",
+  "non_authority_note": "This pack is executable input only and must not be treated as a separate source of product truth.",
+  "runner_input_contract": {
+    "workflow_family": "__WORKFLOW_FAMILY__"
+  },
+  "cases": [
+    {
+      "executable_case_id": "__CASE_ID__",
+      "source_official_case_id": "__SOURCE_OFFICIAL_CASE_ID__",
+      "suite_id": "__SUITE_ID__",
+      "derivation_status": "contract_ready",
+      "state_seed": {},
+      "execution_mode": "fixture_only",
+      "expected_runtime_outcome": {
+        "expected_target_object_type": "none",
+        "expected_target_workflow_family": "__WORKFLOW_FAMILY__",
+        "expected_disposition": "answer_only",
+        "expected_workflow_effect": "template_scaffold_only"
+      }
+    }
+  ]
+}

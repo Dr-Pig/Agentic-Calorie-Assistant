@@ -1,0 +1,25 @@
+{
+  "pack_id": "retrieval_candidate_selection_golden_v1",
+  "pack_mode": "official_canonical",
+  "authority_level": "canonical",
+  "approval_status": "agent_promoted_v1",
+  "suite_archetype": "capability_service",
+  "approval_mode": "agent_allowed",
+  "truth_source": "canonical_spec_derivation",
+  "canonical_primary_oracle_fields": ["expected_service_outcome"],
+  "cases": [
+    {
+      "case_id": "retrieval_candidate_selection_official_001",
+      "suite_id": "retrieval_candidate_selection_golden_v1",
+      "promoted_from_candidate_case_id": "",
+      "derivation_basis": [
+        "docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md",
+        "metadata_first_source_selection"
+      ],
+      "expected_service_outcome": {
+        "selects_scoped_records_first": true,
+        "raw_source_drilldown_requires_explicit_review_path": true
+      }
+    }
+  ]
+}

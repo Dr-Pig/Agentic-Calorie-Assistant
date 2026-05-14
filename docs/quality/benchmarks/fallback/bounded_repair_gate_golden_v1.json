@@ -1,0 +1,26 @@
+{
+  "pack_id": "bounded_repair_gate_golden_v1",
+  "pack_mode": "official_canonical",
+  "authority_level": "canonical",
+  "approval_status": "agent_promoted_v1",
+  "suite_archetype": "capability_service",
+  "approval_mode": "agent_allowed",
+  "truth_source": "canonical_spec_derivation",
+  "canonical_primary_oracle_fields": ["expected_service_outcome"],
+  "cases": [
+    {
+      "case_id": "bounded_repair_gate_official_001",
+      "suite_id": "bounded_repair_gate_golden_v1",
+      "promoted_from_candidate_case_id": "",
+      "derivation_basis": [
+        "docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md",
+        "one_bounded_repair_round"
+      ],
+      "expected_service_outcome": {
+        "allows_single_bounded_repair": true,
+        "blocks_unbounded_retry_loop": true,
+        "does_not_invent_semantic_truth": true
+      }
+    }
+  ]
+}

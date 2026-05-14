@@ -1,0 +1,75 @@
+{
+  "pack_id": "general_chat_official_canonical_pack_v1",
+  "pack_mode": "official_canonical",
+  "authority_level": "canonical",
+  "approval_status": "batch_1_approved",
+  "suite_archetype": "utterance_governed",
+  "approval_mode": "user_required",
+  "truth_source": "product_semantic_decision",
+  "canonical_primary_oracle_fields": [
+    "expected_target_object_type",
+    "expected_target_workflow_family",
+    "expected_disposition",
+    "expected_workflow_effect",
+    "expected_required_read_surfaces"
+  ],
+  "cases": [
+    {
+      "case_id": "general_chat_budget_official_001",
+      "suite_id": "general_chat_budget_query_golden_v1",
+      "promoted_from_candidate_case_id": "general_chat_candidate_001",
+      "utterance": "how many calories do I have left today?",
+      "general_chat_mode": "budget_summary",
+      "state_pack_summary": {
+        "active_body_plan_view": {
+          "daily_budget_kcal": 1800,
+          "goal_type": "lose_weight",
+          "plan_source": "official_pack_seed"
+        },
+        "current_budget_view": {
+          "budget_kcal": 1800,
+          "consumed_kcal": 650,
+          "remaining_kcal": 1150,
+          "active_meal_count": 2
+        }
+      },
+      "expected_target_object_type": "none",
+      "expected_target_workflow_family": "general_chat",
+      "expected_disposition": "answer_only",
+      "expected_workflow_effect": "answer_budget_summary_without_state_mutation",
+      "expected_required_read_surfaces": ["CurrentBudgetView", "ActiveBodyPlanView"]
+    },
+    {
+      "case_id": "general_chat_goal_official_001",
+      "suite_id": "general_chat_goal_query_golden_v1",
+      "promoted_from_candidate_case_id": "general_chat_candidate_002",
+      "utterance": "what is my current goal?",
+      "general_chat_mode": "goal_summary",
+      "state_pack_summary": {
+        "active_body_plan_view": {
+          "daily_budget_kcal": 1800,
+          "goal_type": "lose_weight",
+          "plan_source": "official_pack_seed"
+        }
+      },
+      "expected_target_object_type": "none",
+      "expected_target_workflow_family": "general_chat",
+      "expected_disposition": "answer_only",
+      "expected_workflow_effect": "answer_goal_summary_without_state_mutation",
+      "expected_required_read_surfaces": ["ActiveBodyPlanView"]
+    },
+    {
+      "case_id": "general_chat_open_workflow_official_001",
+      "suite_id": "general_chat_open_workflow_boundary_golden_v1",
+      "promoted_from_candidate_case_id": "general_chat_candidate_003",
+      "utterance": "change my calorie target now",
+      "general_chat_mode": "workflow_handoff",
+      "state_pack_summary": {},
+      "expected_target_object_type": "none",
+      "expected_target_workflow_family": "general_chat",
+      "expected_disposition": "open_new_workflow",
+      "expected_workflow_effect": "handoff_to_formal_workflow",
+      "expected_required_read_surfaces": []
+    }
+  ]
+}

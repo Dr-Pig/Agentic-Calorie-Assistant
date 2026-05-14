@@ -1,0 +1,26 @@
+{
+  "pack_id": "context_packing_sufficiency_golden_v1",
+  "pack_mode": "official_canonical",
+  "authority_level": "canonical",
+  "approval_status": "agent_promoted_v1",
+  "suite_archetype": "capability_service",
+  "approval_mode": "agent_allowed",
+  "truth_source": "canonical_spec_derivation",
+  "canonical_primary_oracle_fields": ["expected_service_outcome"],
+  "cases": [
+    {
+      "case_id": "context_packing_sufficiency_official_001",
+      "suite_id": "context_packing_sufficiency_golden_v1",
+      "promoted_from_candidate_case_id": "",
+      "derivation_basis": [
+        "docs/specs/L4C_CONTEXT_PACKING_SPEC.md",
+        "bounded_manager_context"
+      ],
+      "expected_service_outcome": {
+        "includes_hard_pins_before_optional_context": true,
+        "omits_unneeded_memory_or_source_text": true,
+        "preserves_mutation_authority_false_for_read_context": true
+      }
+    }
+  ]
+}

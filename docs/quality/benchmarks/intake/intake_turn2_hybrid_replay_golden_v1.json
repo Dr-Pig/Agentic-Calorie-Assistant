@@ -1,0 +1,17 @@
+{
+  "pack_id": "intake_turn2_hybrid_replay_golden_v1",
+  "pack_mode": "executable_replay_fixture",
+  "authority_level": "derived_from_runtime_contract",
+  "non_authority_note": "This pack expands turn-2 replay commands and does not define product semantics.",
+  "cases": [
+    {"case_id": "intake_turn2_replay_001"},
+    {"case_id": "intake_turn2_replay_002"},
+    {"case_id": "intake_turn2_replay_003"},
+    {"case_id": "intake_turn2_replay_004"},
+    {"case_id": "intake_turn2_replay_005"},
+    {"case_id": "intake_turn2_replay_006"},
+    {"case_id": "intake_turn2_replay_007"},
+    {"case_id": "intake_turn2_replay_008"},
+    {"case_id": "intake_turn2_replay_009"}
+  ]
+}
