@@ -34,6 +34,7 @@ from scripts.run_accurate_intake_product_pages_browser_smoke import (  # noqa: E
     _is_visible_product_text_clean,
     _open_page,
     _page_url,
+    _wait_for_chat_kcal_reply,
 )
 
 
@@ -461,13 +462,12 @@ def _run_browser_sequence(
             result["current_step"] = "answer_pending_followup"
             chat.fill("#message-input", FOLLOWUP_ANSWER_MESSAGE)
             chat.click("#send-button")
-            chat.wait_for_function(
-                """(reply) => (document.querySelector("#chat-scroll")?.textContent || "").includes(reply)""",
-                arg="Logged.",
-                timeout=timeout_ms,
-            )
+            _wait_for_chat_kcal_reply(chat, message=FOLLOWUP_ANSWER_MESSAGE, timeout_ms=timeout_ms)
             final_chat_text = chat.locator("body").inner_text(timeout=timeout_ms)
-            result["assistant_commit_bubble_rendered"] = "Logged." in final_chat_text
+            result["assistant_commit_bubble_rendered"] = any(
+                "kcal" in text
+                for text in chat.locator('.message.bot .bubble').all_inner_texts()
+            )
             result["chat_cjk_roundtrip_rendered"] = (
                 result["chat_cjk_roundtrip_rendered"] and FOLLOWUP_ANSWER_MESSAGE in final_chat_text
             )

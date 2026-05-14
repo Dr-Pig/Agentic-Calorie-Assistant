@@ -420,6 +420,41 @@ def _capture_fetches(page: Any) -> list[dict[str, Any]]:
     return [item for item in fetches if isinstance(item, dict)]
 
 
+def _wait_for_chat_turn_finished(page: Any, *, message: str, timeout_ms: int) -> None:
+    page.wait_for_function(
+        """(message) => {
+          const text = document.querySelector("#chat-scroll")?.textContent || "";
+          const sendButton = document.querySelector("#send-button");
+          const userCount = document.querySelectorAll('.message.user .bubble').length;
+          const persistedBotCount = Array.from(document.querySelectorAll('.message.bot .bubble'))
+            .filter((node) => node.dataset.renderSource === "chat_history.sqlite_message_buffer")
+            .length;
+          return text.includes(message) && sendButton?.disabled === false && persistedBotCount >= userCount;
+        }""",
+        arg=message,
+        timeout=timeout_ms,
+    )
+
+
+def _wait_for_chat_kcal_reply(page: Any, *, message: str | None = None, timeout_ms: int) -> None:
+    page.wait_for_function(
+        """(message) => {
+          const text = document.querySelector("#chat-scroll")?.textContent || "";
+          const messageVisible = !message || text.includes(message);
+          const botWithKcal = Array.from(document.querySelectorAll('.message.bot .bubble'))
+            .some((node) => (node.textContent || "").includes("kcal"));
+          const sendButton = document.querySelector("#send-button");
+          const userCount = document.querySelectorAll('.message.user .bubble').length;
+          const persistedBotCount = Array.from(document.querySelectorAll('.message.bot .bubble'))
+            .filter((node) => node.dataset.renderSource === "chat_history.sqlite_message_buffer")
+            .length;
+          return messageVisible && botWithKcal && sendButton?.disabled === false && persistedBotCount >= userCount;
+        }""",
+        arg=message,
+        timeout=timeout_ms,
+    )
+
+
 def _feedback_jsonl_path(feedback_dir: Path) -> Path:
     return feedback_dir / "accurate_intake_dogfood_feedback.jsonl"
 
@@ -1598,21 +1633,9 @@ def _run_cdk_browser_same_truth_sequence(
 
             chat.fill("#message-input", CDK_FOLLOWUP_MESSAGE)
             chat.press("#message-input", "Enter")
-            chat.wait_for_function(
-                """() => {
-                  const text = document.querySelector("#chat-scroll")?.textContent || "";
-                  return text.includes("Logged.");
-                }""",
-                timeout=timeout_ms,
-            )
+            _wait_for_chat_kcal_reply(chat, message=CDK_FOLLOWUP_MESSAGE, timeout_ms=timeout_ms)
             chat.reload(wait_until="networkidle", timeout=timeout_ms)
-            chat.wait_for_function(
-                """() => {
-                  const text = document.querySelector("#chat-scroll")?.textContent || "";
-                  return text.includes("Logged.");
-                }""",
-                timeout=timeout_ms,
-            )
+            _wait_for_chat_kcal_reply(chat, message=CDK_FOLLOWUP_MESSAGE, timeout_ms=timeout_ms)
             pending_pins_after_commit = chat.locator("#chat-context-pins").inner_text(timeout=timeout_ms).strip()
             consumed_after_commit, commit_visible, commit_today_fetches, commit_today_text = _visible_today_consumed_kcal(
                 browser,
@@ -1628,21 +1651,9 @@ def _run_cdk_browser_same_truth_sequence(
 
             chat.fill("#message-input", CDK_CORRECTION_MESSAGE)
             chat.press("#message-input", "Enter")
-            chat.wait_for_function(
-                """() => {
-                  const text = document.querySelector("#chat-scroll")?.textContent || "";
-                  return text.includes("Updated.");
-                }""",
-                timeout=timeout_ms,
-            )
+            _wait_for_chat_turn_finished(chat, message=CDK_CORRECTION_MESSAGE, timeout_ms=timeout_ms)
             chat.reload(wait_until="networkidle", timeout=timeout_ms)
-            chat.wait_for_function(
-                """() => {
-                  const text = document.querySelector("#chat-scroll")?.textContent || "";
-                  return text.includes("Updated.");
-                }""",
-                timeout=timeout_ms,
-            )
+            _wait_for_chat_turn_finished(chat, message=CDK_CORRECTION_MESSAGE, timeout_ms=timeout_ms)
             consumed_after_correction, correction_visible, correction_today_fetches, correction_today_text = (
                 _visible_today_consumed_kcal(
                     browser,
@@ -1728,14 +1739,7 @@ def _run_macro_present_exact_item_sequence(
     chat.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
     chat.fill("#message-input", DEFAULT_MACRO_EXACT_ITEM_MESSAGE)
     chat.press("#message-input", "Enter")
-    chat.wait_for_function(
-        """(message) => {
-          const text = document.querySelector("#chat-scroll")?.textContent || "";
-          return text.includes(`Logged. ${message}`);
-        }""",
-        arg=DEFAULT_MACRO_EXACT_ITEM_MESSAGE,
-        timeout=timeout_ms,
-    )
+    _wait_for_chat_kcal_reply(chat, message=DEFAULT_MACRO_EXACT_ITEM_MESSAGE, timeout_ms=timeout_ms)
     result["fetch_sequence"].extend(_capture_fetches(chat))
     chat.close()
 
@@ -1795,13 +1799,7 @@ def _run_macro_missing_exact_item_sequence(
     chat.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
     chat.fill("#message-input", DEFAULT_MACRO_MISSING_EXACT_ITEM_MESSAGE)
     chat.press("#message-input", "Enter")
-    chat.wait_for_function(
-        """() => {
-          const text = document.querySelector("#chat-scroll")?.textContent || "";
-          return text.includes("Logged.");
-        }""",
-        timeout=timeout_ms,
-    )
+    _wait_for_chat_kcal_reply(chat, message=DEFAULT_MACRO_MISSING_EXACT_ITEM_MESSAGE, timeout_ms=timeout_ms)
     result["fetch_sequence"].extend(_capture_fetches(chat))
     chat.close()
 
@@ -2412,14 +2410,7 @@ def _run_browser_sequence(
 
             chat.fill("#message-input", enter_message)
             chat.press("#message-input", "Enter")
-            chat.wait_for_function(
-                """(message) => {
-                  const text = document.querySelector("#chat-scroll")?.textContent || "";
-                  return text.includes(`Logged. ${message}`);
-                }""",
-                arg=enter_message,
-                timeout=timeout_ms,
-            )
+            _wait_for_chat_kcal_reply(chat, message=enter_message, timeout_ms=timeout_ms)
             result["chat_enter_key_send_checked"] = True
 
             chat.fill("#message-input", multiline_first_line)
@@ -2428,29 +2419,26 @@ def _run_browser_sequence(
             result["chat_shift_enter_multiline_checked"] = "\n" in textarea_value
             chat.type("#message-input", multiline_second_line)
             chat.click("#send-button")
+            _wait_for_chat_kcal_reply(chat, message=multiline_first_line, timeout_ms=timeout_ms)
             chat.wait_for_function(
-                """({ firstLine, secondLine }) => {
+                """(secondLine) => {
                   const text = document.querySelector("#chat-scroll")?.textContent || "";
-                  return text.includes(firstLine) && text.includes(secondLine) && text.includes("Logged.");
+                  return text.includes(secondLine);
                 }""",
-                arg={"firstLine": multiline_first_line, "secondLine": multiline_second_line},
+                arg=multiline_second_line,
                 timeout=timeout_ms,
             )
 
             for message in chat_messages[2:]:
                 chat.fill("#message-input", message)
                 chat.click("#send-button")
-                chat.wait_for_function(
-                    """(message) => {
-                      const text = document.querySelector("#chat-scroll")?.textContent || "";
-                      return text.includes(`Logged. ${message}`);
-                    }""",
-                    arg=message,
-                    timeout=timeout_ms,
-                )
+                _wait_for_chat_kcal_reply(chat, message=message, timeout_ms=timeout_ms)
             chat_text = chat.locator("body").inner_text(timeout=timeout_ms)
             result["chat_sent_cjk_message"] = cjk_message in chat_text
-            result["chat_assistant_bubble_rendered"] = "Logged." in chat_text
+            result["chat_assistant_bubble_rendered"] = any(
+                "kcal" in text
+                for text in chat.locator('.message.bot .bubble').all_inner_texts()
+            )
             chat_scroll_state = _chat_scroll_state(chat)
             result["chat_scroll_state"] = chat_scroll_state
             result["chat_scrollable"] = chat_scroll_state.get("overflowY") == "auto"
