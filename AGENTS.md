@@ -22,15 +22,18 @@ Full workflow applies to architecture-sensitive, PR-producing, canonical spec, e
 
 Before any non-trivial plan or edit, classify whether the task may be a capability-order trap, architecture-boundary trap, both, or neither. Use the relevant skill only when that risk is present; do not turn cosmetic, typo, local fixture, or narrow test edits into full governance work.
 
-## Branch Invariants
+## Advanced Product Lab Branch Bootstrap
 
 This branch may be `codex/advanced-product-lab`, a long-lived isolated product-lab branch for the complete advanced product.
 
-- Inside the lab branch, build the complete advanced product surface: runtime integration, UX, E2E, Grokfast diagnostics, control loop, recommendation/rescue/proactive loop, long-term memory, and simulated dogfood traces.
-- Lab runtime capability flags may be `true` when scoped to the isolated product lab; do not disable lab capabilities merely because mainline activation must remain walled off.
+Two-layer strategy: inside this branch, treat the lab as a complete product build with full runtime lab integration, complete UX, full E2E, live Grokfast diagnostics, control state loop, recommendation/rescue/proactive loop, long-term memory, and simulated dogfood traces; when planning merge back to main, self-use V1 remains isolated behind an activation wall.
+
+- Inside the lab branch, build the complete advanced product surface: runtime integration, UX, E2E, Grokfast diagnostics, control loop, recommendation/rescue/proactive loop, long-term memory, and simulated dogfood traces; do not reduce lab behavior to no-send/dormant-only constraints.
+- Lab runtime capability flags may be `true` when scoped to the isolated product lab. Do not keep memory tools, context injection, recommendation, rescue, proactive messaging, scheduler simulation, or user-facing lab responses disabled merely because mainline activation must remain walled off.
 - Merge-back to main/self-use V1 must keep production activation walled off unless a separate explicit activation PR enables route mounting, scheduler delivery, production DB migration, canonical mutation, durable product memory, or default runtime connection.
 - Lab reports must distinguish `lab_enabled=true` from `mainline_activation_enabled=false`.
 - Stable repo branches are `main` and `codex/advanced-product-lab`; do not create additional long-lived implementation branches for advanced-product work.
+- Do not delete this branch unless the user explicitly asks for archival or replacement; do not delete this branch unless the user explicitly asks.
 - Advanced product-lab and Current Shell work must converge on the same Manager-style agent contract, shared truth-owner map, and shared tool vocabulary.
 - Current Shell manager/runtime contracts are the upstream alignment target; extend them additively for later-wave lab capabilities.
 - Treat `pass1/pass2`, scripted manager loops, and direct fixture runners as harness shapes only. The target runtime remains one bounded Manager-style ReAct loop with shared capability planning, shared tool registry, shared truth owners, and deterministic legality guards.

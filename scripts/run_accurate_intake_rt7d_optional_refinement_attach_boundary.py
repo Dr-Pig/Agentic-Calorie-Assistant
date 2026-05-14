@@ -391,8 +391,23 @@ def _next_turn_context_packet_case() -> dict[str, Any]:
             blockers.append("next_turn_packet_pending_followup_missing")
         if packet["hard_pins"]["pending_draft"] is not None:
             blockers.append("next_turn_packet_unexpected_pending_draft")
-        if packet["context_loading_artifact"]["loaded_context_summary"]["target_candidate_count"] != 1:
-            blockers.append("next_turn_packet_target_candidate_count_mismatch")
+        target_candidate_count = int(
+            packet["context_loading_artifact"]["loaded_context_summary"].get("target_candidate_count") or 0
+        )
+        packet_target_candidates = list(
+            (packet.get("target_candidates") or {}).get("for_correction_or_removal") or []
+        )
+        packet_target_sources = {
+            str(candidate.get("source") or "")
+            for candidate in packet_target_candidates
+            if isinstance(candidate, dict)
+        }
+        if target_candidate_count < 1:
+            blockers.append("next_turn_packet_target_candidate_count_missing")
+        if "pending_followup_state" not in packet_target_sources:
+            blockers.append("next_turn_packet_pending_followup_target_missing")
+        if "canonical_meal_read_model" not in packet_target_sources:
+            blockers.append("next_turn_packet_active_meal_basis_target_missing")
         return {
             "case_id": "next_turn_context_packet_optional_refinement",
             "status": "pass" if not blockers else "fail",

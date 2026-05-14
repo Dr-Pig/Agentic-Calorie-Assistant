@@ -124,7 +124,18 @@ def _marker_offenders(contents_by_path: dict[str, str], *, markers: tuple[str, .
 def _decision_pack_preserves_provider_boundary(artifact: dict[str, Any] | None) -> bool:
     if artifact is None:
         source = _read_text(DECISION_PACK_PATH)
-        return "provider_robustness_summary" in source and '"production_selected": False' in source
+        required_source_tokens = (
+            "provider_robustness_summary",
+            '"decision_boundary"',
+            '"live_diagnostic_is_product_readiness": False',
+            '"production_manager_selected": False',
+            '"raw_text_routing_allowed": False',
+            '"product_readiness_claimed"',
+            '"private_self_use_approved"',
+            '"production_selected"',
+            '"live_provider_used_as_truth"',
+        )
+        return all(token in source for token in required_source_tokens)
     if artifact.get("artifact_type") != "accurate_intake_mvp_live_decision_pack":
         return False
     if artifact.get("production_selected") is not False:
