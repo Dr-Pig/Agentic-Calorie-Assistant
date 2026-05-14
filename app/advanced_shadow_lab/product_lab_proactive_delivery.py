@@ -23,6 +23,12 @@ def build_product_lab_proactive_delivery_packet(
             str(candidate.get("trigger_type") or ""): controls(candidate)
             for candidate in candidates
         },
+        "candidate_traces_by_candidate": {
+            str(candidate.get("trigger_type") or ""): dict(
+                candidate.get("pre_delivery_candidate_trace") or {}
+            )
+            for candidate in candidates
+        },
         "canonical_product_mutation_allowed": False,
         "durable_product_memory_written": False,
         "manager_context_packet_changed": False,

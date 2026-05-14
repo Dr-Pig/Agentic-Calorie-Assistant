@@ -4,9 +4,9 @@ status: active
 owner: AdvancedProductLabProactive
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 18
-last_completed_pr_number: 6
-active_pr_number: 7
+dynamic_remaining_pr_count: 17
+last_completed_pr_number: 7
+active_pr_number: 8
 current_mainline: advanced_product_lab_proactive_chat_first_integration
 is_detour: false
 mainline_blocker_being_removed: proactive_needs_chat_first_manager_style_integration_after_recommendation_closeout
@@ -281,6 +281,7 @@ estimate_notes:
   - After PR4 logical completion, remaining estimate moved to 20.
   - After PR5 logical completion, remaining estimate moved to 19.
   - After PR6 logical completion, remaining estimate moved to 18.
+  - After PR7 logical completion, remaining estimate moved to 17.
   - Estimate may increase if lab chat delivery exposes missing control-state or dashboard mirror contracts.
 
 last_merge_evidence:
@@ -315,3 +316,8 @@ last_merge_evidence:
       merge_commit: working_branch_uncommitted
       result: wake_source_adapters_completed_locally
       dynamic_remaining_pr_count_after: 18
+    - pr_number: 7
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: pre_delivery_candidate_trace_completed_locally
+      dynamic_remaining_pr_count_after: 17

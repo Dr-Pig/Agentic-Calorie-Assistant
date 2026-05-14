@@ -9,6 +9,13 @@ from app.advanced_shadow_lab.product_lab_proactive_recommendation_bridge import 
     build_recommendation_proactive_candidate_bridge,
 )
 
+TRIGGER_METADATA = {
+    "recommendation_prompt": ("recommendation", "app_open", "qualified_recommendation_offer_available"),
+    "pending_intake_followup": ("pending_meal", "state_threshold", "pending_intake_needs_confirmation"),
+    "rescue_nudge": ("rescue", "event_driven", "same_day_rescue_proposal_available"),
+    "weekly_insight": ("memory", "scheduled_check", "weekly_behavior_summary_available"),
+}
+
 
 def build_product_lab_proactive_wake_sources(
     *,
@@ -35,7 +42,8 @@ def build_product_lab_proactive_wake_sources(
     if not rescue_omission_active:
         specs.append(_rescue_candidate(rescue_artifact, fixture_inputs))
     specs.append(_weekly_insight_candidate(weekly_insight_artifact or {}, fixture_inputs))
-    candidate_specs = [dict(spec) for spec in specs if isinstance(spec, Mapping)]
+    raw_candidate_specs = [dict(spec) for spec in specs if isinstance(spec, Mapping)]
+    candidate_specs = [_spec_with_wake_trace(spec) for spec in raw_candidate_specs]
     wake_sources = [
         *_memory_context_sources(memory_context_pack),
         *[_candidate_wake_source(spec) for spec in candidate_specs],
@@ -73,15 +81,30 @@ def build_product_lab_proactive_wake_sources(
 
 def _candidate_wake_source(spec: Mapping[str, Any]) -> dict[str, Any]:
     trigger = str(spec.get("trigger_type") or "")
+    source_family, wake_source, reason = TRIGGER_METADATA.get(
+        trigger, ("unknown", "unknown", "")
+    )
     return {
-        "source_family": _source_family(trigger),
+        "source_family": source_family,
         "trigger_type": trigger,
-        "wake_source": _wake_source(trigger),
-        "user_relevant_reason": _user_relevant_reason(trigger),
+        "wake_source": wake_source,
+        "user_relevant_reason": reason,
         "source_output_refs": [str(item) for item in spec.get("source_output_refs") or []],
         "source_status": str(spec.get("source_status") or ""),
         "candidate_spec": dict(spec),
         "wake_source_is_user_benefit": False,
+    }
+
+
+def _spec_with_wake_trace(spec: Mapping[str, Any]) -> dict[str, Any]:
+    trace = _candidate_wake_source(spec)
+    return {
+        **dict(spec),
+        "wake_source_trace": {
+            key: value
+            for key, value in trace.items()
+            if key != "candidate_spec"
+        },
     }
 
 
@@ -160,33 +183,6 @@ def _control_model(
         "snooze_window": dict(_mapping(model.get("snooze_window"))),
         "next_signal_required": str(model.get("next_signal_required") or ""),
     }
-
-
-def _source_family(trigger: str) -> str:
-    return {
-        "recommendation_prompt": "recommendation",
-        "pending_intake_followup": "pending_meal",
-        "rescue_nudge": "rescue",
-        "weekly_insight": "memory",
-    }.get(trigger, "unknown")
-
-
-def _wake_source(trigger: str) -> str:
-    return {
-        "recommendation_prompt": "app_open",
-        "pending_intake_followup": "state_threshold",
-        "rescue_nudge": "event_driven",
-        "weekly_insight": "scheduled_check",
-    }.get(trigger, "unknown")
-
-
-def _user_relevant_reason(trigger: str) -> str:
-    return {
-        "recommendation_prompt": "qualified_recommendation_offer_available",
-        "pending_intake_followup": "pending_intake_needs_confirmation",
-        "rescue_nudge": "same_day_rescue_proposal_available",
-        "weekly_insight": "weekly_behavior_summary_available",
-    }.get(trigger, "")
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:
