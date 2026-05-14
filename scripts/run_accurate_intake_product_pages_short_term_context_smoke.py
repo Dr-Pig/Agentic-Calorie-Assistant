@@ -47,7 +47,7 @@ FOLLOWUP_ANSWER_MESSAGE = "有豆干、海帶、貢丸"
 FOLLOWUP_QUESTION = "請列出滷味裡有哪些品項和大概份量。"
 REQUIRED_FETCH_PREFIXES = (
     "/accurate-intake/chat-history",
-    "/estimate",
+    "/accurate-intake/chat-turn",
     "/accurate-intake/debug",
     "/today/current-budget",
 )
@@ -520,7 +520,7 @@ def _fetch_urls(report: dict[str, Any]) -> list[str]:
     return [str(item.get("url") or "") for item in sequence if isinstance(item, dict)]
 
 
-def _estimate_post_bodies(report: dict[str, Any]) -> list[dict[str, Any]]:
+def _turn_post_bodies(report: dict[str, Any]) -> list[dict[str, Any]]:
     browser = _dict(report.get("browser"))
     sequence = _list(browser.get("fetch_sequence")) or _list(report.get("fetch_sequence"))
     bodies: list[dict[str, Any]] = []
@@ -529,7 +529,8 @@ def _estimate_post_bodies(report: dict[str, Any]) -> list[dict[str, Any]]:
             continue
         if str(item.get("method") or "GET").upper() != "POST":
             continue
-        if "/estimate" not in str(item.get("url") or ""):
+        url = str(item.get("url") or "")
+        if "/accurate-intake/chat-turn" not in url and "/estimate" not in url:
             continue
         try:
             body = json.loads(str(item.get("body") or "{}"))
@@ -587,14 +588,14 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     for prefix in REQUIRED_FETCH_PREFIXES:
         if not any(prefix in url for url in fetch_urls):
             blockers.append(f"required_fetch_missing:{prefix}")
-    estimate_bodies = _estimate_post_bodies(report)
+    turn_bodies = _turn_post_bodies(report)
     local_date = str(report.get("local_date") or DEFAULT_LOCAL_DATE)
-    if not any(body.get("text") == BARE_BASKET_MESSAGE for body in estimate_bodies):
-        blockers.append("estimate_post_missing:bare_basket")
-    if not any(body.get("text") == FOLLOWUP_ANSWER_MESSAGE for body in estimate_bodies):
-        blockers.append("estimate_post_missing:followup_answer")
-    if not estimate_bodies or any(body.get("local_date") != local_date for body in estimate_bodies):
-        blockers.append("estimate_post_missing_selected_local_date")
+    if not any(body.get("text") == BARE_BASKET_MESSAGE for body in turn_bodies):
+        blockers.append("chat_turn_post_missing:bare_basket")
+    if not any(body.get("text") == FOLLOWUP_ANSWER_MESSAGE for body in turn_bodies):
+        blockers.append("chat_turn_post_missing:followup_answer")
+    if not turn_bodies or any(body.get("local_date") != local_date for body in turn_bodies):
+        blockers.append("chat_turn_post_missing_selected_local_date")
     if any('"allow_search":true' in str(item).replace(" ", "").lower() for item in _list(_dict(report.get("browser")).get("fetch_sequence"))):
         blockers.append("allow_search_true_used")
     sequence_error = str(_dict(report.get("browser")).get("browser_sequence_error") or report.get("browser_sequence_error") or "")

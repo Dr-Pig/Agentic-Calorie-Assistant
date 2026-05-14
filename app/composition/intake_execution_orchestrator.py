@@ -209,7 +209,7 @@ async def process_intake_execution_turn(
             current_turn_context=current_turn_context,
             user_external_id=user_external_id,
             local_date=local_date,
-            session_id=request_id,
+            session_id=request_id, exclude_trace_id=request_id,
         )
     if current_turn_context is None or latest_attachment_decision is None or latest_transition_guard_result is None:
         raise ValueError("Phase A runtime context is required for intake execution.")
@@ -277,7 +277,7 @@ async def process_intake_execution_turn(
                     current_turn_context=current_turn_context,
                     user_external_id=user_external_id,
                     local_date=local_date,
-                    session_id=request_id,
+                    session_id=request_id, exclude_trace_id=request_id,
                 )
                 phase_a_history_expansion_enabled = False
                 manager_triggered_history_trace = expansion.trace_payload()
@@ -496,7 +496,7 @@ async def process_intake_execution_turn(
         )
 
     stage_start = _now_ms()
-    state_after = resolve_intake_state(db, user_external_id=user_external_id, local_date=local_date)
+    state_after = resolve_intake_state(db, user_external_id=user_external_id, local_date=local_date, exclude_trace_id=request_id)
     record_timing("state_after_resolution", _now_ms() - stage_start)
     refreshed_tool_results = [dict(item) for item in manager_result.tool_results]
     if nutrition_artifact is not None:

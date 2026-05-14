@@ -20,6 +20,7 @@ from app.composition.calibration_estimate_route_support import (
 )
 from app.composition.conversation_turn_trace import record_runtime_turn_messages
 from app.composition.general_chat_service import build_general_chat_response_pass
+from app.composition.intake_chat_turn_routes import router as intake_chat_turn_router
 from app.composition.intake_turn_orchestrator import execute_intake_turn
 from app.composition.manager_context_runtime import (
     build_runtime_manager_context_packet_v1,
@@ -47,15 +48,14 @@ from app.runtime.interface.provider_runtime import (
 from app.schemas import EstimateRequest
 
 router = APIRouter()
-
-
+router.include_router(intake_chat_turn_router)
 def _request_local_date(request: EstimateRequest) -> str:
     return request.local_date or datetime.now().date().isoformat()
 
 
 @router.post("/estimate")
 async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Depends(get_db)) -> dict:
-    request_id = uuid4().hex
+    request_id = request.request_id or uuid4().hex
     source_page_version = raw_request.headers.get("X-Canary-Page-Version")
     try:
         user_id = request.user_id if getattr(request, "user_id", None) else "default_user"
@@ -65,7 +65,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
             db,
             user_external_id=user_id,
             local_date=local_date,
-            incoming_user_text=request.text,
+            incoming_user_text=request.text, exclude_trace_id=request_id,
         )
         current_turn_context = build_current_turn_context_v1(
             raw_user_input=request.text,
@@ -76,7 +76,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
             current_turn_context=current_turn_context,
             user_external_id=user_id,
             local_date=local_date,
-            session_id=request_id,
+            session_id=request_id, exclude_trace_id=request_id,
         )
         routing_result = build_workflow_routing_decision(
             raw_user_input=request.text,
@@ -147,7 +147,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
             state_after = resolve_intake_state(
                 db,
                 user_external_id=user_id,
-                local_date=local_date,
+                local_date=local_date, exclude_trace_id=request_id,
             )
             phase_a_trace = {
                 **routing_result.phase_a_trace,
@@ -293,7 +293,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                 state_after=resolve_intake_state(
                     db,
                     user_external_id=user_id,
-                    local_date=local_date,
+                    local_date=local_date, exclude_trace_id=request_id,
                 ),
                 phase_a_trace=routing_result.phase_a_trace,
                 result=result,
@@ -344,7 +344,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
             }
 
         result = await execute_intake_turn(
-            db,
+            db, request_id=request_id,
             user_external_id=user_id,
             raw_user_input=request.text,
             onboarding_payload=None,

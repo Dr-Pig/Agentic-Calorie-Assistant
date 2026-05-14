@@ -35,7 +35,7 @@ def _passing_report() -> dict[str, object]:
             "fetch_sequence": [
                 {"url": "/accurate-intake/chat-history?user_id=short-term-context", "method": "GET"},
                 {
-                    "url": "/estimate",
+                    "url": "/accurate-intake/chat-turn",
                     "method": "POST",
                     "body": (
                         '{"text":"晚餐吃滷味","user_id":"short-term-context",'
@@ -43,7 +43,7 @@ def _passing_report() -> dict[str, object]:
                     ),
                 },
                 {
-                    "url": "/estimate",
+                    "url": "/accurate-intake/chat-turn",
                     "method": "POST",
                     "body": (
                         '{"text":"有豆干、海帶、貢丸","user_id":"short-term-context",'
@@ -303,7 +303,7 @@ def test_product_pages_short_term_context_validator_requires_fetches_and_product
     assert "today_summary_not_rendered" in blockers
     assert "product_pages_debug_trace_leaked" in blockers
     assert "required_fetch_missing:/accurate-intake/chat-history" in blockers
-    assert "required_fetch_missing:/estimate" in blockers
+    assert "required_fetch_missing:/accurate-intake/chat-turn" in blockers
     assert "required_fetch_missing:/accurate-intake/debug" in blockers
     assert "required_fetch_missing:/today/current-budget" in blockers
 
@@ -313,7 +313,7 @@ def test_product_pages_short_term_context_validator_requires_two_browser_posts_w
     report["browser"]["fetch_sequence"] = [
         {"url": "/accurate-intake/chat-history?user_id=short-term-context", "method": "GET"},
         {
-            "url": "/estimate",
+            "url": "/accurate-intake/chat-turn",
             "method": "POST",
             "body": '{"text":"晚餐吃滷味","user_id":"short-term-context","allow_search":false}',
         },
@@ -324,8 +324,8 @@ def test_product_pages_short_term_context_validator_requires_two_browser_posts_w
     status, blockers = module._validate(report)
 
     assert status == "fail"
-    assert "estimate_post_missing:followup_answer" in blockers
-    assert "estimate_post_missing_selected_local_date" in blockers
+    assert "chat_turn_post_missing:followup_answer" in blockers
+    assert "chat_turn_post_missing_selected_local_date" in blockers
 
 
 def test_product_pages_short_term_context_validator_rejects_stale_report_date() -> None:
@@ -335,7 +335,7 @@ def test_product_pages_short_term_context_validator_rejects_stale_report_date() 
     status, blockers = module._validate(report)
 
     assert status == "fail"
-    assert "estimate_post_missing_selected_local_date" in blockers
+    assert "chat_turn_post_missing_selected_local_date" in blockers
 
 
 def test_short_term_context_fake_manager_treats_public_non_fooddb_tools_as_entry() -> None:

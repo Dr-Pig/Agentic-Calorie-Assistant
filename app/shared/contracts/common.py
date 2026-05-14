@@ -62,6 +62,7 @@ class EstimateRequest(BaseModel):
     text: str = Field(min_length=1)
     allow_search: bool = True
     user_id: str = "default_user"
+    request_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{8,80}$")
     local_date: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     session_state: EstimateSessionState | None = None
     calibration_preview_requested: bool = False

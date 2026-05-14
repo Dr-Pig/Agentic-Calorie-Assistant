@@ -133,6 +133,17 @@ def _trace_chain_complete(trace: dict[str, Any]) -> bool:
     )
 
 
+def _runtime_turn_status(trace: dict[str, Any]) -> str:
+    context_snapshot = trace.get("context_snapshot") if isinstance(trace.get("context_snapshot"), dict) else {}
+    phase_a_trace = context_snapshot.get("phase_a_trace") if isinstance(context_snapshot.get("phase_a_trace"), dict) else {}
+    if phase_a_trace.get("runtime_turn_status") == "in_progress":
+        return "in_progress"
+    final_mapping = trace.get("final_mapping") if isinstance(trace.get("final_mapping"), dict) else {}
+    if final_mapping.get("final_action") == "pending":
+        return "in_progress"
+    return "completed" if trace else "not_available"
+
+
 def _dict_or_empty(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
 
@@ -182,6 +193,7 @@ def _chat_history_message(message: MessageBuffer) -> dict[str, Any]:
         "read_only": True,
         "mutation_authority": False,
         "runtime_turn_trace_present": bool(trace),
+        "runtime_turn_status": _runtime_turn_status(trace),
         "context_snapshot_present": bool(context_snapshot),
         "trace_chain_complete": _trace_chain_complete(trace),
         "pending_followup_linkage_present": pending_followup_linkage_present,

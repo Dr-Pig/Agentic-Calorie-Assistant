@@ -365,7 +365,11 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "browser": {
             "fetch_sequence": [
                 {"url": "/accurate-intake/chat-history?user_id=product-pages", "method": "GET"},
-                {"url": "/estimate", "method": "POST", "body": '{"allow_search":false}'},
+                {
+                    "url": "/accurate-intake/chat-turn",
+                    "method": "POST",
+                    "body": '{"allow_search":false}',
+                },
                 {"url": "/today/current-budget?user_id=product-pages", "method": "GET"},
                 {
                     "url": f"/today/current-budget?user_id=product-pages&local_date={previous_local_date}",
@@ -1098,7 +1102,7 @@ def test_product_pages_browser_smoke_validator_rejects_debug_trace_or_stale_fetc
     assert "today_debug_trace_leaked" in blockers
     assert "body_debug_trace_leaked" in blockers
     assert "product_cjk_copy_not_rendered" in blockers
-    assert "estimate_allow_search_not_false" in blockers
+    assert "chat_turn_allow_search_not_false" in blockers
     assert "today_previous_day_fetch_missing" in blockers
 
 

@@ -188,9 +188,9 @@ def test_chat_page_renders_assistant_replies_only_from_backend_sources() -> None
     assert "bubble.dataset.renderSource = source;" in html
     assert 'appendMessage(role, message.content || "", "chat_history.sqlite_message_buffer", message);' in html
     assert 'data-render-source="static_welcome"' in html
-    assert 'pending.dataset.renderSource = "estimate.coach_message";' in html
+    assert 'pending.dataset.renderSource = "chat_turn.accepted";' in html
     assert "pending.textContent = payload.coach_message ||" in html
-    assert '"estimate.coach_message"' in html
+    assert '"chat_turn.accepted"' in html
 
     forbidden = [
         "payload.final_action",
@@ -251,8 +251,8 @@ def test_chat_composer_supports_enter_send_and_shift_enter_multiline() -> None:
     assert "requestSubmit()" in html
     assert "function setComposerBusy(isBusy)" in html
     assert 'el("composer").setAttribute("aria-busy", isBusy ? "true" : "false");' in html
-    assert 'el("message-input").disabled = isBusy;' in html
     assert 'el("send-button").disabled = isBusy;' in html
+    assert 'el("message-input").disabled = isBusy;' not in html
     assert "function fitComposerInput()" in html
     assert 'el("message-input").addEventListener("input", fitComposerInput);' in html
     assert "setComposerBusy(true);" in html
