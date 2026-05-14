@@ -51,6 +51,21 @@ suite_contract:
   required_split_counts:
     fixture: 8
     negative_holdout: 4
+  semantic_contract_width:
+    required_axes:
+      - positive_capability_path
+      - negative_or_blocking_path
+      - state_or_budget_constraint
+      - handoff_or_multi_capability
+      - ambiguity_or_scope_boundary
+      - overtrigger_false_positive
+    axis_case_types:
+      positive_capability_path: [same_meal_recall, anchored_repeat]
+      negative_or_blocking_path: [ingredient_drift, correction_review]
+      state_or_budget_constraint: [low_repetition_candidate, fooddb_fallback_personal_template]
+      handoff_or_multi_capability: [intake_confirmation_handoff, golden_order_materialization]
+      ambiguity_or_scope_boundary: [ambiguous_same_as_before, scope_leak]
+      overtrigger_false_positive: [store_variant_false_match, portion_variant_false_match]
 
 evaluation_policy:
   no_raw_keyword_semantic_oracle: true

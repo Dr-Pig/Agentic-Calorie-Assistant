@@ -21,6 +21,36 @@ product_surface_policy:
   advanced_lab_scope: full_product_runtime_lab_allowed
   mainline_merge_scope: dormant_activation_wall_required
 
+semantic_contract_width_policy:
+  goal: >
+    Keep semantic contracts wide enough to represent real UX intent while keeping
+    schema, provenance, mutation, and activation contracts narrow.
+  required_axes:
+    - positive_capability_path
+    - negative_or_blocking_path
+    - state_or_budget_constraint
+    - handoff_or_multi_capability
+    - ambiguity_or_scope_boundary
+    - overtrigger_false_positive
+  narrow_contract_signals:
+    - no_legal_ambiguity_or_clarification_exit
+    - no_negative_or_false_positive_holdout
+    - single_label_route_for_multi_capability_turns
+    - deterministic_raw_text_keyword_oracle
+    - schema_pass_claimed_as_semantic_pass
+  validator_boundary:
+    semantic_owner: manager_llm_structured_output
+    deterministic_role:
+      - validate_schema
+      - validate_scope
+      - validate_tool_legality
+      - validate_mutation_wall
+      - reject_missing_width_axis
+    deterministic_forbidden:
+      - infer_user_intent_from_raw_text
+      - rewrite_manager_semantic_fields
+      - treat_fixture_wording_as_product_truth
+
 strategic_gate:
   current_mainline: advanced_core_golden_set_alignment
   is_detour: false

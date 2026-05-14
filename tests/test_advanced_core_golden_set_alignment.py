@@ -18,6 +18,12 @@ def test_advanced_core_alignment_report_covers_all_required_domains() -> None:
     assert "generic_inbox_as_primary_product_surface" in (
         report["product_surface_policy"]["forbidden_surface_semantics"]
     )
+    assert "positive_capability_path" in (
+        report["semantic_contract_width_policy"]["required_axes"]
+    )
+    assert "deterministic_raw_text_keyword_oracle" in (
+        report["semantic_contract_width_policy"]["narrow_contract_signals"]
+    )
     assert set(report["coverage_domains"]) == {
         "memory",
         "rescue",
@@ -183,6 +189,31 @@ def test_all_new_golden_cases_have_product_trace_and_non_keyword_oracles() -> No
             assert case["expected_trace_fields"]
             assert "canonical_mutation" in case["mutation_posture"]
             assert "mainline_activation" in case["mutation_posture"]
+
+
+def test_advanced_core_golden_sets_declare_semantic_contract_width() -> None:
+    from app.advanced_shadow_lab.advanced_core_golden_sets import (
+        load_all_advanced_core_golden_sets,
+        validate_golden_set_contract,
+    )
+
+    required_axes = {
+        "positive_capability_path",
+        "negative_or_blocking_path",
+        "state_or_budget_constraint",
+        "handoff_or_multi_capability",
+        "ambiguity_or_scope_boundary",
+        "overtrigger_false_positive",
+    }
+
+    for artifact in load_all_advanced_core_golden_sets():
+        contract = artifact["suite_contract"]["semantic_contract_width"]
+        validation = validate_golden_set_contract(artifact)
+
+        assert validation["status"] == "pass"
+        assert required_axes.issubset(contract["required_axes"])
+        assert validation["semantic_contract_width"]["missing_required_axes"] == []
+        assert validation["semantic_contract_width"]["unknown_axis_case_types"] == []
 
 
 def test_doc_index_points_to_advanced_core_alignment_sets() -> None:

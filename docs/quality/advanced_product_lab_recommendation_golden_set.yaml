@@ -48,6 +48,23 @@ suite_contract:
     fixture: 9
     negative_holdout: 3
     live_diagnostic_seed: 2
+  semantic_contract_width:
+    required_axes:
+      - positive_capability_path
+      - negative_or_blocking_path
+      - state_or_budget_constraint
+      - handoff_or_multi_capability
+      - ambiguity_or_scope_boundary
+      - overtrigger_false_positive
+      - live_paraphrase_seed
+    axis_case_types:
+      positive_capability_path: [three_node_graph, offer_synthesis]
+      negative_or_blocking_path: [hard_blocker, scope_leak]
+      state_or_budget_constraint: [budget_gate, rescue_posture]
+      handoff_or_multi_capability: [pending_meal_handoff, feedback_projection]
+      ambiguity_or_scope_boundary: [scope_leak, pending_meal_handoff]
+      overtrigger_false_positive: [overtrigger, scope_leak]
+      live_paraphrase_seed: [live_planning_seed, live_offer_seed]
 
 evaluation_policy:
   no_raw_keyword_semantic_oracle: true

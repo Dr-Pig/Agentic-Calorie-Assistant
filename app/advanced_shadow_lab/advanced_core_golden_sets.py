@@ -5,6 +5,10 @@ from typing import Any
 
 import yaml
 
+from app.advanced_shadow_lab.advanced_core_golden_width import (
+    validate_semantic_contract_width,
+)
+
 
 ROOT = Path(__file__).resolve().parents[2]
 QUALITY = ROOT / "docs" / "quality"
@@ -56,6 +60,8 @@ def validate_golden_set_contract(artifact: dict[str, Any]) -> dict[str, Any]:
     cases = list(artifact.get("cases") or [])
     contract = dict(artifact.get("suite_contract") or {})
     required_fields = set((artifact.get("case_schema") or {}).get("required_fields") or [])
+    semantic_width = validate_semantic_contract_width(contract, cases)
+    blockers.extend(semantic_width["blockers"])
 
     if artifact.get("status") != "active_alignment_contract":
         blockers.append("status_not_active_alignment_contract")
@@ -105,6 +111,12 @@ def validate_golden_set_contract(artifact: dict[str, Any]) -> dict[str, Any]:
         "case_count": len(cases),
         "split_counts": split_counts,
         "case_types": sorted(case_types),
+        "semantic_contract_width": {
+            "required_axes": semantic_width["required_axes"],
+            "covered_axes": semantic_width["covered_axes"],
+            "missing_required_axes": semantic_width["missing_required_axes"],
+            "unknown_axis_case_types": semantic_width["unknown_axis_case_types"],
+        },
         "blockers": blockers,
     }
 
@@ -138,6 +150,9 @@ def build_advanced_core_golden_set_alignment_report() -> dict[str, Any]:
         "consumer": matrix.get("consumer"),
         "existing_sets_policy": matrix.get("existing_sets_policy"),
         "product_surface_policy": dict(matrix.get("product_surface_policy") or {}),
+        "semantic_contract_width_policy": dict(
+            matrix.get("semantic_contract_width_policy") or {}
+        ),
         "coverage_domains": required_domains,
         "new_golden_sets": list(matrix.get("new_golden_sets") or []),
         "mainline_activation_enabled": matrix.get("mainline_activation_enabled"),

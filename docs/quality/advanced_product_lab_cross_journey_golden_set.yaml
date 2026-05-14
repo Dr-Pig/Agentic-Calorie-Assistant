@@ -41,6 +41,21 @@ suite_contract:
   required_split_counts:
     fixture: 6
     negative_holdout: 2
+  semantic_contract_width:
+    required_axes:
+      - positive_capability_path
+      - negative_or_blocking_path
+      - state_or_budget_constraint
+      - handoff_or_multi_capability
+      - ambiguity_or_scope_boundary
+      - overtrigger_false_positive
+    axis_case_types:
+      positive_capability_path: [recommendation_to_pending_meal_to_intake, memory_blocker_to_recommendation]
+      negative_or_blocking_path: [prompt_injection_no_activation, memory_blocker_to_recommendation]
+      state_or_budget_constraint: [rescue_to_recommendation_posture]
+      handoff_or_multi_capability: [proactive_feedback_to_suppression, proactive_meal_reminder_to_intake]
+      ambiguity_or_scope_boundary: [ambiguous_attachment_no_wrong_mutation]
+      overtrigger_false_positive: [prompt_injection_no_activation, ambiguous_attachment_no_wrong_mutation]
 
 evaluation_policy:
   no_raw_keyword_semantic_oracle: true

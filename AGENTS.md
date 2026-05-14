@@ -57,6 +57,8 @@ Product end-state and real user interaction truth outrank eval fixture shape. Wh
 
 Eval assets validate product truth; they do not design it. If test assets are green but product behavior is wrong, treat product behavior as the bug and eval assets as incomplete or misaligned evidence.
 
+Semantic contracts must be wide enough to represent ambiguity, multi-capability turns, no-op/no-mutation outcomes, false positives, and holdouts. Keep schema, provenance, mutation, and activation contracts narrow, but do not narrow user-intent or workflow enums because a fixture set is easier to pass.
+
 ## Planning Gates
 
 Use these gates for non-trivial or PR-producing work. Skip them for fast-path edits unless the task escalates.

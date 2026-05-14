@@ -49,6 +49,23 @@ suite_contract:
     fixture: 8
     negative_holdout: 4
     live_diagnostic_seed: 2
+  semantic_contract_width:
+    required_axes:
+      - positive_capability_path
+      - negative_or_blocking_path
+      - state_or_budget_constraint
+      - handoff_or_multi_capability
+      - ambiguity_or_scope_boundary
+      - overtrigger_false_positive
+      - live_paraphrase_seed
+    axis_case_types:
+      positive_capability_path: [wake_trigger, chat_first_delivery]
+      negative_or_blocking_path: [quiet_hours, cooldown, stay_silent]
+      state_or_budget_constraint: [deterministic_gate, permission_posture]
+      handoff_or_multi_capability: [feedback_suppression, dismiss_snooze_reopen_modify]
+      ambiguity_or_scope_boundary: [permission_posture, scheduler_activation_wall]
+      overtrigger_false_positive: [stay_silent, scheduler_activation_wall]
+      live_paraphrase_seed: [live_send_skip_seed, live_feedback_seed]
 
 evaluation_policy:
   no_raw_keyword_semantic_oracle: true
