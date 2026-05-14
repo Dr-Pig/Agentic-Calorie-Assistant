@@ -30,6 +30,7 @@ def run_product_lab_proactive(
     action_state: Mapping[str, Any] | None = None,
     prior_control_journal: list[Mapping[str, Any]] | None = None,
     rescue_feedback_memory_projection: Mapping[str, Any] | None = None,
+    contextual_send_skip_artifact: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     current_action_state = action_state or {}
     feedback_projection = rescue_feedback_memory_projection or {}
@@ -78,14 +79,20 @@ def run_product_lab_proactive(
         memory_context_pack=memory_context_pack,
         prior_control_journal=prior_control_journal,
     )
-    passed = [] if blockers else [
+    review_passed = [] if blockers else [
         candidate
         for candidate in prepared_candidates
         if str(candidate.get("trigger_type") or "") in review["allowed_trigger_types"]
     ]
+    passed, send_skip_omissions, send_skip_blockers = _apply_contextual_send_skip(
+        candidates=review_passed,
+        contextual_send_skip_artifact=contextual_send_skip_artifact,
+    )
+    blockers.extend(send_skip_blockers)
     delivery = build_product_lab_proactive_delivery_packet(
         candidates=passed,
         blocked=bool(blockers),
+        contextual_send_skip_artifact=contextual_send_skip_artifact,
     )
     return {
         "artifact_type": "advanced_product_lab_proactive_runtime_artifact",
@@ -110,6 +117,7 @@ def run_product_lab_proactive(
         "omission_traces": [
             *([] if rescue_omission is None else [rescue_omission]),
             *list(review.get("omission_traces") or []),
+            *send_skip_omissions,
         ],
         "source_outputs_read": [
             str(recommendation_artifact.get("artifact_type") or ""),
@@ -118,6 +126,7 @@ def run_product_lab_proactive(
             str(current_action_state.get("artifact_type") or ""),
             str(feedback_projection.get("artifact_type") or ""),
             str(wake_source_adapter.get("artifact_type") or ""),
+            str((contextual_send_skip_artifact or {}).get("artifact_type") or ""),
         ],
         "lab_chat_delivery_allowed": not bool(blockers),
         "scheduler_delivery_allowed": False,
@@ -131,6 +140,23 @@ def run_product_lab_proactive(
         "manager_context_packet_changed": False,
         "blockers": blockers,
     }
+
+
+def _apply_contextual_send_skip(
+    *,
+    candidates: list[Mapping[str, Any]],
+    contextual_send_skip_artifact: Mapping[str, Any] | None,
+) -> tuple[list[Mapping[str, Any]], list[dict[str, Any]], list[str]]:
+    if not contextual_send_skip_artifact:
+        return candidates, [], []
+    if contextual_send_skip_artifact.get("status") != "pass":
+        return [], [], ["contextual_send_skip.status_not_pass"]
+    send_ids = {str(item) for item in contextual_send_skip_artifact.get("send_candidate_ids") or []}
+    return (
+        [candidate for candidate in candidates if str(candidate.get("candidate_id") or "") in send_ids],
+        [dict(item) for item in contextual_send_skip_artifact.get("omission_traces") or []],
+        [],
+    )
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:

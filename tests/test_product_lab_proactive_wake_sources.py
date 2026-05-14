@@ -65,6 +65,7 @@ def test_product_lab_proactive_uses_wake_source_adapter_trace() -> None:
         "advanced_product_lab_action_state",
         "",
         "advanced_product_lab_proactive_wake_source_adapter_artifact",
+        "",
     ]
 
 
