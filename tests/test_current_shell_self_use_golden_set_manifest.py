@@ -61,6 +61,7 @@ def test_golden_set_global_invariants_are_complete_and_enforced_by_cases() -> No
     assert invariant_ids == [
         "G0_real_entrypoint_no_fake_pass",
         "G1_semantic_owner",
+        "G1A_no_pre_manager_estimability_shortcut",
         "G2_context_engineering",
         "G3_evidence_and_food_truth",
         "G4_manager_react_loop",
@@ -92,6 +93,7 @@ def test_golden_set_cases_cover_locked_self_use_matrix() -> None:
     assert gs5["expected_runtime"]["workflow_effect"] == "ask_followup"
     assert gs5["expected_runtime"]["mutation_allowed"] is False
     assert gs5["expected_runtime"]["fallback_400_allowed"] is False
+    assert gs5["expected_runtime"]["pre_manager_estimability_shortcut_allowed"] is False
     assert gs5["expected_runtime"]["pending_followup_saved"] is True
 
     gs9 = cases["GS9"]
@@ -141,7 +143,10 @@ def test_golden_set_spec_records_hard_boundaries_and_fooddb_posture() -> None:
         "Current Shell Self-Use Golden Set",
         "No fake pass",
         "Manager owns semantic intent",
-        "No fallback 400",
+        "Composition sufficiency, estimability, and follow-up necessity are Manager semantic decisions",
+        "Deterministic runtime must not inspect raw user text",
+        "Active runtime must not produce fallback/shadow 400 nutrition packets",
+        "missing evidence into a default 400 kcal estimate",
         "BodyPlan remains a persistent profile and goal surface",
         "Feedback is captured through inline entry points",
         "Structured trace is the primary review surface",

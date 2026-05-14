@@ -9,7 +9,7 @@ from app.runtime.agent.manager_system_prompt import (
 
 
 def test_self_selected_basket_blocking_clarify_policy_is_explicit_static_prompt_guidance() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v19"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v20"
     assert "Self-selected basket examples include" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "滷味" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "鹽酥雞" in SINGLE_MANAGER_SYSTEM_PROMPT
@@ -24,6 +24,10 @@ def test_self_selected_basket_blocking_clarify_policy_is_explicit_static_prompt_
     assert "named set meal, combo, or patterned bundle" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "no approved composition anchor" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "ask one blocking composition question" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "nutrition_evidence_not_commit_eligible" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "You, the Manager, own open-world food semantics" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "it must not decide those semantics from raw user text before your pass" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "repair by choosing a legal final action" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
 def test_self_selected_basket_blocking_clarify_policy_is_tool_guidance_not_raw_text_router() -> None:
@@ -34,6 +38,9 @@ def test_self_selected_basket_blocking_clarify_policy_is_tool_guidance_not_raw_t
     assert "tool_calls=[]" in description
     assert "final ask_followup" in description
     assert "do not call estimate_nutrition" in description
+    assert "nutrition_evidence_not_commit_eligible" in description
+    assert "ask_followup/no_mutation" in description
+    assert "Manager-proposed commit" in description
     assert "deterministic raw text routing" in description
 
 

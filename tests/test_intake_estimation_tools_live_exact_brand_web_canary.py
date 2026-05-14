@@ -20,11 +20,17 @@ sys.modules.setdefault(
 
 from app.composition.intake_estimation_tools import estimate_nutrition_tool  # noqa: E402
 import app.nutrition.application.estimate_artifacts as estimate_artifacts_module  # noqa: E402
+from app.nutrition.application.retrieval_semantic_decision import B2ManagerSemanticDecision  # noqa: E402
 
 
 class _ProviderStub:
     def readiness(self) -> dict[str, Any]:
         return {"provider": "provider_stub", "configured": False}
+
+
+class _ConfiguredProviderStub:
+    def readiness(self) -> dict[str, Any]:
+        return {"provider": "provider_stub", "configured": True}
 
 
 class _FakeSearchPort:
@@ -113,7 +119,7 @@ async def test_exact_db_hit_bypasses_live_exact_brand_canary_for_prefixed_starbu
 
 
 @pytest.mark.asyncio
-async def test_exact_brand_canary_success_keeps_user_facing_fallback_unchanged_but_records_trace() -> None:
+async def test_exact_brand_canary_success_records_trace_without_shadow_fallback() -> None:
     search_port = _FakeSearchPort(
         [
             {
@@ -155,13 +161,25 @@ async def test_exact_brand_canary_success_keeps_user_facing_fallback_unchanged_b
         search_port=search_port,
         extract_port=extract_port,
         allow_search=True,
+        manager_semantic_decision=B2ManagerSemanticDecision(
+            base_dish="超級抹茶歐蕾",
+            aliases=[],
+            brand_hint="統一",
+            size_hint=None,
+            modifier_hints=[],
+            listed_items=[],
+            retrieval_goal="exact_brand_lookup",
+            semantic_authority_source="synthetic_manager_structured_fixture",
+        ),
     )
 
     assert artifact.payload.best_estimate_mode is None
+    assert artifact.payload.estimated_kcal == 0
+    assert artifact.payload.trace_contract["shadow_stub"] is False
+    assert artifact.payload.trace_contract["evidence_unavailable"] is True
     assert artifact.payload.trace_contract["web_runtime_trace"]["attempted"] is True
     assert artifact.payload.trace_contract["web_runtime_trace"]["selected_search_packet_id"].startswith("pkt_web_search_")
     assert artifact.payload.trace_contract["web_runtime_trace"]["accepted_extract_packet_id"].startswith("pkt_web_extract_")
-    assert artifact.payload.estimated_kcal > 0
     assert search_port.calls == [{"query": "統一超級抹茶歐蕾", "max_results": 5}]
     assert extract_port.calls == [
         {
@@ -172,7 +190,7 @@ async def test_exact_brand_canary_success_keeps_user_facing_fallback_unchanged_b
 
 
 @pytest.mark.asyncio
-async def test_exact_brand_canary_failure_keeps_fallback_and_records_failure_reason() -> None:
+async def test_exact_brand_canary_failure_records_failure_without_shadow_fallback() -> None:
     search_port = _FakeSearchPort(
         [
             {
@@ -214,9 +232,60 @@ async def test_exact_brand_canary_failure_keeps_fallback_and_records_failure_rea
         search_port=search_port,
         extract_port=extract_port,
         allow_search=True,
+        manager_semantic_decision=B2ManagerSemanticDecision(
+            base_dish="超級抹茶歐蕾",
+            aliases=[],
+            brand_hint="統一",
+            size_hint=None,
+            modifier_hints=[],
+            listed_items=[],
+            retrieval_goal="exact_brand_lookup",
+            semantic_authority_source="synthetic_manager_structured_fixture",
+        ),
     )
 
     assert artifact.payload.best_estimate_mode is None
+    assert artifact.payload.estimated_kcal == 0
+    assert artifact.payload.trace_contract["shadow_stub"] is False
+    assert artifact.payload.trace_contract["evidence_unavailable"] is True
     assert artifact.payload.trace_contract["web_runtime_trace"]["attempted"] is True
     assert artifact.payload.trace_contract["web_runtime_trace"]["failure_reason"] == "no_accepted_web_extract_packet"
-    assert artifact.payload.estimated_kcal > 0
+
+
+@pytest.mark.asyncio
+async def test_missing_runtime_evidence_returns_unavailable_packet_not_shadow_fallback() -> None:
+    artifact = await estimate_nutrition_tool(
+        None,
+        user_external_id="user-no-fallback",
+        raw_user_input="unanchored breakfast combo abcxyz",
+        request_id="req-no-fallback",
+        local_date="2026-04-29",
+        provider=_ConfiguredProviderStub(),
+        search_port=_FakeSearchPort([]),
+        extract_port=_FakeExtractPort([]),
+        allow_search=False,
+        manager_semantic_decision=B2ManagerSemanticDecision(
+            base_dish="unanchored breakfast combo abcxyz",
+            aliases=[],
+            brand_hint=None,
+            size_hint=None,
+            modifier_hints=[],
+            listed_items=[],
+            retrieval_goal="generic_anchor_lookup",
+            semantic_authority_source="live_manager_structured_output",
+        ),
+    )
+
+    trace_contract = artifact.payload.trace_contract
+    assert artifact.payload.estimated_kcal == 0
+    assert artifact.payload.component_estimates == []
+    assert artifact.payload.reply_text == ""
+    assert trace_contract["shadow_stub"] is False
+    assert trace_contract["evidence_unavailable"] is True
+    assert trace_contract["canonical_write_decision"] == {
+        "can_write_canonical": False,
+        "source": "evidence_unavailable",
+        "failure_family": "nutrition_evidence_unavailable",
+        "blockers": ["no_approved_runtime_evidence"],
+    }
+    assert trace_contract["response_mode_hint"] == "clarify_first"

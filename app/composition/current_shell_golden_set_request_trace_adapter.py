@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from app.composition.current_shell_golden_set_request_trace_outcomes import (
@@ -56,6 +57,20 @@ def build_golden_case_trace_from_request_trace(
     state_delta = _dict(request_trace.get("state_delta"))
     renderer_output = _dict(request_trace.get("renderer_output"))
 
+    runtime = {
+        **runtime_from_request_trace(
+            request_trace=request_trace,
+            manager_final=manager_final,
+            manager_decision=manager_decision,
+            phase_c_trace=phase_c_trace,
+            state_delta=state_delta,
+        ),
+        **runtime_assertions,
+    }
+    response = {**response_from_request_trace(request_trace), **response_assertions}
+    if runtime.get("fallback_400_allowed") is False and _contains_visible_kcal_claim(renderer_output):
+        response["invented_nutrition_fact"] = True
+
     return {
         "case_id": case_id,
         "trace_id": trace_id(request_trace),
@@ -78,18 +93,9 @@ def build_golden_case_trace_from_request_trace(
             manager_decision=manager_decision,
             renderer_output=renderer_output,
         ),
-        "runtime": {
-            **runtime_from_request_trace(
-                request_trace=request_trace,
-                manager_final=manager_final,
-                manager_decision=manager_decision,
-                phase_c_trace=phase_c_trace,
-                state_delta=state_delta,
-            ),
-            **runtime_assertions,
-        },
+        "runtime": runtime,
         "ui": {**ui_from_request_trace(request_trace, state_delta), **ui_assertions},
-        "response": {**response_from_request_trace(request_trace), **response_assertions},
+        "response": response,
         "latency": latency_from_request_trace(request_trace, trace),
         "dogfood_trace": {
             **dogfood_trace_from_request_trace(request_trace),
@@ -118,6 +124,11 @@ def build_golden_trace_artifact_from_request_traces(
 
 def _dict(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
+
+
+def _contains_visible_kcal_claim(renderer_output: dict[str, Any]) -> bool:
+    text = str(renderer_output.get("assistant_message") or renderer_output.get("coach_message") or "")
+    return bool(re.search(r"\d+\s*(?:kcal|cal|卡|大卡)", text, flags=re.IGNORECASE))
 
 
 __all__ = [

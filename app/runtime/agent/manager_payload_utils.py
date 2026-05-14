@@ -4,6 +4,8 @@ import inspect
 import json
 from typing import Any, Awaitable
 
+from app.runtime.agent.manager_tool_result_visibility import nutrition_payload_values_must_be_hidden
+
 
 def json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
@@ -71,6 +73,7 @@ _NUTRITION_PAYLOAD_PROMPT_FIELDS = (
 )
 _TRACE_CONTRACT_PROMPT_FIELDS = (
     "route_family",
+    "shadow_stub",
     "db_hit_type",
     "match_confidence",
     "response_mode_hint",
@@ -164,8 +167,13 @@ def _compact_tool_evidence_prompt_payload(evidence: dict[str, Any]) -> dict[str,
 
 
 def _compact_nutrition_payload_prompt_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    compact = _select_prompt_fields(payload, _NUTRITION_PAYLOAD_PROMPT_FIELDS)
     trace_contract = _object_mapping(payload.get("trace_contract"))
+    fields = _NUTRITION_PAYLOAD_PROMPT_FIELDS
+    if nutrition_payload_values_must_be_hidden(trace_contract):
+        fields = tuple(field for field in fields if field not in {"estimated_kcal", "reply_text"})
+    compact = _select_prompt_fields(payload, fields)
+    if nutrition_payload_values_must_be_hidden(trace_contract):
+        compact["disallowed_fact_policy"] = "nutrition_payload_values_hidden_until_commit_eligible"
     if trace_contract:
         compact["trace_contract"] = _select_prompt_fields(trace_contract, _TRACE_CONTRACT_PROMPT_FIELDS)
     return compact

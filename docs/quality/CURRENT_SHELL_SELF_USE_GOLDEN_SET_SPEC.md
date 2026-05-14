@@ -29,7 +29,7 @@ These invariants apply to every Golden Set case.
 - Deterministic code may validate, reject, downgrade, derive, or request bounded repair. It must not silently rewrite Manager semantics.
 - Context packets must provide the current turn, session summary, pending question, recent meal threads, target candidates, and read-model summaries where relevant. Context chooses no final intent or target.
 - Nutrition truth must come from user facts, FoodDB/evidence packets, approved synthesis, or canonical read models.
-- No fallback 400 can become canonical product truth.
+- Active runtime must not produce fallback/shadow 400 nutrition packets. Missing approved evidence produces an evidence-unavailable packet with no kcal or macro facts, then Manager decides the next user-facing action.
 - Macro facts are evidence-gated. Missing macro remains hidden, unknown, or partial.
 - ReAct trace layers must include pass1, tool plan, executed tools, compact packets, pass2, guard, mutation result, renderer basis, and final response basis.
 - Ask-followup and answer-only actions do not commit intake.
@@ -39,6 +39,26 @@ These invariants apply to every Golden Set case.
 - Pending and queued messages must survive navigation.
 - Dogfood traces must record timing, call topology, state changes, final visible response, and feedback linkage.
 - Exact-utterance-only passes, keyword shortcuts, and fixture-shaped semantic shortcuts are blockers. A case pass must represent the failure family behind the case, not only the literal text in the manifest.
+
+## Manager Semantic Ownership Boundary
+
+Composition sufficiency, estimability, and follow-up necessity are Manager semantic decisions. The Manager LLM owns whether the user's food description is clear enough to estimate, whether the turn should ask a composition question, whether an item is an exact/generic/component/basket/patterned-combo case, how assumptions should be stated, and whether the final action is commit, answer-only, correction, removal, or ask-followup.
+
+Deterministic runtime may validate a Manager-proposed action or evidence object after the Manager has produced it. It may reject an illegal commit, hide disallowed evidence fields, downgrade visibility, block mutation, or request one bounded repair round when evidence eligibility or mutation legality fails.
+
+The active estimate tool must not fall back to a shadow/stub nutrition estimate. A missing exact, FoodDB, component, or approved web evidence packet is represented as `evidence_unavailable` with `estimated_kcal=0`, macro hidden, and `can_write_canonical=false`. The Manager may use that packet to ask a question or explain missing evidence, but deterministic code cannot turn the missing evidence into a default 400 kcal estimate.
+
+Deterministic runtime must not inspect raw user text, food names, case IDs, fixture labels, keyword lists, or food-family heuristics before the Manager pass to decide:
+
+- the food is not estimable
+- composition is unknown
+- the system should ask a follow-up
+- a specific follow-up wording
+- a food posture such as exact, generic, component, basket, or patterned combo
+- a correction/removal target
+- a final action or workflow effect
+
+This boundary follows the trace-level eval practice of grading the actual agent decision path, not only the final answer, and the context-engineering rule that deterministic context supplies candidates and evidence while the Manager decides semantics. A Golden Set pass must prove that any ask-followup, no-commit, estimate, correction, or removal decision came from the Manager output or from a bounded post-Manager guard repair, not from a pre-Manager deterministic shortcut.
 
 ## Golden Set Matrix
 

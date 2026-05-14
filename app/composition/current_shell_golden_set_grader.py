@@ -129,6 +129,14 @@ def _display(value: Any) -> str:
 def _response_blockers(result: dict[str, Any]) -> list[str]:
     response = dict(result.get("response") or {})
     blockers: list[str] = []
+    visible_text = str(
+        response.get("assistant_message")
+        or response.get("visible_text")
+        or response.get("reply_text")
+        or ""
+    ).strip()
+    if not visible_text:
+        blockers.append("response.visible_text_missing")
     for forbidden_flag in (
         "internal_debug_words_present",
         "state_contradiction",
