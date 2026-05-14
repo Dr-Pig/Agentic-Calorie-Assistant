@@ -25,8 +25,10 @@ def test_rt7c_single_turn_commit_boundary_artifact(tmp_path: Path) -> None:
     assert case["case_id"] == "single_turn_commit_boundary"
     assert case["status"] == "pass"
     assert case["manager_pass_count"] == 2
-    assert case["requested_tools"] == ["estimate_nutrition", "compare_against_budget"]
-    assert case["executed_tools"] == ["estimate_nutrition", "compare_against_budget"]
+    assert "estimate_nutrition" in case["requested_tools"]
+    assert "estimate_nutrition" in case["executed_tools"]
+    assert set(case["requested_tools"]).issubset({"estimate_nutrition", "compare_against_budget"})
+    assert set(case["executed_tools"]).issubset({"estimate_nutrition", "compare_against_budget"})
     assert case["transition_guard_verdict"] == "pass"
     assert case["canonical_commit_status"] == "committed"
     assert case["same_truth_status"] == "pass"

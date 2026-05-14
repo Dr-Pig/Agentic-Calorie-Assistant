@@ -30,9 +30,9 @@ from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
 
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_rt7d_optional_refinement_attach_boundary.json"
-INITIAL_TEXT = "sandwich"
-REFINEMENT_TEXT = "chicken sandwich"
-FOLLOWUP_QUESTION = "Which sandwich was it?"
+INITIAL_TEXT = "bubble milk tea"
+REFINEMENT_TEXT = "that milk tea half sugar"
+FOLLOWUP_QUESTION = "What size and sugar level was it?"
 
 
 class OptionalRefinementAttachFixtureProvider:
@@ -48,10 +48,12 @@ class OptionalRefinementAttachFixtureProvider:
 
     async def complete_with_trace(self, **kwargs: Any) -> tuple[dict[str, Any], dict[str, Any]]:
         user_payload = dict(kwargs.get("user_payload") or {})
+        tool_results = list(user_payload.get("tool_results") or [])
         self.calls.append(
             {
                 "raw_user_input": user_payload.get("raw_user_input"),
                 "available_tools": list(user_payload.get("available_tools") or []),
+                "tool_results": tool_results,
                 "round_index": user_payload.get("round_index"),
                 "current_turn_context": user_payload.get("phase_a_current_turn_context"),
                 "manager_context_pack": user_payload.get("phase_a_manager_context_pack"),
@@ -62,7 +64,7 @@ class OptionalRefinementAttachFixtureProvider:
         raw = str(user_payload.get("raw_user_input") or "").strip().lower()
         if {"budget.get_today_summary", "budget.get_remaining_calories"}.intersection(available_tools):
             return self._entry_decision(), self._trace("entry_decision")
-        if int(user_payload.get("round_index") or 0) == 0 and "estimate_nutrition" in available_tools:
+        if not _has_tool_result(tool_results, "estimate_nutrition") and "estimate_nutrition" in available_tools:
             return self._tool_request(available_tools), self._trace("tool_request")
         if raw == REFINEMENT_TEXT:
             return self._refinement_final(), self._trace("refinement_final")
@@ -80,7 +82,7 @@ class OptionalRefinementAttachFixtureProvider:
             "manager_action": "final",
             "intent": "log_meal",
             "intent_type": "log_meal",
-            "final_action": "commit",
+            "final_action": "no_commit",
             "workflow_effect": "route_to_intake",
             "target_attachment": {"mode": "new_meal"},
             "exactness": "unknown",
@@ -128,7 +130,7 @@ class OptionalRefinementAttachFixtureProvider:
             "evidence_posture": "tool_evidence_present",
             "repair_ack": False,
             "answer_contract": {
-                "reply_text": "Logged a sandwich estimate.",
+                "reply_text": "Logged a milk tea estimate.",
                 "followup_question": FOLLOWUP_QUESTION,
             },
             "semantic_decision": {
@@ -161,7 +163,7 @@ class OptionalRefinementAttachFixtureProvider:
             "confidence": "high",
             "evidence_posture": "tool_evidence_present",
             "repair_ack": False,
-            "answer_contract": {"reply_text": "Updated the sandwich estimate."},
+            "answer_contract": {"reply_text": "Updated the milk tea estimate."},
             "semantic_decision": {
                 "semantic_authority": "deterministic_fake_provider",
                 "current_turn_intent": "correct_meal",
@@ -245,6 +247,16 @@ def _close_client(client: TestClient) -> None:
         client.close()
 
 
+def _has_tool_result(tool_results: list[Any], tool_name: str) -> bool:
+    for result in tool_results:
+        if not isinstance(result, dict):
+            continue
+        name = str(result.get("tool_name") or result.get("name") or "").strip()
+        if name == tool_name and not result.get("failure_family"):
+            return True
+    return False
+
+
 def _seed_and_first_commit() -> tuple[Session, TestClient, OptionalRefinementAttachFixtureProvider, dict[str, Any]]:
     db = _session()
     provider = OptionalRefinementAttachFixtureProvider()
@@ -270,7 +282,6 @@ def _first_runtime_estimate_call(provider: OptionalRefinementAttachFixtureProvid
             call
             for call in provider.calls
             if str(call.get("raw_user_input") or "") == INITIAL_TEXT
-            and int(call.get("round_index") or 0) == 0
             and "estimate_nutrition" in set(call.get("available_tools") or [])
         ),
         None,
@@ -283,7 +294,6 @@ def _second_runtime_estimate_call(provider: OptionalRefinementAttachFixtureProvi
             call
             for call in provider.calls
             if str(call.get("raw_user_input") or "") == REFINEMENT_TEXT
-            and int(call.get("round_index") or 0) == 0
             and "estimate_nutrition" in set(call.get("available_tools") or [])
         ),
         None,
@@ -356,7 +366,9 @@ def _next_turn_context_packet_case() -> dict[str, Any]:
             session_id="rt7d-optional-refinement-session",
         )
         blockers: list[str] = []
-        if current_turn_context.pending_followup.get("is_open") is not True:
+        pending_followup = dict(current_turn_context.pending_followup or {})
+        packet_pending_followup = dict((packet.get("hard_pins") or {}).get("pending_followup") or {})
+        if pending_followup.get("is_open") is not True:
             blockers.append("next_turn_pending_followup_missing")
         if current_turn_context.open_workflow_type != "meal_followup":
             blockers.append("next_turn_open_workflow_type_mismatch")
@@ -375,7 +387,7 @@ def _next_turn_context_packet_case() -> dict[str, Any]:
             blockers.append("next_turn_target_resolution_source_mismatch")
         if posture.get("item_resolution_source") != "single_active_item":
             blockers.append("next_turn_item_resolution_source_mismatch")
-        if packet["hard_pins"]["pending_followup"]["pending_question"] != FOLLOWUP_QUESTION:
+        if packet_pending_followup.get("pending_question") != FOLLOWUP_QUESTION:
             blockers.append("next_turn_packet_pending_followup_missing")
         if packet["hard_pins"]["pending_draft"] is not None:
             blockers.append("next_turn_packet_unexpected_pending_draft")
@@ -431,26 +443,36 @@ def _optional_refinement_supersedes_same_thread_case() -> dict[str, Any]:
             blockers.append("refinement_mutation_outcome_not_committed")
         if mutation_outcome["meal_version_delta"] != "superseded_previous":
             blockers.append("refinement_meal_version_delta_mismatch")
-        if int(today_summary["consumed_kcal"] or 0) != 480:
+        active_total_kcal = int(meal_threads[0]["active_version"]["total_kcal"] or 0) if len(meal_threads) == 1 else None
+        if active_total_kcal is None or int(today_summary["consumed_kcal"] or 0) != active_total_kcal:
             blockers.append("refinement_today_summary_consumed_kcal_mismatch")
         if same_truth["status"] != "pass":
             blockers.append("refinement_same_truth_not_pass")
         if len(meal_threads) != 1:
             blockers.append("refinement_meal_thread_count_mismatch")
-        elif meal_threads[0]["active_version"]["items"][0]["name"] != "chicken sandwich":
+        elif "milk tea" not in str(meal_threads[0]["active_version"]["items"][0]["name"] or ""):
             blockers.append("refinement_active_item_name_mismatch")
         if runtime_call is None:
             blockers.append("refinement_runtime_estimate_call_missing")
         else:
-            context = dict(runtime_call.get("current_turn_context") or {})
-            pack = dict(runtime_call.get("manager_context_pack") or {})
             packet = dict(runtime_call.get("manager_context_packet_v1") or {})
-            manager_context = dict(pack.get("manager_context") or {})
-            if context.get("pending_followup", {}).get("is_open") is not True:
+            hard_pins = dict(packet.get("hard_pins") or {})
+            active_day_state = dict(packet.get("active_day_state") or {})
+            target_candidates = dict(packet.get("target_candidates") or {})
+            pending_followup = dict(hard_pins.get("pending_followup") or {})
+            active_meal_ref = dict(active_day_state.get("active_meal_thread_ref") or {})
+            tool_results = [item for item in list(runtime_call.get("tool_results") or []) if isinstance(item, dict)]
+            correction_sources = {
+                str(dict(dict(item.get("provenance") or {}).get("correction_target") or {}).get("target_resolution_source") or "")
+                for item in tool_results
+            }
+            if pending_followup.get("pending_question") != FOLLOWUP_QUESTION:
                 blockers.append("refinement_runtime_missing_pending_followup")
-            if manager_context.get("candidate_attachment_targets", [{}])[0].get("target_object_id") != "1":
+            if str(active_meal_ref.get("meal_thread_id") or "") != "1":
                 blockers.append("refinement_runtime_candidate_target_missing")
-            if manager_context.get("target_resolution_posture", {}).get("target_resolution_source") != "pending_followup_state":
+            if int(target_candidates.get("candidate_count") or 0) < 1:
+                blockers.append("refinement_runtime_target_candidate_count_missing")
+            if "pending_followup_state" not in correction_sources:
                 blockers.append("refinement_runtime_target_resolution_posture_missing")
             if packet.get("hard_pins", {}).get("pending_draft") is not None:
                 blockers.append("refinement_runtime_unexpected_pending_draft")

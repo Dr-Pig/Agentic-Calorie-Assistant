@@ -202,8 +202,13 @@ def _blocking_clarify_route_no_commit_case() -> dict[str, Any]:
             blockers.append("blocking_clarify_workflow_effect_mismatch")
         if payload["intake_execution_manager"]["final"]["final_action"] != "ask_followup":
             blockers.append("blocking_clarify_final_action_mismatch")
-        if provider.calls[0]["available_tools"][:2] != ["budget.get_today_summary", "budget.get_remaining_calories"]:
-            blockers.append("blocking_clarify_phase_a_tool_inventory_mismatch")
+        entry_tools = set(provider.calls[0]["available_tools"])
+        expected_read_tools = {"budget.get_today_summary", "budget.get_remaining_calories"}
+        forbidden_entry_tools = {"estimate_nutrition", "compare_against_budget", "resolve_correction_target"}
+        if not expected_read_tools.issubset(entry_tools):
+            blockers.append("blocking_clarify_phase_a_read_tool_inventory_missing")
+        if entry_tools.intersection(forbidden_entry_tools):
+            blockers.append("blocking_clarify_phase_a_mutation_tool_leaked")
         if "estimate_nutrition" not in provider.calls[1]["available_tools"]:
             blockers.append("blocking_clarify_runtime_tool_inventory_missing_estimate")
         if provider.calls[1]["tool_results"]:

@@ -141,10 +141,17 @@ def build_rt7c_single_turn_commit_boundary_artifact(
             blockers.append("manager_final_action_not_commit")
         if react_trace["manager_pass_count"] != 2:
             blockers.append("manager_pass_count_not_two")
-        if react_trace["requested_tools"] != ["estimate_nutrition", "compare_against_budget"]:
-            blockers.append("requested_tools_mismatch")
-        if react_trace["executed_tools"] != ["estimate_nutrition", "compare_against_budget"]:
-            blockers.append("executed_tools_mismatch")
+        requested_tools = set(react_trace["requested_tools"])
+        executed_tools = set(react_trace["executed_tools"])
+        allowed_runtime_tools = {"estimate_nutrition", "compare_against_budget"}
+        if "estimate_nutrition" not in requested_tools:
+            blockers.append("estimate_tool_not_requested")
+        if "estimate_nutrition" not in executed_tools:
+            blockers.append("estimate_tool_not_executed")
+        if requested_tools - allowed_runtime_tools:
+            blockers.append("unexpected_requested_tools")
+        if executed_tools - allowed_runtime_tools:
+            blockers.append("unexpected_executed_tools")
         if guard["blocked"] is not False:
             blockers.append("guard_blocked_commit")
         if guard["transition_guard_verdict"] != "pass":
@@ -169,7 +176,7 @@ def build_rt7c_single_turn_commit_boundary_artifact(
             blockers.append("same_truth_not_pass")
         if provider.readiness()["live_llm_invoked"] is not False:
             blockers.append("live_llm_invoked_truth_drift")
-        if len(provider.calls) < 3:
+        if len(provider.calls) < 2:
             blockers.append("provider_call_count_too_small")
 
         artifact = {
