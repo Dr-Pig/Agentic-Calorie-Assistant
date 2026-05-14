@@ -209,3 +209,40 @@ def test_workflow_routing_decision_uses_structured_target_reference_to_route_cor
     assert result.attachment_decision is not None
     assert result.attachment_decision.target_object_id == "77"
     assert "history_expansion_activation" not in result.phase_a_trace
+
+
+def test_workflow_routing_decision_does_not_turn_active_meal_basis_question_into_correction() -> None:
+    resolved_state = _ResolvedState()
+    resolved_state.injected_context["ACTIVE_MEAL"] = {
+        "meal_thread_id": 77,
+        "meal_version_id": 88,
+        "meal_title": "\u65e9\u9910\u5e97\u9435\u677f\u9eb5\u5957\u9910",
+        "total_kcal": 400,
+        "item_resolution_source": "single_active_item",
+    }
+    resolved_state.injected_context["TARGET_MEAL_REFERENCE"] = {
+        "meal_thread_id": 77,
+        "meal_version_id": 88,
+        "meal_title": "\u65e9\u9910\u5e97\u9435\u677f\u9eb5\u5957\u9910",
+        "target_resolution_source": "active_meal_view",
+        "correction_confidence": "medium",
+        "item_resolution_source": "single_active_item",
+    }
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="\u4f60\u662f\u600e\u9ebc\u4f30\u7684\uff1f\u4f60\u662f\u4e0d\u662f\u8a8d\u70ba\u6709\u4ec0\u9ebc\u7d44\u6210\uff1f",
+        resolved_state=resolved_state,
+    )
+
+    result = build_workflow_routing_decision(
+        raw_user_input=current_turn_context.user_utterance,
+        current_turn_context=current_turn_context,
+        resolved_state=resolved_state,
+    )
+
+    assert current_turn_context.candidate_attachment_targets
+    assert current_turn_context.open_workflow_type != "meal_correction"
+    assert result.target_workflow_family == "general_chat"
+    assert result.disposition == "defer"
+    assert result.attachment_decision is not None
+    assert result.attachment_decision.disposition == "answer_only"
+    assert result.attachment_decision.reason == "no_attachment_signal"

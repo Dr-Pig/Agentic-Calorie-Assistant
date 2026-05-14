@@ -7,6 +7,7 @@ from ...runtime.contracts.phase_a import (
     CurrentTurnContextV1,
     InteractionEvent,
 )
+from .attachment_resolver import target_reference_opens_correction_workflow
 
 _AMBIGUOUS_TOKENS = {"ok", "okay", "sure", "fine", "good", "yes", "yep"}
 
@@ -211,7 +212,6 @@ def _target_resolution_posture(target_meal_reference: dict[str, Any]) -> dict[st
         "read_only": True,
     }
 
-
 def _session_atomic_blocks(
     *,
     raw_user_input: str,
@@ -360,7 +360,7 @@ def build_current_turn_context_v1(
 
     if pending_followup is not None:
         open_workflow_type = "meal_followup"
-    elif target_meal_reference.get("meal_thread_id") is not None:
+    elif target_reference_opens_correction_workflow(target_meal_reference):
         open_workflow_type = "meal_correction"
     elif current_event.target_object_type == "proposal":
         open_workflow_type = "proposal"

@@ -19,6 +19,28 @@ _BACK_REFERENCE_TOKENS = (
     "那個",
     "這個",
 )
+RESOLVED_TARGET_SOURCES = frozenset(
+    {
+        "pending_followup_state",
+        "manager_structured_target",
+        "manager_context_candidates",
+        "history_expansion",
+    }
+)
+
+
+def target_source_supports_resolved_attachment(*, source: str, confidence: str) -> bool:
+    return source in RESOLVED_TARGET_SOURCES and confidence in {"medium", "high"}
+
+
+def target_reference_opens_correction_workflow(target_meal_reference: dict[str, object]) -> bool:
+    return (
+        target_meal_reference.get("meal_thread_id") is not None
+        and target_source_supports_resolved_attachment(
+            source=str(target_meal_reference.get("target_resolution_source") or "").strip(),
+            confidence=str(target_meal_reference.get("correction_confidence") or "").strip(),
+        )
+    )
 
 
 def _normalized_text(raw_user_input: str) -> str:
@@ -38,7 +60,7 @@ def _looks_like_back_reference(raw_user_input: str) -> bool:
 def _source_supports_resolved_target(candidate: dict[str, object]) -> bool:
     source = str(candidate.get("source") or "").strip()
     confidence = str(candidate.get("confidence") or "").strip()
-    return source not in {"", "recent_committed_meal"} and confidence in {"medium", "high"}
+    return target_source_supports_resolved_attachment(source=source, confidence=confidence)
 
 
 def _resolved_target_disposition(candidate: dict[str, object]) -> str:
