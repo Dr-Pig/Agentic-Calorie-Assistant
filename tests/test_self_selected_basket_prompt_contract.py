@@ -9,7 +9,7 @@ from app.runtime.agent.manager_system_prompt import (
 
 
 def test_self_selected_basket_blocking_clarify_policy_is_explicit_static_prompt_guidance() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v20"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v21"
     assert "Self-selected basket examples include" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "滷味" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "鹽酥雞" in SINGLE_MANAGER_SYSTEM_PROMPT
@@ -61,3 +61,43 @@ def test_self_selected_basket_blocking_clarify_schema_guidance_keeps_llm_as_sema
     assert "unanchored patterned combos are not tool evidence missing" in action_description
     assert "composition_unknown_basket or unanchored_patterned_combo is not pending_tool_call" in posture_description
     assert "LLM semantic decision" in posture_description
+
+
+def test_explicit_listed_components_are_not_blocking_combo_prompt_guidance() -> None:
+    assert "explicitly lists concrete food components" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "semantic_decision.listed_items" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "retrieval_goal='listed_item_lookup'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "ask for portions as optional refinement" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "not a composition-unknown basket" in SINGLE_MANAGER_SYSTEM_PROMPT
+
+
+def test_explicit_listed_components_are_not_blocking_combo_tool_guidance() -> None:
+    description = founder_live_manager_tool_description()
+
+    assert "explicitly lists concrete food components" in description
+    assert "include them in semantic_decision.listed_items" in description
+    assert "retrieval_goal='listed_item_lookup'" in description
+    assert "do not classify that turn as composition-unknown" in description
+
+
+def test_explicit_listed_components_schema_guidance_keeps_manager_as_list_owner() -> None:
+    schema = manager_loop_schema(
+        {
+            "manager_contract_profile_id": "founder_live_contract",
+            "manager_loop_scope": "intake_execution",
+            "manager_contract_evidence_state": {
+                "nutrition_evidence_present": False,
+            },
+        }
+    )
+
+    listed_items_description = schema["properties"]["semantic_decision"]["properties"]["listed_items"][
+        "description"
+    ]
+    retrieval_goal_description = schema["properties"]["semantic_decision"]["properties"]["retrieval_goal"][
+        "description"
+    ]
+    assert "Manager-owned list" in listed_items_description
+    assert "raw-text deterministic parser" in listed_items_description
+    assert "explicit listed components" in retrieval_goal_description
+    assert "listed_item_lookup" in retrieval_goal_description

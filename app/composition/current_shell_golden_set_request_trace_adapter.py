@@ -4,6 +4,7 @@ import re
 from typing import Any
 
 from app.composition.current_shell_golden_set_request_trace_outcomes import (
+    approved_nutrition_evidence_present,
     dogfood_trace_from_request_trace,
     latency_from_request_trace,
     response_from_request_trace,
@@ -68,7 +69,11 @@ def build_golden_case_trace_from_request_trace(
         **runtime_assertions,
     }
     response = {**response_from_request_trace(request_trace), **response_assertions}
-    if runtime.get("fallback_400_allowed") is False and _contains_visible_kcal_claim(renderer_output):
+    if (
+        runtime.get("fallback_400_allowed") is False
+        and _contains_visible_kcal_claim(renderer_output)
+        and not approved_nutrition_evidence_present(request_trace, manager_final)
+    ):
         response["invented_nutrition_fact"] = True
 
     return {

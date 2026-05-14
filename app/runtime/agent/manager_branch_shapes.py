@@ -65,8 +65,23 @@ def manager_semantic_decision_schema() -> dict[str, Any]:
             "brand_hint": {"anyOf": [{"type": "string"}, {"type": "null"}]},
             "size_hint": {"anyOf": [{"type": "string"}, {"type": "null"}]},
             "modifier_hints": {"type": "array", "items": {"type": "string"}},
-            "listed_items": {"type": "array", "items": {"type": "string"}},
-            "retrieval_goal": {"type": "string"},
+            "listed_items": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": (
+                    "Manager-owned list of concrete food components from the current turn or context. "
+                    "Use when the user explicitly lists concrete components; leave empty when composition is "
+                    "unknown. Runtime must not fill this with a raw-text deterministic parser."
+                ),
+            },
+            "retrieval_goal": {
+                "type": "string",
+                "description": (
+                    "Manager-owned retrieval intent. Use listed_item_lookup for explicit listed components "
+                    "that need nutrition evidence before commit; do not use generic or ask-first posture solely "
+                    "because portions are rough."
+                ),
+            },
             "source": {"type": "string"},
             "semantic_owner": {"type": "string"},
             "deterministic_role": {"type": "string"},

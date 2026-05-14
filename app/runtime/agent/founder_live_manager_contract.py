@@ -377,7 +377,7 @@ def founder_live_manager_tool_description() -> str:
         "self-selected basket or unanchored patterned combo, return final ask_followup directly, use tool_calls=[] for composition-unknown "
         "ask_followup, and do not call estimate_nutrition for composition-unknown baskets; "
         "manager_action call_tools is invalid for composition-unknown baskets. For a "
-        "listed-item follow-up, call estimate_nutrition and do not repeat the same composition clarification. If guard_feedback.failure_family is nutrition_evidence_not_commit_eligible, guard rejected a Manager-proposed commit; choose legal final ask_followup/no_mutation/tool_calls=[] and never commit a fallback value. "
+        "turn that explicitly lists concrete food components, include them in semantic_decision.listed_items, set retrieval_goal='listed_item_lookup', and do not classify that turn as composition-unknown; for a listed-item follow-up, call estimate_nutrition and do not repeat the same composition clarification. If guard_feedback.failure_family is nutrition_evidence_not_commit_eligible, guard rejected a Manager-proposed commit; choose legal final ask_followup/no_mutation/tool_calls=[] and never commit a fallback value. "
         + refinement_policy.COMPOSITION_REFINEMENT_AFTER_BASIS_QUERY_DESCRIPTION
         + "If followup_posture is refinement_not_commit_gate or size_clarification, include a followup_question. "
         "If you do not have a concrete follow-up question, use none, closed, or refinement_optional."

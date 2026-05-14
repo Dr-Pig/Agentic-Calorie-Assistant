@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v20"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v21"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -50,6 +50,11 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "An optional refinement follow-up does not make the mutation intent no_mutation when the turn should still "
     "be logged after evidence. Do not pair final_action_candidate='commit' with mutation_intent_candidate='no_mutation'; "
     "no_mutation is for read-only answers or blocking ask_followup cases that will not write canonical intake yet.\n"
+    "If the user explicitly lists concrete food components in the current turn or a pending-followup answer, "
+    "you own that semantic list: include those items in semantic_decision.listed_items, use "
+    "retrieval_goal='listed_item_lookup', and call estimate_nutrition when evidence is needed before commit. "
+    "When the item list is concrete but quantities are rough, ask for portions as optional refinement; do not "
+    "classify that turn as a composition-unknown basket solely because portions are not exact.\n"
 )
 
 
@@ -67,6 +72,9 @@ _PRODUCT_POLICY_PROMPT = (
     "estimate_nutrition, and do not create a canonical commit. When the user later provides listed "
     "items after a basket clarification, use prior context to attach the answer, call the nutrition evidence tool "
     "before final commit, and do not repeat the same composition clarification unless details remain insufficient. "
+    "If the current user turn itself explicitly lists concrete food components, that is not a composition-unknown basket "
+    "or unanchored combo: preserve the Manager-owned list in semantic_decision.listed_items and use "
+    "retrieval_goal='listed_item_lookup'. "
     "These policies guide Manager judgment only; runtime guards and evidence packets still own mutation legality "
     "and final allowed facts.\n"
 )
@@ -107,6 +115,10 @@ _CONTRACT_POLICY_PROMPT = (
     "and estimation_posture='composition_unknown_basket'; include one concrete semantic_decision.followup_question "
     "or answer_contract.followup_question; return tool_calls=[] and do not call estimate_nutrition. "
     "When listed items arrive after that clarification, use prior context and call estimate_nutrition before commit.\n"
+    "For any turn that explicitly lists concrete food components, do not classify it as composition-unknown merely "
+    "because it may belong to a combo or basket family. You own the item-list judgment: set "
+    "semantic_decision.listed_items, retrieval_goal='listed_item_lookup', and use estimate_nutrition before a "
+    "commit/correction. Runtime must not fill this list with a raw-text deterministic parser.\n"
     "For manual daily target updates, use intent_type='set_manual_daily_target', final_action='target_updated', "
     "workflow_effect='manual_daily_target_update', and do not calculate TDEE or coaching plans.\n"
     "If ready, return manager_action='final' with intent, target_attachment, final_action, workflow_effect, semantic_decision, "
