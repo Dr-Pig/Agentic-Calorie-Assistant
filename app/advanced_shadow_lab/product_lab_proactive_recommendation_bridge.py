@@ -19,6 +19,8 @@ def build_recommendation_proactive_candidate_bridge(
     )
     candidate_id = str(primary.get("candidate_id") or "")
     blockers = [] if candidate_id else ["recommendation.selected_primary_missing"]
+    blockers.extend(_quality_blockers(primary))
+    source_trace = _source_bridge_trace(primary, recommendation_artifact)
     return _artifact(
         status="blocked" if blockers else "pass",
         blockers=blockers,
@@ -31,6 +33,10 @@ def build_recommendation_proactive_candidate_bridge(
                 f"candidate:{candidate_id}",
             ],
             "source_status": str(recommendation_artifact.get("status") or ""),
+            "downstream_workflow_family": "recommendation",
+            "candidate_quality_tier": source_trace["candidate_quality_tier"],
+            "proactive_intensity": source_trace["proactive_intensity"],
+            "source_bridge_trace": source_trace,
             "control_model": dict(_control_model(fixture_inputs)),
             "next_signal_fallback": "new_app_open_with_qualified_pool",
         }
@@ -61,6 +67,57 @@ def _artifact(
         "canonical_product_mutation_allowed": False,
         "blockers": blockers or [],
     }
+
+
+def _quality_blockers(primary: Mapping[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    quality_tier = str(primary.get("quality_tier") or "")
+    source_type = str(primary.get("source_type") or "")
+    proactive_intensity = str(primary.get("proactive_intensity") or "")
+    if quality_tier in {"low", "rejected"} or proactive_intensity in {"none", "skip"}:
+        blockers.append("recommendation.low_quality_context")
+    if source_type in {"generic_category", "generic_only"}:
+        blockers.append("recommendation.generic_category_only")
+    return blockers
+
+
+def _source_bridge_trace(
+    primary: Mapping[str, Any],
+    recommendation_artifact: Mapping[str, Any],
+) -> dict[str, Any]:
+    candidate_id = str(primary.get("candidate_id") or "")
+    return {
+        "downstream_workflow_family": "recommendation",
+        "source_selected_candidate_id": candidate_id,
+        "candidate_quality_tier": str(primary.get("quality_tier") or ""),
+        "proactive_intensity": str(primary.get("proactive_intensity") or ""),
+        "source_type": str(primary.get("source_type") or ""),
+        "quality_score": primary.get("quality_score"),
+        "quality_signals": _quality_signals(
+            primary=primary,
+            recommendation_artifact=recommendation_artifact,
+            candidate_id=candidate_id,
+        ),
+        "source_refs": [str(item) for item in primary.get("source_refs") or []],
+        "recommendation_handoff_mode": "chat_first_invitation",
+    }
+
+
+def _quality_signals(
+    *,
+    primary: Mapping[str, Any],
+    recommendation_artifact: Mapping[str, Any],
+    candidate_id: str,
+) -> list[str]:
+    primary_signals = [str(item) for item in primary.get("quality_signals") or []]
+    if primary_signals:
+        return primary_signals
+    retrieval = _mapping(recommendation_artifact.get("retrieval_guard_scoring"))
+    for candidate in retrieval.get("allowed_candidates") or []:
+        item = _mapping(candidate)
+        if str(item.get("candidate_id") or "") == candidate_id:
+            return [str(signal) for signal in item.get("quality_signals") or []]
+    return []
 
 
 def _control_model(fixture_inputs: Mapping[str, Any]) -> Mapping[str, Any]:

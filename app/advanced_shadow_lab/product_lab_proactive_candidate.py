@@ -11,14 +11,26 @@ def product_lab_proactive_candidate(
     control_model: Mapping[str, Any],
     next_signal_fallback: str,
     wake_source_trace: Mapping[str, Any] | None = None,
+    source_bridge_trace: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     candidate_id = product_lab_proactive_candidate_id(trigger_type)
+    bridge_trace = _mapping(source_bridge_trace)
     return {
         "artifact_type": "advanced_product_lab_proactive_candidate",
         "status": "pass" if source_status == "pass" else "blocked",
         "candidate_id": candidate_id,
         "trigger_type": trigger_type,
         "candidate_kind": candidate_kind,
+        "downstream_workflow_family": str(
+            bridge_trace.get("downstream_workflow_family") or ""
+        ),
+        "candidate_quality_tier": str(
+            bridge_trace.get("candidate_quality_tier") or ""
+        ),
+        "recommendation_candidate_id": str(
+            bridge_trace.get("source_selected_candidate_id") or ""
+        ),
+        "source_bridge_trace": dict(bridge_trace),
         "surface": "chat",
         "source_output_refs": source_output_refs,
         "pre_delivery_candidate_trace": _pre_delivery_trace(
@@ -27,6 +39,7 @@ def product_lab_proactive_candidate(
             source_output_refs=source_output_refs,
             source_status=source_status,
             wake_source_trace=wake_source_trace or {},
+            source_bridge_trace=bridge_trace,
         ),
         "dismiss_reason_choices": [
             str(item) for item in control_model.get("dismiss_reason_choices") or []
@@ -72,12 +85,22 @@ def _pre_delivery_trace(
     source_output_refs: list[str],
     source_status: str,
     wake_source_trace: Mapping[str, Any],
+    source_bridge_trace: Mapping[str, Any],
 ) -> dict[str, Any]:
     return {
         "artifact_type": "advanced_product_lab_proactive_pre_delivery_candidate_trace",
         "artifact_schema_version": "1.0",
         "candidate_id": candidate_id,
         "trigger_type": trigger_type,
+        "downstream_workflow_family": str(
+            source_bridge_trace.get("downstream_workflow_family") or ""
+        ),
+        "candidate_quality_tier": str(
+            source_bridge_trace.get("candidate_quality_tier") or ""
+        ),
+        "source_selected_candidate_id": str(
+            source_bridge_trace.get("source_selected_candidate_id") or ""
+        ),
         "source_family": str(wake_source_trace.get("source_family") or ""),
         "wake_source": str(wake_source_trace.get("wake_source") or ""),
         "user_relevant_reason": str(

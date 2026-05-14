@@ -56,6 +56,7 @@ def run_product_lab_proactive(
             control_model=_mapping(spec.get("control_model")),
             next_signal_fallback=str(spec.get("next_signal_fallback") or ""),
             wake_source_trace=_mapping(spec.get("wake_source_trace")),
+            source_bridge_trace=_mapping(spec.get("source_bridge_trace")),
         )
         for spec in wake_source_adapter.get("candidate_specs") or []
         if isinstance(spec, Mapping)
