@@ -1938,6 +1938,11 @@ def test_founder_live_contract_policy_names_existing_query_only_and_followup_inv
     assert policy["query_only_rule"]["intent_type"] == "answer_query"
     assert policy["query_only_rule"]["final_action"] == "answer_only"
     assert policy["query_only_rule"]["mutation_intent_candidate"] == "no_mutation"
+    assert policy["query_only_rule"]["basis_source"] == (
+        "manager_context_packet_v1.active_day_state.active_meal_estimate_basis"
+    )
+    assert "route_to_intake" in policy["query_only_rule"]["estimate_basis_forbidden"]
+    assert "estimate_nutrition" in policy["query_only_rule"]["estimate_basis_forbidden"]
     assert policy["correction_rule"]["intent_type"] == "correct_meal"
     assert policy["correction_rule"]["final_action"] == "correction_applied"
     assert policy["composition_unknown_rule"]["mutation_intent_candidate"] == "no_mutation"
@@ -1960,6 +1965,8 @@ def test_founder_live_contract_policy_names_existing_query_only_and_followup_inv
     assert "refinement_not_commit_gate" in policy["followup_question_required_postures"]
     description = founder_live_manager_tool_description()
     assert "query-only" in description
+    assert "estimate-basis inquiry" in description
+    assert "answer_contract.answer_basis" in description
     assert "answer_only" in description
     assert "correct_meal" in description
     assert "self-selected basket" in description
@@ -2117,7 +2124,10 @@ def test_founder_live_manager_contract_uses_synthetic_tool_transport_with_schema
     assert transport_request["tool_choice"]["function"]["name"] == "manager_structured_decision"
     assert transport_request["tools"][0]["function"]["strict"] is True
     assert "intent_type='correct_meal'" in transport_request["tools"][0]["function"]["description"]
-    assert "Do not collapse query-only or correction turns into log_meal" in transport_request["tools"][0]["function"]["description"]
+    assert (
+        "Do not collapse query-only, estimate-basis inquiry, or correction turns into log_meal"
+        in transport_request["tools"][0]["function"]["description"]
+    )
     assert "estimate_nutrition" in transport_request["tools"][0]["function"]["description"]
     assert transport_request["tools"][0]["function"]["parameters"]["required"] == [
         "manager_action",

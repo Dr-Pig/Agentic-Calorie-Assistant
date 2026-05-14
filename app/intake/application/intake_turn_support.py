@@ -64,9 +64,11 @@ def intake_turn_trace_summary(*, request_id: str, manager_decision: Any) -> dict
 def intake_turn_manager_decision_payload(manager_decision: Any) -> dict[str, Any]:
     return {
         "intent_type": manager_decision.intent_type,
+        "final_action": manager_decision.final_action,
         "workflow_effect": manager_decision.workflow_effect,
         "response_summary": manager_decision.response_summary,
         "pending_followup": manager_decision.pending_followup,
+        "answer_contract": dict(getattr(manager_decision, "answer_contract", {}) or {}),
         "semantic_decision": dict(getattr(manager_decision, "semantic_decision", {}) or {}),
         "tool_calls": list(manager_decision.tool_calls),
         "llm_used": manager_decision.llm_used,

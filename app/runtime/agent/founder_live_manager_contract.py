@@ -106,6 +106,8 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY = {
         "workflow_effect": "answer_only",
         "final_action": "answer_only",
         "mutation_intent_candidate": "no_mutation",
+        "basis_source": "manager_context_packet_v1.active_day_state.active_meal_estimate_basis",
+        "estimate_basis_forbidden": ["route_to_intake", "correction_write", "canonical_write", "estimate_nutrition"],
     },
     "correction_rule": {
         "semantic_intent": "correct_meal",
@@ -144,12 +146,7 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY = {
         "fallback_postures_when_no_question": ["none", "refinement_optional", "closed"],
     },
     "followup_question_required_postures": sorted(FOUNDER_LIVE_MANAGER_FOLLOWUP_QUESTION_REQUIRED_POSTURES),
-    "forbidden_repair_shortcuts": [
-        "case_id_matching",
-        "raw_text_matching",
-        "food_name_specific_patch",
-        "deterministic_semantic_rewrite",
-    ],
+    "forbidden_repair_shortcuts": ["case_id_matching", "raw_text_matching", "food_name_specific_patch", "deterministic_semantic_rewrite"],
 }
 FOUNDER_LIVE_MANAGER_CONTRACT_POLICY_SUMMARY = (
     "Founder live manager contract policy: keep intent_type aligned with semantic_decision.current_turn_intent "
@@ -157,6 +154,7 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY_SUMMARY = (
     "with onboarding/budget lanes using their own explicit intent_type; "
     "if no current estimate_nutrition tool result exists, call estimate_nutrition before final commit, "
     "nutrition-changing correction_applied, or overshoot_note; query-only nutrition questions must answer_only with no mutation; "
+    "estimate-basis questions about a prior meal's assumed composition or why/how it was estimated are answer_query/answer_only/no_mutation and must not route_to_intake; "
     "correct_meal must update the prior target with correction_applied/correction_write, not commit as a new meal; "
     "explicit item removal is a correction-family turn: propose a target item or call resolve_correction_target, "
     "then let runtime validate target uniqueness/writeability; target evidence is sufficient for remove_item and estimate_nutrition is not required; "
@@ -370,9 +368,9 @@ def founder_live_manager_tool_description() -> str:
         "Return the ManagerRuntime structured decision payload. Follow the system prompt and founder live "
         "manager contract; this tool description is compact transport guidance, not product truth. Always include "
         "required top-level fields. Use tool_calls=[] when manager_action is final; use a non-empty tool_calls "
-        "array with supported tool names when manager_action is call_tools. Do not collapse query-only or "
-        "correction turns into log_meal: answer_query uses intent_type='answer_query' and no mutation; "
-        "correct_meal uses intent_type='correct_meal' with correction_applied/correction_write. Do not use ask_followup, "
+        "array with supported tool names when manager_action is call_tools. Do not collapse query-only, estimate-basis inquiry, or correction turns into log_meal: "
+        "answer_query uses intent_type='answer_query' and no mutation; estimate-basis inquiries use answer_query/answer_only/tool_calls=[] with "
+        "answer_contract.answer_basis from manager_context_packet_v1 when available; correct_meal uses intent_type='correct_meal' with correction_applied/correction_write. Do not use ask_followup, "
         "no_commit, or answer_only as substitutes for evidence-required commit/correction_applied/overshoot_note; "
         "call estimate_nutrition first. If you set evidence_posture to requires_tool or evidence_missing, use "
         "manager_action call_tools with estimate_nutrition; the invalid evidence-required candidate pattern is "
