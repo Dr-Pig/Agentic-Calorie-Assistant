@@ -8,28 +8,15 @@ from sqlalchemy.orm import Session
 
 from app.composition.current_budget_answer import build_remaining_budget_answer_contract
 from app.composition.intake_execution_orchestrator import process_intake_execution_turn
+from app.composition.inflight_chat_turn import record_inflight_intake_chat_turn
 from app.composition.manager_context_runtime import build_runtime_manager_context_packet_v1
-from app.composition.manual_daily_target_chat import (
-    apply_manual_daily_target_from_chat,
-    manual_daily_target_trace_payload,
-)
-from app.composition.non_fooddb_read_only_turn import (
-    NON_FOODDB_READ_ONLY_MANAGER_TOOLS,
-    build_non_fooddb_read_tool_executor,
-    finalize_non_fooddb_read_only_manager_intent,
-)
+from app.composition.manual_daily_target_chat import apply_manual_daily_target_from_chat, manual_daily_target_trace_payload
+from app.composition.non_fooddb_read_only_turn import NON_FOODDB_READ_ONLY_MANAGER_TOOLS, build_non_fooddb_read_tool_executor, finalize_non_fooddb_read_only_manager_intent
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.composition.state_resolver import resolve_intake_state
 from app.database import get_or_create_user
 from app.intake.application.intake_trace_tools import append_trace_event_tool
-from app.intake.application.intake_turn_support import (
-    intake_turn_latency_tracking,
-    intake_turn_manager_decision_payload,
-    intake_turn_trace_summary,
-    initial_intake_turn_state_mutation_summary,
-    normalized_activity_level,
-    resolve_local_date,
-)
+from app.intake.application.intake_turn_support import intake_turn_latency_tracking, intake_turn_manager_decision_payload, intake_turn_trace_summary, initial_intake_turn_state_mutation_summary, normalized_activity_level, resolve_local_date
 from app.intake.application.phase_a_runtime_context import prepare_phase_a_runtime_context
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
@@ -115,6 +102,17 @@ async def execute_intake_turn(
             local_date=resolved_local_date,
             session_id=request_id,
         )
+    record_inflight_intake_chat_turn(
+        db,
+        user_external_id=user_external_id,
+        request_id=request_id,
+        local_date=resolved_local_date,
+        raw_user_input=raw_user_input,
+        state_before=state_before,
+        current_turn_context=current_turn_context,
+        manager_context_packet_v1=manager_context_packet_v1,
+        phase_a_trace=phase_a_trace,
+    )
 
     stage_start = int(time.time() * 1000)
     manager_decision: IntakeManagerResult = await run_intake_manager(
