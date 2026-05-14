@@ -4,6 +4,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.composition.phase_a_boundary_projection import build_intake_boundary_projection
+from app.intake.application.commit_evidence_policy import (
+    apply_commit_evidence_policy_to_payload,
+    commit_evidence_blockers,
+    commit_evidence_failure_family,
+)
 from app.intake.application.final_action_mutation_classifier import final_action_effect_class
 from app.runtime.contracts.phase_a import PhaseABoundaryProjection
 from app.shared.contracts.correction_target import validate_correction_target_ref
@@ -91,6 +96,8 @@ def _manager_semantic_decision_authorizes_canonical_write(
         return False
     if [item for item in trace_contract.get("blocking_slots", []) if str(item).strip()]:
         return False
+    if commit_evidence_blockers(trace_contract):
+        return False
     return int(payload.estimated_kcal or 0) > 0
 
 
@@ -160,6 +167,7 @@ def run_commit_boundary_preflight(
             projection=None,
         )
 
+    apply_commit_evidence_policy_to_payload(payload)
     _apply_manager_semantic_canonical_write_decision(
         payload=payload,
         manager_final_action=str(manager_final_action or ""),
@@ -182,12 +190,15 @@ def run_commit_boundary_preflight(
         ledger_mutation_allowed=decision.ledger_mutation_allowed,
         correction_target_resolved=target_resolved,
     )
+    failure_family = None if allowed else (
+        commit_evidence_failure_family(payload.trace_contract) or "phase_a_commit_boundary_blocked"
+    )
     return CommitBoundaryPreflightResult(
         checked=True,
         bypassed=False,
         bypass_reason=None,
         blocked=not allowed,
-        failure_family=None if allowed else "phase_a_commit_boundary_blocked",
+        failure_family=failure_family,
         manager_final_action=str(manager_final_action or "no_commit"),
         mutation_effect_class=effect_class,
         projected_commit_intent=decision.intent,

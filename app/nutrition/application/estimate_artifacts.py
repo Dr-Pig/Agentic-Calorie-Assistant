@@ -150,6 +150,9 @@ def build_shadow_stub_artifact(
             "occurred_at": f"{local_date}T12:00:00+08:00",
             "timezone": "Asia/Taipei",
             "shadow_stub": True,
+            "macro_display_authorized": False,
+            "macro_visibility_status": "hidden_missing_source",
+            "macro_guard_reason": "no_macro_data",
         },
     )
     return EstimatedNutritionArtifact(

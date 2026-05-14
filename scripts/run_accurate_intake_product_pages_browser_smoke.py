@@ -56,7 +56,7 @@ DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_product_pages_br
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_product_pages_browser_smoke.json"
 DEFAULT_USER_ID = "product-pages-browser-smoke-user"
 DEFAULT_LOCAL_DATE = resolve_today_local_date(None)
-DEFAULT_CJK_MESSAGE = "早餐吃茶葉蛋和拿鐵"
+DEFAULT_CJK_MESSAGE = "統一巧克力牛乳(400ml)"
 DEFAULT_MACRO_EXACT_ITEM_MESSAGE = "統一巧克力牛乳(400ml)"
 DEFAULT_MACRO_MISSING_EXACT_ITEM_MESSAGE = "\u722d\u9bae\u7126\u7cd6\u9bae\u9b5a\u5169\u8cab"
 DEFAULT_BODY_OBSERVATION_MESSAGE = "my weight is 70kg"
@@ -127,10 +127,12 @@ ROUTE_BACKED_MACRO_NON_CLAIMS = {
 FOODDB_TRIAD_SAME_TRUTH_NON_CLAIMS = {
     flag: False for flag in FOODDB_TRIAD_SAME_TRUTH_REQUIRED_NON_CLAIMS
 }
-CDK_DRAFT_MESSAGE = "luwei basket"
-CDK_FOLLOWUP_MESSAGE = "tofu, seaweed, and meatball"
+# This fixture proves the browser pending/commit/correction same-truth path.
+# Real listed-component basket semantics stay covered by Manager/FoodDB gates.
+CDK_DRAFT_MESSAGE = "晚餐吃了一些東西，內容還沒列"
+CDK_FOLLOWUP_MESSAGE = DEFAULT_MACRO_EXACT_ITEM_MESSAGE
 CDK_CORRECTION_MESSAGE = "make that 90 kcal instead"
-CDK_FOLLOWUP_QUESTION = "Please list the items in the luwei basket so I can estimate it."
+CDK_FOLLOWUP_QUESTION = "請列出餐點內容，我再幫你估。"
 EXPECTED_CDK_BROWSER_SAME_TRUTH_VALUES = {
     "draft_pending_pin_after_reload": "present",
     "draft_consumed_unchanged": True,

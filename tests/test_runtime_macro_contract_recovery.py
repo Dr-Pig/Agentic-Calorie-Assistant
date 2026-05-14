@@ -113,6 +113,28 @@ def test_macro_summary_keeps_direct_payload_macro_compatibility_when_not_explici
     assert summary["fat_g"] == 5
 
 
+def test_macro_summary_hides_shadow_stub_macro_numbers() -> None:
+    payload = EstimatePayload(
+        request_id="req-shadow-stub",
+        meal_title="breakfast shop combo",
+        estimated_kcal=400,
+        protein_g=18,
+        carb_g=42,
+        fat_g=12,
+        action_taken="direct_answer",
+        route_target="direct_answer",
+        source_decision="ready",
+        answer_mode="direct_answer",
+        trace_contract={"shadow_stub": True},
+    )
+
+    summary = build_payload_macro_summary(payload)
+
+    assert summary["display_status"] == "hide"
+    assert summary["guard_reason"] == "no_macro_data"
+    assert summary["macro_kcal_delta"] == 0
+
+
 def test_macro_summary_uses_explicit_display_macro_breakdown_when_present() -> None:
     payload = _payload(
         answer_payload={

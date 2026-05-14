@@ -3,6 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
+from app.intake.application.commit_evidence_policy import (
+    apply_commit_evidence_policy_to_trace,
+    commit_evidence_failure_family,
+)
 from ...shared.domain import CanonicalMealState, ConversationState
 
 
@@ -17,6 +21,7 @@ def determine_meal_status(
     trace_contract: dict[str, Any],
     quality_signals: dict[str, Any],
 ) -> MealStatus | None:
+    trace_contract = apply_commit_evidence_policy_to_trace(trace_contract)
     route_family = str(trace_contract.get("route_family") or "")
     missing_slots = [str(item) for item in trace_contract.get("missing_slots", []) if str(item).strip()]
     blocking_slots = [str(item) for item in trace_contract.get("blocking_slots", []) if str(item).strip()]
@@ -31,9 +36,14 @@ def determine_meal_status(
         quality_signals.get("estimate_mode") or ""
     ) == "exact_item"
     response_mode_hint = str(trace_contract.get("response_mode_hint") or "")
+    evidence_failure = commit_evidence_failure_family(trace_contract)
 
     if canonical_write_allowed and estimated_kcal > 0 and not blocking_slots and response_mode_hint != "clarify_first":
         return "completed_meal"
+    if evidence_failure:
+        if blocking_slots or response_mode_hint == "clarify_first" or has_followup or missing_slots:
+            return "draft_unresolved"
+        return None
     if blocking_slots:
         return "draft_unresolved"
     if response_mode_hint == "clarify_first":
