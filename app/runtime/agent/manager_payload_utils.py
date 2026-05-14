@@ -4,6 +4,10 @@ import inspect
 import json
 from typing import Any, Awaitable
 
+from app.runtime.agent.manager_read_model_evidence_compaction import (
+    compact_non_fooddb_read_model_evidence,
+)
+
 
 def json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
@@ -146,6 +150,7 @@ def _compact_tool_result_prompt_payload(tool_result: dict[str, Any]) -> dict[str
 
 def _compact_tool_evidence_prompt_payload(evidence: dict[str, Any]) -> dict[str, Any]:
     compact: dict[str, Any] = {}
+    compact.update(compact_non_fooddb_read_model_evidence(evidence))
     nutrition_payload = _object_mapping(evidence.get("nutrition_payload"))
     if nutrition_payload:
         compact["nutrition_payload"] = _compact_nutrition_payload_prompt_payload(nutrition_payload)

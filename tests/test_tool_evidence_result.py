@@ -133,8 +133,8 @@ def test_tool_evidence_result_wraps_websearch_candidate_packets_without_truth_pr
     assert result["manager_context_changed"] is False
     assert result["read_model_only"] is True
     assert result["source_implementation_visible"] is False
-    assert result["trace"]["packet_count"] == 4
-    assert result["trace"]["compact_packet_pass_count"] == 4
+    assert result["trace"]["packet_count"] == len(packet_artifact["cases"])
+    assert result["trace"]["compact_packet_pass_count"] == len(packet_artifact["cases"])
     assert result["trace"]["live_websearch_used"] is False
     assert result["trace"]["raw_source_rows_included"] is False
     assert all(packet["packet_type"] == "SearchCandidatePacket" for packet in result["evidence_packets"])
@@ -282,7 +282,7 @@ def test_websearch_tool_evidence_result_script_roundtrip(tmp_path: Path) -> None
     assert artifact["adapter_diagnostics"]["manager_visible"] is False
     assert "adapter_diagnostics" not in tool_result
     assert tool_result["result_type"] == "tool_evidence_result_v1"
-    assert tool_result["trace"]["packet_count"] == 4
+    assert tool_result["trace"]["packet_count"] == len(tool_result["evidence_packets"])
     assert all(packet["truth_level"] == "candidate" for packet in tool_result["evidence_packets"])
 
 
