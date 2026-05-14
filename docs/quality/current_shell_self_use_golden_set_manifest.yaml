@@ -1,0 +1,535 @@
+artifact_type: current_shell_self_use_golden_set_manifest
+version: 1
+launch_scope: current_shell_v1_desktop_local_self_use
+owner_lane: SharedCurrentShell
+runtime_contract_owner: ManagerRuntime
+downstream_shell_owner: AppShell
+case_count: 19
+live_model_policy:
+  primary_self_use_gate: grokfast
+  kimi_status: non_blocking_cross_model_diagnostic
+fixture_policy:
+  fixtures_may_seed_state: true
+  fixtures_may_decide_intent: false
+  fixtures_may_decide_action: false
+  fixtures_may_decide_attach_target: false
+  fixtures_may_decide_mutation_outcome: false
+  fixtures_may_decide_response_meaning: false
+non_claims:
+  product_readiness_claimed: false
+  private_self_use_approved: false
+  whole_product_mvp_ready: false
+  production_ready: false
+  fooddb_truth_promoted: false
+global_invariants:
+  - invariant_id: G0_real_entrypoint_no_fake_pass
+    gate: hard
+    rule: Fixtures may seed state only; runtime trace or correlated browser trace must prove the behavior.
+  - invariant_id: G1_semantic_owner
+    gate: hard
+    rule: Manager owns semantic intent, action, attachment, correction/removal target, and final action.
+  - invariant_id: G2_context_engineering
+    gate: hard
+    rule: Context packets provide current turn, session, pending state, recent threads, candidates, and read-model summaries without choosing final semantics.
+  - invariant_id: G3_evidence_and_food_truth
+    gate: hard
+    rule: Nutrition and source facts come only from user facts, approved packets, approved synthesis, or read models.
+  - invariant_id: G4_manager_react_loop
+    gate: hard
+    rule: Manager pass1, tools, compact packets, pass2, guard, mutation, renderer basis, and response basis must be traceable.
+  - invariant_id: G5_nutrition_synthesis
+    gate: hard
+    rule: Exact, generic, patterned combo, bare basket, and listed component estimates use distinct postures.
+  - invariant_id: G6_state_and_versioning
+    gate: hard
+    rule: Ask-followup and answer-only cannot commit; write actions require version and ledger trace.
+  - invariant_id: G7_response_contract
+    gate: hard_plus_judged
+    rule: User-visible responses must be state-consistent zh-TW assistant text without internal debug wording.
+  - invariant_id: G8_ui_same_truth
+    gate: hard
+    rule: Chat, Today, Body, Feedback, and Review consume backend/read-model truth only.
+  - invariant_id: G9_pending_and_durability
+    gate: hard
+    rule: Pending and queued chat messages survive navigation and queued messages run as the next Manager turn.
+  - invariant_id: G10_observability_and_latency
+    gate: hard_plus_budget
+    rule: Every case records correlated trace IDs, timing spans, call topology, and final visible output.
+  - invariant_id: G11_activation_boundary
+    gate: hard
+    rule: The gate proves Current Shell desktop self-use behavior only and makes no readiness or production claim.
+trace_layers:
+  blocking:
+    - provider_profile_and_prompt_versions
+    - current_turn_context_packet
+    - manager_pass_1_decision
+    - requested_tools
+    - filtered_tool_plan
+    - executed_tools
+    - compact_packets
+    - manager_pass_2_synthesis
+    - guard_result
+    - mutation_result
+    - renderer_input_basis
+    - final_response_basis
+  diagnostic:
+    - latency_cost_cache_usage
+    - ui_event_trace
+    - feedback_linkage
+grading_policy:
+  deterministic_hard_fail:
+    - semantic_owner_violation
+    - missing_blocking_trace_layer
+    - illegal_mutation
+    - invented_kcal_macro_remaining_or_source_exactness
+    - state_or_read_model_mismatch
+    - frontend_truth_math
+    - lost_pending_or_queued_message
+  llm_judge_scope:
+    allowed:
+      - explanation_completeness
+      - understandable_to_normal_user
+      - uncertainty_explained_naturally
+      - followup_question_clarity
+      - assistant_like_zh_tw_naturalness
+    forbidden:
+      - mutation_legality
+      - target_attachment_correctness
+      - nutrition_fact_truth
+      - fooddb_evidence_sufficiency
+      - ui_read_model_sync
+  latency_policy:
+    timeout_is_product_target: false
+    timeout_role: diagnostic_ceiling
+    target_budget_role: performance_budget
+dogfood_trace_storage:
+  primary_review_surface: structured_trace
+  raw_payload_policy: local_deep_debug_refs
+  export_role: optional_backup_and_tooling
+fooddb_posture_policy:
+  patterned_combo_anchor_policy: posture_driven
+  required_packet_fields:
+    - runtime_estimate_allowed
+    - composition_posture
+    - commit_posture
+    - macro_visibility_status
+    - macro_source_strength
+  no_anchor_behavior: ask_followup_without_commit
+cases:
+  - case_id: GS1
+    title: Clear component breakfast meal
+    entrypoint: manager_runtime
+    journeys: [B]
+    script:
+      - turn: 1
+        utterance_zh_tw: 早餐吃鐵板麵、荷包蛋、豬肉片
+    seed_state:
+      body_plan: active
+      current_day_meals: empty
+      fooddb_packets: component_or_generic_evidence_available
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, filtered_tool_plan, executed_tools, compact_packets, manager_pass_2_synthesis, guard_result, mutation_result, renderer_input_basis, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: commit
+      mutation_allowed: true
+      component_basis_required: true
+      fallback_400_allowed: false
+    ui_assertions:
+      today_consumed_updates: true
+      meal_level_basis_visible: true
+      frontend_nutrition_math_allowed: false
+    response_rubric:
+      must_include: [recorded_status, component_basis, kcal_or_range]
+      must_not_include: [internal_debug_words, unsupported_macro]
+      llm_judge: scoped_content_and_naturalness
+    latency_call_budget: {case_class: simple_food_log, max_llm_calls: 2, max_tool_calls: 3, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS2
+    title: User-provided kcal-only entry
+    entrypoint: manager_runtime
+    journeys: [B]
+    script:
+      - turn: 1
+        utterance_zh_tw: 早餐吃了 650 kcal
+    seed_state: {body_plan: active, current_day_meals: empty}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G3_evidence_and_food_truth, G4_manager_react_loop, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, guard_result, mutation_result, renderer_input_basis, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: commit
+      mutation_allowed: true
+      source_basis: user_provided_kcal
+      macro_visibility_status: hidden_missing_source
+      optional_refinement_allowed: true
+    ui_assertions: {today_consumed_updates: true, macro_visible: false, frontend_nutrition_math_allowed: false}
+    response_rubric:
+      must_include: [recorded_status, user_provided_kcal_basis, optional_food_detail_refinement]
+      must_not_include: [invented_food_name, invented_macro]
+      llm_judge: scoped_content_and_naturalness
+    latency_call_budget: {case_class: kcal_only_log, max_llm_calls: 2, max_tool_calls: 1, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS3
+    title: Implausible named food kcal requires clarification
+    entrypoint: manager_runtime
+    journeys: [B]
+    script:
+      - turn: 1
+        utterance_zh_tw: 晚餐吃一碗牛肉麵，250 kcal
+    seed_state: {body_plan: active, current_day_meals: empty, fooddb_packets: generic_beef_noodle_available}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G5_nutrition_synthesis, G6_state_and_versioning, G7_response_contract, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, filtered_tool_plan, executed_tools, compact_packets, manager_pass_2_synthesis, guard_result, mutation_result, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: ask_followup
+      mutation_allowed: false
+      silent_accept_implausible_kcal_allowed: false
+      override_with_system_estimate_allowed: false
+    ui_assertions: {today_consumed_updates: false, pending_question_visible: true, frontend_nutrition_math_allowed: false}
+    response_rubric:
+      must_include: [implausibility_explanation, confirmation_question]
+      must_not_include: [silent_commit, fake_exactness]
+      llm_judge: scoped_content_and_naturalness
+    latency_call_budget: {case_class: food_log_with_plausibility_check, max_llm_calls: 2, max_tool_calls: 3, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS4
+    title: Generic common chicken rice estimate
+    entrypoint: manager_runtime
+    journeys: [B]
+    script:
+      - turn: 1
+        utterance_zh_tw: 午餐吃了一碗雞肉飯
+    seed_state: {body_plan: active, fooddb_packets: generic_chicken_rice_available}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G3_evidence_and_food_truth, G4_manager_react_loop, G5_nutrition_synthesis, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, executed_tools, compact_packets, manager_pass_2_synthesis, guard_result, mutation_result, renderer_input_basis, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: commit_or_commit_with_optional_refinement
+      mutation_allowed: true
+      uncertainty_basis_required: true
+      fake_exactness_allowed: false
+    ui_assertions: {today_consumed_updates: true, range_or_basis_visible: true, frontend_nutrition_math_allowed: false}
+    response_rubric: {must_include: [recorded_status, uncertainty_basis], must_not_include: [official_label_claim], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: generic_food_log, max_llm_calls: 2, max_tool_calls: 3, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS5
+    title: Patterned breakfast teppan combo without approved anchor
+    entrypoint: manager_runtime
+    journeys: [D]
+    script:
+      - turn: 1
+        utterance_zh_tw: 早餐吃早餐店鐵板麵套餐
+    seed_state: {body_plan: active, fooddb_packets: no_approved_teppan_combo_anchor}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G5_nutrition_synthesis, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G9_pending_and_durability, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, filtered_tool_plan, executed_tools, compact_packets, manager_pass_2_synthesis, guard_result, mutation_result, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: ask_followup
+      mutation_allowed: false
+      fallback_400_allowed: false
+      pending_followup_saved: true
+      assumed_slot_question_required: true
+    ui_assertions: {today_consumed_updates: false, pending_question_visible: true, frontend_nutrition_math_allowed: false}
+    response_rubric:
+      must_include: [composition_question, assumed_slots]
+      must_not_include: [recorded_status, fallback_400, internal_debug_words]
+      llm_judge: scoped_content_and_naturalness
+    latency_call_budget: {case_class: patterned_combo_no_anchor, max_llm_calls: 2, max_tool_calls: 3, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS6
+    title: Bare self-selected buffet basket
+    entrypoint: manager_runtime
+    journeys: [D]
+    script:
+      - turn: 1
+        utterance_zh_tw: 我吃了自助餐
+    seed_state: {body_plan: active, fooddb_packets: basket_family_available_without_components}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G5_nutrition_synthesis, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G9_pending_and_durability, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, guard_result, mutation_result, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: ask_followup
+      mutation_allowed: false
+      one_bundled_question_required: true
+      estimate_allowed: false
+    ui_assertions: {today_consumed_updates: false, pending_question_visible: true, frontend_nutrition_math_allowed: false}
+    response_rubric: {must_include: [one_bundled_composition_question], must_not_include: [kcal_estimate, recorded_status], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: bare_basket_clarify, max_llm_calls: 2, max_tool_calls: 2, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS7
+    title: Listed basket follow-up attaches and commits
+    entrypoint: manager_runtime
+    journeys: [D]
+    script:
+      - turn: 1
+        utterance_zh_tw: 我吃了自助餐
+      - turn: 2
+        utterance_zh_tw: 白飯半碗、雞腿一支、青菜兩樣、滷蛋一顆
+    seed_state: {body_plan: active, pending_followup: self_selected_basket, fooddb_packets: listed_components_available}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G5_nutrition_synthesis, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, executed_tools, compact_packets, manager_pass_2_synthesis, guard_result, mutation_result, renderer_input_basis, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: commit
+      target_attachment: pending_followup
+      component_estimate_required: true
+      mutation_allowed: true
+    ui_assertions: {today_consumed_updates: true, meal_components_visible: true, frontend_nutrition_math_allowed: false}
+    response_rubric: {must_include: [recorded_status, component_summary, total_estimate], must_not_include: [same_question_again], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: listed_basket_followup, max_llm_calls: 2, max_tool_calls: 5, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS8
+    title: Bubble tea optional refinement
+    entrypoint: manager_runtime
+    journeys: [C, K]
+    script:
+      - turn: 1
+        utterance_zh_tw: 喝了一杯珍奶
+      - turn: 2
+        utterance_zh_tw: 中杯半糖
+    seed_state: {body_plan: active, fooddb_packets: bubble_tea_anchor_available}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G5_nutrition_synthesis, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, executed_tools, compact_packets, manager_pass_2_synthesis, guard_result, mutation_result, renderer_input_basis, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: commit_then_refine
+      target_attachment: prior_optional_followup
+      old_version_superseded: true
+      ledger_delta_trace_required: true
+    ui_assertions: {today_consumed_updates: true, old_version_not_counted: true, frontend_nutrition_math_allowed: false}
+    response_rubric: {must_include: [initial_recorded_status, refinement_update], must_not_include: [new_unrelated_meal], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: optional_refinement_two_turn, max_llm_calls: 4, max_tool_calls: 6, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS9
+    title: Estimate-basis inquiry does not mutate
+    entrypoint: manager_runtime
+    journeys: [B, K]
+    script:
+      - turn: 1
+        utterance_zh_tw: 你是怎麼估的？你是不是認為有什麼組成？
+    seed_state: {body_plan: active, recent_meal_thread: committed_teppan_or_generic_meal}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G6_state_and_versioning, G7_response_contract, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, filtered_tool_plan, executed_tools, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: answer_only
+      mutation_allowed: false
+      inquiry_may_be_treated_as_correction: false
+      estimate_basis_required: true
+    ui_assertions: {today_consumed_updates: false, existing_meal_unchanged: true, frontend_nutrition_math_allowed: false}
+    response_rubric: {must_include: [estimate_basis, assumptions, invite_correction], must_not_include: [recorded_status, correction_claim], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: estimate_basis_query, max_llm_calls: 2, max_tool_calls: 2, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS10
+    title: Teppan combo follow-up attaches to pending combo
+    entrypoint: manager_runtime
+    journeys: [D, B]
+    script:
+      - turn: 1
+        utterance_zh_tw: 早餐吃早餐店鐵板麵套餐
+      - turn: 2
+        utterance_zh_tw: 有鐵板麵、豬肉片、荷包蛋，還有一杯紅茶
+    seed_state: {body_plan: active, pending_followup: teppan_combo_composition, fooddb_packets: components_and_tea_available}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G5_nutrition_synthesis, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, executed_tools, compact_packets, manager_pass_2_synthesis, guard_result, mutation_result, renderer_input_basis, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: commit
+      target_attachment: pending_teppan_combo
+      optional_tea_refinement_allowed: true
+      mutation_allowed: true
+    ui_assertions: {today_consumed_updates: true, meal_components_visible: true, frontend_nutrition_math_allowed: false}
+    response_rubric: {must_include: [recorded_status, component_summary, tea_uncertainty], must_not_include: [new_unrelated_meal], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: patterned_combo_followup, max_llm_calls: 2, max_tool_calls: 5, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS11
+    title: Teppan correction supersedes prior version
+    entrypoint: manager_runtime
+    journeys: [K]
+    script:
+      - turn: 1
+        utterance_zh_tw: 剛剛那餐其實沒有豬肉片，鐵板麵也只吃一半
+    seed_state: {body_plan: active, recent_meal_thread: committed_teppan_combo}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, executed_tools, compact_packets, manager_pass_2_synthesis, guard_result, mutation_result, renderer_input_basis, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: correction
+      target_attachment: previous_teppan_meal
+      old_version_superseded: true
+      ledger_recomputed: true
+    ui_assertions: {today_consumed_updates: true, old_version_not_counted: true, frontend_nutrition_math_allowed: false}
+    response_rubric: {must_include: [diff_summary, new_estimate_or_remaining], must_not_include: [internal_version_id, new_unrelated_meal], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: correction, max_llm_calls: 2, max_tool_calls: 4, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS12
+    title: Recent and named-slot meal removal
+    entrypoint: manager_runtime
+    journeys: [K]
+    script:
+      - turn: 1
+        utterance_zh_tw: 剛剛那餐不要記了
+      - turn: 2
+        utterance_zh_tw: 早餐那筆刪掉
+    seed_state: {body_plan: active, current_day_meals: recent_and_named_slot_meals}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G2_context_engineering, G4_manager_react_loop, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, guard_result, mutation_result, renderer_input_basis, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: remove_item
+      target_attachment: unique_recent_or_named_slot
+      removed_versions_excluded_from_ledger: true
+      mutation_allowed: true
+    ui_assertions: {today_consumed_updates: true, removed_item_not_counted: true, frontend_nutrition_math_allowed: false}
+    response_rubric: {must_include: [removal_confirmation, updated_remaining_if_available], must_not_include: [wrong_meal_removed], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: removal, max_llm_calls: 2, max_tool_calls: 3, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS13
+    title: Ambiguous breakfast removal asks clarification
+    entrypoint: manager_runtime
+    journeys: [K]
+    script:
+      - turn: 1
+        utterance_zh_tw: 早餐那筆刪掉
+    seed_state: {body_plan: active, current_day_meals: two_breakfast_candidates}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G2_context_engineering, G4_manager_react_loop, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, guard_result, mutation_result, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: ask_followup
+      mutation_allowed: false
+      target_candidates_supplied: true
+      deterministic_target_choice_allowed: false
+    ui_assertions: {today_consumed_updates: false, pending_question_visible: true, frontend_nutrition_math_allowed: false}
+    response_rubric: {must_include: [target_clarification_question, candidate_summary], must_not_include: [deletion_confirmation], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: ambiguous_target_clarify, max_llm_calls: 2, max_tool_calls: 2, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS14
+    title: Remaining budget read-only query
+    entrypoint: manager_runtime
+    journeys: [E]
+    script:
+      - turn: 1
+        utterance_zh_tw: 我今天熱量還剩多少卡
+    seed_state: {body_plan: active, current_budget_view: available}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G4_manager_react_loop, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, executed_tools, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: answer_only
+      mutation_allowed: false
+      remaining_source: budget_read_model
+      rescue_plan_allowed: false
+    ui_assertions: {chat_today_same_truth_required: true, frontend_remaining_math_allowed: false}
+    response_rubric: {must_include: [remaining_or_overshoot_status], must_not_include: [rescue_plan], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: read_only_budget, max_llm_calls: 1, max_tool_calls: 1, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS15
+    title: No-plan degraded remaining query
+    entrypoint: manager_runtime
+    journeys: [J]
+    script:
+      - turn: 1
+        utterance_zh_tw: 今天還剩多少
+    seed_state: {body_plan: missing, current_budget_view: degraded}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G4_manager_react_loop, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, executed_tools, final_response_basis, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: answer_only
+      mutation_allowed: false
+      invented_tdee_or_remaining_allowed: false
+      guide_to_body_setup: true
+    ui_assertions: {today_degraded_state_visible: true, frontend_remaining_math_allowed: false}
+    response_rubric: {must_include: [degraded_reason, setup_guidance], must_not_include: [invented_remaining], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: degraded_read_only, max_llm_calls: 1, max_tool_calls: 1, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS16
+    title: Body observation write and persistent BodyPlan UI
+    entrypoint: correlated_full_stack
+    journeys: [G, H]
+    script:
+      - turn: 1
+        utterance_zh_tw: 我今天量 84 公斤
+    seed_state: {body_plan: active, body_profile: saved_values_present}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G4_manager_react_loop, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, guard_result, mutation_result, renderer_input_basis, final_response_basis, ui_event_trace, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: body_observation_write
+      mutation_allowed: true
+      body_plan_rewrite_allowed: false
+      manager_tdee_math_allowed: false
+    ui_assertions:
+      latest_weight_visible: true
+      weight_history_date_scoped: true
+      body_plan_date_scoped: false
+      body_form_prefilled_from_saved_truth: true
+      frontend_tdee_math_allowed: false
+    response_rubric: {must_include: [weight_recorded_status], must_not_include: [silent_plan_recalculation], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: body_observation_write, max_llm_calls: 2, max_tool_calls: 2, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+  - case_id: GS17
+    title: Inline feedback auto-attaches context
+    entrypoint: browser_ui
+    journeys: [B]
+    script:
+      - turn: 1
+        utterance_zh_tw: 使用者在 Chat 或 Today 點回報並輸入「剛剛鐵板麵估錯」
+    seed_state: {recent_trace: available, current_route: chat_or_today, current_read_model: available}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [ui_event_trace, feedback_linkage, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: feedback_capture
+      mutation_allowed: false
+      feedback_is_product_truth: false
+      review_record_created: true
+    ui_assertions:
+      inline_drawer_available: true
+      user_enters_trace_id: false
+      user_enters_request_id: false
+      draft_survives_navigation: true
+    response_rubric: {must_include: [feedback_saved_status], must_not_include: [manual_id_requirement], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: feedback_capture, max_llm_calls: 0, max_tool_calls: 1, timeout_is_product_target: false}
+    dogfood_trace:
+      trace_id_required: true
+      feedback_links_to_trace: true
+      auto_attaches_recent_messages: true
+      auto_attaches_read_model_snapshot: true
+  - case_id: GS18
+    title: Long teppan session preserves context and action boundaries
+    entrypoint: correlated_full_stack
+    journeys: [B, D, E, K]
+    script:
+      - turn: 1
+        utterance_zh_tw: 早餐吃早餐店鐵板麵套餐
+      - turn: 2
+        utterance_zh_tw: 你是怎麼估的？你是不是認為有什麼組成？
+      - turn: 3
+        utterance_zh_tw: 有鐵板麵、豬肉片、荷包蛋，還有一杯紅茶
+      - turn: 4
+        utterance_zh_tw: 剛剛那餐其實沒有豬肉片，鐵板麵也只吃一半
+      - turn: 5
+        utterance_zh_tw: 我今天熱量還剩多少卡
+    seed_state: {body_plan: active, fooddb_packets: component_and_generic_evidence_available, session_history: grows_across_turns}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G5_nutrition_synthesis, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G9_pending_and_durability, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, filtered_tool_plan, executed_tools, compact_packets, manager_pass_2_synthesis, guard_result, mutation_result, renderer_input_basis, final_response_basis, ui_event_trace, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: multi_turn_mixed_actions
+      inquiry_turn_mutates: false
+      pending_then_commit_then_correction_then_budget_query: true
+      old_and_new_versions_double_counted: false
+    ui_assertions: {chat_today_same_truth_required: true, queued_or_pending_state_preserved: true, frontend_nutrition_math_allowed: false}
+    response_rubric: {must_include: [correct_action_each_turn, natural_contextual_reply], must_not_include: [internal_debug_words, state_contradiction], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: long_session_mixed, max_llm_calls: 10, max_tool_calls: 18, timeout_is_product_target: false}
+    dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true, session_id_required: true}
+  - case_id: GS19
+    title: Browser correlated Chat Today Body pending E2E
+    entrypoint: browser_ui
+    journeys: [A, B, E, G, H]
+    script:
+      - turn: 1
+        utterance_zh_tw: 使用者在 Chat 送出一則 live Manager 訊息，處理中切到 Today/Body 再回 Chat，並補一則 queued 訊息
+    seed_state: {desktop_shell: running, body_plan: active, current_route: chat}
+    hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G4_manager_react_loop, G8_ui_same_truth, G9_pending_and_durability, G10_observability_and_latency, G11_activation_boundary]
+    required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, guard_result, mutation_result, renderer_input_basis, final_response_basis, ui_event_trace, feedback_linkage, latency_cost_cache_usage]
+    expected_runtime:
+      workflow_effect: correlated_full_stack_e2e
+      browser_action_maps_to_trace: true
+      read_model_after_matches_ui: true
+      mutation_allowed: depends_on_case_action
+    ui_assertions:
+      queued_message_survives_navigation: true
+      processing_state_survives_navigation: true
+      no_duplicate_send: true
+      chat_today_body_same_truth: true
+    response_rubric: {must_include: [state_consistent_final_reply], must_not_include: [lost_or_duplicate_turn], llm_judge: scoped_content_and_naturalness}
+    latency_call_budget: {case_class: browser_correlated_e2e, max_llm_calls: 4, max_tool_calls: 8, timeout_is_product_target: false}
+    dogfood_trace:
+      trace_id_required: true
+      feedback_links_to_trace: true
+      correlates_ui_runtime_read_model_response: true
