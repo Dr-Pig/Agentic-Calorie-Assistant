@@ -53,6 +53,7 @@ def test_product_lab_proactive_reads_outputs_and_builds_chat_candidates(
     assert artifact["candidates"][1]["source_output_refs"] == [
         "advanced_product_lab_rescue_runtime_artifact",
         "proposal:same_day_rescue_lab",
+        "pending_commit:pending_user_rescue_commit_confirmation",
     ]
     assert artifact["memory_context_refs"] == ["memory-oatmeal"]
     assert artifact["omission_traces"] == []

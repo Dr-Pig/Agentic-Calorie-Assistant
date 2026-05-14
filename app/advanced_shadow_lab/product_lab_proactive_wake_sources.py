@@ -8,6 +8,10 @@ from app.advanced_shadow_lab.product_lab_proactive_action_state import (
 from app.advanced_shadow_lab.product_lab_proactive_recommendation_bridge import (
     build_recommendation_proactive_candidate_bridge,
 )
+from app.advanced_shadow_lab.product_lab_proactive_rescue_bridge import (
+    build_rescue_proactive_candidate_bridge,
+    omitted_rescue_proactive_candidate_bridge,
+)
 
 TRIGGER_METADATA = {
     "recommendation_prompt": ("recommendation", "app_open", "qualified_recommendation_offer_available"),
@@ -32,15 +36,22 @@ def build_product_lab_proactive_wake_sources(
         recommendation_artifact=recommendation_artifact,
         fixture_inputs=fixture_inputs,
     )
+    rescue_bridge = (
+        omitted_rescue_proactive_candidate_bridge("rescue_omission_active")
+        if rescue_omission_active
+        else build_rescue_proactive_candidate_bridge(
+            rescue_artifact=rescue_artifact,
+            fixture_inputs=fixture_inputs,
+        )
+    )
     specs = [
         recommendation_bridge.get("candidate_spec"),
         pending_intake_followup_candidate(
             action_state=current_action_state,
             control_model=_control_model(fixture_inputs, "pending_intake_followup"),
         ),
+        rescue_bridge.get("candidate_spec"),
     ]
-    if not rescue_omission_active:
-        specs.append(_rescue_candidate(rescue_artifact, fixture_inputs))
     specs.append(_weekly_insight_candidate(weekly_insight_artifact or {}, fixture_inputs))
     raw_candidate_specs = [dict(spec) for spec in specs if isinstance(spec, Mapping)]
     candidate_specs = [_spec_with_wake_trace(spec) for spec in raw_candidate_specs]
@@ -53,6 +64,11 @@ def build_product_lab_proactive_wake_sources(
         for blocker in recommendation_bridge.get("blockers") or []
         if recommendation_bridge.get("status") == "blocked"
     ]
+    blockers.extend(
+        f"rescue_bridge.{blocker}"
+        for blocker in rescue_bridge.get("blockers") or []
+        if rescue_bridge.get("status") == "blocked"
+    )
     return {
         "artifact_type": "advanced_product_lab_proactive_wake_source_adapter_artifact",
         "artifact_schema_version": "1.0",
@@ -69,6 +85,7 @@ def build_product_lab_proactive_wake_sources(
             if source.get("candidate_spec") is None
         ],
         "recommendation_proactive_candidate_bridge": recommendation_bridge,
+        "rescue_proactive_candidate_bridge": rescue_bridge,
         "wake_source_is_not_user_benefit": True,
         "raw_user_text_semantic_inference_performed": False,
         "scheduler_delivery_allowed": False,
@@ -127,24 +144,6 @@ def _memory_context_sources(memory_context_pack: Mapping[str, Any]) -> list[dict
             "wake_source_is_user_benefit": False,
         }
     ]
-
-
-def _rescue_candidate(
-    rescue: Mapping[str, Any],
-    fixture_inputs: Mapping[str, Any],
-) -> dict[str, Any]:
-    card = _mapping(rescue.get("proposal_card"))
-    return {
-        "trigger_type": "rescue_nudge",
-        "candidate_kind": "same_day_rescue_proposal",
-        "source_output_refs": [
-            str(rescue.get("artifact_type") or ""),
-            f"proposal:{card.get('card_kind') or ''}",
-        ],
-        "source_status": str(rescue.get("status") or ""),
-        "control_model": _control_model(fixture_inputs, "rescue_nudge"),
-        "next_signal_fallback": "material_budget_change_or_user_reopens_rescue",
-    }
 
 
 def _weekly_insight_candidate(

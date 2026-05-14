@@ -59,10 +59,11 @@ def test_contextual_send_skip_fixture_accepts_llm_owned_decisions() -> None:
             "candidate_id": "rescue_nudge:1",
             "trigger_type": "rescue_nudge",
             "omission_reason": "contextual_send_skip:permission_posture_not_ready",
-            "source_refs": [
-                "advanced_product_lab_rescue_runtime_artifact",
-                "proposal:same_day_rescue_lab",
-            ],
+                "source_refs": [
+                    "advanced_product_lab_rescue_runtime_artifact",
+                    "proposal:same_day_rescue_lab",
+                    "pending_commit:pending_user_rescue_commit_confirmation",
+                ],
             "scheduler_delivery_allowed": False,
             "canonical_product_mutation_allowed": False,
         }

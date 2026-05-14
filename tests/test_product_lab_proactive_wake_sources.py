@@ -101,7 +101,21 @@ def _rescue_artifact() -> dict[str, object]:
     return {
         "artifact_type": "advanced_product_lab_rescue_runtime_artifact",
         "status": "pass",
+        "proposal_presented_to_lab": True,
         "proposal_card": {"card_kind": "same_day_rescue_lab"},
+        "guardrail_math": {
+            "rescue_needed": True,
+            "recovery_viability": "viable",
+            "recommended_days": 2,
+            "daily_kcal_adjustment": -150,
+        },
+        "pending_rescue_commit_packet": {
+            "handoff_state": "pending_user_rescue_commit_confirmation",
+            "requires_explicit_user_rescue_commit": True,
+            "canonical_commit_requested": False,
+        },
+        "proposal_committed": False,
+        "day_budget_mutated": False,
     }
 
 
