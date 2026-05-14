@@ -38,7 +38,7 @@ def _passing_report() -> dict[str, object]:
                     "url": "/accurate-intake/chat-turn",
                     "method": "POST",
                     "body": (
-                        '{"text":"晚餐吃滷味","user_id":"short-term-context",'
+                        '{"text":"晚餐吃了一些東西，內容還沒列","user_id":"short-term-context",'
                         '"local_date":"2026-05-05","allow_search":false}'
                     ),
                 },
@@ -46,7 +46,7 @@ def _passing_report() -> dict[str, object]:
                     "url": "/accurate-intake/chat-turn",
                     "method": "POST",
                     "body": (
-                        '{"text":"有豆干、海帶、貢丸","user_id":"short-term-context",'
+                        '{"text":"統一巧克力牛乳(400ml)","user_id":"short-term-context",'
                         '"local_date":"2026-05-05","allow_search":false}'
                     ),
                 },
@@ -315,7 +315,7 @@ def test_product_pages_short_term_context_validator_requires_two_browser_posts_w
         {
             "url": "/accurate-intake/chat-turn",
             "method": "POST",
-            "body": '{"text":"晚餐吃滷味","user_id":"short-term-context","allow_search":false}',
+            "body": '{"text":"晚餐吃了一些東西，內容還沒列","user_id":"short-term-context","allow_search":false}',
         },
         {"url": "/accurate-intake/debug?user_id=short-term-context", "method": "GET"},
         {"url": "/today/current-budget?user_id=short-term-context&local_date=2026-05-05", "method": "GET"},
@@ -355,7 +355,7 @@ def test_short_term_context_fake_manager_treats_public_non_fooddb_tools_as_entry
             user_payload={
                 "available_tools": public_read_only_tools,
                 "round_index": 0,
-                "raw_user_input": "晚餐吃滷味",
+                "raw_user_input": module.BARE_BASKET_MESSAGE,
                 "manager_context_packet_v1": {
                     "metadata": {"context_policy_version": "accurate_intake_mvp_context_policy_v1"},
                     "context_loading_artifact": {

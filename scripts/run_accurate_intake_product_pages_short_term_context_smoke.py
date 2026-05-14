@@ -42,9 +42,9 @@ DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_product_pages_sh
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_product_pages_short_term_context_smoke.json"
 DEFAULT_USER_ID = "product-pages-short-term-context-user"
 DEFAULT_LOCAL_DATE = resolve_today_local_date(None)
-BARE_BASKET_MESSAGE = "晚餐吃滷味"
-FOLLOWUP_ANSWER_MESSAGE = "有豆干、海帶、貢丸"
-FOLLOWUP_QUESTION = "請列出滷味裡有哪些品項和大概份量。"
+BARE_BASKET_MESSAGE = "晚餐吃了一些東西，內容還沒列"
+FOLLOWUP_ANSWER_MESSAGE = "統一巧克力牛乳(400ml)"
+FOLLOWUP_QUESTION = "請列出餐點內容，我再幫你估。"
 REQUIRED_FETCH_PREFIXES = (
     "/accurate-intake/chat-history",
     "/accurate-intake/chat-turn",
@@ -175,7 +175,7 @@ class _ShortTermContextManagerProvider:
             evidence_posture="composition_unknown",
             reply_text=FOLLOWUP_QUESTION,
             followup_question=FOLLOWUP_QUESTION,
-            meal_title="滷味",
+            meal_title="待補餐點",
         )
 
     def _commit_final(self) -> dict[str, Any]:
@@ -187,8 +187,8 @@ class _ShortTermContextManagerProvider:
             target_attachment={"mode": "pending_draft"},
             estimation_posture="estimable",
             evidence_posture="tool_evidence_present",
-            reply_text="已記錄這份滷味。",
-            meal_title="滷味：豆干、海帶、貢丸",
+            reply_text="已記錄這份餐點。",
+            meal_title=FOLLOWUP_ANSWER_MESSAGE,
         )
 
     def _final(
