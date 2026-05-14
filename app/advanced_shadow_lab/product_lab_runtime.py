@@ -9,6 +9,9 @@ from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAGS
 from app.advanced_shadow_lab.product_lab_chat_surface import (
     build_advanced_product_lab_chat_surface,
 )
+from app.advanced_shadow_lab.product_lab_proactive_dashboard_mirror import (
+    build_product_lab_proactive_dashboard_mirror,
+)
 from app.advanced_shadow_lab.product_lab_control_state import (
     build_product_lab_control_state,
 )
@@ -126,6 +129,10 @@ def run_advanced_product_lab_turn(
         product_proactive=product_proactive,
     )
     lab_chat_surface = build_advanced_product_lab_chat_surface(session_id=str(turn.get("session_id") or ""), turn_id=str(turn.get("turn_id") or ""), lab_chat_response_packet=chat_packet)
+    proactive_dashboard_mirror = build_product_lab_proactive_dashboard_mirror(
+        product_proactive=product_proactive,
+        lab_chat_surface=lab_chat_surface,
+    )
     all_blockers = [
         *chain_blockers,
         *product_lab_product_artifact_blockers(product_artifacts),
@@ -136,6 +143,7 @@ def run_advanced_product_lab_turn(
         *stage_blockers("control_state", control_state),
         *chat_packet_blockers(chat_packet),
         *stage_blockers("lab_chat_surface", lab_chat_surface),
+        *stage_blockers("product_lab_proactive_dashboard_mirror", proactive_dashboard_mirror),
     ]
     return {
         **base_turn(turn=turn, lab_mode=lab_mode),
@@ -175,6 +183,7 @@ def run_advanced_product_lab_turn(
         "control_state": control_state,
         "lab_chat_response_packet": chat_packet,
         "lab_chat_surface": lab_chat_surface,
+        "product_lab_proactive_dashboard_mirror": proactive_dashboard_mirror,
         "blockers": all_blockers,
         **dict(FALSE_FLAGS),
     }

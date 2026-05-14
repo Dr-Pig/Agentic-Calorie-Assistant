@@ -4,9 +4,9 @@ status: active
 owner: AdvancedProductLabProactive
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 8
-last_completed_pr_number: 16
-active_pr_number: 17
+dynamic_remaining_pr_count: 7
+last_completed_pr_number: 17
+active_pr_number: 18
 current_mainline: advanced_product_lab_proactive_chat_first_integration
 is_detour: false
 mainline_blocker_being_removed: proactive_needs_chat_first_manager_style_integration_after_recommendation_closeout
@@ -291,6 +291,7 @@ estimate_notes:
   - After PR14 logical completion, remaining estimate moved to 10 after chat controls projected shared FeedbackEvent audit inputs into suppression and app-use memory candidate projections.
   - After PR15 logical completion, remaining estimate moved to 9 after quiet-hours, cooldown, recent-send, next-signal, and snooze release holdouts ran through the full lab session path.
   - After PR16 logical completion, remaining estimate moved to 8 after adversarial source-quality holdouts blocked missing-reason, stale, prompt-injected, and low-value proactive candidates without undertriggering valid sources.
+  - After PR17 logical completion, remaining estimate moved to 7 after proactive active and suppressed chat cards were mirrored into a read-only dashboard model without UI-owned truth or mutation.
   - Estimate may increase if lab chat delivery exposes missing control-state or dashboard mirror contracts.
 
 last_merge_evidence:
@@ -377,3 +378,8 @@ last_merge_evidence:
       merge_commit: working_branch_uncommitted
       result: adversarial_overtrigger_undertrigger_pack_completed_locally
       dynamic_remaining_pr_count_after: 8
+    - pr_number: 17
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: proactive_dashboard_mirror_read_model_completed_locally
+      dynamic_remaining_pr_count_after: 7
