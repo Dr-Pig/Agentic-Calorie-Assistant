@@ -39,6 +39,7 @@ def turn_input(*, session_id: str, turn_spec: Mapping[str, Any]) -> dict[str, An
         ),
         "turn_mode": str(turn_spec.get("turn_mode") or ""),
         "lab_now_minute": lab_now_minute(turn_spec),
+        "proactive_gate_context": mapping(turn_spec, "proactive_gate_context"),
         "observed_material_signals": observed_material_signals(turn_spec),
         "planned_event_rescue_enabled": (
             turn_spec.get("planned_event_rescue_enabled") is True
@@ -55,6 +56,11 @@ def turn_input(*, session_id: str, turn_spec: Mapping[str, Any]) -> dict[str, An
 def lab_now_minute(turn_spec: Mapping[str, Any]) -> int:
     value = turn_spec.get("lab_now_minute")
     return value if isinstance(value, int) else 0
+
+
+def mapping(source: Mapping[str, Any], key: str) -> Mapping[str, Any]:
+    value = source.get(key)
+    return value if isinstance(value, Mapping) else {}
 
 
 __all__ = ["LAB_MODE", "session_blockers", "turn_input", "lab_now_minute"]

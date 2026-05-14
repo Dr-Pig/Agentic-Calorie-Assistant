@@ -4,9 +4,9 @@ status: active
 owner: AdvancedProductLabProactive
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 10
-last_completed_pr_number: 14
-active_pr_number: 15
+dynamic_remaining_pr_count: 9
+last_completed_pr_number: 15
+active_pr_number: 16
 current_mainline: advanced_product_lab_proactive_chat_first_integration
 is_detour: false
 mainline_blocker_being_removed: proactive_needs_chat_first_manager_style_integration_after_recommendation_closeout
@@ -289,6 +289,7 @@ estimate_notes:
   - After PR12 logical completion, remaining estimate moved to 12 after rescue proposal legality and pending-commit trace were wired into proactive candidates.
   - After PR13 logical completion, remaining estimate moved to 11 after PendingMealIntent short-term context was wired into proactive pending-intake follow-up without meal or ledger mutation.
   - After PR14 logical completion, remaining estimate moved to 10 after chat controls projected shared FeedbackEvent audit inputs into suppression and app-use memory candidate projections.
+  - After PR15 logical completion, remaining estimate moved to 9 after quiet-hours, cooldown, recent-send, next-signal, and snooze release holdouts ran through the full lab session path.
   - Estimate may increase if lab chat delivery exposes missing control-state or dashboard mirror contracts.
 
 last_merge_evidence:
@@ -365,3 +366,8 @@ last_merge_evidence:
       merge_commit: working_branch_uncommitted
       result: feedback_event_projection_and_suppression_completed_locally
       dynamic_remaining_pr_count_after: 10
+    - pr_number: 15
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: quiet_hours_cooldown_holdouts_completed_locally
+      dynamic_remaining_pr_count_after: 9

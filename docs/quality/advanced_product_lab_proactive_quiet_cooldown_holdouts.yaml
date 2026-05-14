@@ -1,0 +1,148 @@
+artifact_type: advanced_product_lab_proactive_holdout_suite
+version: 1
+status: active
+owner: AdvancedProductLabProactive
+consumer: proactive_chat_first_pr15_holdout_gate
+case_count: 6
+raw_keyword_semantic_oracle_allowed: false
+mainline_activation_enabled: false
+production_scheduler_delivery_allowed: false
+notification_delivery_allowed: false
+canonical_product_mutation_allowed: false
+case_schema:
+  required_fields:
+    - case_id
+    - case_type
+    - split
+    - expected_decision_family
+    - turns
+    - expected_visible_candidate_ids_by_turn
+    - expected_omission_reasons_by_turn
+    - forbidden_effects
+cases:
+  - case_id: pro-qc-001
+    case_type: quiet_hours_silence
+    split: negative_holdout
+    expected_decision_family: stay_silent
+    turns:
+      - turn_id: q1-quiet
+        lab_now_minute: 10
+        proactive_gate_context:
+          local_time: "23:15"
+    expected_visible_candidate_ids_by_turn:
+      q1-quiet: []
+    expected_omission_reasons_by_turn:
+      q1-quiet: [quiet_hours, quiet_hours]
+    forbidden_effects: &forbidden_effects
+      - scheduler_delivery
+      - notification_delivery
+      - canonical_product_mutation
+      - raw_keyword_semantic_oracle
+
+  - case_id: pro-qc-002
+    case_type: trigger_cooldown_silence
+    split: negative_holdout
+    expected_decision_family: partial_omit
+    turns:
+      - turn_id: q2-rescue-cooldown
+        lab_now_minute: 35
+        proactive_gate_context:
+          last_sent_minute_by_trigger:
+            rescue_nudge: 10
+          cooldown_minutes_by_trigger:
+            rescue_nudge: 60
+    expected_visible_candidate_ids_by_turn:
+      q2-rescue-cooldown: [recommendation_prompt:0]
+    expected_omission_reasons_by_turn:
+      q2-rescue-cooldown: [cooldown_active]
+    forbidden_effects: *forbidden_effects
+
+  - case_id: pro-qc-003
+    case_type: recent_send_cap_silence
+    split: negative_holdout
+    expected_decision_family: stay_silent
+    turns:
+      - turn_id: q3-recent-cap
+        lab_now_minute: 40
+        proactive_gate_context:
+          max_recent_send_count: 1
+          recent_send_count: 1
+    expected_visible_candidate_ids_by_turn:
+      q3-recent-cap: []
+    expected_omission_reasons_by_turn:
+      q3-recent-cap: [recent_send_cap, recent_send_cap]
+    forbidden_effects: *forbidden_effects
+
+  - case_id: pro-qc-004
+    case_type: dismiss_until_next_signal
+    split: negative_holdout
+    expected_decision_family: partial_omit
+    turns:
+      - turn_id: q4-dismiss
+        lab_now_minute: 10
+        post_turn_chat_actions:
+          - event_id: dismiss-rec-q4
+            target_candidate_id: recommendation_prompt:0
+            action: dismiss
+            dismiss_reason: too_frequent
+            next_signal_required: user_reopens_recommendation_prompts
+      - turn_id: q4-after-dismiss
+        lab_now_minute: 20
+    expected_visible_candidate_ids_by_turn:
+      q4-dismiss: [recommendation_prompt:0, rescue_nudge:1]
+      q4-after-dismiss: [rescue_nudge:1]
+    expected_omission_reasons_by_turn:
+      q4-dismiss: []
+      q4-after-dismiss: [dismissed_until_material_signal]
+    forbidden_effects: *forbidden_effects
+
+  - case_id: pro-qc-005
+    case_type: dismiss_release_on_next_signal
+    split: false_positive_holdout
+    expected_decision_family: release_after_signal
+    turns:
+      - turn_id: q5-dismiss
+        lab_now_minute: 10
+        post_turn_chat_actions:
+          - event_id: dismiss-rec-q5
+            target_candidate_id: recommendation_prompt:0
+            action: dismiss
+            dismiss_reason: too_frequent
+            next_signal_required: user_reopens_recommendation_prompts
+      - turn_id: q5-release
+        lab_now_minute: 20
+        observed_material_signals:
+          - user_reopens_recommendation_prompts
+    expected_visible_candidate_ids_by_turn:
+      q5-dismiss: [recommendation_prompt:0, rescue_nudge:1]
+      q5-release: [recommendation_prompt:0, rescue_nudge:1]
+    expected_omission_reasons_by_turn:
+      q5-dismiss: []
+      q5-release: []
+    forbidden_effects: *forbidden_effects
+
+  - case_id: pro-qc-006
+    case_type: snooze_window_release
+    split: false_positive_holdout
+    expected_decision_family: release_after_time
+    turns:
+      - turn_id: q6-snooze
+        lab_now_minute: 10
+        post_turn_chat_actions:
+          - event_id: snooze-rec-q6
+            target_candidate_id: recommendation_prompt:0
+            action: snooze
+            snooze_minutes: 30
+      - turn_id: q6-during-snooze
+        lab_now_minute: 20
+      - turn_id: q6-after-snooze
+        lab_now_minute: 45
+    expected_visible_candidate_ids_by_turn:
+      q6-snooze: [recommendation_prompt:0, rescue_nudge:1]
+      q6-during-snooze: [rescue_nudge:1]
+      q6-after-snooze: [recommendation_prompt:0, rescue_nudge:1]
+    expected_omission_reasons_by_turn:
+      q6-snooze: []
+      q6-during-snooze: [snoozed_until_release]
+      q6-after-snooze: []
+    forbidden_effects: *forbidden_effects
