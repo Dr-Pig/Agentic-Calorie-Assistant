@@ -95,3 +95,17 @@ def test_trace_adapter_exposes_fallback_400_commit_fake_pass_to_grader() -> None
     assert grade["status"] == "blocked"
     assert "runtime.workflow_effect_expected:ask_followup_actual:commit" in grade["blockers"]
     assert "runtime.fallback_400_allowed_expected:False_actual:True" in grade["blockers"]
+
+
+def test_trace_adapter_blocks_fixture_provider_from_counting_as_golden_set_pass() -> None:
+    trace = _gs5_trace_artifact()
+    trace["manager_provider"] = {
+        "provider": "deterministic_self_use_manager_fixture",
+        "live_llm_invoked": False,
+    }
+
+    grade = grade_golden_case_trace("GS5", trace)
+
+    assert grade["status"] == "blocked"
+    assert "fixture_decisions.intent_not_allowed" in grade["blockers"]
+    assert "fixture_decisions.action_not_allowed" in grade["blockers"]
