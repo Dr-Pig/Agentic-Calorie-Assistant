@@ -7,10 +7,11 @@ from app.advanced_shadow_lab.product_lab_memory_action_projection import (
     memory_action_projection_from_context,
     proactive_memory_suppression_reasons,
 )
+from app.advanced_shadow_lab.proactive_deterministic_gate import (
+    evaluate_proactive_deterministic_trigger_gate,
+)
 from app.advanced_shadow_lab.product_lab_proactive_gate_policy import (
     PERMISSION_POSTURE,
-    context_reasons,
-    permission_reasons,
     review_status,
     reviewer_next_step,
 )
@@ -75,9 +76,13 @@ def _review_candidate(
     memory_action_projection: Mapping[str, Any],
 ) -> dict[str, Any]:
     trigger = str(candidate.get("trigger_type") or "")
+    deterministic_gate = evaluate_proactive_deterministic_trigger_gate(
+        trigger_type=trigger,
+        turn=turn,
+        context=context,
+    )
     reasons = [
-        *context_reasons(turn=turn, context=context, trigger=trigger),
-        *permission_reasons(trigger=trigger, context=context),
+        *[str(item) for item in deterministic_gate.get("suppression_reasons") or []],
         *_control_reasons(control_state),
         *proactive_memory_suppression_reasons(
             trigger_type=trigger,
@@ -90,6 +95,7 @@ def _review_candidate(
         "trigger_type": trigger,
         "candidate_id": str(candidate.get("candidate_id") or ""),
         "permission_posture": PERMISSION_POSTURE.get(trigger, "user_expected"),
+        "deterministic_gate_result": deterministic_gate,
         "suppression_reasons": reasons,
         "suppressed": bool(reasons),
         "review_decision": {
