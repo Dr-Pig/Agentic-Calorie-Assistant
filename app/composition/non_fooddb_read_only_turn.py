@@ -4,6 +4,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.composition.answer_query_read_only import finalize_answer_query_read_only
 from app.composition.current_budget_answer import build_remaining_budget_answer_contract
 from app.composition.degraded_budget_reply_policy import build_degraded_budget_reply
 from app.composition.non_fooddb_read_tool_executor import execute_non_fooddb_read_tool_calls
@@ -121,6 +122,14 @@ def finalize_non_fooddb_read_only_manager_intent(
             },
         )
         return {"remaining_budget": remaining_budget, "assistant_message_override": assistant_message_override}
+
+    answer_query_result = finalize_answer_query_read_only(
+        manager_decision=manager_decision,
+        request_id=request_id,
+        append_trace_event=append_trace_event,
+    )
+    if answer_query_result is not None:
+        return answer_query_result
 
     if _is_entry_answer_only_no_mutation(manager_decision):
         remaining_budget = build_remaining_budget(

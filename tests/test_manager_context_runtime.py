@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from app.composition import manager_context_runtime
 from app.composition.manager_context_runtime import build_runtime_manager_context_packet_v1
 from app.database import append_message, get_or_create_user
-from app.intake.infrastructure.models import MealThreadRecord, MealVersionRecord
+from app.intake.infrastructure.models import MealItemRecord, MealThreadRecord, MealVersionRecord
 from app.models import Base
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, InteractionEvent
 
@@ -206,3 +206,114 @@ def test_runtime_manager_context_packet_loads_same_day_pending_draft_pin() -> No
         "read_only": True,
         "mutation_authority": False,
     }
+
+
+def test_runtime_manager_context_packet_exposes_active_meal_estimate_basis_read_only() -> None:
+    engine, db = _session()
+    try:
+        user = get_or_create_user(db, "context-user")
+        thread = MealThreadRecord(user_id=user.id, title="早餐店鐵板麵套餐", active_version_id=None)
+        db.add(thread)
+        db.commit()
+        db.refresh(thread)
+        version = MealVersionRecord(
+            meal_thread_id=thread.id,
+            version_status="active",
+            version_reason="new_intake",
+            resolution_status="completed_meal",
+            meal_title="早餐店鐵板麵套餐",
+            raw_input="我早餐吃個早點店的鐵板麵套餐",
+            local_date="2026-05-04",
+            source_request_id="turn-breakfast",
+            total_kcal=620,
+            protein_g=24,
+            carb_g=70,
+            fat_g=22,
+        )
+        db.add(version)
+        db.commit()
+        db.refresh(version)
+        thread.active_version_id = version.id
+        db.add_all(
+            [
+                thread,
+                MealItemRecord(
+                    meal_version_id=version.id,
+                    item_index=0,
+                    name="鐵板麵",
+                    quantity_hint="1 份",
+                    source="fooddb",
+                    evidence_role="component",
+                    estimate_basis="fooddb_generic_component",
+                    confidence_tier="medium",
+                    estimated_kcal=420,
+                    carb_g=62,
+                    fat_g=14,
+                    evidence_ids_json=["fdb-teppan-noodle"],
+                ),
+                MealItemRecord(
+                    meal_version_id=version.id,
+                    item_index=1,
+                    name="荷包蛋",
+                    quantity_hint="1 顆",
+                    source="fooddb",
+                    evidence_role="component",
+                    estimate_basis="fooddb_component",
+                    confidence_tier="high",
+                    estimated_kcal=90,
+                    protein_g=6,
+                    fat_g=7,
+                    evidence_ids_json=["fdb-fried-egg"],
+                ),
+            ]
+        )
+        db.commit()
+        thread_id = thread.id
+        version_id = version.id
+
+        packet = build_runtime_manager_context_packet_v1(
+            db=db,
+            current_turn_context=_context(),
+            user_external_id="context-user",
+            local_date="2026-05-04",
+            session_id="session-1",
+        )
+    finally:
+        db.close()
+        engine.dispose()
+
+    assert packet is not None
+    basis = packet["active_day_state"]["active_meal_estimate_basis"]
+    assert basis["meal_thread_id"] == thread_id
+    assert basis["meal_version_id"] == version_id
+    assert basis["meal_title"] == "早餐店鐵板麵套餐"
+    assert basis["raw_input"] == "我早餐吃個早點店的鐵板麵套餐"
+    assert basis["total_kcal"] == 620
+    assert basis["macro_summary"] == {
+        "protein_g": 24,
+        "carb_g": 70,
+        "fat_g": 22,
+        "macro_visibility_status": "present",
+    }
+    assert basis["truth_owner"] == "canonical_meal_read_model"
+    assert basis["read_only"] is True
+    assert basis["mutation_authority"] is False
+    assert [item["canonical_name"] for item in basis["items"]] == ["鐵板麵", "荷包蛋"]
+    assert basis["items"][0]["estimate_basis"] == "fooddb_generic_component"
+    assert basis["items"][0]["evidence_id_count"] == 1
+    assert all(item["read_only"] is True for item in basis["items"])
+    assert all(item["mutation_authority"] is False for item in basis["items"])
+    assert "intent_type" not in basis
+    assert "final_action" not in basis
+    assert "workflow_effect" not in basis
+
+    candidates = packet["target_candidates"]["for_correction_or_removal"]
+    assert candidates[0]["target_object_type"] == "meal_thread"
+    assert candidates[0]["estimated_kcal"] == 620
+    assert candidates[0]["estimate_basis"] == "active_meal_version_total"
+    item_candidates = [candidate for candidate in candidates if candidate["target_object_type"] == "meal_item"]
+    assert [candidate["canonical_name"] for candidate in item_candidates] == ["鐵板麵", "荷包蛋"]
+    assert item_candidates[0]["estimated_kcal"] == 420
+    assert item_candidates[0]["confidence_tier"] == "medium"
+    assert all(candidate["read_only"] is True for candidate in candidates)
+    assert all(candidate["mutation_authority"] is False for candidate in candidates)
