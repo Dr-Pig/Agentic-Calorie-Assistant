@@ -1195,11 +1195,11 @@ def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available
     assert f'{report["local_date"]} | 70.4 kg' in report["body_plan_read_model_values"]["weight_history"]
     assert report["body_budget_read_models_rendered"] is True
     assert report["body_budget_read_model_values"]["active_target"] == "1550 kcal"
-    assert report["body_budget_read_model_values"]["consumed"] == "400 kcal"
-    assert report["body_budget_read_model_values"]["remaining"] == "1150 kcal"
+    assert report["body_budget_read_model_values"]["consumed"] == "300 kcal"
+    assert report["body_budget_read_model_values"]["remaining"] == "1250 kcal"
     assert report["body_budget_read_model_values"]["estimated_deficit"] == "269 kcal"
     assert report["body_budget_read_model_values"]["effective_budget"] == "1550 kcal"
-    assert "400 kcal consumed" in report["body_budget_read_model_values"]["weekly_progress"]
+    assert "300 kcal consumed" in report["body_budget_read_model_values"]["weekly_progress"]
     assert report["body_url_state_preserved_after_date_change"] is True
     assert report["body_reload_preserved_selected_date"] is True
     assert report["body_user_url_state_preserved_after_user_change"] is True

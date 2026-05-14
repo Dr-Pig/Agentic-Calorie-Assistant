@@ -9,10 +9,10 @@ STATIC_PRODUCT_PAGES = [
     Path("static/accurate-intake-body.html"),
 ]
 
-SCRIPT_FIXTURE_FILES = [
-    Path("scripts/run_accurate_intake_product_pages_browser_smoke.py"),
-    Path("scripts/run_accurate_intake_browser_shell_smoke.py"),
-]
+SCRIPT_FIXTURE_FILES = {
+    Path("scripts/run_accurate_intake_product_pages_browser_smoke.py"): 'DEFAULT_CJK_MESSAGE = "統一巧克力牛乳(400ml)"',
+    Path("scripts/run_accurate_intake_browser_shell_smoke.py"): 'DEFAULT_CJK_MESSAGE = "早餐吃茶葉蛋和拿鐵"',
+}
 
 MOJIBAKE_MARKERS = [
     "\ufffd",
@@ -72,9 +72,9 @@ def test_static_product_pages_keep_required_cjk_user_facing_copy() -> None:
 
 
 def test_browser_smoke_default_cjk_fixture_copy_is_not_mojibake() -> None:
-    for path in SCRIPT_FIXTURE_FILES:
+    for path, expected_copy in SCRIPT_FIXTURE_FILES.items():
         text = _read_utf8(path)
-        assert 'DEFAULT_CJK_MESSAGE = "早餐吃茶葉蛋和拿鐵"' in text
+        assert expected_copy in text
         for marker in MOJIBAKE_MARKERS:
             assert marker not in text, f"{path} contains mojibake marker {marker!r}"
 
