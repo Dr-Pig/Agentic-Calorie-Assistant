@@ -4,25 +4,31 @@ Use it as a map, not a handbook. Load the minimum path first, then retrieve deep
 
 [docs/DOC_INDEX.md](docs/DOC_INDEX.md) owns document taxonomy, file-role mapping, and longer navigation guidance. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md) owns the minimal current execution pointer. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md) owns the product-wide anti-drift operating layer. `AGENTS.md` only owns bootstrap order, always-on repo rules, and conditional-read triggers.
 
-Before any plan or edit, first classify whether this is a capability-order trap, architecture-boundary trap, both, or neither; if either may apply, pause and use the relevant skill before choosing files, tests, classes, eval fixes, or local next steps.
+## Workflow Triage
 
-## Advanced Product Lab Branch Bootstrap
+Use the lightest workflow that still protects repo truth.
 
-This branch may be `codex/advanced-product-lab`, a long-lived isolated product-lab branch for the complete advanced product.
+Fast path applies when the task is local, reversible, and does not change canonical product semantics, architecture boundaries, eval truth, migrations, provider/tool orchestration, memory/proactive behavior, or protected/freeze-growth files.
 
-Two-layer strategy:
+Fast path requirements:
 
-1. Inside the isolated product branch, treat the advanced product as a complete product build. Build and test full runtime lab integration, complete UX, full E2E, live Grokfast diagnostics, control state loop, recommendation/rescue/proactive loop, long-term memory integration, and simulated dogfood traces; do not reduce lab behavior to no-send/dormant-only constraints.
-2. When planning merge back to main, self-use V1 remains isolated. Use an activation wall so main/self-use V1 does not receive production route mounting, scheduler delivery, production DB migration, canonical mutation, durable product memory activation, or default runtime connection without a separate explicit activation PR.
+- read `AGENTS.md` and the directly relevant files only
+- state the scope classification in one sentence when useful
+- run targeted checks only
+- do not load the full bootstrap pack, emit full planning schemas, or perform best-practice research unless the task escalates
+- if evidence shows semantic, architecture, eval, or protected-file impact, stop and switch to the full workflow
 
-In this branch, product-lab behavior may be user-facing inside the lab runtime surface, but it must not be confused with mainline user-facing activation. Keep branch-local lab capability, merge-back dormancy, and self-use V1 protection as separate claims in tests and reports.
+Full workflow applies to architecture-sensitive, PR-producing, canonical spec, eval-governance, mutation, provider/tool, memory, proactive, migration, or protected/freeze-growth work.
 
-Hard branch-local rules:
+Before any non-trivial plan or edit, classify whether the task may be a capability-order trap, architecture-boundary trap, both, or neither. Use the relevant skill only when that risk is present; do not turn cosmetic, typo, local fixture, or narrow test edits into full governance work.
 
-- Lab runtime capability flags may be `true` inside this branch when they are scoped to the isolated advanced product lab. Do not keep memory tools, context injection, recommendation, rescue, proactive messaging, scheduler simulation, or user-facing lab responses disabled merely because mainline activation must remain walled off.
-- `codex/advanced-product-lab` is a long-lived product-lab branch. After merge-back work, do not delete this branch unless the user explicitly asks for archival or replacement.
-- Long-term memory must include auditable human-readable memory surfaces for how this person uses the app, such as `user.md` for stable user preferences/interaction style and `source.md` or equivalent source-reference files for provenance. These files are not raw transcript dumps and must stay scoped, reviewable, and connected to source refs.
-- Lab reports must distinguish `lab_enabled=true` from `mainline_activation_enabled=false` whenever a capability is fully exercised in the lab but intentionally dormant after merge to main/self-use V1.
+## Branch-Specific Context
+
+`main` does not own branch-local bootstrap for `codex/advanced-product-lab`.
+
+Use [docs/DOC_INDEX.md](docs/DOC_INDEX.md) to find advanced product lab reference docs when reviewing dormant or merge-back-safe artifacts on `main`. When actually working inside `codex/advanced-product-lab`, use that branch's own `AGENTS.md` and branch-local quality docs for lab-specific runtime rules.
+
+Mainline self-use V1 remains isolated from advanced lab activation unless a separate explicit activation PR enables route mounting, scheduler delivery, production DB migration, canonical mutation, durable product memory, or default runtime connection.
 
 ## Truth Hierarchy
 
@@ -156,23 +162,18 @@ Hard rule:
 - downstream user-facing behavior, runtime truth, or mutation must not proceed before required upstream context, ownership, and transition boundaries are contract-backed
 - if a local next step conflicts with the capability dependency pyramid, stop and re-plan
 
-## Read First
+## Minimum Read Path
 
-1. [docs/DOC_INDEX.md](docs/DOC_INDEX.md)
-2. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md)
-3. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md)
-4. [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md)
+Bootstrap read path is: progressive, not mandatory full-load.
 
-If the task needs architecture context or eval gate status, read next:
-
-5. [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml)
-6. [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml)
-7. task-specific canonical spec or runbook
+1. `AGENTS.md`
+2. directly relevant task files
+3. [docs/DOC_INDEX.md](docs/DOC_INDEX.md) only when document ownership, active-vs-legacy routing, or file placement is uncertain
+4. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md) only for PR-producing, plan-changing, or execution-state-sensitive work
+5. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md) only for high-impact or architecture-boundary work
+6. [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md), [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml), and [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml) only when eval gate status, Current Shell coordination, or acceptance evidence matters
+7. task-specific canonical spec, quality gate, or runbook
 8. [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) only when historical pre-self-use runtime reference is explicitly needed
-
-Bootstrap read path is:
-
-`AGENTS.md -> docs/DOC_INDEX.md -> docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md -> docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md -> docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md -> docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml -> docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml -> track-specific canonical runbook / gate -> task-specific spec`
 
 Default workflow is repo-truth-first interactive implementation. Unattended / overnight autonomy is optional and should only be loaded when the task is intentionally using an approval-light continuation protocol.
 
