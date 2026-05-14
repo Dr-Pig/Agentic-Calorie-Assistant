@@ -13,6 +13,16 @@ from app.runtime.agent.manager_payload_utils import (
 from app.runtime.agent.manager_react_trace import build_manager_react_trace
 from app.runtime.contracts.phase_a import ManagerSemanticDecision
 
+_MANAGER_EVIDENCE_HINT_FIELDS = (
+    "base_dish",
+    "aliases",
+    "brand_hint",
+    "size_hint",
+    "modifier_hints",
+    "listed_items",
+    "retrieval_goal",
+)
+
 
 @dataclass(frozen=True)
 class IntakeManagerResult:
@@ -74,7 +84,15 @@ def _semantic_decision_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
             source="missing_manager_semantic_decision",
         )
     try:
-        return ManagerSemanticDecision.model_validate(raw_decision).model_dump(mode="json")
+        validated = ManagerSemanticDecision.model_validate(raw_decision).model_dump(mode="json")
+        return {
+            **validated,
+            **{
+                field: json_safe(raw_decision.get(field))
+                for field in _MANAGER_EVIDENCE_HINT_FIELDS
+                if field in raw_decision
+            },
+        }
     except Exception:
         return _non_authoritative_semantic_decision(
             semantic_authority="missing",

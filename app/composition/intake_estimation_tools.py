@@ -122,6 +122,7 @@ async def estimate_nutrition_tool(
             user_external_id=user_external_id,
             raw_user_input=raw_user_input,
             local_date=local_date or datetime.now().date().isoformat(),
+            manager_semantic_decision=manager_semantic_decision,
         )
         _attach_web_runtime_trace(artifact.payload, canary_outcome.trace)
         return artifact
@@ -131,6 +132,7 @@ async def estimate_nutrition_tool(
         user_external_id=user_external_id,
         raw_user_input=raw_user_input,
         local_date=local_date or datetime.now().date().isoformat(),
+        manager_semantic_decision=manager_semantic_decision,
     )
     if force_new_meal_context:
         if hasattr(artifact.runtime_context, "latest_log"):
