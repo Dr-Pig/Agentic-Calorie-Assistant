@@ -46,6 +46,7 @@ def _packet_recent_chat_turns(
     *,
     user_external_id: str,
     local_date: str,
+    exclude_trace_id: str | None = None,
     limit: int = MANAGER_CONTEXT_RECENT_MESSAGE_LIMIT,
     scan_limit: int = MANAGER_CONTEXT_RECENT_SCAN_LIMIT,
 ) -> list[dict[str, Any]]:
@@ -64,7 +65,11 @@ def _packet_recent_chat_turns(
         .limit(bounded_scan_limit)
         .all()
     )
-    same_day = [message for message in rows if _message_local_date(message) == local_date]
+    same_day = [
+        message
+        for message in rows
+        if _message_local_date(message) == local_date and message.trace_id != exclude_trace_id
+    ]
     selected = list(reversed(same_day))
     turns: list[dict[str, Any]] = []
     for message in selected:
@@ -134,6 +139,7 @@ def build_runtime_manager_context_packet_v1(
     session_id: str | None = None,
     channel: str = "web_shell",
     manager_mode: str = "fixture",
+    exclude_trace_id: str | None = None,
 ) -> dict[str, Any] | None:
     if not isinstance(current_turn_context, CurrentTurnContextV1):
         return None
@@ -141,6 +147,7 @@ def build_runtime_manager_context_packet_v1(
         db,
         user_external_id=user_external_id,
         local_date=local_date,
+        exclude_trace_id=exclude_trace_id,
         limit=MANAGER_CONTEXT_RECENT_MESSAGE_LIMIT,
     )
     pending_draft = _pending_draft_snapshot(

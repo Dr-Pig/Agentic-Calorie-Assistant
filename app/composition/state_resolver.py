@@ -291,7 +291,7 @@ def resolve_intake_state(
     *,
     user_external_id: str,
     local_date: str,
-    incoming_user_text: str | None = None,
+    incoming_user_text: str | None = None, exclude_trace_id: str | None = None,
 ) -> V2ResolvedState:
     user = get_or_create_user(db, user_external_id)
     active_body_plan_view = build_active_body_plan_view(db, user_id=user.id)
@@ -301,7 +301,7 @@ def resolve_intake_state(
         db,
         user_id=user_external_id,
         incoming_user_text=incoming_user_text,
-        persist_incoming_user_text=False,
+        persist_incoming_user_text=False, exclude_trace_id=exclude_trace_id,
     )
     conversation_state = loaded_context.state
     injected_context = _injected_context(

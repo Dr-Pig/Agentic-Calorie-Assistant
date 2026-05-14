@@ -452,12 +452,15 @@
   <script>
     const endpoints = {
       estimate: "/estimate",
+      chatTurn: "/accurate-intake/chat-turn",
       chatHistory: "/accurate-intake/chat-history"
     };
     const todayIso = () => new Date().toISOString().slice(0, 10);
     const el = (id) => document.getElementById(id);
     const params = new URLSearchParams(window.location.search);
     const CURRENT_PAGE = "chat";
+    const PENDING_MESSAGE = "處理中...";
+    let pendingRequestId = null;
     el("user-id").value = params.get("user_id") || el("user-id").value;
     el("local-date").value = params.get("local_date") || todayIso();
 
@@ -494,7 +497,6 @@
     }
     function setComposerBusy(isBusy) {
       el("composer").setAttribute("aria-busy", isBusy ? "true" : "false");
-      el("message-input").disabled = isBusy;
       el("send-button").disabled = isBusy;
       el("send-button").textContent = isBusy ? "Sending" : "送出";
     }
@@ -650,6 +652,11 @@
         const role = message.role === "user" ? "user" : "bot";
         appendMessage(role, message.content || "", "chat_history.sqlite_message_buffer", message);
       }
+      const pending = [...messages].reverse().find((message) => (
+        message.role !== "user" && message.runtime_turn_status === "in_progress"
+      ));
+      pendingRequestId = pending ? pending.trace_id : null;
+      setComposerBusy(Boolean(pendingRequestId));
     }
     async function loadHistory() {
       setStatus("loading");
@@ -665,26 +672,58 @@
       const input = el("message-input");
       const text = input.value.trim();
       if (!text) return;
+      if (pendingRequestId) {
+        setStatus(`waiting for ${pendingRequestId}; you can keep drafting here and send after it finishes`);
+        input.focus();
+        return;
+      }
       setComposerBusy(true);
       appendMessage("user", text, "current_user_input");
       input.value = "";
       fitComposerInput();
-      const pending = appendMessage("bot", "處理中...", "client_pending_placeholder");
+      const pending = appendMessage("bot", PENDING_MESSAGE, "client_pending_placeholder");
       try {
-        const payload = await requestJson(endpoints.estimate, {
+        const payload = await requestJson(endpoints.chatTurn, {
           method: "POST",
           headers: { "Content-Type": "application/json; charset=utf-8" },
           body: JSON.stringify({ text, user_id: userId(), local_date: selectedDate(), allow_search: false })
         });
-        pending.dataset.renderSource = "estimate.coach_message";
-        pending.textContent = payload.coach_message || "目前沒有可顯示的助理回覆。";
+        pendingRequestId = payload.request_id || null;
+        pending.dataset.renderSource = "chat_turn.accepted";
+        pending.textContent = payload.coach_message || PENDING_MESSAGE;
+        setStatus(`processing ${pendingRequestId || "turn"}`);
         await loadHistory();
+        await waitForTurnCompletion(pendingRequestId);
       } catch (error) {
         pending.textContent = `送出失敗：${error.message}`;
       } finally {
-        setComposerBusy(false);
+        if (!pendingRequestId) {
+          setComposerBusy(false);
+        }
         input.focus();
       }
+    }
+    async function waitForTurnCompletion(requestId) {
+      if (!requestId) return;
+      for (let attempt = 0; attempt < 90; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
+        const payload = await requestJson(`${endpoints.chatHistory}?${query.toString()}`);
+        const messages = Array.isArray(payload.messages) ? payload.messages : [];
+        const stillPending = messages.some((message) => (
+          message.trace_id === requestId && message.runtime_turn_status === "in_progress"
+        ));
+        renderHistory(payload);
+        renderSessionAndContext(payload);
+        if (!stillPending) {
+          pendingRequestId = null;
+          setComposerBusy(false);
+          setStatus(`completed ${payload.message_count || 0}`);
+          return;
+        }
+        setStatus(`processing ${requestId}`);
+      }
+      setStatus(`still processing ${requestId}; leave this page open or return later`);
     }
     el("composer").addEventListener("submit", submitMessage);
     el("message-input").addEventListener("keydown", (event) => {

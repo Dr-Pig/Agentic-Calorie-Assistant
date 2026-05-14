@@ -250,6 +250,28 @@ def test_feedback_page_collects_operation_context_for_submit_request() -> None:
     assert "referrer: document.referrer" in page
 
 
+def test_chat_page_uses_durable_async_turn_and_trace_linked_feedback() -> None:
+    page = Path("static/accurate-intake-chat.html").read_text(encoding="utf-8")
+
+    assert 'chatTurn: "/accurate-intake/chat-turn"' in page
+    assert "pendingRequestId" in page
+    assert "waitForTurnCompletion" in page
+    assert "setComposerBusy(true)" in page
+    assert 'el("message-input").disabled = isBusy;' not in page
+    assert 'query.set("request_id", message.trace_id);' in page
+    assert "feedbackUrlForMessage(message)" in page
+
+
+def test_feedback_page_hides_manual_trace_fields_but_autofills_latest_context() -> None:
+    page = Path("static/accurate-intake-feedback.html").read_text(encoding="utf-8")
+
+    assert '<details id="advanced-context-fields" class="context-details">' in page
+    assert 'loadLatestTraceContext().catch' in page
+    assert 'el("trace-id").value = el("trace-id").value || latest.trace_id || "";' in page
+    assert 'el("request-id").value = el("request-id").value || latest.trace_id || "";' in page
+    assert "不需要手動填 ID" in page
+
+
 def test_feedback_review_and_data_pages_expose_dogfood_ui_affordances() -> None:
     feedback = Path("static/accurate-intake-feedback.html").read_text(encoding="utf-8")
     review = Path("static/accurate-intake-review.html").read_text(encoding="utf-8")
@@ -263,7 +285,7 @@ def test_feedback_review_and_data_pages_expose_dogfood_ui_affordances() -> None:
     assert 'id="feedback-text-help"' in feedback
     assert "描述發生什麼、你原本期待什麼" in feedback
     assert "如果是估算錯誤，可以補上你認為餐點有哪些組成" in feedback
-    assert "不用填 ID" in feedback
+    assert "不需要手動填 ID" in feedback
     assert "進階：自動帶入的上下文" in feedback
 
     assert "繚" not in review

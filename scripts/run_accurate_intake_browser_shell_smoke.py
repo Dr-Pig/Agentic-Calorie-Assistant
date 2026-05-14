@@ -26,7 +26,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.budget.interface.today_surface import resolve_today_local_date  # noqa: E402
-from app.composition import intake_routes  # noqa: E402
+from app.composition import intake_chat_turn_routes, intake_routes  # noqa: E402
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date  # noqa: E402
 from app.database import get_db, get_or_create_user  # noqa: E402
 from app.models import Base  # noqa: E402
@@ -108,10 +108,16 @@ def _build_app(SessionLocal: Callable[[], Session], provider: DeterministicSelfU
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    previous = (intake_routes.manager_provider, intake_routes.search_provider, intake_routes.extract_provider)
+    previous = (
+        intake_routes.manager_provider,
+        intake_routes.search_provider,
+        intake_routes.extract_provider,
+        intake_chat_turn_routes.SessionLocal,
+    )
     intake_routes.manager_provider = provider
     intake_routes.search_provider = None
     intake_routes.extract_provider = None
+    intake_chat_turn_routes.SessionLocal = SessionLocal
     app.state.accurate_intake_restore_runtime = previous
     return app
 
@@ -119,7 +125,15 @@ def _build_app(SessionLocal: Callable[[], Session], provider: DeterministicSelfU
 def _restore_runtime(app: FastAPI) -> None:
     previous = getattr(app.state, "accurate_intake_restore_runtime", None)
     if previous is not None:
-        intake_routes.manager_provider, intake_routes.search_provider, intake_routes.extract_provider = previous
+        if len(previous) == 4:
+            (
+                intake_routes.manager_provider,
+                intake_routes.search_provider,
+                intake_routes.extract_provider,
+                intake_chat_turn_routes.SessionLocal,
+            ) = previous
+        else:
+            intake_routes.manager_provider, intake_routes.search_provider, intake_routes.extract_provider = previous
 
 
 def _free_port() -> int:

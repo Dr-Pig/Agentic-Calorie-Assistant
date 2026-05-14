@@ -118,6 +118,52 @@ def test_runtime_manager_context_packet_filters_before_selecting_last_20_same_da
     assert all(message["local_date"] == "2026-05-04" for message in messages)
 
 
+def test_runtime_manager_context_packet_excludes_current_request_trace_from_recent_chat_turns() -> None:
+    engine, db = _session()
+    try:
+        user = get_or_create_user(db, "context-user")
+        append_message(
+            db,
+            user,
+            "user",
+            "previous completed turn",
+            trace_id="previous-turn",
+            trace_json={"runtime_turn_trace": {"local_date": "2026-05-04"}},
+        )
+        append_message(
+            db,
+            user,
+            "user",
+            "current pending user turn",
+            trace_id="current-turn",
+            trace_json={"runtime_turn_trace": {"local_date": "2026-05-04"}},
+        )
+        append_message(
+            db,
+            user,
+            "assistant",
+            "處理中...",
+            trace_id="current-turn",
+            trace_json={"runtime_turn_trace": {"local_date": "2026-05-04"}},
+        )
+
+        packet = build_runtime_manager_context_packet_v1(
+            db=db,
+            current_turn_context=_context(),
+            user_external_id="context-user",
+            local_date="2026-05-04",
+            session_id="session-1",
+            exclude_trace_id="current-turn",
+        )
+    finally:
+        db.close()
+        engine.dispose()
+
+    assert packet is not None
+    contents = [message["content"] for message in packet["recent_chat_window"]["messages"]]
+    assert contents == ["previous completed turn"]
+
+
 def test_runtime_manager_context_packet_scan_is_bounded_before_python_date_filtering() -> None:
     engine, db = _session()
     try:

@@ -49,9 +49,7 @@ def _record_timing(stage_timings: list[dict[str, Any]], stage: str, duration_ms:
 
 
 async def execute_intake_turn(
-    db: Session,
-    *,
-    user_external_id: str,
+    db: Session, *, request_id: str | None = None, user_external_id: str,
     raw_user_input: str | None,
     onboarding_payload: IntakeOnboardingPayload | None,
     local_date: str | None,
@@ -67,7 +65,7 @@ async def execute_intake_turn(
     phase_a_trace: dict[str, Any] | None = None,
     _timing_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    request_id = uuid4().hex
+    request_id = request_id or uuid4().hex
     stage_timings: list[dict[str, Any]] = []
     resolved_local_date = resolve_local_date(local_date)
     active_manager_provider = manager_provider or provider
@@ -78,7 +76,7 @@ async def execute_intake_turn(
             db,
             user_external_id=user_external_id,
             local_date=resolved_local_date,
-            incoming_user_text=raw_user_input,
+            incoming_user_text=raw_user_input, exclude_trace_id=request_id,
         )
         _record_timing(stage_timings, "state_resolution", int(time.time() * 1000) - stage_start)
     else:
@@ -101,7 +99,7 @@ async def execute_intake_turn(
             current_turn_context=current_turn_context,
             user_external_id=user_external_id,
             local_date=resolved_local_date,
-            session_id=request_id,
+            session_id=request_id, exclude_trace_id=request_id,
         )
     record_inflight_intake_chat_turn(
         db,
@@ -285,7 +283,9 @@ async def execute_intake_turn(
         raise ValueError(f"Unsupported intake intent_type: {manager_decision.intent_type}")
 
     stage_start = int(time.time() * 1000)
-    state_after = resolve_intake_state(db, user_external_id=user_external_id, local_date=resolved_local_date)
+    state_after = resolve_intake_state(
+        db, user_external_id=user_external_id, local_date=resolved_local_date, exclude_trace_id=request_id
+    )
     _record_timing(stage_timings, "state_after_resolution", int(time.time() * 1000) - stage_start)
     if remaining_budget is None:
         remaining_budget = build_remaining_budget_answer_contract(

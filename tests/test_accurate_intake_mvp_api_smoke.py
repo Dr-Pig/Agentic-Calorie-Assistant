@@ -10,7 +10,8 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.composition import intake_routes
+from app.composition import intake_chat_turn_routes, intake_routes
+from app.composition.inflight_chat_turn import PENDING_ASSISTANT_MESSAGE
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_db, get_or_create_user
 from app.models import Base
@@ -219,3 +220,57 @@ def test_estimate_route_persists_inflight_chat_turn_before_provider_returns(monk
     assert final_messages[1]["content"] != "處理中..."
     assert final_messages[0]["trace_id"] == final_messages[1]["trace_id"]
     client.close()
+
+
+def test_async_chat_turn_accepts_and_persists_inflight_before_background_work(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    debug_token = secrets.token_urlsafe(24)
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", debug_token)
+    db = _session(tmp_path / "async-chat-turn.sqlite3")
+    user_external_id = "api-async-chat-user"
+    local_date = "2026-05-02"
+    _seed_body_plan(db, user_external_id=user_external_id, local_date=local_date)
+    client, _provider = _client(db, monkeypatch)
+
+    async def noop_background(*_args, **_kwargs) -> None:
+        return None
+
+    monkeypatch.setattr(intake_chat_turn_routes, "_complete_chat_turn_background", noop_background)
+
+    try:
+        response = client.post(
+            "/accurate-intake/chat-turn",
+            json={
+                "text": "早餐吃鐵板麵套餐",
+                "allow_search": False,
+                "user_id": user_external_id,
+                "local_date": local_date,
+            },
+        )
+
+        assert response.status_code == 202
+        accepted = response.json()
+        assert accepted["status"] == "accepted"
+        assert accepted["coach_message"] == PENDING_ASSISTANT_MESSAGE
+        assert accepted["request_id"]
+        assert accepted["trace_id"] == accepted["request_id"]
+
+        history = client.get(
+            "/accurate-intake/chat-history",
+            params={"user_id": user_external_id, "local_date": local_date},
+            headers={"X-Local-Debug-Token": debug_token},
+        )
+        assert history.status_code == 200
+        messages = history.json()["messages"]
+        assert [(message["role"], message["content"]) for message in messages] == [
+            ("user", "早餐吃鐵板麵套餐"),
+            ("assistant", PENDING_ASSISTANT_MESSAGE),
+        ]
+        assert messages[0]["trace_id"] == accepted["request_id"]
+        assert messages[1]["trace_id"] == accepted["request_id"]
+        assert messages[1]["runtime_turn_status"] == "in_progress"
+    finally:
+        client.close()
+        db.close()

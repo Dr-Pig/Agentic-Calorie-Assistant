@@ -57,12 +57,23 @@ def _request_sidecar_sync_enabled() -> bool:
     return os.getenv("SESSION_RECORD_SYNC_ON_REQUEST", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _exclude_trace_messages(
+    messages: list[MessageBuffer],
+    *,
+    exclude_trace_id: str | None,
+) -> list[MessageBuffer]:
+    if not exclude_trace_id:
+        return messages
+    return [message for message in messages if message.trace_id != exclude_trace_id]
+
+
 def load_conversation_state(
     db: Session,
     *,
     user_id: str,
     incoming_user_text: str | None = None,
     persist_incoming_user_text: bool = True,
+    exclude_trace_id: str | None = None,
 ) -> LoadedConversationContext:
     user = get_or_create_user(db, user_id)
     if incoming_user_text and persist_incoming_user_text:
@@ -70,8 +81,11 @@ def load_conversation_state(
 
     latest_log = get_latest_log(db, user)
     meal_history = get_meal_log_history(db, user, limit=30, include_superseded=True)
-    recent_messages = get_recent_messages(db, user, limit=5)
-    archive_messages = get_conversation_archive(db, user, limit=_conversation_archive_limit())
+    recent_messages = _exclude_trace_messages(get_recent_messages(db, user, limit=5), exclude_trace_id=exclude_trace_id)
+    archive_messages = _exclude_trace_messages(
+        get_conversation_archive(db, user, limit=_conversation_archive_limit()),
+        exclude_trace_id=exclude_trace_id,
+    )
     transcript_records = build_session_transcript_records(session_id=user_id, archive_messages=archive_messages)
     meal_records = build_session_meal_records(session_id=user_id, meal_history=meal_history)
 
