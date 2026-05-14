@@ -261,9 +261,13 @@ def test_feedback_review_and_data_pages_expose_dogfood_ui_affordances() -> None:
 
     assert 'aria-describedby="feedback-text-help"' in feedback
     assert 'id="feedback-text-help"' in feedback
-    assert "What happened, what did you expect, and what page or meal were you using?" in feedback
+    assert "描述發生什麼、你原本期待什麼" in feedback
+    assert "如果是估算錯誤，可以補上你認為餐點有哪些組成" in feedback
+    assert "不用填 ID" in feedback
+    assert "進階：自動帶入的上下文" in feedback
 
     assert "繚" not in review
+    assert "Review 是給開發者整理問題的佇列" in review
     assert "feedback is triage input, not product truth" in review
     assert "manual review is required before any eval or FoodDB change" in review
 

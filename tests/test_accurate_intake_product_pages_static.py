@@ -414,6 +414,10 @@ def test_feedback_page_is_local_only_trace_linked_capture_without_frontend_seman
     assert 'data-manager-context-injection="false"' in html
     assert 'data-fooddb-truth-update-allowed="false"' in html
     assert 'data-canonical-eval-promotion-allowed="false"' in html
+    assert "不用填 ID" in html
+    assert "系統會自動帶入目前頁面、日期、最近一則訊息與餐點線索" in html
+    assert '<details id="advanced-context-fields"' in html
+    assert "進階：自動帶入的上下文" in html
     assert 'data-nav-target="chat"' in html
     assert 'data-nav-target="today"' in html
     assert 'data-nav-target="body"' in html
@@ -469,6 +473,10 @@ def test_review_page_recovers_missing_local_session_without_truth_promotion() ->
     assert 'data-page-id="accurate-intake-review-page-v1"' in html
     assert 'data-surface-role="dogfood-review-queue"' in html
     assert 'data-feedback-is-product-truth="false"' in html
+    assert "Review 是給開發者整理問題的佇列" in html
+    assert "如果你要回報問題，請用 Feedback；這一頁只是看已經送出的回饋是否被收進佇列。" in html
+    assert 'data-nav-target="feedback"' in html
+    assert "Open Feedback" in html
     assert "function friendlyPageUrl(page)" in html
     assert 'friendlyPageUrl("review")' in html
     assert "reconnect_attempted" in html
