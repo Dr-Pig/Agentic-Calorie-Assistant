@@ -1,0 +1,287 @@
+artifact_type: advanced_product_lab_proactive_chat_first_pr_train
+version: 1
+status: active
+owner: AdvancedProductLabProactive
+consumer: advanced_product_lab_followup_planning
+planned_pr_count: 24
+dynamic_remaining_pr_count: 23
+last_completed_pr_number: 1
+active_pr_number: 2
+current_mainline: advanced_product_lab_proactive_chat_first_integration
+is_detour: false
+mainline_blocker_being_removed: proactive_needs_chat_first_manager_style_integration_after_recommendation_closeout
+strategic_verdict: mainline
+
+parent_recommendation_train:
+  path: docs/quality/advanced_product_lab_recommendation_pr_train.yaml
+  closed_by_pr: 24
+  entry_contract_artifact: artifacts/advanced_product_lab_proactive_entry_contract_pr1.json
+
+strategic_gate:
+  current_mainline: advanced_product_lab_proactive_chat_first_integration
+  is_detour: false
+  blocked_mainline: null
+  detour_reason: null
+  detour_exit_gate: not_applicable
+  exit_gate_status: not_applicable
+  return_slice_after_exit: not_applicable
+  strategic_verdict: mainline
+  mainline_blocker_being_removed: proactive_needs_chat_first_manager_style_integration_after_recommendation_closeout
+  upstream_alignment_rule: current_shell_manager_runtime_contract_is_upstream_truth
+
+capability_dependency_check:
+  capability_layer: L9 Same-Truth / UI / Memory / Proactive with L1-L8 runtime dependencies
+  upstream_dependencies:
+    - layer: L0 Product Operating Rules
+      contract_status: tested
+      risk_if_missing: proactive could become notification-first or shame/directive copy.
+    - layer: L1 InteractionEvent / CurrentTurnContext
+      contract_status: tested
+      risk_if_missing: wake events and control events could bypass manager-style context.
+    - layer: L2 AttachmentDecision / TransitionGuardResult
+      contract_status: contract_backed
+      risk_if_missing: dismiss, snooze, reopen, and downstream handoff can attach to the wrong candidate.
+    - layer: L3 MealThread / Draft / Commit Boundary
+      contract_status: tested
+      risk_if_missing: proactive follow-up could imply intake mutation without explicit user action.
+    - layer: L4 RetrievalIntent / Source Selection
+      contract_status: tested
+      risk_if_missing: recommendation and memory candidates can over-read transcript or stale source refs.
+    - layer: L8 Mutation / Ledger / Version
+      contract_status: draft
+      risk_if_missing: proactive could mutate budget, rescue, recommendation, or memory truth directly.
+  slice_mode:
+    - contract_guard
+    - eval
+    - lab_only_runtime
+    - offline_runtime
+  user_facing_behavior_changed: false
+  runtime_truth_changed: false
+  mutation_changed: false
+  safe_to_proceed_now: true
+  why_not_local_next_step_trap: >
+    Proactive is downstream of memory, rescue, recommendation, and context engineering.
+    Starting with the entry contract prevents a separate scheduler or notification
+    architecture from becoming the product skeleton.
+
+branch_strategy:
+  target_branch: codex/advanced-product-lab
+  stable_repo_branches:
+    - main
+    - codex/advanced-product-lab
+  logical_pr_slices_run_on_same_branch: true
+  lab_runtime_surface_may_be_complete: true
+  lab_user_facing_surfaces_allowed: true
+  lab_scheduler_simulation_allowed: true
+  mainline_activation_enabled: false
+  self_use_v1_affected: false
+  keep_long_lived_lab_branch: true
+  short_lived_pr_branches_required: false
+
+required_artifact_flags:
+  lab_enabled: true
+  lab_isolated: true
+  lab_chat_delivery_allowed: true
+  lab_scheduler_simulation_allowed: true
+  lab_control_state_loop_allowed: true
+  mainline_activation_enabled: false
+  mainline_runtime_connected: false
+  served_to_mainline_user: false
+  production_notification_delivery_allowed: false
+  production_scheduler_delivery_allowed: false
+  production_route_or_api_mount_allowed: false
+  production_db_migration_allowed: false
+  canonical_product_mutation_allowed_on_main: false
+  durable_product_memory_activation_on_main: false
+  manager_context_packet_changed: false
+
+proactive_ladder:
+  wake_to_delivery_order:
+    - deterministic_trigger_gate
+    - contextual_send_skip_decision
+    - lab_chat_first_delivery
+    - control_feedback_projection
+  autonomy_tier_order:
+    - observe_only
+    - draft
+    - suggest
+    - ask_to_approve
+    - lab_chat_deliver_with_controls
+  production_push_allowed: false
+  lab_chat_delivery_is_user_facing_inside_lab: true
+  every_candidate_requires:
+    - wake_source
+    - user_relevant_reason
+    - permission_posture
+    - interrupt_cost
+    - dismiss_path
+    - snooze_window
+    - reopen_or_modify_path
+    - next_signal_required
+    - suppression_trace
+
+manager_tool_entry:
+  tool_name: proactive.run
+  capability_id: proactive
+  tool_mode: wake_candidate_context
+  runtime_surface: manager_tool_loop
+  parallel_orchestration_allowed: false
+  upstream_truth_contract_family: CurrentShell_ManagerRuntime
+
+dependency_status:
+  memory: completed
+  context_engineering: completed
+  rescue_phase1: completed
+  recommendation: completed
+
+best_practice_evidence:
+  required: true
+  sources_checked:
+    - official_or_primary_source: https://platform.openai.com/docs/guides/trace-grading
+      adopted_guidance: use trace evidence to identify tool, guard, and workflow failures rather than black-box output only.
+    - official_or_primary_source: https://platform.openai.com/docs/guides/evaluation-best-practices
+      adopted_guidance: use objective-specific eval sets with edge cases, holdouts, and continuous growth.
+    - official_or_primary_source: https://platform.openai.com/docs/guides/agent-evals
+      adopted_guidance: evaluate tool choice, argument precision, data precision, and handoff accuracy.
+    - official_or_primary_source: https://openai.github.io/openai-agents-python/guardrails/
+      adopted_guidance: keep side-effect-sensitive validation at guard/tool boundaries.
+  rejected_guidance:
+    - notification_first_scheduler_as_product_core
+    - generic_workflow_engine_before_multiple_real_consumers
+    - user_facing_control_copy_using_undo_instead_of_reopen_or_modify
+  conflict_with_repo_habits: >
+    Earlier proactive artifacts were no-send first. The lab branch may now build
+    full chat-first lab delivery, but production notification and mainline activation
+    remain blocked.
+  how_the_design_changed: >
+    The train starts from wake/control/chat-first entry gates and then moves through
+    deterministic gates, LLM send/skip, lab delivery, feedback projection, E2E, live
+    diagnostics, and dormancy.
+
+llm_deterministic_boundary:
+  decision_surface: proactive_chat_first_runtime
+  truth_owner: hybrid
+  deterministic_role:
+    - validate_wake_source
+    - enforce_cooldown
+    - enforce_quiet_hours
+    - enforce_permission_posture
+    - enforce_control_state
+    - block_illegal_mutation
+    - compile_omission_trace
+  llm_role:
+    - decide_contextual_send_or_skip_after_gate
+    - synthesize_chat_first_copy
+    - explain_why_now
+  do_not_override:
+    - current_budget_view
+    - active_body_plan_view
+    - MealThread_truth
+    - recommendation_offer_truth
+    - rescue_proposal_truth
+    - reviewed_memory_record_truth
+
+semantic_owner:
+  user_intent: ManagerRuntime
+  wake_legality: ProactiveDeterministicGate
+  routing_or_workflow_effect: shared_manager_turn_plan_contract
+  copy_and_contextual_send_skip: ManagerRuntime_LLM
+  mutation_legality: deterministic_guards_and_canonical_mutation_layers
+  persistence_truth: proactive_control_state_projection_and_canonical_product_objects
+
+dynamic_estimate_protocol:
+  update_after_each_merge_or_logical_slice: true
+  estimate_may_increase: true
+  estimate_may_decrease: true
+  report_remaining_prs_to_user: true
+  persistent_truth_files:
+    - docs/quality/advanced_product_lab_proactive_chat_first_pr_train.yaml
+    - docs/quality/advanced_product_lab_proactive_golden_set.yaml
+    - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md
+
+pr_train:
+  - pr_number: 1
+    slice_id: proactive_entry_contract_from_memory_rescue_recommendation_outputs
+    goal: Open proactive train from completed memory, rescue, context engineering, and recommendation outputs.
+  - pr_number: 2
+    slice_id: proactive_tool_argument_contract
+    goal: Define proactive.run manager tool arguments, scope keys, wake source refs, and no raw transcript bypass.
+  - pr_number: 3
+    slice_id: proactive_golden_set_loader_and_width_gate
+    goal: Add executable loader/schema and semantic-width gate for proactive golden set.
+  - pr_number: 4
+    slice_id: deterministic_trigger_gate_core
+    goal: Implement cooldown, quiet hours, recent-send cap, onboarding, permission, and data sufficiency gate.
+  - pr_number: 5
+    slice_id: proactive_control_state_store
+    goal: Add lab-isolated dismiss, snooze, opt-out, reopen-or-modify, and next-signal control state.
+  - pr_number: 6
+    slice_id: wake_source_adapters
+    goal: Read memory, rescue, recommendation, and pending-meal outputs as proactive wake candidates.
+  - pr_number: 7
+    slice_id: no_send_candidate_and_lab_delivery_candidate_trace
+    goal: Produce auditable candidates before any chat delivery or notification surface.
+  - pr_number: 8
+    slice_id: contextual_send_skip_fixture_provider
+    goal: Add LLM-owned send/skip fixture provider and validator.
+  - pr_number: 9
+    slice_id: contextual_send_skip_grokfast_live_diagnostic
+    goal: Run Grokfast live diagnostic for send/skip decisions and copy posture.
+  - pr_number: 10
+    slice_id: lab_chat_first_delivery_packet
+    goal: Build lab chat delivery packet with controls and dashboard mirror fields.
+  - pr_number: 11
+    slice_id: recommendation_proactive_integration
+    goal: Convert recommendation outputs into proactive candidates without serving production notifications.
+  - pr_number: 12
+    slice_id: rescue_proactive_integration
+    goal: Convert rescue outputs into proactive candidates with suppression and rescue legality boundaries.
+  - pr_number: 13
+    slice_id: pending_meal_followup_integration
+    goal: Handle pending meal follow-up wakes without creating MealThread or ledger mutation.
+  - pr_number: 14
+    slice_id: feedback_event_projection_and_suppression
+    goal: Project dismiss, snooze, opt-out, and reopen-or-modify into control state and memory candidates through validators.
+  - pr_number: 15
+    slice_id: quiet_hours_cooldown_holdouts
+    goal: Add negative and false-positive holdouts for silence, cooldown, and next-signal behavior.
+  - pr_number: 16
+    slice_id: adversarial_overtrigger_undertrigger_pack
+    goal: Cover noisy, stale, prompt-injected, and low-value proactive candidates.
+  - pr_number: 17
+    slice_id: proactive_dashboard_mirror_read_model
+    goal: Mirror lab proactive status and controls without UI-owned truth or mutation.
+  - pr_number: 18
+    slice_id: recommendation_to_proactive_to_feedback_e2e
+    goal: Exercise recommendation candidate to proactive chat delivery to feedback suppression.
+  - pr_number: 19
+    slice_id: rescue_to_proactive_suppression_e2e
+    goal: Exercise rescue nudge candidate, dismiss/snooze, and rescue-proactive suppression.
+  - pr_number: 20
+    slice_id: proactive_feedback_grokfast_live_diagnostic
+    goal: Run Grokfast live diagnostic for feedback interpretation and copy repair.
+  - pr_number: 21
+    slice_id: paired_lab_e2e_and_shadow_comparison
+    goal: Compare baseline manager, candidate-only, and lab-chat-delivery paths.
+  - pr_number: 22
+    slice_id: latency_cost_omission_trace
+    goal: Record latency, provider cost posture, degraded omission, and no retry-expansion behavior.
+  - pr_number: 23
+    slice_id: mainline_dormancy_gate
+    goal: Prove merge-back keeps production route, scheduler, notification, DB migration, and durable activation dormant.
+  - pr_number: 24
+    slice_id: quality_closeout_and_next_capability_plan
+    goal: Aggregate fixture, holdout, live, E2E, and dormancy evidence and decide next activation or dogfood path.
+
+estimate_notes:
+  - Initial likely train is 24 PRs from recommendation closeout.
+  - After PR1 logical completion, remaining estimate moved to 23.
+  - Estimate may increase if lab chat delivery exposes missing control-state or dashboard mirror contracts.
+
+last_merge_evidence:
+  completed_prs:
+    - pr_number: 1
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: proactive_entry_contract_from_memory_rescue_recommendation_outputs_completed_locally
+      dynamic_remaining_pr_count_after: 23
