@@ -196,11 +196,15 @@ def item_records_for_candidate(
         if not replacements:
             raise ValueError("correction_replacement_item_missing")
         records: list[MealItemRecord] = []
-        for new_index, old_item in enumerate(old_items):
+        new_index = 0
+        for old_item in old_items:
             if old_item.id == target_item.id:
-                records.append(_item_record_from_candidate_item(version_id, new_index, replacements[0]))
+                for replacement in replacements:
+                    records.append(_item_record_from_candidate_item(version_id, new_index, replacement))
+                    new_index += 1
             else:
                 records.append(_item_record_from_existing_item(version_id, new_index, old_item))
+                new_index += 1
         return records
     if source_payload is not None:
         return _item_records_from_payload(version_id, source_payload)

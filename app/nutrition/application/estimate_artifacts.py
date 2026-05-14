@@ -12,6 +12,9 @@ from app.nutrition.application.fooddb_macro_contract import (
     APPROVED_PACKET_READY_SOURCE_QUALITY,
     MACRO_CONTRACT,
 )
+from app.nutrition.application.local_component_stub_catalog import (
+    component_estimates_from_manager_listed_items,
+)
 from ...shared.contracts.common import EstimateRequest
 from ...shared.contracts.intake import ComponentEstimate, EstimatePayload
 
@@ -30,7 +33,15 @@ def shadow_stub_estimate_enabled(*, provider: Any) -> bool:
     return readiness.get("configured") is not True
 
 
-def _shadow_stub_components(raw_user_input: str) -> list[ComponentEstimate]:
+def _shadow_stub_components(
+    raw_user_input: str,
+    *,
+    manager_semantic_decision: Any | None = None,
+) -> list[ComponentEstimate]:
+    listed_items = getattr(manager_semantic_decision, "listed_items", None)
+    manager_components = component_estimates_from_manager_listed_items(listed_items)
+    if manager_components:
+        return manager_components
     normalized = raw_user_input.strip().lower()
     chicken_rice = "\u96de\u8089\u98ef"
     soup = "\u6e6f"
@@ -98,6 +109,7 @@ def build_shadow_stub_artifact(
     user_external_id: str,
     raw_user_input: str,
     local_date: str,
+    manager_semantic_decision: Any | None = None,
 ) -> EstimatedNutritionArtifact:
     request = EstimateRequest(
         text=raw_user_input,
@@ -109,7 +121,10 @@ def build_shadow_stub_artifact(
         db=db,
         provider=type("StubProvider", (), {"readiness": lambda self: {"configured": False}})(),
     )
-    component_estimates = _shadow_stub_components(raw_user_input)
+    component_estimates = _shadow_stub_components(
+        raw_user_input,
+        manager_semantic_decision=manager_semantic_decision,
+    )
     meal_title = " + ".join(component.name for component in component_estimates)
     kcal = sum(int(component.estimated_kcal or 0) for component in component_estimates)
     protein_g = sum(int(component.protein_g or 0) for component in component_estimates)
