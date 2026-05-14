@@ -4,9 +4,9 @@ status: active
 owner: AdvancedProductLabProactive
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 3
-last_completed_pr_number: 21
-active_pr_number: 22
+dynamic_remaining_pr_count: 2
+last_completed_pr_number: 22
+active_pr_number: 23
 current_mainline: advanced_product_lab_proactive_chat_first_integration
 is_detour: false
 mainline_blocker_being_removed: proactive_needs_chat_first_manager_style_integration_after_recommendation_closeout
@@ -296,6 +296,7 @@ estimate_notes:
   - After PR19 logical completion, remaining estimate moved to 5 after rescue proactive snooze suppression E2E proved feedback control does not commit or mutate rescue proposals.
   - After PR20 logical completion, remaining estimate moved to 4 after actual Grokfast live diagnostic passed proactive feedback projection with delivery, scheduler, and mutation disabled.
   - After PR21 logical completion, remaining estimate moved to 3 after paired baseline product output, candidate-only, and lab chat delivery comparison passed for active and silent paths.
+  - After PR22 logical completion, remaining estimate moved to 2 after latency, provider usage posture, degraded omission, and no retry-expansion report passed without claiming billing truth.
   - Estimate may increase if lab chat delivery exposes missing control-state or dashboard mirror contracts.
 
 last_merge_evidence:
@@ -411,3 +412,8 @@ last_merge_evidence:
       merge_commit: working_branch_uncommitted
       result: paired_lab_e2e_and_shadow_comparison_completed_locally
       dynamic_remaining_pr_count_after: 3
+    - pr_number: 22
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: latency_cost_omission_trace_completed_locally
+      dynamic_remaining_pr_count_after: 2
