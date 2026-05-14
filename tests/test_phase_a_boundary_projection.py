@@ -219,6 +219,29 @@ def test_simple_meal_projects_direct_commit() -> None:
     assert projection.legacy_projection["canonical_commit"] is True
 
 
+def test_shadow_stub_estimate_projects_no_mutation_even_with_positive_kcal() -> None:
+    payload = _payload(
+        meal_title="breakfast shop combo",
+        estimated_kcal=400,
+        action_taken="direct_answer",
+        follow_up_needed=False,
+        response_mode_hint="rough_estimate_ok",
+        canonical_write_allowed=True,
+    )
+    payload.trace_contract["shadow_stub"] = True
+
+    projection = build_intake_boundary_projection(
+        payload=payload,
+        persistence_result=None,
+        active_body_plan_present=True,
+    )
+
+    assert projection.commit_boundary_decision.intent == "no_mutation"
+    assert projection.commit_boundary_decision.predicted_meal_status == "none"
+    assert projection.commit_boundary_decision.canonical_write_allowed is False
+    assert projection.commit_boundary_decision.ledger_mutation_allowed is False
+
+
 def test_commit_projection_reports_persistence_contradiction_without_fixing_it() -> None:
     payload = _payload(
         meal_title="pearl milk tea",

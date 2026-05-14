@@ -127,6 +127,38 @@ def test_commit_boundary_preflight_allows_manager_authorized_estimate_with_follo
     assert payload.trace_contract["canonical_write_decision"]["source"] == "manager_semantic_decision"
 
 
+def test_commit_boundary_preflight_blocks_manager_authorized_shadow_stub_commit() -> None:
+    payload = _payload(
+        estimated_kcal=400,
+        action_taken="direct_answer",
+        route_target="direct_answer",
+        canonical_write_allowed=True,
+    )
+    payload.trace_contract["shadow_stub"] = True
+
+    result = run_commit_boundary_preflight(
+        payload=payload,
+        manager_final_action="commit",
+        active_body_plan_present=True,
+        manager_semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "workflow_effect": "commit",
+            "final_action_candidate": "commit",
+            "mutation_intent_candidate": "canonical_write",
+        },
+    )
+
+    decision = payload.trace_contract["canonical_write_decision"]
+    assert result.blocked is True
+    assert result.failure_family == "nutrition_evidence_not_commit_eligible"
+    assert result.projected_commit_intent == "no_mutation"
+    assert result.canonical_write_allowed is False
+    assert decision["can_write_canonical"] is False
+    assert decision["source"] == "commit_evidence_policy"
+    assert "shadow_stub_estimate" in decision["blockers"]
+
+
 def test_manager_semantic_decision_can_supersede_pre_manager_answer_only_guard() -> None:
     result = classify_final_action_mutation(
         manager_payload={
@@ -385,4 +417,79 @@ async def test_process_intake_execution_turn_blocks_commit_boundary_contradictio
     assert preflight["blocked"] is True
     assert preflight["failure_family"] == "phase_a_commit_boundary_blocked"
     assert preflight["mutation_effect_class"] == "canonical_write"
+    assert result["state_mutation_summary"]["canonical_commit"] is False
+
+
+@pytest.mark.asyncio
+async def test_process_intake_execution_turn_blocks_shadow_stub_commit_before_persistence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.composition import intake_execution_orchestrator as module
+
+    resolved_state = _resolved_state()
+    resolved_state.current_budget_view = SimpleNamespace(
+        budget_kcal=1312,
+        consumed_kcal=0,
+        remaining_kcal=1312,
+    )
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="I ate a breakfast shop combo",
+        resolved_state=resolved_state,
+    )
+    nutrition_artifact = SimpleNamespace(
+        payload=_payload(estimated_kcal=400),
+    )
+    nutrition_artifact.payload.trace_contract["shadow_stub"] = True
+    persisted: list[object] = []
+
+    async def _fake_execute_manager_tool_calls(**kwargs: object) -> list[dict[str, object]]:
+        kwargs["tool_state"]["nutrition_artifact"] = nutrition_artifact
+        kwargs["tool_state"]["budget_summary"] = {
+            "budget_kcal": 1312,
+            "consumed_kcal_before": 0,
+            "predicted_consumed_kcal_after": 400,
+            "predicted_remaining_kcal_after": 912,
+            "overshoot_detected": False,
+            "overshoot_kcal": 0,
+        }
+        return [{"tool_name": "estimate_nutrition", "failure_family": None}]
+
+    monkeypatch.setattr(module, "execute_manager_tool_calls", _fake_execute_manager_tool_calls)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", lambda *args, **kwargs: persisted.append((args, kwargs)))
+    monkeypatch.setattr(
+        module,
+        "build_intake_execution_response",
+        lambda *_, **kwargs: {
+            "persistence_result": kwargs["persistence_result"],
+            "phase_a_trace": kwargs["phase_a_trace"],
+            "state_mutation_summary": kwargs["state_mutation_summary"],
+            "budget_summary": kwargs["budget_summary"],
+        },
+    )
+
+    result = await module.process_intake_execution_turn(
+        None,
+        user_external_id="user-1",
+        raw_user_input="I ate a breakfast shop combo",
+        local_date="2026-04-29",
+        allow_search=False,
+        provider=_Provider(),
+        state_before=resolved_state,
+        manager_decision=SimpleNamespace(intent_type="log_meal", tool_calls=(), llm_used=False),
+        request_id="req-shadow-stub-block",
+        stage_timings=[],
+        current_turn_context=current_turn_context,
+        phase_a_trace={},
+    )
+
+    preflight = result["phase_a_trace"]["phase_a_commit_boundary_preflight"]
+    assert persisted == []
+    assert result["persistence_result"] is None
+    assert preflight["blocked"] is True
+    assert preflight["failure_family"] == "nutrition_evidence_not_commit_eligible"
+    assert result["budget_summary"]["predicted_consumed_kcal_after"] == 0
+    assert result["budget_summary"]["predicted_remaining_kcal_after"] == 1312
     assert result["state_mutation_summary"]["canonical_commit"] is False

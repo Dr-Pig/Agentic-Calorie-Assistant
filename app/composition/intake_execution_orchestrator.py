@@ -474,7 +474,7 @@ async def process_intake_execution_turn(
             manager_result,
             final_action="no_commit",
             workflow_effect="safe_failure",
-            request_failure_family="phase_a_commit_boundary_blocked",
+            request_failure_family=commit_boundary_preflight.failure_family or "phase_a_commit_boundary_blocked",
             guard_outcome={
                 **dict(getattr(manager_result, "guard_outcome", {}) or {}),
                 "phase_a_commit_boundary_preflight": commit_boundary_preflight.trace_payload(),
@@ -511,7 +511,7 @@ async def process_intake_execution_turn(
                 refreshed_tool_results[index] = refreshed_nutrition_output
                 break
     tool_outputs = {"tool_results": refreshed_tool_results}
-    if state_mutation_summary.get("canonical_commit") and budget_summary is not None:
+    if budget_summary is not None and (state_mutation_summary.get("canonical_commit") or commit_boundary_preflight.blocked):
         budget_summary = finalized_budget_summary(
             budget_summary=budget_summary,
             state_before=state_before,

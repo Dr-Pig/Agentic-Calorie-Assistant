@@ -21,6 +21,17 @@ def build_payload_macro_summary(payload: Any | None) -> dict[str, Any]:
 
     display_macro = dict(getattr(payload, "display_macro_breakdown", None) or getattr(payload, "macro_breakdown", None) or {})
     trace_contract = dict(getattr(payload, "trace_contract", None) or {})
+    if trace_contract.get("shadow_stub") is True:
+        return _with_approved_trace({
+            "protein_g": int(getattr(payload, "protein_g", 0) or 0),
+            "carbs_g": int(getattr(payload, "carb_g", 0) or 0),
+            "fat_g": int(getattr(payload, "fat_g", 0) or 0),
+            "display_status": "hide",
+            "guard_reason": "no_macro_data",
+            "macro_kcal": 0,
+            "macro_kcal_delta": 0,
+            "alignment_warning": False,
+        }, trace_contract)
     if not display_macro:
         if trace_contract.get("macro_display_authorized") is False:
             return _with_approved_trace({
