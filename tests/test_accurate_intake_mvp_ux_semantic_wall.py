@@ -5,15 +5,17 @@ import json
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.composition.accurate_intake_debug_routes import build_accurate_intake_debug_payload
+from app.composition.canonical_persistence import commit_meal_payload_to_canonical
 from app.composition.intake_turn_orchestrator import execute_intake_turn
 from app.composition.non_fooddb_read_only_turn import NON_FOODDB_READ_ONLY_MANAGER_TOOLS
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_or_create_user
-from app.models import Base, MealThreadRecord, MealVersionRecord
+from app.models import Base, MealItemRecord, MealThreadRecord, MealVersionRecord
+from app.schemas import CommitRequestCandidate, MealItemPayload
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -147,8 +149,26 @@ def _final_payload(
     target_attachment: dict[str, Any] | None = None,
     evidence_posture: str = "unknown",
     followup_question: str | None = None,
+    semantic_overrides: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     target = dict(target_attachment or {"mode": "none"})
+    semantic_decision = {
+        "semantic_authority": "deterministic_fake_provider",
+        "current_turn_intent": current_turn_intent,
+        "target_attachment": target,
+        "workflow_effect": workflow_effect,
+        "final_action_candidate": final_action,
+        "estimation_posture": "estimable" if final_action in {"commit", "correction_applied"} else "not_applicable",
+        "followup_posture": "required" if followup_question else "none",
+        "followup_question": followup_question,
+        "followup_targets": [],
+        "mutation_intent_candidate": mutation_intent_candidate,
+        "uncertainty_posture": "bounded",
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "validate_gate_trace_only",
+        **dict(semantic_overrides or {}),
+    }
     return {
         "manager_action": "final",
         "intent": intent_type,
@@ -164,22 +184,7 @@ def _final_payload(
         "response_summary": workflow_effect,
         "uncertainty_posture": "bounded",
         "evidence_honesty_posture": evidence_posture,
-        "semantic_decision": {
-            "semantic_authority": "deterministic_fake_provider",
-            "current_turn_intent": current_turn_intent,
-            "target_attachment": target,
-            "workflow_effect": workflow_effect,
-            "final_action_candidate": final_action,
-            "estimation_posture": "estimable" if final_action in {"commit", "correction_applied"} else "not_applicable",
-            "followup_posture": "required" if followup_question else "none",
-            "followup_question": followup_question,
-            "followup_targets": [],
-            "mutation_intent_candidate": mutation_intent_candidate,
-            "uncertainty_posture": "bounded",
-            "source": "fixture_manager_structured_decision",
-            "semantic_owner": "manager",
-            "deterministic_role": "validate_gate_trace_only",
-        },
+        "semantic_decision": semantic_decision,
     }
 
 
@@ -413,3 +418,115 @@ def test_runtime_can_commit_query_like_text_only_when_manager_fixture_authorizes
     assert final_round_decision["semantic_decision"]["source"] == "fixture_manager_structured_decision"
     assert debug_payload["model"]["today_summary"]["consumed_kcal"] > 0
     assert provider.calls[0]["raw_user_input_seen_by_manager"] == "How many calories are in bubble milk tea?"
+
+
+def test_component_supplement_correction_replaces_default_active_meal_with_component_estimate(monkeypatch) -> None:
+    monkeypatch.setenv("V2_INTAKE_TURN_ALLOW_STUB_ESTIMATE", "1")
+    db = _session()
+    user_external_id = "ux-semantic-component-refinement"
+    local_date = "2026-05-02"
+    _seed_body_plan(db, user_external_id=user_external_id, local_date=local_date)
+    user = get_or_create_user(db, user_external_id)
+    teppan_set = "\u65e9\u9910\u5e97\u9435\u677f\u9eb5\u5957\u9910"
+    teppan_noodle = "\u9435\u677f\u9eb5"
+    fried_egg = "\u8377\u5305\u86cb"
+    pork_slices = "\u65e9\u9910\u5e97\u8c6c\u8089\u7247"
+    initial = commit_meal_payload_to_canonical(
+        db,
+        user=user,
+        candidate=CommitRequestCandidate(
+            request_id="component-refinement-initial",
+            manager_intent="food_estimation",
+            version_reason="new_intake",
+            meal_title=teppan_set,
+            raw_input=teppan_set,
+            estimated_kcal=400,
+            protein_g=18,
+            carb_g=42,
+            fat_g=12,
+            resolution_status="completed_meal",
+            local_date=local_date,
+            items=[
+                MealItemPayload(
+                    name=teppan_set,
+                    quantity_hint="1 serving",
+                    estimated_kcal=400,
+                    protein_g=18,
+                    carb_g=42,
+                    fat_g=12,
+                )
+            ],
+        ),
+        budget_kcal=1800,
+    )
+    assert initial is not None
+    old_item = db.execute(
+        select(MealItemRecord).where(MealItemRecord.meal_version_id == initial.meal_version_id)
+    ).scalar_one()
+    target_attachment = {
+        "mode": "target_committed_thread",
+        "target_object_type": "meal_item",
+        "target_object_id": str(old_item.id),
+        "meal_thread_id": initial.meal_thread_id,
+        "meal_item_id": old_item.id,
+        "canonical_name": teppan_set,
+        "correction_operation": "replace_item",
+    }
+    semantic_overrides = {
+        "base_dish": teppan_set,
+        "listed_items": [teppan_noodle, fried_egg, pork_slices],
+        "retrieval_goal": "listed_item_lookup",
+    }
+    provider = ScriptedManagerDecisionProvider(
+        entry=_final_payload(
+            intent_type="correct_meal",
+            current_turn_intent="correct_meal",
+            final_action="correction_applied",
+            workflow_effect="route_to_intake",
+            mutation_intent_candidate="correction_write",
+            target_attachment=target_attachment,
+            evidence_posture="needs_tool_evidence",
+            semantic_overrides=semantic_overrides,
+        ),
+        execution=[
+            _final_payload(
+                intent_type="correct_meal",
+                current_turn_intent="correct_meal",
+                final_action="correction_applied",
+                workflow_effect="correction_applied",
+                mutation_intent_candidate="correction_write",
+                target_attachment=target_attachment,
+                evidence_posture="tool_evidence_present",
+                semantic_overrides=semantic_overrides,
+            )
+        ],
+    )
+
+    result = asyncio.run(
+        execute_intake_turn(
+            db,
+            user_external_id=user_external_id,
+            raw_user_input="\u6211\u525b\u525b\u7684\u65e9\u9910\u6709\u9435\u677f\u9eb5\u3001\u8377\u5305\u86cb\u548c\u8c6c\u8089\u7247",
+            onboarding_payload=None,
+            local_date=local_date,
+            allow_search=False,
+            manager_provider=provider,
+            provider=provider,
+        )
+    )
+
+    debug_payload = build_accurate_intake_debug_payload(db, user_external_id=user_external_id, local_date=local_date)
+    active_version = debug_payload["model"]["meal_threads"][0]["active_version"]
+    active_items = active_version["items"]
+
+    assert result["manager_decision"]["intent_type"] == "correct_meal"
+    assert result["state_delta"]["canonical_commit"] is True
+    assert result["state_delta"]["old_version_superseded"] is True
+    assert active_version["version_reason"] == "correction"
+    assert active_version["total_kcal"] > 400
+    assert debug_payload["model"]["today_summary"]["consumed_kcal"] == active_version["total_kcal"]
+    assert [item["name"] for item in active_items] == [teppan_noodle, fried_egg, pork_slices]
+    assert {round_info["tool_name"] for round_info in result["intake_execution_manager"]["manager_rounds"][0]["tool_results"]} == {
+        "resolve_correction_target",
+        "estimate_nutrition",
+    }
