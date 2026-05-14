@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from math import ceil, floor
+from math import ceil
 from typing import Any, Literal, Mapping
 
 from app.rescue.domain.shadow_status import RESCUE_SHADOW_NON_RUNTIME_FLAGS
@@ -245,20 +245,14 @@ def _daily_cap(packet: Mapping[str, Any], cap_fraction: float) -> int:
 
 
 def _cap_kcal(check: Mapping[str, Any], cap_fraction: float) -> int:
-    if cap_fraction == 0.15:
-        return _int(check.get("max_15_percent_kcal"))
-    return floor(_int(check.get("base_budget_kcal")) * cap_fraction)
+    return _int(check.get("max_15_percent_kcal"))
 
 
 def _cap_mode(adjustment_request: str) -> str:
-    if adjustment_request == "shorter_more_aggressive":
-        return "aggressive_20_percent"
     return "standard_15_percent"
 
 
 def _cap_fraction(adjustment_request: str) -> float:
-    if adjustment_request == "shorter_more_aggressive":
-        return 0.20
     return 0.15
 
 
@@ -270,7 +264,7 @@ def _recommended_days(adjustment_request: str, min_days: int) -> int:
 
 def _special_posture(adjustment_request: str) -> str:
     if adjustment_request == "shorter_more_aggressive":
-        return "aggressive_spread"
+        return "strict_15_shorter_request"
     if adjustment_request == "longer_gentler":
         return "longer_gentler_spread"
     return "standard_spread"
@@ -279,7 +273,7 @@ def _special_posture(adjustment_request: str) -> str:
 def _guardrail_notes(adjustment_request: str) -> list[str]:
     notes = list(BASE_GUARDRAIL_NOTES)
     if adjustment_request == "shorter_more_aggressive":
-        notes.append("aggressive_cap_checked")
+        notes.append("strict_15_percent_cap_enforced")
     if adjustment_request == "longer_gentler":
         notes.append("gentler_horizon_extended")
     return notes

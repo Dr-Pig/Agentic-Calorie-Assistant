@@ -36,7 +36,7 @@ suite_contract:
     - llm_send_skip
     - quiet_hours
     - cooldown
-    - dismiss_snooze_undo
+    - dismiss_snooze_reopen_modify
     - chat_first_delivery
     - stay_silent
     - permission_posture
@@ -56,6 +56,15 @@ evaluation_policy:
   wake_source_is_not_user_benefit: true
   deterministic_gate_before_llm: true
   semantic_decision_owner: manager_llm_structured_output
+  user_facing_control_language:
+    primary_controls:
+      - dismiss
+      - snooze
+      - reopen_or_modify
+    forbidden_user_facing_control_labels:
+      - undo
+    legacy_internal_aliases_allowed:
+      - undo
   deterministic_validation_boundary:
     - cooldown
     - quiet_hours
@@ -154,10 +163,10 @@ cases:
     oracle: *product_oracle
 
   - case_id: pro-005
-    case_type: dismiss_snooze_undo
+    case_type: dismiss_snooze_reopen_modify
     split: fixture
     journey_refs: [N]
-    product_truth: Every candidate that may later become user-facing must expose dismiss, snooze, undo, and next-signal controls.
+    product_truth: Every candidate that may later become user-facing must expose dismiss, snooze, reopen-or-modify, and next-signal controls; undo is only a legacy internal alias, not user-facing copy.
     product_contract_refs:
       - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#4.7A
       - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#3.4A
@@ -166,7 +175,8 @@ cases:
     expected_trace_fields:
       - dismiss_reason_choices
       - snooze_window
-      - undo_scope
+      - reopen_or_modify_path
+      - legacy_undo_alias_internal_only
       - next_signal_required
     mutation_posture: *no_send_posture
     allowed_variants: [dismiss_current_candidate_only]
@@ -212,7 +222,7 @@ cases:
     case_type: feedback_suppression
     split: fixture
     journey_refs: [N]
-    product_truth: Dismiss, snooze, opt-out, and undo control future proactive candidates without mutating meal, budget, recommendation, rescue, or memory truth directly.
+    product_truth: Dismiss, snooze, opt-out, and reopen-or-modify control future proactive candidates without mutating meal, budget, recommendation, rescue, or memory truth directly; legacy undo may exist only as an internal alias.
     product_contract_refs:
       - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#4.7
       - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#3.4B
@@ -221,7 +231,8 @@ cases:
     expected_trace_fields:
       - FeedbackEvent.action
       - suppression_projection.scope
-      - undo_result
+      - reopen_or_modify_result
+      - legacy_undo_alias_internal_only
       - memory_candidate_validator_status
     mutation_posture: *no_send_posture
     allowed_variants: [explicit_opt_out_creates_reviewed_suppression_candidate]

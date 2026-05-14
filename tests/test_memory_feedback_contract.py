@@ -96,6 +96,25 @@ def test_feedback_event_contract_validates_scope_source_and_non_mutation() -> No
     assert result["manager_context_packet_changed"] is False
 
 
+def test_feedback_event_contract_accepts_user_facing_reopen_modify_controls() -> None:
+    from app.memory.application.memory_feedback_contract import (
+        validate_feedback_event_contract,
+    )
+
+    for action in ("reopen", "modify"):
+        result = validate_feedback_event_contract(
+            _feedback_event(
+                target_type="recommendation_offer",
+                target_id="offer-1",
+                action=action,
+            )
+        )
+
+        assert result["status"] == "pass"
+        assert result["normalized_event"]["action"] == action
+        assert result["mutates_truth_directly"] is False
+
+
 def test_feedback_event_contract_rejects_illegal_target_action_and_snooze_shape() -> None:
     from app.memory.application.memory_feedback_contract import (
         validate_feedback_event_contract,

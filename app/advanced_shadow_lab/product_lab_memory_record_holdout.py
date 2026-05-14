@@ -12,7 +12,7 @@ HOLDOUT_RECORD_IDS = [
     "negative-bland",
     "negative-eggplant",
 ]
-IGNORED_SIGNAL_IDS = ["negative-dessert-ignored"]
+IGNORED_SIGNAL_IDS: list[str] = []
 
 
 def build_memory_record_holdout_turns() -> list[dict[str, Any]]:
@@ -25,8 +25,7 @@ def build_memory_record_holdout_turns() -> list[dict[str, Any]]:
                 _negative("negative-spicy", "spicy", "block"),
                 _negative("negative-vegetarian", "vegetarian", "downrank"),
                 _negative("negative-bland", "bland", "downrank"),
-                _negative("negative-eggplant", "eggplant", "downrank"),
-                _negative("negative-dessert-ignored", "dessert", "downrank"),
+                _negative("negative-eggplant", "eggplant", "block"),
             ],
             "post_turn_memory_review_decisions": [
                 {
@@ -38,15 +37,6 @@ def build_memory_record_holdout_turns() -> list[dict[str, Any]]:
                 }
                 for record_id in HOLDOUT_RECORD_IDS
             ]
-            + [
-                {
-                    "candidate_id": "negative-dessert-ignored",
-                    "decision": "reject",
-                    "confirmed": False,
-                    "reviewer": "lab-human",
-                    "reason": "user_marked_do_not_remember",
-                }
-            ],
         }
     ]
 
@@ -58,7 +48,6 @@ def build_memory_record_holdout_candidates() -> list[dict[str, Any]]:
         _candidate("candidate-vegetarian-bowl", "vegetarian"),
         _candidate("candidate-bland-soup", "bland"),
         _candidate("candidate-eggplant-rice", "eggplant"),
-        _candidate("candidate-dessert", "dessert"),
     ]
 
 
@@ -83,7 +72,7 @@ def build_memory_record_holdout_report(session_artifact: Mapping[str, Any]) -> d
         "retirement_trigger": "approved_live_dogfood_trace_replacement",
         "session_id": str(session_artifact.get("session_id") or ""),
         "session_artifact_path": str(session_artifact.get("session_artifact_path") or ""),
-        "holdout_case_count": 6,
+        "holdout_case_count": 5,
         "confirmed_negative_record_ids": [
             record_id for record_id in HOLDOUT_RECORD_IDS if record_id in written
         ],

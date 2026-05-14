@@ -95,7 +95,7 @@ def test_downrank_preference_reduces_score_without_blocking() -> None:
     assert evaluation["allowed_after_memory_policy"] is True
 
 
-def test_founder_negative_six_case_subjects_are_structured_policy_inputs() -> None:
+def test_founder_negative_five_case_subjects_are_structured_policy_inputs() -> None:
     from app.memory.application.memory_preference_policy import (
         evaluate_preference_memory_policy,
     )
@@ -106,14 +106,13 @@ def test_founder_negative_six_case_subjects_are_structured_policy_inputs() -> No
             _record("no-spicy", polarity="negative", strength="block", subject_keys=["spicy_food"]),
             _record("vegetarian-downrank", polarity="negative", strength="downrank", subject_keys=["vegetarian_meal_type"]),
             _record("bland-downrank", polarity="negative", strength="downrank", subject_keys=["bland_food"]),
-            _record("eggplant-downrank", polarity="negative", strength="downrank", subject_keys=["eggplant"]),
+            _record("eggplant-block", polarity="negative", strength="block", subject_keys=["eggplant"]),
         ],
         candidates=[
             _candidate("bitter-melon-stir-fry", ["bitter_melon"]),
             _candidate("spicy-hotpot", ["spicy_food", "hotpot"]),
             _candidate("vegetarian-bowl", ["vegetarian_meal_type", "bland_food"]),
             _candidate("eggplant-side", ["eggplant"]),
-            _candidate("dessert", ["dessert"]),
         ],
     )
 
@@ -125,9 +124,8 @@ def test_founder_negative_six_case_subjects_are_structured_policy_inputs() -> No
         "vegetarian-downrank",
         "bland-downrank",
     ]
-    assert by_id["eggplant-side"]["downranked_by"] == ["eggplant-downrank"]
-    assert by_id["dessert"]["blocked"] is False
-    assert by_id["dessert"]["downranked_by"] == []
+    assert by_id["eggplant-side"]["blocked"] is True
+    assert by_id["eggplant-side"]["blocked_by"] == ["eggplant-block"]
 
 
 def test_policy_rejects_invalid_records_and_unstructured_candidates() -> None:

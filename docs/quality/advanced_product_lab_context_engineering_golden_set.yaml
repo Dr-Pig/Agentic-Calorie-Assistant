@@ -138,7 +138,7 @@ global_decisions:
   memory:
     confirmed_negative_priority: block_or_downrank_before_positive_boost
     positive_profile_role: soft_boost_only
-    dessert_uncertain_signal: no_long_term_memory
+    discarded_or_uncertain_profile_signal: no_long_term_memory
     same_turn_explicit_negative_can_block_recommendation: true
   recommendation:
     physical_graph: three_node
@@ -467,14 +467,14 @@ cases:
     split: fixture
     category: recommendation_memory
     coverage_scope: advanced_lab
-    user_turn: "甜點那個先不要記，今天如果想吃甜的可以怎麼安排？"
-    expected_primary_workflow: dessert_no_memory_with_one_turn_recommendation
+    user_turn: "剛剛那個偏好是錄錯的，不要記；今天如果想吃甜的可以怎麼安排？"
+    expected_primary_workflow: discarded_signal_no_memory_with_one_turn_recommendation
     expected_capabilities: [recommendation]
     forbidden_capabilities: [memory, intake, proactive]
     expected_ordering_constraints: []
     mutation_posture: read_only
     expected_trace:
-      dessert_uncertain_signal: no_long_term_memory
+      discarded_or_uncertain_profile_signal: no_long_term_memory
       recommendation: one_turn_context_allowed
     accepted_variants: [offer_budget_tradeoff_without_memory_write]
     evaluator: deterministic_trace_plus_human_calibration

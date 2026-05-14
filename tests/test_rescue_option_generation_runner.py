@@ -111,7 +111,7 @@ def test_runner_writes_rescue_option_generation_packet(tmp_path: Path) -> None:
     assert packet["durable_memory_written"] is False
 
 
-def test_runner_writes_aggressive_strength_adjustment_packet(
+def test_runner_writes_shorter_request_with_strict_fifteen_cap_packet(
     tmp_path: Path,
 ) -> None:
     result, packet = _run_option_runner(
@@ -122,9 +122,9 @@ def test_runner_writes_aggressive_strength_adjustment_packet(
 
     assert result.returncode == 0, result.stderr
     assert packet["status"] == "pass"
-    assert packet["cap_mode"] == "aggressive_20_percent"
-    assert packet["recommended_days"] == 2
-    assert packet["daily_kcal_adjustment"] == -360
+    assert packet["cap_mode"] == "standard_15_percent"
+    assert packet["recommended_days"] == 3
+    assert packet["daily_kcal_adjustment"] == -240
     assert packet["proposal_card"] is None
     assert packet["candidate_copy"] is None
     assert packet["runtime_effect_allowed"] is False

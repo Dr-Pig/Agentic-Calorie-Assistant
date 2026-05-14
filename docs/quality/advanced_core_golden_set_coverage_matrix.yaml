@@ -7,6 +7,20 @@ existing_sets_policy: audit_and_patch_gaps
 mainline_activation_enabled: false
 raw_keyword_semantic_oracle_allowed: false
 
+product_surface_policy:
+  primary_interaction_surface: chat
+  ui_role:
+    - dashboard_mirror
+    - status_review
+    - explicit_confirm_or_control_event
+  button_and_chip_rule: structured_event_into_manager_or_guard_only
+  forbidden_surface_semantics:
+    - generic_inbox_as_primary_product_surface
+    - ui_direct_mutation
+    - ui_owned_truth
+  advanced_lab_scope: full_product_runtime_lab_allowed
+  mainline_merge_scope: dormant_activation_wall_required
+
 strategic_gate:
   current_mainline: advanced_core_golden_set_alignment
   is_detour: false
@@ -136,7 +150,7 @@ coverage_matrix:
       - llm_send_skip
       - quiet_hours
       - cooldown
-      - dismiss_snooze_undo
+      - dismiss_snooze_reopen_modify
       - chat_first_delivery
       - stay_silent
   - domain: reusable_meal
@@ -154,6 +168,7 @@ coverage_matrix:
       - rescue_to_recommendation
       - proactive_to_feedback_to_suppression
       - memory_to_recommendation_blocker
+      - chat_primary_dashboard_mirror_consistency
 
 non_claims:
   - not_mainline_activation_evidence

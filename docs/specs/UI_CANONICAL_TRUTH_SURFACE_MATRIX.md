@@ -6,6 +6,16 @@ This document defines the allowed read-only mapping between CurrentShell and fut
 
 It exists to prevent L9 UI / same-truth work from becoming a parallel source of truth while CurrentShell self-use MVP local desktop dogfood remains the current mainline.
 
+## Advanced Product Surface Policy
+
+Current product direction is chat-primary with aligned UI mirrors:
+
+- Chat is the primary interaction surface for intake, rescue, recommendation, proactive, memory confirmation, and calibration negotiation.
+- UI/dashboard surfaces should mirror relevant state, status, history, proposals, controls, and review context, but they do not own product truth.
+- Buttons, chips, cards, or dashboard controls are allowed only as explicit structured events into Manager / guard / domain workflow.
+- UI must not parse assistant text, button labels, card position, or fixture labels as authorization for mutation.
+- Do not introduce a generic "inbox" as a primary product concept. Capability-specific proposal mirrors, history views, dashboards, and control surfaces must be specified by canonical owner before implementation.
+
 ## Non-Goals
 
 - Do not define visual layout, typography, animation, component hierarchy, or brand style.

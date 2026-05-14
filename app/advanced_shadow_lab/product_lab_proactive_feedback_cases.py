@@ -19,7 +19,7 @@ def build_proactive_feedback_case_reports() -> list[dict[str, Any]]:
     return [
         _case_report("proactive_dismiss_reason_next_signal", "dismiss"),
         _case_report("proactive_snooze_window", "snooze"),
-        _case_report("proactive_undo", "undo"),
+        _case_report("proactive_reopen_or_modify", "reopen"),
         _case_report("proactive_opt_out_dual_projection", "opt_out"),
     ]
 
@@ -96,7 +96,7 @@ def _projection_passes(action: str, projection: Mapping[str, Any]) -> bool:
     expected = {
         "dismiss": "user_control_suppression",
         "snooze": "user_control_snooze",
-        "undo": "user_control_undo",
+        "reopen": "user_control_reopen_modify",
     }[action]
     return bool(projections) and projections[0].get("projection_type") == expected
 

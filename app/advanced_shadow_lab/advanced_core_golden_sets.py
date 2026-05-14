@@ -137,6 +137,7 @@ def build_advanced_core_golden_set_alignment_report() -> dict[str, Any]:
         "owner": matrix.get("owner"),
         "consumer": matrix.get("consumer"),
         "existing_sets_policy": matrix.get("existing_sets_policy"),
+        "product_surface_policy": dict(matrix.get("product_surface_policy") or {}),
         "coverage_domains": required_domains,
         "new_golden_sets": list(matrix.get("new_golden_sets") or []),
         "mainline_activation_enabled": matrix.get("mainline_activation_enabled"),

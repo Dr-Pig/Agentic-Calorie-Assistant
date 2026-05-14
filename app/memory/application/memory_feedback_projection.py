@@ -100,7 +100,15 @@ def _projections(
     if action == "snooze":
         return [_snooze_projection(event, target)]
     if action == "undo":
-        return [_undo_projection(event, target)]
+        return [_undo_projection(event, target, projection_type="user_control_undo")]
+    if action in {"reopen", "modify"}:
+        return [
+            _undo_projection(
+                event,
+                target,
+                projection_type="user_control_reopen_modify",
+            )
+        ]
     if action == "opt_out":
         return [
             _opt_out_projection(event, target, "proactive_suppression_candidate"),
@@ -139,9 +147,14 @@ def _snooze_projection(event: Mapping[str, Any], target: Mapping[str, Any]) -> d
     }
 
 
-def _undo_projection(event: Mapping[str, Any], target: Mapping[str, Any]) -> dict[str, Any]:
+def _undo_projection(
+    event: Mapping[str, Any],
+    target: Mapping[str, Any],
+    *,
+    projection_type: str,
+) -> dict[str, Any]:
     return _base_projection(event, target) | {
-        "projection_type": "user_control_undo",
+        "projection_type": projection_type,
         "auto_promotes_memory": False,
     }
 

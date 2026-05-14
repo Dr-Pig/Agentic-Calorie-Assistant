@@ -24,8 +24,7 @@ NEGATIVE_HOLDOUT_CASE_IDS = (
     "negative_spicy_block",
     "negative_vegetarian_meal_type_downrank",
     "negative_bland_food_downrank",
-    "negative_eggplant_downrank",
-    "negative_dessert_ignored_after_user_says_do_not_remember",
+    "negative_eggplant_block",
 )
 CASE_INPUT_SUMMARIES = {
     "explicit_preference_confirm_candidate": (
@@ -71,12 +70,8 @@ CASE_INPUT_SUMMARIES = {
     "negative_bland_food_downrank": (
         "User says they do not like food that is too bland."
     ),
-    "negative_eggplant_downrank": (
-        "User says they do not really like eggplant."
-    ),
-    "negative_dessert_ignored_after_user_says_do_not_remember": (
-        "User starts to say they do not love dessert, then explicitly says not to "
-        "remember that because dessert is okay."
+    "negative_eggplant_block": (
+        "User says they do not like eggplant enough for recommendation to block it."
     ),
 }
 
@@ -166,7 +161,7 @@ def memory_record_grokfast_extraction_provider_payload(
             "negative_preference_priority": ["block", "downrank", "boost"],
             "confirmed_negative_priority": "negative_blocker_before_positive_boost",
             "do_not_remember_user_instruction_wins": True,
-            "ignored_subjects_must_return_candidate_type_none": True,
+            "discarded_profile_artifacts_are_not_cases": True,
             "durable_memory_write_allowed": False,
         },
         "constraints": dict(constraints),

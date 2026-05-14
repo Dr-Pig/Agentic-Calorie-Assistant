@@ -63,7 +63,7 @@ def test_fixture_vertical_proof_runs_complete_lab_loop_without_mainline_effects(
     assert journey_proof["scenario_ids"] == [
         "memory_guided_recommendation_chat_offer",
         "rescue_proactive_no_send_chat_candidate",
-        "dismiss_snooze_undo_shadow_controls",
+        "dismiss_snooze_reopen_modify_shadow_controls",
     ]
     scenario_by_id = {
         row["scenario_id"]: row for row in journey_proof["scenario_rows"]
@@ -90,7 +90,7 @@ def test_fixture_vertical_proof_runs_complete_lab_loop_without_mainline_effects(
         "rescue_nudge:1": ["memory", "rescue", "proactive"],
     }
 
-    controls = scenario_by_id["dismiss_snooze_undo_shadow_controls"][
+    controls = scenario_by_id["dismiss_snooze_reopen_modify_shadow_controls"][
         "control_semantics"
     ]
     assert controls == {
@@ -104,8 +104,9 @@ def test_fixture_vertical_proof_runs_complete_lab_loop_without_mainline_effects(
             "durable_snooze_written": False,
             "semantic_effect": "wait_for_next_signal_without_scheduler_delivery",
         },
-        "undo": {
+        "reopen_or_modify": {
             "configured": True,
+            "legacy_internal_alias": "undo",
             "canonical_rollback_requested": False,
             "semantic_effect": "current_no_send_candidate_only",
         },

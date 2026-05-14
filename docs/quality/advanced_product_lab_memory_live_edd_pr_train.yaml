@@ -100,7 +100,7 @@ pr_train:
     completion_gate: extraction output is trace-backed and does not harden product semantics from provider behavior alone.
   - pr_number: 5
     slice_id: grokfast_negative_preference_holdouts
-    goal: Add live negative preference extraction coverage for block/downrank/ignored dessert cases.
+    goal: Add live negative preference extraction coverage for current block/downrank cases.
     slice_mode:
       - live_diagnostic
       - holdout
@@ -132,7 +132,7 @@ pr_train:
     completion_gate: FeedbackEvent remains audit/input and does not mutate memory truth without validator projection.
   - pr_number: 9
     slice_id: feedback_event_proactive_control_projection_live
-    goal: Validate proactive dismiss, snooze, undo, opt-out, reason, and next-signal projection.
+    goal: Validate proactive dismiss, snooze, reopen-or-modify, legacy undo alias, opt-out, reason, and next-signal projection.
     slice_mode:
       - live_diagnostic
       - proactive_control

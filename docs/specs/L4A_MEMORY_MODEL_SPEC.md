@@ -302,6 +302,12 @@ Golden Order 的核心是：
 - 若 recipe、配料、份量、糖冰、烹調方式已改變，應產生 supersede 或 re-estimate，而不是靜默覆蓋舊模板。
 - 它可以提升重複餐點記錄效率，但不得取代 canonical meal thread、budget ledger、FoodDB evidence 或 shared runtime truth。
 
+Additional trust and surface rules:
+
+- The system may automatically create a personal meal template candidate, but a trusted template requires user confirmation, or repeated accepts without material drift / correction history.
+- `GoldenOrder` may seed a reusable candidate, but it cannot by itself turn a candidate into a trusted personal template.
+- UI may provide lightweight management / status mirrors; final logging still belongs to intake confirmation / versioning.
+
 和 `Golden Order` 的差別：
 
 - `Golden Order`：從 canonical history materialize 出來的重複店家+套餐視圖
@@ -470,6 +476,13 @@ Confirmed negative 的處理優先於 positive boost：
 - `downrank` 必須降低排序或要求 explanation，不得被一般 positive preference 直接抵消。
 - positive preference 只能在 remaining allowed pool 內排序，不能覆蓋 negative blocker。
 - 使用者要求「不要記」或語意自我矛盾時，不建立 confirmed memory；可建立 review item 或忽略。
+
+Current founder-profile calibration:
+
+- `bitter_melon`, `spicy_food`, and `eggplant` are treated as `strength=block` in recommendation and reusable-meal candidate filtering.
+- `vegetarian_meal_type` and `bland_food` are treated as `strength=downrank` unless the user later promotes them to a harder block.
+- The earlier dessert hesitation is discarded as a recording / ASR artifact and must not appear as a memory case, preference, or negative holdout.
+- Same-turn explicit negatives may immediately block/downrank recommendation output, but durable memory still requires the normal validator or confirmation gate.
 
 ### 6.2 preference aging
 

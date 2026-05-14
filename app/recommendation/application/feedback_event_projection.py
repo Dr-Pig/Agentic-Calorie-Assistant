@@ -22,9 +22,11 @@ USER_ACTION_TO_FEEDBACK_ACTION = {
     "correction": "correct",
     "correct": "correct",
     "edit_before_log": "correct",
+    "reopen": "reopen",
+    "modify": "modify",
     "undo": "undo",
 }
-LAB_FEEDBACK_ACTIONS = ["accept", "reject", "correction", "undo"]
+LAB_FEEDBACK_ACTIONS = ["accept", "reject", "correction", "reopen"]
 
 
 def build_recommendation_offer_feedback_target(

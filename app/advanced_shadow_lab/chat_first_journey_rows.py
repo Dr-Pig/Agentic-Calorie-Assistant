@@ -9,7 +9,7 @@ SIDECAR_ACTIVATION_CONTRACT = offline_sidecar_contract("advanced_shadow_lab.chat
 SCENARIO_IDS = [
     "memory_guided_recommendation_chat_offer",
     "rescue_proactive_no_send_chat_candidate",
-    "dismiss_snooze_undo_shadow_controls",
+    "dismiss_snooze_reopen_modify_shadow_controls",
 ]
 GOLDEN_MEMORY_ID = "golden-order-morning-bar-oatmeal-latte"
 GOLDEN_MEMORY_REF = f"memory_candidate:{GOLDEN_MEMORY_ID}"
@@ -26,7 +26,7 @@ def build_chat_first_journey_rows(
     return [
         _memory_guided_recommendation(context_pack, memory_projection, fixture_chain, chat_packet),
         _rescue_proactive_no_send(terminal_sink, chat_packet),
-        _dismiss_snooze_undo_controls(terminal_sink),
+        _dismiss_snooze_reopen_modify_controls(terminal_sink),
     ]
 
 
@@ -99,7 +99,7 @@ def _rescue_proactive_no_send(
     }
 
 
-def _dismiss_snooze_undo_controls(terminal_sink: Mapping[str, Any]) -> dict[str, Any]:
+def _dismiss_snooze_reopen_modify_controls(terminal_sink: Mapping[str, Any]) -> dict[str, Any]:
     control = _mapping(terminal_sink.get("control_path_evidence"))
     configured = _mapping(control.get("configured_paths"))
     actions = set(control.get("interaction_actions_observed") or [])
@@ -112,7 +112,7 @@ def _dismiss_snooze_undo_controls(terminal_sink: Mapping[str, Any]) -> dict[str,
     if undo_scope != "current_no_send_candidate_only":
         blockers.append("undo_scope_not_shadow_only")
     return {
-        **_scenario_base("dismiss_snooze_undo_shadow_controls"),
+        **_scenario_base("dismiss_snooze_reopen_modify_shadow_controls"),
         "status": "pass" if not blockers else "blocked",
         "control_semantics": {
             "dismiss": {
@@ -125,8 +125,9 @@ def _dismiss_snooze_undo_controls(terminal_sink: Mapping[str, Any]) -> dict[str,
                 "durable_snooze_written": False,
                 "semantic_effect": "wait_for_next_signal_without_scheduler_delivery",
             },
-            "undo": {
+            "reopen_or_modify": {
                 "configured": configured.get("undo") is True,
+                "legacy_internal_alias": "undo",
                 "canonical_rollback_requested": False,
                 "semantic_effect": undo_scope,
             },

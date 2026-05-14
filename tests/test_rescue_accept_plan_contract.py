@@ -136,7 +136,7 @@ def test_accept_contract_rejects_wrong_action_or_card_drift() -> None:
         accept_request=_accept_request(
             action_id="dismiss_rescue_plan",
             proposal_id="other-proposal",
-            cap_mode="aggressive_20_percent",
+            cap_mode="legacy_aggressive_cap",
             commit_source="email",
         ),
     )

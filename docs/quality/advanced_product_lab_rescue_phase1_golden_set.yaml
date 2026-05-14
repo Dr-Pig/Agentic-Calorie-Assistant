@@ -16,6 +16,14 @@ production_scheduler_delivery_allowed: false
 manager_context_packet_changed_in_mainline: false
 raw_keyword_semantic_oracle_allowed: false
 
+product_surface_policy:
+  primary_interaction_surface: chat
+  ui_role: proposal_dashboard_mirror_and_explicit_structured_controls
+  generic_inbox_surface_allowed: false
+  button_or_chip_events_reenter_manager_guard: true
+  ui_direct_mutation_allowed: false
+  strict_rescue_cap_percent: 15
+
 suite_contract:
   schema_version: 1
   owner_required: true

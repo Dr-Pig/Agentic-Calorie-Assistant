@@ -24,6 +24,7 @@ def test_recommendation_feedback_actions_project_to_shared_feedback_events() -> 
         ("accept", "confirm"),
         ("reject", "reject"),
         ("correction", "correct"),
+        ("reopen", "reopen"),
         ("undo", "undo"),
     ]
 
@@ -81,7 +82,7 @@ def test_lab_runtime_exposes_recommendation_feedback_target_without_mutation(
         "accept",
         "reject",
         "correction",
-        "undo",
+        "reopen",
     ]
     assert recommendation["feedback_event_projection_ready"] is True
     assert recommendation["canonical_product_mutation_allowed"] is False

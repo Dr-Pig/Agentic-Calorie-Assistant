@@ -66,6 +66,13 @@ Formal rule:
 - proactive dispatch routes into the downstream workflow family
 - proactive does not perform high-impact mutation inside the scheduler layer itself
 
+Current product-surface policy:
+
+- Chat is the primary surface for proactive interaction and downstream handoff.
+- UI/dashboard surfaces may mirror proactive status, candidate context, and controls, but they do not own proactive truth.
+- Buttons, chips, or dashboard controls are structured events back into Manager / guard / domain workflow; they never directly mutate scheduler, memory, recommendation, rescue, or meal truth.
+- There is no generic proactive inbox product concept in the current app direction. Capability-specific mirrors may be specified later, but chat remains the primary interaction path.
+
 ---
 
 ## 3. Trigger Families
@@ -233,17 +240,17 @@ Required proactive interpretation:
 
 - `dismiss` records a reason when provided and suppresses the current candidate until there is a materially new signal.
 - `snooze` records `snooze_until` and suppresses equivalent candidates through that window.
-- `undo` cancels the most recent matching dismiss/snooze/opt-out effect when scope and source checks pass.
+- User-facing controls should say reopen / modify / show again when reversing a control decision. The internal legacy `undo` action may remain as an alias only when scope and source checks pass.
 - `opt_out` suppresses the trigger category until explicit re-enable.
 
 Projection boundaries:
 
-- Proactive dismiss/snooze/undo remain user-control events, not durable memory truth.
+- Proactive dismiss/snooze/reopen-or-modify remain user-control events, not durable memory truth. Internal `undo` is an implementation alias, not product copy.
 - Explicit opt-out may create both a proactive suppression projection and an app-use memory candidate, but each projection must pass its own validator.
 - A memory `confirm` event must not enable proactive delivery or scheduler activation.
 - A proactive feedback event cannot mutate MealThread, FoodDB, BodyBudget, ledger, recommendation offer, or rescue plan truth.
 
-Every proactive candidate that could later become user-facing must expose a dismissal path, a snooze window policy, and the next signal required before re-surfacing. Without that control path it is not eligible for user-facing delivery.
+Every proactive candidate that could later become user-facing must expose a dismissal path, a snooze window policy, a reopen-or-modify path, and the next signal required before re-surfacing. Without that control path it is not eligible for user-facing delivery.
 
 ### 4.7B Pending Meal Intent And Rescue Suppression Calibration
 

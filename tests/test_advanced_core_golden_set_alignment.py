@@ -14,6 +14,10 @@ def test_advanced_core_alignment_report_covers_all_required_domains() -> None:
     assert report["mainline_activation_enabled"] is False
     assert report["raw_keyword_semantic_oracle_allowed"] is False
     assert report["existing_sets_policy"] == "audit_and_patch_gaps"
+    assert report["product_surface_policy"]["primary_interaction_surface"] == "chat"
+    assert "generic_inbox_as_primary_product_surface" in (
+        report["product_surface_policy"]["forbidden_surface_semantics"]
+    )
     assert set(report["coverage_domains"]) == {
         "memory",
         "rescue",
@@ -89,7 +93,7 @@ def test_proactive_golden_set_requires_send_skip_controls_and_silence() -> None:
         "llm_send_skip",
         "quiet_hours",
         "cooldown",
-        "dismiss_snooze_undo",
+        "dismiss_snooze_reopen_modify",
         "chat_first_delivery",
         "stay_silent",
         "permission_posture",

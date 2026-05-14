@@ -151,13 +151,13 @@ reinforcement_count ≥ 5 → confidence = 0.9
 
 ### 3.4A Shared `FeedbackEvent` Confirmation Boundary
 
-Memory confirmation、proactive dismiss/snooze/undo、recommendation/rescue feedback 共用小型 audit/input contract，但 `FeedbackEvent` 本身不直接 mutate memory truth。
+Memory confirmation、proactive dismiss/snooze/reopen-or-modify、recommendation/rescue feedback 共用小型 audit/input contract，但 `FeedbackEvent` 本身不直接 mutate memory truth。
 
 ```yaml
 FeedbackEvent:
   target_type: memory_candidate | proactive_candidate | recommendation_offer | rescue_plan
   target_id: string
-  action: confirm | reject | dismiss | snooze | undo | correct | opt_out
+  action: confirm | reject | dismiss | snooze | reopen | modify | undo | correct | opt_out
   reason: optional string
   snooze_until: optional datetime
   source_turn_id: string
@@ -195,7 +195,7 @@ Default interpretation:
 - `dismiss` and `snooze` remain current-candidate or cooldown controls. They do not create confirmed memory and do not demote rescue as a capability.
 - Three rescue dismiss/ignore events within `14` days may create a `pending_review` suppression candidate, not confirmed memory.
 - The review prompt should be useful and chat-first, for example asking whether the user wants fewer rescue reminders in context. The system should not send standalone memory-hygiene prompts just to clean up internal state.
-- `undo` can reverse the most recent matching dismiss/snooze/opt-out effect only when source and scope checks pass.
+- User-facing control language should use reopen / modify / show again. The internal legacy `undo` action may reverse the most recent matching dismiss/snooze/opt-out effect only when source and scope checks pass.
 
 Forbidden shortcuts:
 

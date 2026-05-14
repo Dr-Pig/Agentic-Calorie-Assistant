@@ -170,7 +170,7 @@ pr_train:
     goal: Keep recommendation-to-intake handoff explicit and non-committing.
   - pr_number: 13
     slice_id: recommendation_feedback_event_projection
-    goal: Project accept, reject, correction, and undo into feedback events without truth mutation.
+    goal: Project accept, reject, correction, and reopen-or-modify into feedback events without truth mutation; keep undo as an internal legacy alias only.
   - pr_number: 14
     slice_id: recommendation_rescue_posture_handoff
     goal: Ensure rescue can constrain recommendation and recommendation can inform rescue.

@@ -59,6 +59,12 @@ The UI is not the sole source of truth and is not the primary reasoning surface.
 
 For rescue specifically: UI acts as a proposal inbox mirror only. It displays the current open rescue proposal but does not host the primary rescue negotiation flow.
 
+Current advanced-product clarification:
+
+- The product remains chat-primary. UI should provide dashboard/status/history mirrors and a small number of explicit structured controls.
+- "Inbox" is not a generic product surface. Existing proposal inbox wording means a capability-specific proposal mirror/history view, not a standalone primary interaction model.
+- Buttons and chips express explicit structured events that re-enter Manager / guard / domain workflows; they do not directly mutate product truth.
+
 ### Cross-Surface Sync Rule
 
 Chat, UI, and smart-chip interactions must operate on the same underlying product objects.

@@ -46,6 +46,11 @@ evaluation_policy:
   no_raw_keyword_semantic_oracle: true
   eval_assets_do_not_define_product_truth: true
   semantic_decision_owner: manager_llm_structured_output
+  product_surface_policy:
+    primary_interaction_surface: chat
+    ui_dashboard_role: mirror_status_history_controls
+    structured_controls_reenter_manager: true
+    generic_inbox_surface_allowed: false
   deterministic_validation_boundary:
     - tool_order
     - attachment_legality
@@ -124,7 +129,7 @@ cases:
     case_type: proactive_feedback_to_suppression
     split: fixture
     journey_refs: [N]
-    product_truth: Dismissing or snoozing a proactive candidate affects future proactive control state and optional review candidates, not canonical memory or food truth.
+    product_truth: Dismissing, snoozing, or reopening/modifying a proactive candidate affects future proactive control state and optional review candidates, not canonical memory or food truth.
     product_contract_refs:
       - docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md#4.7A
       - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#3.4B
@@ -135,7 +140,7 @@ cases:
       - proactive_control_state.suppression_until
       - memory_projection.review_status
     mutation_posture: *cross_posture
-    allowed_variants: [undo_restores_previous_control_state_when_scope_matches]
+    allowed_variants: [reopen_or_modify_restores_previous_control_state_when_scope_matches]
     oracle: *product_oracle
 
   - case_id: xj-005

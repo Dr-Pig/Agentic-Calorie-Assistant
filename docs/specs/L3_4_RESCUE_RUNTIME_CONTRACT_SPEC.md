@@ -169,7 +169,7 @@ rescue 預設先處理短期 horizon，不直接跳成長期計畫重設。
 
 2. `option_generation`（deterministic）
    - 計算分攤天數、每日回收量
-   - 套用 15% / 20% cap 規則
+   - 套用 strict 15% hard cap 規則
    - 輸出：`recommended_days`、`daily_kcal_adjustment`、`cap_mode`、`special_posture`
 
 3. `proposal_shaping`（LLM，strict_reasoner_model）
@@ -340,10 +340,9 @@ Node 3 不重新計算數學。
 
 #### 強度調整規則
 
-使用者可在 chat 中調整強度，系統重新計算：
+使用者可在 chat 中要求調整強度，系統重新計算，但不得放寬 strict 15% hard cap：
 
-- **`更短更積極`**：每日回收上限放寬到 `20%`（`daily_cap = base_budget_kcal × 0.20`），重新計算天數
-  - 若連 `20%` 上限都無法在 5 天內完成，明確告知不可行
+- **`更短更積極`**：只能在 `15%` cap 內嘗試更短；若 `15%` cap 已決定最短合法天數，應誠實說明不能再壓縮
 - **`更長更緩和`**：在最大 5 天內延長天數，降低每日回收量
   - 若已是 5 天，告知已是最緩和版本
 
@@ -525,12 +524,12 @@ v1 採單一分攤模型，調整步長規則如下：
 - 單日回收量不超過每日有效預算的 `15%`
 - 最多分攤 `5` 天
 
-**積極模式（aggressive）**：
+**更短要求（strict cap）**：
 
-- 使用者選擇 `更短更積極` 後啟用
-- 單日回收量上限放寬到每日有效預算的 `20%`
+- 使用者選擇 `更短更積極` 後仍受 strict `15%` hard cap 限制
+- 單日回收量上限不得放寬超過每日有效預算的 `15%`
 - 最多分攤 `5` 天
-- 若連 `20%` 上限都無法在 5 天內完成，明確告知不可行，不繼續加大壓縮
+- 若 `15%` 上限無法在 5 天內完成，明確告知不可行，不繼續加大壓縮
 
 **共同規則**：
 
@@ -664,7 +663,7 @@ v1 採單一分攤模型，card 結構對應如下：
 - `overshoot_kcal`：本次超出量
 - `recommended_days`：建議分攤天數
 - `daily_kcal_adjustment`：每日回收量（負數）
-- `cap_mode`：`standard`（15%）或 `aggressive`（20%）
+- `cap_mode`：`standard_15_percent`
 - `effective_from`：`today` / `tomorrow`（依 11:00 規則決定）
 - `headline`：對外顯示的短標題，例如「超出約 400 大卡，建議分 3 天補回來」
 - `summary`：一到兩句說明效果與每日大約少吃多少
@@ -688,7 +687,7 @@ v1 採單一分攤模型，card 結構對應如下：
   "commit_source": "chat | ui | smart_chip",
   "accepted_at": "<ISO 8601 timestamp>",
   "user_id": "<user_id>",
-  "cap_mode": "standard | aggressive"
+  "cap_mode": "standard_15_percent"
 }
 ```
 
@@ -772,8 +771,8 @@ rescue accept 後，recommendation 需讀新的短期 caloric posture。
 
 - overshoot 在 15% 標準模式下正確算出建議天數
 - overshoot 需要超過 5 天才能回收時，標記 `non_viable` 並進 `rescue_stop_and_escalate`
-- `更短更積極` 放寬到 20% 後重新計算天數
-- 連 20% 都無法在 5 天內完成時，明確告知不可行
+- `更短更積極` 不得放寬 15% hard cap；若無合法更短版本，應回覆 cap 限制
+- 15% hard cap 無法在 5 天內完成時，明確告知不可行
 - `更長更緩和` 在已是 5 天時告知已是最緩和版本
 - logging 不足時，`logging_first_rescue` posture 優先
 - rescue 不提出低於 safety floor 的方案
@@ -790,13 +789,13 @@ rescue accept 後，recommendation 需讀新的短期 caloric posture。
 
 1. v1 rescue 採單一分攤模型，不是多 family 選單
 2. 標準模式每日回收上限：每日有效預算的 `15%`
-3. 積極模式每日回收上限：每日有效預算的 `20%`（使用者選擇 `更短更積極` 後啟用）
+3. 不存在積極模式 cap exception；使用者選擇 `更短更積極` 後仍受每日有效預算 `15%` hard cap 限制
 4. 最大分攤天數：`5` 天
 5. 超過 5 天仍無法回收 → `recovery_viability: non_viable` → `rescue_stop_and_escalate`
 6. `recovery_viability` 採三段式：
    - `viable`：在合法 horizon 與 safety floor 內可完成，且單日壓縮不超過 `15%`
    - `strained`：理論可完成，但會逼近 `15%` 壓縮上限、或明顯增加未來 adherence 風險
-   - `non_viable`：需要跌破 floor、超過 `20%`（即使積極模式）、或 horizon 超過 5 天
+   - `non_viable`：需要跌破 floor、超過 `15%` hard cap、或 horizon 超過 5 天
 7. `strained` 可進標準分攤，但應在 response 中提示使用者這已是較緊的方案
 8. `non_viable` 必須進 `rescue_stop_and_escalate`，不得繼續硬攤
 
@@ -827,7 +826,7 @@ rescue accept 後，recommendation 需讀新的短期 caloric posture。
 ### 17A.4 計算規則
 
 與標準 rescue 相同，採單一分攤模型：
-- 每日回收上限：`base_budget_kcal × 15%`（標準）或 `× 20%`（積極）
+- 每日回收上限：`base_budget_kcal × 15%`（strict hard cap）
 - 最多提前 5 天
 - 不得低於 `safety_floor_kcal`
 

@@ -49,14 +49,14 @@ def test_memory_record_holdout_fixture_preserves_negative_strengths() -> None:
         "negative-bland",
         "negative-eggplant",
     ]
-    assert write["pending_or_rejected_signal_ids"] == ["negative-dessert-ignored"]
+    assert write["pending_or_rejected_signal_ids"] == []
     assert evaluations["candidate-bitter-melon"]["blocked"] is True
     assert evaluations["candidate-spicy-ramen"]["blocked"] is True
     assert evaluations["candidate-vegetarian-bowl"]["blocked"] is False
     assert evaluations["candidate-vegetarian-bowl"]["score_adjustment"] == -100
     assert evaluations["candidate-bland-soup"]["score_adjustment"] == -100
-    assert evaluations["candidate-eggplant-rice"]["score_adjustment"] == -100
-    assert evaluations["candidate-dessert"]["score_adjustment"] == 0
+    assert evaluations["candidate-eggplant-rice"]["blocked"] is True
+    assert evaluations["candidate-eggplant-rice"]["blocked_by"] == ["negative-eggplant"]
 
 
 def test_memory_record_holdout_session_adds_edge_cases_without_breaking_loop(
@@ -80,7 +80,7 @@ def test_memory_record_holdout_session_adds_edge_cases_without_breaking_loop(
     assert artifact["turn_count"] == 6
     assert report["artifact_type"] == "advanced_product_lab_memory_record_holdout_report"
     assert report["status"] == "pass"
-    assert report["holdout_case_count"] == 6
+    assert report["holdout_case_count"] == 5
     assert report["confirmed_negative_record_ids"] == [
         "negative-bitter-melon",
         "negative-spicy",
@@ -88,7 +88,7 @@ def test_memory_record_holdout_session_adds_edge_cases_without_breaking_loop(
         "negative-bland",
         "negative-eggplant",
     ]
-    assert report["ignored_signal_ids"] == ["negative-dessert-ignored"]
+    assert report["ignored_signal_ids"] == []
     assert report["mainline_activation_enabled"] is False
     assert report["durable_product_memory_written"] is False
     assert report["canonical_product_mutation_allowed"] is False

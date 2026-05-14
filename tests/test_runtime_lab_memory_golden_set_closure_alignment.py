@@ -14,7 +14,7 @@ def test_runtime_lab_memory_golden_set_tracks_closure_artifacts() -> None:
 
     alignment = contract["runtime_lab_closure_alignment"]
 
-    assert contract["version"] == 1.3
+    assert contract["version"] == 1.4
     assert alignment["status"] == "active_runtime_lab_alignment"
     assert alignment["complete_lab_allowed"] is True
     assert alignment["mainline_activation_enabled"] is False
@@ -37,14 +37,14 @@ def test_runtime_lab_memory_golden_set_records_negative_holdout_contract() -> No
     contract = yaml.safe_load(GOLDEN_SET.read_text(encoding="utf-8-sig"))
     holdout = contract["runtime_lab_closure_alignment"]["negative_holdout_contract"]
 
-    assert holdout["case_count"] == 6
-    assert holdout["ignored_case_ids"] == ["negative-dessert-ignored"]
+    assert holdout["case_count"] == 5
+    assert holdout["ignored_case_ids"] == []
     assert holdout["strength_by_record_id"] == {
         "negative-bitter-melon": "block",
         "negative-spicy": "block",
         "negative-vegetarian": "downrank",
         "negative-bland": "downrank",
-        "negative-eggplant": "downrank",
+        "negative-eggplant": "block",
     }
     assert holdout["confirmed_negative_before_positive_boost"] is True
     assert holdout["new_memory_mechanism_required"] is False

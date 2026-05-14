@@ -95,7 +95,7 @@ def test_proactive_dismiss_projects_to_control_event_with_next_signal() -> None:
     assert artifact["user_control_event_projected"] is True
 
 
-def test_snooze_and_undo_project_without_mutating_target_truth() -> None:
+def test_snooze_reopen_and_legacy_undo_project_without_mutating_target_truth() -> None:
     from app.memory.application.memory_feedback_projection import (
         project_feedback_event_to_shadow_controls,
     )
@@ -117,12 +117,22 @@ def test_snooze_and_undo_project_without_mutating_target_truth() -> None:
         ),
         targets=[_target("recommendation_offer", "offer-1")],
     )
+    reopen = project_feedback_event_to_shadow_controls(
+        feedback_event=_event(
+            target_type="recommendation_offer",
+            target_id="offer-1",
+            action="reopen",
+        ),
+        targets=[_target("recommendation_offer", "offer-1")],
+    )
 
     assert snooze["consumer_projections"][0]["projection_type"] == "user_control_snooze"
     assert snooze["consumer_projections"][0]["snooze_until"] == "2026-05-13T12:00:00Z"
     assert undo["consumer_projections"][0]["projection_type"] == "user_control_undo"
+    assert reopen["consumer_projections"][0]["projection_type"] == "user_control_reopen_modify"
     assert snooze["recommendation_offer_mutated"] is False
     assert undo["recommendation_offer_mutated"] is False
+    assert reopen["recommendation_offer_mutated"] is False
 
 
 def test_opt_out_creates_separate_pending_validated_projections() -> None:

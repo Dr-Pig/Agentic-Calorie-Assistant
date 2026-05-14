@@ -47,15 +47,17 @@ FEEDBACK_ACTIONS = {
     "reject",
     "dismiss",
     "snooze",
+    "reopen",
+    "modify",
     "undo",
     "correct",
     "opt_out",
 }
 TARGET_ACTIONS = {
     "memory_candidate": {"confirm", "reject", "correct", "undo"},
-    "proactive_candidate": {"dismiss", "snooze", "undo", "opt_out"},
-    "recommendation_offer": {"confirm", "reject", "dismiss", "snooze", "undo", "correct"},
-    "rescue_plan": {"confirm", "reject", "dismiss", "snooze", "undo", "correct"},
+    "proactive_candidate": {"dismiss", "snooze", "reopen", "modify", "undo", "opt_out"},
+    "recommendation_offer": {"confirm", "reject", "dismiss", "snooze", "reopen", "modify", "undo", "correct"},
+    "rescue_plan": {"confirm", "reject", "dismiss", "snooze", "reopen", "modify", "undo", "correct"},
 }
 NON_MUTATION_FLAGS = {
     "mutates_truth_directly": False,

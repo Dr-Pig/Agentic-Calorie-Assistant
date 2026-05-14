@@ -52,6 +52,22 @@ suite_contract:
     fixture: 8
     negative_holdout: 4
 
+evaluation_policy:
+  no_raw_keyword_semantic_oracle: true
+  eval_assets_do_not_define_product_truth: true
+  creation_policy:
+    automatic_candidate_allowed: true
+    trusted_template_requires_confirmation_or_stable_multi_accept_without_drift: true
+    golden_order_may_seed_candidate: true
+    golden_order_is_not_trusted_template_by_itself: true
+  truth_boundary:
+    personal_template_is_user_scoped: true
+    fooddb_mutation_allowed: false
+    intake_owns_final_logging: true
+  surface_policy:
+    chat_primary: true
+    ui_management_status_lightweight: true
+
 cases:
   - case_id: rm-001
     case_type: same_meal_recall
@@ -140,7 +156,7 @@ cases:
     case_type: low_repetition_candidate
     split: fixture
     journey_refs: [B]
-    product_truth: Low repetition can create a reusable-meal candidate but should not act as a reusable template yet.
+    product_truth: Low repetition can create an automatic reusable-meal candidate, but confirmation or stable multi-accept without drift is required before it acts as a trusted template.
     product_contract_refs:
       - docs/specs/L4A_MEMORY_MODEL_SPEC.md#3.6A
       - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#7.1
@@ -166,7 +182,7 @@ cases:
     case_type: golden_order_materialization
     split: fixture
     journey_refs: [M, L]
-    product_truth: Golden orders are materialized from canonical history and may provide a reusable recommendation/intake hint without becoming preference promotion truth.
+    product_truth: Golden orders are materialized from canonical history and may seed reusable candidates or recommendation boosts, but they are not preference promotion truth and are not trusted reusable templates by themselves.
     product_contract_refs:
       - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#3.3
       - docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md#frequent-choice-and-golden-orders

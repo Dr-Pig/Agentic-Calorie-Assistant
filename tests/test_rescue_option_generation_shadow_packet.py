@@ -85,7 +85,7 @@ def test_rescue_option_generation_marks_strained_when_recovery_exceeds_ten_perce
     assert "daily_adjustment_above_10_percent" in packet["guardrail_notes"]
 
 
-def test_rescue_option_generation_aggressive_cap_can_shorten_legal_spread_without_commit() -> None:
+def test_rescue_option_generation_shorter_request_keeps_strict_fifteen_percent_cap() -> None:
     from app.rescue.application.option_generation_shadow import (
         build_rescue_option_generation_shadow_packet,
     )
@@ -97,18 +97,18 @@ def test_rescue_option_generation_aggressive_cap_can_shorten_legal_spread_withou
 
     assert packet["status"] == "pass"
     assert packet["rescue_needed"] is True
-    assert packet["cap_mode"] == "aggressive_20_percent"
-    assert packet["recommended_days"] == 2
-    assert packet["daily_kcal_adjustment"] == -360
+    assert packet["cap_mode"] == "standard_15_percent"
+    assert packet["recommended_days"] == 3
+    assert packet["daily_kcal_adjustment"] == -240
     assert packet["recovery_viability"] == "strained"
-    assert packet["special_posture"] == "aggressive_spread"
-    assert "aggressive_cap_checked" in packet["guardrail_notes"]
+    assert packet["special_posture"] == "strict_15_shorter_request"
+    assert "strict_15_percent_cap_enforced" in packet["guardrail_notes"]
     assert packet["proposal_committed"] is False
     assert packet["ledger_entry_created"] is False
     assert packet["runtime_effect_allowed"] is False
 
 
-def test_rescue_option_generation_aggressive_still_escalates_when_twenty_percent_exceeds_five() -> None:
+def test_rescue_option_generation_shorter_request_still_escalates_when_fifteen_percent_exceeds_five() -> None:
     from app.rescue.application.option_generation_shadow import (
         build_rescue_option_generation_shadow_packet,
     )
@@ -121,10 +121,10 @@ def test_rescue_option_generation_aggressive_still_escalates_when_twenty_percent
     assert packet["status"] == "pass"
     assert packet["rescue_needed"] is False
     assert packet["recovery_viability"] == "non_viable"
-    assert packet["cap_mode"] == "aggressive_20_percent"
+    assert packet["cap_mode"] == "standard_15_percent"
     assert packet["special_posture"] == "rescue_stop_and_escalate"
     assert "min_days_exceeds_5" in packet["blockers"]
-    assert "aggressive_cap_checked" in packet["guardrail_notes"]
+    assert "strict_15_percent_cap_enforced" in packet["guardrail_notes"]
     assert packet["proposal_card"] is None
     assert packet["proposal_committed"] is False
 

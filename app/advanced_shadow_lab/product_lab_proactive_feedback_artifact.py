@@ -98,8 +98,8 @@ def provider_review_blockers(provider_result: Mapping[str, Any]) -> list[str]:
         blockers.append("provider_review.scheduler_delivery_allowed")
     if provider_result.get("dismissal_path_present") is not True:
         blockers.append("provider_review.dismissal_path_missing")
-    if provider_result.get("undo_path_present") is not True:
-        blockers.append("provider_review.undo_path_missing")
+    if provider_result.get("reopen_modify_path_present") is not True:
+        blockers.append("provider_review.reopen_modify_path_missing")
     return blockers
 
 
@@ -110,7 +110,8 @@ def provider_review_summary(provider_result: Mapping[str, Any]) -> dict[str, Any
         "scheduler_delivery_allowed": provider_result.get("scheduler_delivery_allowed")
         is True,
         "dismissal_path_present": provider_result.get("dismissal_path_present") is True,
-        "undo_path_present": provider_result.get("undo_path_present") is True,
+        "reopen_modify_path_present": provider_result.get("reopen_modify_path_present")
+        is True,
         "claim_scope": str(provider_result.get("claim_scope") or ""),
     }
 

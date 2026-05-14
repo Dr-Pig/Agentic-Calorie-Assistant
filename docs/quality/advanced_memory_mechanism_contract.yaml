@@ -107,9 +107,17 @@ memory_feedback_contract:
       - reject
       - dismiss
       - snooze
+      - reopen
+      - modify
       - undo
       - correct
       - opt_out
+    user_facing_control_language:
+      preferred_reverse_controls:
+        - reopen
+        - modify
+      legacy_internal_aliases:
+        - undo
     required_fields:
       - target_type
       - target_id

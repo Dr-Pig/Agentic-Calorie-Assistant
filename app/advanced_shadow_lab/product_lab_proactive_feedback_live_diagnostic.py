@@ -22,9 +22,9 @@ from app.shared.infra.json_artifacts import write_json_artifact
 STAGE = "advanced_product_lab_proactive_feedback_live_diagnostic"
 SYSTEM_PROMPT = (
     "Return JSON only for proactive FeedbackEvent projection diagnostic. Inspect "
-    "dismiss, snooze, undo, and opt_out case reports. Return "
+    "dismiss, snooze, reopen_or_modify, and opt_out case reports. Return "
     "proactive_delivery_enabled, scheduler_delivery_allowed, "
-    "dismissal_path_present, undo_path_present, answer_summary, risk_notes, and "
+    "dismissal_path_present, reopen_modify_path_present, answer_summary, risk_notes, and "
     "claim_scope. Correct behavior keeps delivery disabled and preserves user "
     "control paths."
 )
@@ -44,7 +44,7 @@ class FakeProactiveFeedbackProvider:
             "proactive_delivery_enabled": self.corrupt_review,
             "scheduler_delivery_allowed": self.corrupt_review,
             "dismissal_path_present": True,
-            "undo_path_present": True,
+            "reopen_modify_path_present": True,
             "answer_summary": "Proactive controls projected without delivery.",
             "risk_notes": "fake proactive feedback review",
             "claim_scope": "diagnostic_only",

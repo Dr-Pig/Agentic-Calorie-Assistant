@@ -15,7 +15,7 @@ ALLOW_ENV = "ADVANCED_PRODUCT_LAB_ALLOW_LIVE_LLM_DIAGNOSTIC"
 SCRIPT = "scripts/run_advanced_product_lab_proactive_feedback_live_diagnostic.py"
 
 
-def test_proactive_feedback_fake_diagnostic_projects_dismiss_snooze_undo_and_opt_out() -> None:
+def test_proactive_feedback_fake_diagnostic_projects_dismiss_snooze_reopen_modify_and_opt_out() -> None:
     from app.advanced_shadow_lab.product_lab_proactive_feedback_live_diagnostic import (
         FakeProactiveFeedbackProvider,
         run_proactive_feedback_live_diagnostic,
@@ -35,7 +35,9 @@ def test_proactive_feedback_fake_diagnostic_projects_dismiss_snooze_undo_and_opt
         "user_control_suppression"
     )
     assert reports["proactive_snooze_window"]["projection_type"] == "user_control_snooze"
-    assert reports["proactive_undo"]["projection_type"] == "user_control_undo"
+    assert reports["proactive_reopen_or_modify"]["projection_type"] == (
+        "user_control_reopen_modify"
+    )
     assert reports["proactive_opt_out_dual_projection"]["projection_count"] == 2
     assert artifact["proactive_delivery_enabled"] is False
     assert artifact["scheduler_delivery_allowed"] is False

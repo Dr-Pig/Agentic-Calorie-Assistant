@@ -220,7 +220,7 @@ This spec update adopts the active memory feedback plan:
 - `memory.md` may exist as an optional promoted-memory report, but it is not the primary runtime truth.
 - Positive and negative preferences share `MemoryRecord`; `polarity` and `strength` determine boost/downrank/block behavior.
 - Confirmed negative `block` / `downrank` rules execute before positive boosts.
-- `FeedbackEvent` is shared audit/input for memory confirmation, proactive dismiss/snooze/undo, recommendation offer feedback, and rescue plan feedback.
+- `FeedbackEvent` is shared audit/input for memory confirmation, proactive dismiss/snooze/reopen-or-modify, recommendation offer feedback, and rescue plan feedback. Internal legacy `undo` may remain only as an alias.
 - `FeedbackEvent` never mutates truth by itself; each consumer must interpret it through its own validator/projection.
 - `sources.jsonl` is searchable by source-ref, metadata, and bounded evidence drilldown only. It is not a full-transcript RAG pool for Manager context.
 

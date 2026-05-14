@@ -671,6 +671,17 @@ UI 可允許 recommendation card 附：
 - safe defaults
 - known recurring items
 
+Current source-tier policy:
+
+1. Tier 0 personal known candidates: reviewed memory, `GoldenOrderSummary`, reusable meal templates, and known recurring items.
+2. Tier 1 curated / safe candidates: FoodDB-backed candidates and product safe defaults.
+3. Tier 2 location-aware candidates: Google Places or known-chain nearby candidates only when location is available or the user asks for nearby/location help.
+4. Tier 3 bounded enrichment: web/menu evidence only for a small top-candidate set and only as source evidence, not as canonical food truth.
+
+Foodpanda / delivery-platform integration is not in scope for the current contract. Discount/store affinity may be a memory or ranking signal, but it does not authorize platform integration or live delivery-platform calls.
+
+If the user asks for nearby/location-dependent recommendation and location is unavailable, the manager should ask for an area or fall back to known chains / Golden Orders / safe defaults with an honest location-unavailable trace. For non-location-dependent recommendation, location absence is a normal fallback posture, not an error.
+
 ### 13.2 recipe source
 
 recipe recommendation 先不進第一版主流程，但保留 extension point。

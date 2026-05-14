@@ -53,6 +53,14 @@ evaluation_policy:
   no_raw_keyword_semantic_oracle: true
   eval_assets_do_not_define_product_truth: true
   semantic_decision_owner: manager_llm_structured_output
+  candidate_source_policy:
+    tier_0_personal_known: [reviewed_memory, golden_order, reusable_meal]
+    tier_1_curated_safe: [fooddb, safe_defaults]
+    tier_2_location_when_available_or_requested: [google_places, known_chain_nearby]
+    tier_3_bounded_menu_or_web_evidence: [top_candidate_menu_evidence]
+    not_in_scope_now: [foodpanda_integration]
+    location_unavailable_policy: ask_for_area_when_nearby_is_requested_or_fallback_to_known_chain
+    hard_blockers_before_boosts: true
   deterministic_validation_boundary:
     - schema
     - scope_keys
@@ -100,19 +108,21 @@ cases:
     case_type: candidate_source
     split: fixture
     journey_refs: [L, M]
-    product_truth: Recommendation candidate sources may include FoodDB, reviewed memory, reusable meal, budget posture, and rescue posture, but raw transcript search is not a source.
+    product_truth: "Recommendation candidate sources are tiered: personal known candidates, FoodDB/safe defaults, optional location/known-chain candidates when available or requested, and bounded top-candidate menu evidence; raw transcript search and Foodpanda integration are not sources."
     product_contract_refs:
       - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md#6.3
       - docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md
     expected_capabilities: [recommendation, memory, reusable_meal, query]
-    forbidden_capabilities: [raw_transcript_rag, live_search, canonical_meal_commit]
+    forbidden_capabilities: [raw_transcript_rag, unbounded_live_search, foodpanda_integration, canonical_meal_commit]
     expected_trace_fields:
       - candidate_sources.fooddb
       - candidate_sources.reviewed_memory
       - candidate_sources.reusable_meal
+      - candidate_sources.source_tier
+      - location_posture
       - omission_trace.raw_transcript_omitted
     mutation_posture: *read_only_posture
-    allowed_variants: [cold_start_uses_safe_generic_candidates]
+    allowed_variants: [cold_start_uses_safe_generic_candidates, location_unavailable_asks_or_uses_known_chain_fallback]
     oracle: *product_oracle
 
   - case_id: rec-003
@@ -214,7 +224,7 @@ cases:
     case_type: feedback_projection
     split: fixture
     journey_refs: [L, M]
-    product_truth: Accept, reject, correct, and undo are FeedbackEvent inputs; they do not directly mutate memory, MealThread, FoodDB, or budget truth.
+    product_truth: Accept, reject, correct, and reopen/modify controls are FeedbackEvent inputs; they do not directly mutate memory, MealThread, FoodDB, or budget truth. Internal undo may remain only as a legacy alias.
     product_contract_refs:
       - docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md#3.4A
       - docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md#10

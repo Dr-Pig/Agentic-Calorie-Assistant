@@ -57,7 +57,7 @@ REQUIRED_PRODUCT_TRUTH_REFS = {
     "docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md",
     "docs/quality/ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md",
 }
-EXPECTED_SPLIT_COUNTS = {"fixture": 17, "holdout": 3, "negative": 4}
+EXPECTED_SPLIT_COUNTS = {"fixture": 17, "holdout": 3, "negative": 3}
 REQUIRED_SCOPE_KEYS = {"user_id", "workspace_id", "project_id", "surface", "run_id"}
 FORBIDDEN_CAPABILITIES = {
     "provider_call",
