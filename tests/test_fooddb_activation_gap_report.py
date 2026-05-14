@@ -38,7 +38,7 @@ def test_fooddb_activation_gap_report_reports_repo_truth_controls_without_runtim
     assert report["runtime_truth_changed"] is False
     assert report["claim_scope"] == "fooddb_activation_gap_report_only"
     assert report["summary"] == {
-        "runtime_visible_common_serving_anchor_count": 68,
+        "runtime_visible_common_serving_anchor_count": 88,
         "source_evidence_only_count": 848,
         "semantic_only_basket_family_count": 4,
         "listed_component_anchor_count": 34,
@@ -72,6 +72,16 @@ def test_fooddb_activation_gap_report_reports_repo_truth_controls_without_runtim
         "exact_7eleven_jiucai_he_135g",
         "exact_shaka_shrimp_cracker_original_30g",
         "exact_regent_braised_beef_noodle_pack",
+        "exact_aisin_crispy_fish_chunk_100g",
+        "exact_charlie_brown_white_sauce_smoked_chicken_bagel_90g",
+        "exact_chungabern_cabbage_pork_dumpling_18g",
+        "exact_chungabern_scallion_pork_dumpling_18g",
+        "exact_fresh123_chickpea_vegetable_curry_100g",
+        "exact_fresh123_japanese_simmered_abalone_100g",
+        "exact_fresh123_mullet_roe_bite_10g",
+        "exact_fresh123_railway_pork_chop_100g",
+        "exact_fresh123_tomato_beef_stew_100g",
+        "exact_kaz_sweet_potato_crisps_40g",
         ]
     )
     assert gap["known_modifier_limitations"] == build_modifier_limitation_labels()

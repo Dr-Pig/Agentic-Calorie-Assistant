@@ -57,12 +57,12 @@ def test_fooddb_evidence_status_packet_summarizes_current_fdb_without_runtime_ch
     assert packet["live_websearch_used"] is False
     assert packet["readiness_claimed"] is False
     assert packet["summary"] == {
-        "runtime_common_serving_anchor_count": 68,
+            "runtime_common_serving_anchor_count": 88,
         "listed_component_anchor_count": 34,
         "source_evidence_only_count": 848,
         "semantic_only_basket_family_count": 4,
         "exact_card_staging_candidate_count": _expected_exact_card_staging_candidate_count(),
-        "exact_card_existing_report_only_count": 11,
+            "exact_card_existing_report_only_count": 21,
         "integration_edges_contract_backed": packet["integration_status"][
             "contract_backed_edge_count"
         ],
@@ -147,7 +147,7 @@ def test_fooddb_evidence_status_packet_script_roundtrip(tmp_path: Path) -> None:
 
     packet = read_json_artifact(output)
     assert packet["artifact_type"] == "accurate_intake_fooddb_evidence_status_packet_v1"
-    assert packet["summary"]["runtime_common_serving_anchor_count"] == 68
+    assert packet["summary"]["runtime_common_serving_anchor_count"] == 88
     assert (
         packet["summary"]["exact_card_staging_candidate_count"]
         == _expected_exact_card_staging_candidate_count()

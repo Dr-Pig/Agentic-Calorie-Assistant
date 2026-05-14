@@ -70,7 +70,8 @@ def match_indexed_anchor_candidates(
         matched.values(),
         key=lambda entry: (entry.rank, entry.record_order, entry.alias_order),
     )
-    return [entry.candidate for entry in ordered[:limit]]
+    deduped = _dedupe_ordered_anchor_entries(ordered)
+    return [entry.candidate for entry in deduped[:limit]]
 
 
 def match_indexed_semantic_only_support(
@@ -87,6 +88,18 @@ def _keep_best_anchor_entry(matched: dict[int, AnchorIndexEntry], entry: AnchorI
     current = matched.get(entry.record_order)
     if current is None or (entry.rank, entry.alias_order) < (current.rank, current.alias_order):
         matched[entry.record_order] = entry
+
+
+def _dedupe_ordered_anchor_entries(entries: list[AnchorIndexEntry]) -> list[AnchorIndexEntry]:
+    seen: set[tuple[str]] = set()
+    deduped: list[AnchorIndexEntry] = []
+    for entry in entries:
+        key = (lookup_key(entry.candidate.canonical_name),)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(entry)
+    return deduped
 
 
 def _index_anchor_record(

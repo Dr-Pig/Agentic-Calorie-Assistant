@@ -1,0 +1,74 @@
+{
+  "schema_version": "base-nutrition.curated.v1",
+  "records": [
+    {
+      "id": "banana",
+      "title": "Banana",
+      "aliases": [
+        "\u9999\u8549",
+        "\u5317\u8549\u5e73\u5747\u503c"
+      ],
+      "category": "fruit",
+      "serving_basis": {
+        "unit_type": "g",
+        "amount": 100,
+        "label": "100 g edible portion"
+      },
+      "nutrition": {
+        "kcal": 82.4
+      },
+      "source_type": "government_nutrition",
+      "source_name": "Taiwan TFDA Food Nutrition Database Portal",
+      "source_url": "https://consumer.fda.gov.tw/Food/TFND.aspx?nodeID=178",
+      "confidence": "medium",
+      "notes": "Kcal-only ingredient anchor for retrieval and heuristic macro policy; not exact item truth."
+    },
+    {
+      "id": "soy-milk",
+      "title": "Soy Milk",
+      "aliases": [
+        "\u8c46\u6f3f",
+        "\u7121\u7cd6\u8c46\u6f3f"
+      ],
+      "category": "beverage",
+      "serving_basis": {
+        "unit_type": "ml",
+        "amount": 240,
+        "label": "240 ml cup"
+      },
+      "nutrition": {
+        "protein_g": 3,
+        "carb_g": 9,
+        "fat_g": 1,
+        "kcal": 57
+      },
+      "source_type": "government_nutrition",
+      "source_name": "Taiwan TFDA Food Nutrition Database Portal",
+      "source_url": "https://consumer.fda.gov.tw/Food/TFND.aspx?nodeID=178",
+      "confidence": "medium",
+      "notes": "Complete ingredient anchor for generic soy milk; not exact item truth."
+    },
+    {
+      "id": "avocado",
+      "title": "Avocado",
+      "aliases": [
+        "\u916a\u68a8",
+        "\u725b\u6cb9\u679c"
+      ],
+      "category": "fruit",
+      "serving_basis": {
+        "unit_type": "g",
+        "amount": 100,
+        "label": "100 g edible portion"
+      },
+      "nutrition": {
+        "kcal": 160
+      },
+      "source_type": "government_nutrition",
+      "source_name": "Taiwan TFDA Food Nutrition Database Portal",
+      "source_url": "https://consumer.fda.gov.tw/Food/TFND.aspx?nodeID=178",
+      "confidence": "medium",
+      "notes": "Kcal-only ingredient anchor; macro split comes from avocado-specific heuristic policy."
+    }
+  ]
+}

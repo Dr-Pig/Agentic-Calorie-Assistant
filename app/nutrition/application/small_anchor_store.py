@@ -134,7 +134,7 @@ def _match_anchor_candidates(
                 break
 
     matched.sort(key=lambda item: (item[0], item[1].canonical_name))
-    return [candidate for _, candidate in matched[:limit]]
+    return _dedupe_ordered_candidates(matched, limit=limit)
 
 
 def _match_semantic_only_support(
@@ -170,6 +170,24 @@ def _lookup_keys_for_texts(query_texts: tuple[str, ...]) -> set[str]:
         if key:
             keys.add(key)
     return keys
+
+
+def _dedupe_ordered_candidates(
+    matched: list[tuple[int, AnchorCandidate]],
+    *,
+    limit: int,
+) -> list[AnchorCandidate]:
+    seen: set[tuple[str]] = set()
+    candidates: list[AnchorCandidate] = []
+    for _, candidate in matched:
+        key = (lookup_key(candidate.canonical_name),)
+        if key in seen:
+            continue
+        seen.add(key)
+        candidates.append(candidate)
+        if len(candidates) >= limit:
+            break
+    return candidates
 
 
 @lru_cache(maxsize=1)

@@ -22,7 +22,7 @@ def anchor_records_from_items(items: object) -> tuple[AnchorRecord, ...]:
 def _anchor_record_from_item(item: dict[str, object]) -> AnchorRecord | None:
     if str(item.get("record_kind") or "generic_anchor").strip() != "generic_anchor":
         return None
-    low, high = _baseline_kcal_range(item.get("baseline_kcal_range") or [0, 0])
+    low, high = _baseline_kcal_range(item.get("baseline_kcal_range") or item.get("kcal_range") or [0, 0])
     return AnchorRecord(
         record_kind="generic_anchor",
         anchor_id=str(item.get("anchor_id") or "").strip(),
@@ -36,7 +36,7 @@ def _anchor_record_from_item(item: dict[str, object]) -> AnchorRecord | None:
         clarify_required=bool(item.get("clarify_required") is True),
         source_posture="generic_anchor_seed",
         baseline_kcal_range=(low, high),
-        baseline_likely_kcal=int(item.get("baseline_likely_kcal") or 0),
+        baseline_likely_kcal=int(item.get("baseline_likely_kcal") or item.get("kcal_point") or 0),
         major_modifiers=_modifier_schemas_from_items(item.get("major_modifiers", [])),
         composition_hints=_tuple_texts(item.get("composition_hints", [])),
     )

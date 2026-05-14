@@ -57,7 +57,7 @@ def test_fooddb_activation_wall_passes_without_runtime_or_readiness_claim() -> N
         "readiness_claimed",
         ))
     assert artifact["summary"] == {
-        "runtime_common_serving_anchor_count": 68,
+            "runtime_common_serving_anchor_count": 88,
         "listed_component_anchor_count": 34,
         "p0_modifier_count": 3,
         "p0_supported_modifier_count": 3,
@@ -117,7 +117,7 @@ def test_fooddb_activation_wall_preserves_websearch_upstream_next_step(monkeypat
     def fake_status_packet(**_kwargs):
         return {
             "summary": {
-                "runtime_common_serving_anchor_count": 68,
+                "runtime_common_serving_anchor_count": 88,
                 "listed_component_anchor_count": 34,
                 "source_evidence_only_count": 848,
             },

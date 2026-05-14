@@ -1,0 +1,34 @@
+{
+  "schema_version": "common-dish-priors.tw.v1",
+  "records": [
+    {
+      "id": "eagle_ramen_2929_tonkotsu_prior",
+      "title": "\u9df9\u6d41\u62c9\u9eb52929\u8c5a\u9aa8\u62c9\u9eb5",
+      "aliases": [
+        "\u9df9\u6d41\u62c9\u9eb52929\u8c5a\u9aa8\u62c9\u9eb5",
+        "\u9df9\u6d41",
+        "2929\u8c5a\u9aa8\u62c9\u9eb5"
+      ],
+      "category": "ramen",
+      "serving_basis": {
+        "unit_type": "bowl",
+        "amount": 1,
+        "label": "one bowl"
+      },
+      "nutrition": {
+        "protein_g": 32,
+        "carb_g": 86,
+        "fat_g": 45,
+        "kcal": 877
+      },
+      "common_components": [
+        "\u8c5a\u9aa8\u6e6f",
+        "\u62c9\u9eb5",
+        "\u53c9\u71d2",
+        "\u91ac\u6c41"
+      ],
+      "confidence": "medium",
+      "notes": "Dish prior for local retrieval; deliberately excluded from exact item truth."
+    }
+  ]
+}

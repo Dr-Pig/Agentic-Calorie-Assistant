@@ -53,12 +53,12 @@ def test_common_meal_batch_is_packet_ready_and_integrity_checked() -> None:
         artifact_path="artifacts/accurate_intake_approved_packet_ready_fooddb_artifact.json",
         selection_profile="full_current_shell",
     )
-    assert packet_ready["summary"]["source_anchor_count"] == 72
-    assert packet_ready["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 34
+    assert packet_ready["summary"]["source_anchor_count"] == 754
+    assert packet_ready["summary"]["packet_ready_lane_counts"]["generic_common_serving"] == 400
 
     integrity = build_tfda_anchor_integrity_report(
         small_anchor_payload=payload,
         tfda_source_payload=_tfda_source_payload(),
     )
     assert integrity["status"] == "pass"
-    assert integrity["summary"]["tfda_runtime_anchor_count"] == 24
+    assert integrity["summary"]["tfda_runtime_anchor_count"] == 44

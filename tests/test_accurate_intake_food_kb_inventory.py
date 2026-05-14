@@ -37,20 +37,20 @@ def test_food_kb_inventory_matches_repo_contained_seed_counts() -> None:
     inventory = build_food_kb_inventory()
 
     assert inventory["repo_contained_seed_counts"] == {
-        "small_anchor_total": 72,
-        "generic_anchor": 68,
+        "small_anchor_total": 92,
+        "generic_anchor": 88,
         "generic_semantic_only": 4,
-        "exact_item_cards": 11,
+        "exact_item_cards": 21,
         "basket_components": 34,
     }
-    assert inventory["source_class_breakdown"]["existing_repo_seed"] == 83
-    assert inventory["source_class_breakdown"]["taiwan_tfda_open_data"] == 24
-    assert inventory["source_class_breakdown"]["official_brand_chain_page"] == 6
+    assert inventory["source_class_breakdown"]["existing_repo_seed"] == 113
+    assert inventory["source_class_breakdown"]["taiwan_tfda_open_data"] == 44
+    assert inventory["source_class_breakdown"]["official_brand_chain_page"] == 14
     assert inventory["source_class_breakdown"]["missing_source_metadata"] == 53
     assert inventory["missing_source_metadata_count"] == 53
-    assert inventory["tfda_base_pipeline"]["base_nutrition_db_present"] is False
+    assert inventory["tfda_base_pipeline"]["base_nutrition_db_present"] is True
     assert inventory["tfda_base_pipeline"]["staging_inputs_present"] is False
-    assert inventory["tfda_base_pipeline"]["data_build_package_present"] is False
+    assert inventory["tfda_base_pipeline"]["data_build_package_present"] is True
 
 
 def test_food_kb_inventory_can_summarize_pr112_gap_candidates_without_promotion() -> None:

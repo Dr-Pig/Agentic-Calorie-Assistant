@@ -65,13 +65,13 @@ def test_resolve_exact_item_ignores_bootstrap_ramen_shop_profile() -> None:
 
 def test_search_local_knowledge_matches_exact_item_card_with_possessive_and_quotes() -> None:
     docs = search_local_knowledge(
-        "\u722d\u9bae\u8ff4\u8f49\u58fd\u53f8\u7684\u7126\u7cd6\u9bad\u9b5a\uff08\u5169\u8cab\uff09",
-        user_input="\u722d\u9bae\u8ff4\u8f49\u58fd\u53f8\u7684\u300c\u7126\u7cd6\u9bad\u9b5a\u300d\uff08\u5169\u8cab\uff09",
+        "\u722d\u9bae\u8ff4\u8f49\u58fd\u53f8\u7684\u7126\u7cd6\u9bae\u9b5a\uff08\u5169\u8cab\uff09",
+        user_input="\u722d\u9bae\u8ff4\u8f49\u58fd\u53f8\u7684\u300c\u7126\u7cd6\u9bae\u9b5a\u300d\uff08\u5169\u8cab\uff09",
         limit=3,
     )
     assert docs
     assert docs[0]["source_type"] == "exact_item_card"
-    assert docs[0]["title"] == "\u722d\u9bae\u8ff4\u8f49\u58fd\u53f8 \u7126\u7cd6\u9bad\u9b5a(\u5169\u8cab)"
+    assert docs[0]["title"] == "\u722d\u9bae \u7126\u7cd6\u9bae\u9b5a(\u5169\u8cab)"
 
 
 def test_resolve_exact_item_prefers_iced_latte_over_hot_variant() -> None:

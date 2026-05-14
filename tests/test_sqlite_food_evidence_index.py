@@ -36,7 +36,7 @@ def test_sqlite_fts_index_reports_adapter_metadata_without_policy_leakage(tmp_pa
 
     assert metadata["adapter_type"] == "sqlite_fts_food_evidence_index"
     assert metadata["record_contract"] == "IndexedFoodRecord"
-    assert metadata["runtime_record_count"] == 68
+    assert metadata["runtime_record_count"] == 88
     assert metadata["semantic_record_count"] >= 1
     assert metadata["fts_table"] == "food_evidence_fts"
     assert metadata["future_backends"] == ["supabase"]

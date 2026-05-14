@@ -67,6 +67,7 @@ def test_food_evidence_recall_packet_keeps_bare_basket_followup_boundary() -> No
     assert packet["followup_hints"]
     assert packet["manager_may_use_for"] == [
         "grounded_food_evidence",
+        "macro_visibility_honesty",
         "followup_or_uncertainty_decision",
         "disambiguation",
     ]
