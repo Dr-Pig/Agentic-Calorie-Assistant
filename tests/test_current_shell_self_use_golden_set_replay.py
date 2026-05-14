@@ -112,6 +112,21 @@ def test_golden_set_replay_blocks_forbidden_source_flags() -> None:
     assert replay["summary"]["strict_golden_set_replay_passed"] is False
 
 
+def test_golden_set_replay_blocks_fixture_manager_case_from_passing() -> None:
+    case = _gs5_trace_case()
+    case["manager_provider"] = {
+        "provider": "deterministic_self_use_manager_fixture",
+        "live_llm_invoked": False,
+    }
+
+    replay = build_golden_set_replay(manifest=_manifest(), trace_artifact=_trace_artifact(case))
+
+    gs5 = next(item for item in replay["cases"] if item["case_id"] == "GS5")
+    assert gs5["status"] == "blocked"
+    assert "fixture_decisions.action_not_allowed" in gs5["blockers"]
+    assert replay["summary"]["strict_golden_set_replay_passed"] is False
+
+
 def test_golden_set_replay_writer_creates_artifact(tmp_path: Path) -> None:
     manifest_path = tmp_path / "manifest.yaml"
     trace_path = tmp_path / "trace.json"

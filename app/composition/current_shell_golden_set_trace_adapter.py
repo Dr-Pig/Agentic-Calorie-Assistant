@@ -55,6 +55,14 @@ def _fixture_decisions(
     fixture_decisions = trace_artifact.get("fixture_decisions")
     if isinstance(fixture_decisions, dict):
         return {str(key): bool(value) for key, value in fixture_decisions.items()}
+    if _manager_semantics_came_from_fixture(trace_artifact):
+        return {
+            "intent": True,
+            "action": True,
+            "attach_target": True,
+            "mutation_outcome": True,
+            "response_meaning": True,
+        }
 
     fixture_policy = dict(manifest.get("fixture_policy") or {})
     return {
@@ -64,6 +72,15 @@ def _fixture_decisions(
         "mutation_outcome": bool(fixture_policy.get("fixtures_may_decide_mutation_outcome")),
         "response_meaning": bool(fixture_policy.get("fixtures_may_decide_response_meaning")),
     }
+
+
+def _manager_semantics_came_from_fixture(trace_artifact: dict[str, Any]) -> bool:
+    provider = _copy_mapping(trace_artifact.get("manager_provider"))
+    provider_name = str(provider.get("provider") or trace_artifact.get("manager_provider_name") or "").lower()
+    semantic_owner = str(trace_artifact.get("semantic_owner") or provider.get("semantic_owner") or "").lower()
+    semantic_source = str(trace_artifact.get("semantic_source") or provider.get("semantic_source") or "").lower()
+    markers = (provider_name, semantic_owner, semantic_source)
+    return any("fixture" in marker or "deterministic_fake_provider" in marker for marker in markers)
 
 
 def _trace_layers(trace_artifact: dict[str, Any]) -> dict[str, dict[str, bool]]:
