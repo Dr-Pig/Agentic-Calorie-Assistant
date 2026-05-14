@@ -23,7 +23,7 @@ from app.nutrition.application.packetizer_input_seed import (  # noqa: E402
     packetizer_input_seeds_from_anchor_lookup_result,
     packetizer_input_seeds_from_exact_item_lookup_result,
 )
-from app.nutrition.application.retrieval_intent import RetrievalIntent, build_retrieval_intent  # noqa: E402
+from app.nutrition.application.retrieval_intent import RetrievalIntent, build_diagnostic_retrieval_intent  # noqa: E402
 from app.nutrition.application.small_anchor_store import lookup_anchor_candidates  # noqa: E402
 from app.nutrition.application.synthesis_provider_bridge import (  # noqa: E402
     run_synthesis_manager_with_provider,
@@ -62,7 +62,7 @@ def _status(blockers: list[str]) -> str:
 
 
 def _anchor_case(message: str) -> tuple[Any, Any, Any]:
-    intent = build_retrieval_intent(message)
+    intent = build_diagnostic_retrieval_intent(message)
     anchor_result = lookup_anchor_candidates(intent)
     packets = tuple(
         add_hard_recheck_metadata(build_candidate_packet(seed))
@@ -73,13 +73,13 @@ def _anchor_case(message: str) -> tuple[Any, Any, Any]:
 
 
 def _clarify_case() -> tuple[Any, Any, Any]:
-    intent = build_retrieval_intent("\u6211\u5403\u4e86\u6ef7\u5473")
+    intent = build_diagnostic_retrieval_intent("\u6211\u5403\u4e86\u6ef7\u5473")
     anchor_result = lookup_anchor_candidates(intent)
     return intent, consume_rechecked_packets(()), anchor_result.clarify_support
 
 
 def _exact_case(message: str) -> tuple[Any, Any, Any]:
-    intent = build_retrieval_intent(message)
+    intent = build_diagnostic_retrieval_intent(message)
     exact_result = lookup_exact_item_card_candidates(intent)
     packets = tuple(
         add_hard_recheck_metadata(build_candidate_packet(seed))

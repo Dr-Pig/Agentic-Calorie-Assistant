@@ -6,7 +6,7 @@ from app.nutrition.application.exact_item_lookup_port import (
     ExactItemLookupPort,
     default_exact_item_lookup_port,
 )
-from app.nutrition.application.retrieval_intent import build_raw_text_retrieval_hint
+from app.nutrition.application.retrieval_request import build_retrieval_request_from_raw_text_hint
 from .exact_item_candidate_support import (
     augment_exact_candidate,
     exact_identity_gate,
@@ -59,7 +59,7 @@ def _candidate_search_queries(query: str, *, active_brand_context: str | None) -
         _append(f"{active_brand_context} {raw_query}")
     _append(raw_query)
 
-    hint = build_raw_text_retrieval_hint(raw_query)
+    hint = build_retrieval_request_from_raw_text_hint(raw_query).intent
     _append(hint.base_dish)
     for alias in hint.aliases:
         _append(alias)

@@ -24,7 +24,7 @@ from app.nutrition.application.packetizer_input_seed import (  # noqa: E402
     packetizer_input_seeds_from_anchor_lookup_result,
     packetizer_input_seeds_from_exact_item_lookup_result,
 )
-from app.nutrition.application.retrieval_intent import RetrievalIntent, build_retrieval_intent  # noqa: E402
+from app.nutrition.application.retrieval_intent import RetrievalIntent, build_diagnostic_retrieval_intent  # noqa: E402
 from app.nutrition.application.small_anchor_store import lookup_anchor_candidates  # noqa: E402
 from app.schemas import EstimateRequest  # noqa: E402
 from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
@@ -34,7 +34,7 @@ DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_rt10a_nutrition_esti
 
 
 def _anchor_item_for_logging(user_input: str) -> tuple[dict[str, Any], dict[str, Any]]:
-    intent = build_retrieval_intent(user_input)
+    intent = build_diagnostic_retrieval_intent(user_input)
     anchor_result = lookup_anchor_candidates(intent)
     packets = tuple(
         add_hard_recheck_metadata(build_candidate_packet(seed))
@@ -56,7 +56,7 @@ def _anchor_item_for_logging(user_input: str) -> tuple[dict[str, Any], dict[str,
 
 
 def _blocking_clarify_item(user_input: str) -> tuple[dict[str, Any], dict[str, Any]]:
-    intent = build_retrieval_intent(user_input)
+    intent = build_diagnostic_retrieval_intent(user_input)
     anchor_result = lookup_anchor_candidates(intent)
     manager_pass = synthesize_local_manager_pass(
         intent,
@@ -73,7 +73,7 @@ def _blocking_clarify_item(user_input: str) -> tuple[dict[str, Any], dict[str, A
 
 
 def _exact_item_for_logging(user_input: str) -> tuple[dict[str, Any], dict[str, Any]]:
-    intent = build_retrieval_intent(user_input)
+    intent = build_diagnostic_retrieval_intent(user_input)
     exact_result = lookup_exact_item_card_candidates(intent)
     packets = tuple(
         add_hard_recheck_metadata(build_candidate_packet(seed))

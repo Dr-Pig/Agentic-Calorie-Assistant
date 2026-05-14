@@ -23,7 +23,6 @@ from app.nutrition.application.fooddb_retrieval_policy import (
 from app.nutrition.application.fooddb_retrieval_estimate_artifacts import (
     build_fooddb_retrieval_artifact,
 )
-from app.nutrition.application.retrieval_intent import build_raw_text_retrieval_hint
 from app.nutrition.application.retrieval_semantic_decision import B2ManagerSemanticDecision
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
@@ -95,7 +94,7 @@ async def estimate_nutrition_tool(
         )
         return artifact
 
-    canary_decision = manager_semantic_decision or _raw_text_exact_brand_decision(raw_user_input)
+    canary_decision = manager_semantic_decision
     canary_outcome = await run_exact_brand_web_canary(
         raw_user_input=raw_user_input,
         manager_decision=canary_decision,
@@ -150,23 +149,6 @@ async def estimate_nutrition_tool(
     )
     _attach_web_runtime_trace(artifact.payload, canary_outcome.trace)
     return artifact
-
-
-def _raw_text_exact_brand_decision(raw_user_input: str) -> B2ManagerSemanticDecision | None:
-    """Support legacy web canary diagnostics without granting mutation authority."""
-    hint = build_raw_text_retrieval_hint(raw_user_input)
-    if hint.retrieval_goal != "exact_brand_lookup":
-        return None
-    return B2ManagerSemanticDecision(
-        base_dish=hint.base_dish,
-        aliases=hint.aliases,
-        brand_hint=hint.brand_hint,
-        size_hint=hint.size_hint,
-        modifier_hints=hint.modifier_hints,
-        listed_items=hint.listed_items,
-        retrieval_goal="exact_brand_lookup",
-        semantic_authority_source="synthetic_manager_structured_fixture",
-    )
 
 
 def _approved_fooddb_retrieval_artifact(
