@@ -34,6 +34,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "fake_provider_tool_loop_smoke",
                 "review_eval_candidate_pipeline",
                 "local_operator_data_hygiene_bundle",
+                "fixture_full_product_loop_e2e",
                 "mvp_gate_summary",
             ],
             "blockers": [],
@@ -75,6 +76,10 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                     "status": "local_operator_data_hygiene_ready",
                     "present": True,
                 },
+                "fixture_full_product_loop_e2e": {
+                    "status": "fixture_product_loop_e2e_diagnostic_pass",
+                    "present": True,
+                },
                 "mvp_gate_summary": {"status": "pass", "present": True},
             },
             "browser_gate_policy": {
@@ -110,6 +115,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "product_pages_target_candidate_ui_smoke",
                 "product_pages_visual_qa",
                 "product_pages_body_noplan_degraded_smoke",
+                "body_observation_same_truth_gate",
                 "fixture_full_product_loop_e2e",
                 "product_pages_self_use_flow_gate",
             ],
@@ -120,6 +126,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "product_pages_target_candidate_ui_smoke",
                 "product_pages_visual_qa",
                 "product_pages_body_noplan_degraded_smoke",
+                "body_observation_same_truth_gate",
             ],
             "blockers": [],
             "included_artifact_statuses": {
@@ -145,6 +152,15 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                     "status": "pass",
                     "browser_executed": True,
                 },
+                "body_observation_same_truth_gate": {
+                    "status": "body_observation_same_truth_gate_ready_for_human_review",
+                    "browser_executed": True,
+                    "upstream_runtime_gate": "rt6_bootstrap_no_plan_body_closure",
+                    "summary": {
+                        "upstream_gate_green": True,
+                        "all_required_browser_flags_true": True,
+                    },
+                },
                 "fixture_full_product_loop_e2e": {
                     "status": "fixture_product_loop_e2e_diagnostic_pass",
                     "browser_executed": "not_applicable",
@@ -160,8 +176,8 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "self_generated_evidence_used": False,
             "review_required_before_provider_call": True,
             "summary": {
-                "browser_artifact_count": 6,
-                "browser_executed_count": 6,
+                "browser_artifact_count": 7,
+                "browser_executed_count": 7,
                 "requires_three_distinct_pages": True,
                 "requires_seven_day_today_diary": True,
                 "requires_short_term_context_render": True,
