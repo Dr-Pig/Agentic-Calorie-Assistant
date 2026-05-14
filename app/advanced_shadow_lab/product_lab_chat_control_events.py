@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 
-CONTROL_ACTIONS = {"dismiss", "snooze", "undo"}
+CONTROL_ACTIONS = {"dismiss", "snooze", "undo", "opt_out", "reopen_or_modify"}
 
 
 def post_turn_chat_control_events(
@@ -43,6 +43,11 @@ def _control_event(
         "snooze_minutes": action_spec.get("snooze_minutes"),
         "release_signal": str(action_spec.get("release_signal") or next_signal),
         "undo_event_id": str(action_spec.get("undo_event_id") or ""),
+        "reopen_target_event_id": str(
+            action_spec.get("reopen_target_event_id")
+            or action_spec.get("undo_event_id")
+            or ""
+        ),
         "source_packet_id": target_id,
         "source_workflow_family": str(packet.get("workflow_family") or ""),
         "source_chat_action_event_id": str(action_spec.get("event_id") or ""),

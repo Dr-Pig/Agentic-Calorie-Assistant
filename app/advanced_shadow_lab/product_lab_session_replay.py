@@ -16,6 +16,7 @@ from app.advanced_shadow_lab.product_lab_session_controls import (
 from app.advanced_shadow_lab.product_lab_session_memory_pipeline import (
     run_product_lab_turn_memory_pipeline,
 )
+from app.advanced_shadow_lab.product_lab_proactive_control_store import ProductLabProactiveControlStore
 from app.advanced_shadow_lab.product_lab_session_manager_loop import turn_manager_script
 from app.advanced_shadow_lab.product_lab_session_action_state import (
     initial_session_action_state,
@@ -35,7 +36,7 @@ from app.advanced_shadow_lab.product_lab_session_records import (
     turn_summary,
 )
 from app.advanced_shadow_lab.product_lab_session_store import (
-    write_session_record,
+    write_final_session_record,
     write_turn_record,
 )
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
@@ -58,7 +59,8 @@ def run_advanced_product_lab_dogfood_session(
         return blocked_session(session_id=session_id, blockers=blockers)
 
     memory_store = ProductLabMemoryStore(artifact_root)
-    journal: list[Mapping[str, Any]] = []
+    control_store = ProductLabProactiveControlStore(artifact_root)
+    journal: list[Mapping[str, Any]] = control_store.read_journal(session_id=session_id)
     history_event_ids: list[str] = []
     memory_record_ids: list[str] = []
     memory_tool_calls: list[dict[str, Any]] = []
@@ -120,6 +122,7 @@ def run_advanced_product_lab_dogfood_session(
                 for key, value in dict(memory_write.get("surface_paths") or {}).items()
             }
         journal = list(post_control["journal_entries"])
+        control_store_artifact = control_store.write_journal(session_id=session_id, journal_entries=journal)
         run_blockers.extend(turn_blockers(turn_id, turn_artifact, post_control))
         if memory_pipeline.get("status") != "pass":
             run_blockers.append(f"{turn_id}.memory_pipeline_blocked")
@@ -178,20 +181,12 @@ def run_advanced_product_lab_dogfood_session(
         memory_surface_paths=memory_surface_paths,
         memory_context_injected=memory_context_injected,
         action_state=action_state,
+        proactive_control_store_artifact=control_store_artifact if turns else None,
     )
     artifact = rm.attach(artifact, rescue_proposal_read_model)
-    session_path = write_session_record(
-        artifact_root=artifact_root,
-        session_id=session_id,
-        artifact=artifact,
+    return write_final_session_record(
+        artifact_root=artifact_root, session_id=session_id, artifact=artifact
     )
-    artifact["session_artifact_path"] = str(session_path)
-    write_session_record(
-        artifact_root=artifact_root,
-        session_id=session_id,
-        artifact=artifact,
-    )
-    return artifact
 
 
 __all__ = [

@@ -16,7 +16,7 @@ from app.advanced_shadow_lab.product_lab_session_product_summary import (
     session_product_summary,
     turn_product_summary,
 )
-
+from app.advanced_shadow_lab.product_lab_session_record_control_fields import control_session_fields
 
 NON_CLAIMS = [
     "not_production_database",
@@ -40,6 +40,7 @@ def session_artifact(
     memory_surface_paths: Mapping[str, str] | None = None,
     memory_context_injected: bool = False,
     action_state: Mapping[str, Any] | None = None,
+    proactive_control_store_artifact: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     has_memory = bool(memory_record_ids)
     lab_action_state = dict(action_state or {})
@@ -57,6 +58,10 @@ def session_artifact(
         **session_product_summary(turn_summaries),
         "control_event_history_ids": list(history_event_ids),
         "final_control_journal_event_ids": event_ids(journal),
+        **control_session_fields(
+            journal=journal,
+            proactive_control_store_artifact=proactive_control_store_artifact,
+        ),
         **session_chat_action_summary(turn_summaries),
         "lab_action_state": lab_action_state,
         "lab_action_state_artifact_type": str(

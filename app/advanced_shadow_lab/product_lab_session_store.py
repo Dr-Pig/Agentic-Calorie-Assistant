@@ -69,11 +69,24 @@ def write_session_record(
     return path
 
 
+def write_final_session_record(
+    *,
+    artifact_root: Path | str,
+    session_id: str,
+    artifact: Mapping[str, Any],
+) -> dict[str, Any]:
+    path = session_artifact_path(artifact_root=artifact_root, session_id=session_id)
+    final_artifact = {**dict(artifact), "session_artifact_path": str(path)}
+    write_json_artifact(path, final_artifact)
+    return final_artifact
+
+
 __all__ = [
     "session_artifact_path",
     "session_dir",
     "turn_artifact_path",
     "unsafe_segment_blocker",
+    "write_final_session_record",
     "write_session_record",
     "write_turn_record",
 ]

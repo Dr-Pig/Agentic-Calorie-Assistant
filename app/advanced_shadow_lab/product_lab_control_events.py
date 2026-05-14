@@ -5,7 +5,9 @@ from typing import Any, Mapping
 from app.advanced_shadow_lab.e2e_fixture_chain_policy import FALSE_FLAGS
 
 
-SUPPORTED_ACTIONS = {"dismiss", "snooze", "undo"}
+SUPPORTED_ACTIONS = {"dismiss", "snooze", "undo", "opt_out", "reopen_or_modify"}
+SUPPRESSING_ACTIONS = {"dismiss", "snooze", "opt_out"}
+RESTORE_ACTIONS = {"undo", "reopen_or_modify"}
 
 
 def build_new_control_entries(
@@ -49,12 +51,23 @@ def _entry(
     candidate_id = str(event.get("target_candidate_id") or "")
     blockers = _event_blockers(event, index, action, candidate_id, candidate_ids)
     undo_event_id = str(event.get("undo_event_id") or "")
+    reopen_target_event_id = str(
+        event.get("reopen_target_event_id") or event.get("undo_event_id") or ""
+    )
     if action == "undo" and not _has_target_control(
         prior_entries,
         candidate_id,
         undo_event_id,
+        trigger_type=str(event.get("trigger_type") or ""),
     ):
         blockers.append(f"control_event[{index}].undo_target_not_active")
+    if action == "reopen_or_modify" and not _has_target_control(
+        prior_entries,
+        candidate_id,
+        reopen_target_event_id,
+        trigger_type=str(event.get("trigger_type") or ""),
+    ):
+        blockers.append(f"control_event[{index}].reopen_target_not_active")
     return {
         "artifact_type": "advanced_product_lab_control_journal_entry",
         "event_id": str(event.get("event_id") or ""),
@@ -64,7 +77,9 @@ def _entry(
         "target_candidate_id": candidate_id,
         "trigger_type": str(event.get("trigger_type") or ""),
         "scope": str(event.get("scope") or "candidate_instance"),
-        "dismiss_reason": event.get("dismiss_reason") if action == "dismiss" else None,
+        "dismiss_reason": (
+            event.get("dismiss_reason") if action in {"dismiss", "opt_out"} else None
+        ),
         "next_signal_required": str(event.get("next_signal_required") or ""),
         "snooze_minutes": event.get("snooze_minutes") if action == "snooze" else None,
         "snooze_release_at_minute": (
@@ -74,6 +89,13 @@ def _entry(
         ),
         "release_signal": str(event.get("release_signal") or ""),
         "undo_event_id": undo_event_id if action == "undo" else None,
+        "reopen_target_event_id": (
+            reopen_target_event_id if action == "reopen_or_modify" else None
+        ),
+        "user_facing_control_action": (
+            "reopen_or_modify" if action == "reopen_or_modify" else action
+        ),
+        "legacy_undo_alias_used": action == "undo",
         "source_packet_id": str(event.get("source_packet_id") or ""),
         "source_workflow_family": str(event.get("source_workflow_family") or ""),
         "source_chat_action_event_id": str(
@@ -107,22 +129,32 @@ def _event_blockers(
         blockers.append(f"{prefix}.target_candidate_id_unknown:{candidate_id}")
     if not str(event.get("trigger_type") or ""):
         blockers.append(f"{prefix}.trigger_type_missing")
-    if action == "dismiss" and not str(event.get("next_signal_required") or ""):
+    if action in {"dismiss", "opt_out"} and not str(
+        event.get("next_signal_required") or ""
+    ):
         blockers.append(f"{prefix}.next_signal_required_missing")
     if action == "snooze" and int(event.get("snooze_minutes") or 0) <= 0:
         blockers.append(f"{prefix}.snooze_minutes_missing")
+    if action == "reopen_or_modify" and not str(
+        event.get("reopen_target_event_id") or event.get("undo_event_id") or ""
+    ):
+        blockers.append(f"{prefix}.reopen_target_event_id_missing")
     return blockers
 
 
 def _has_target_control(
     entries: list[dict[str, Any]],
     candidate_id: str,
-    undo_event_id: str,
+    target_event_id: str,
+    *,
+    trigger_type: str,
 ) -> bool:
     for entry in reversed(entries):
-        if entry.get("target_candidate_id") != candidate_id:
+        same_candidate = entry.get("target_candidate_id") == candidate_id
+        same_trigger = entry.get("trigger_type") == trigger_type
+        if not same_candidate and not same_trigger:
             continue
-        if entry.get("event_id") != undo_event_id:
+        if entry.get("event_id") != target_event_id:
             continue
-        return entry.get("action") in {"dismiss", "snooze"}
+        return entry.get("action") in SUPPRESSING_ACTIONS
     return False

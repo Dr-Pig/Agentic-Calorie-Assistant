@@ -5,6 +5,9 @@ from pathlib import Path
 from app.advanced_shadow_lab.product_lab_session_replay import (
     run_advanced_product_lab_dogfood_session,
 )
+from app.advanced_shadow_lab.product_lab_proactive_control_store import (
+    ProductLabProactiveControlStore,
+)
 from app.shared.infra.json_artifacts import read_json_artifact
 from tests.test_advanced_product_lab_runtime import _fixture_inputs
 
@@ -36,6 +39,11 @@ def test_session_replay_bridges_chat_dismiss_to_control_journal(
     assert artifact["status"] == "pass"
     assert artifact["control_event_history_ids"] == ["dismiss-rec-chat"]
     assert artifact["final_control_journal_event_ids"] == ["dismiss-rec-chat"]
+    assert artifact["proactive_control_store_lab_isolated"] is True
+    assert artifact["proactive_control_store_path"]
+    assert ProductLabProactiveControlStore(tmp_path).read_journal(
+        session_id="lab-session-chat-dismiss-control"
+    ) == artifact["final_control_journal_entries"]
     assert _visible_by_turn(artifact) == {
         "t1-dismiss": ["recommendation_prompt:0", "rescue_nudge:1"],
         "t2-after-dismiss": ["rescue_nudge:1"],
