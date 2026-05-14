@@ -48,9 +48,8 @@ _TARGET_CANDIDATE_FIELDS = (
     "meal_version_id",
     "target_object_type",
     "target_object_id",
-    "display_name",
-    "canonical_name",
-    "uniqueness_status",
+    "display_name", "canonical_name", "estimated_kcal", "estimate_basis",
+    "confidence_tier", "source", "evidence_role", "uniqueness_status",
 )
 _TARGET_CANDIDATE_BOOL_FIELDS = ("removable", "eligible")
 

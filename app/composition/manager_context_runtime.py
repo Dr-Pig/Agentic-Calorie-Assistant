@@ -5,6 +5,10 @@ from typing import Any
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
+from app.composition.manager_context_meal_basis import (
+    active_meal_basis_target_candidates,
+    build_active_meal_estimate_basis,
+)
 from app.intake.application.manager_context_policy import build_manager_context_packet_v1
 from app.intake.infrastructure.models import MealThreadRecord, MealVersionRecord
 from app.runtime.contracts.phase_a import CurrentTurnContextV1
@@ -144,6 +148,15 @@ def build_runtime_manager_context_packet_v1(
         user_external_id=user_external_id,
         local_date=local_date,
     )
+    active_meal_basis = build_active_meal_estimate_basis(
+        db,
+        user_external_id=user_external_id,
+        local_date=local_date,
+    )
+    target_candidates = [
+        *active_meal_basis_target_candidates(active_meal_basis),
+        *list(current_turn_context.recent_item_targets or []),
+    ]
     packet_context = (
         current_turn_context.model_copy(update={"recent_chat_turns": packet_turns})
         if packet_turns
@@ -157,6 +170,8 @@ def build_runtime_manager_context_packet_v1(
         channel=channel,
         manager_mode=manager_mode,
         pending_draft=pending_draft,
+        active_day_state={"active_meal_estimate_basis": active_meal_basis} if active_meal_basis else None,
+        target_candidates=target_candidates,
     )
 
 
