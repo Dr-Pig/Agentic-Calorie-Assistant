@@ -4,9 +4,9 @@ status: active
 owner: AdvancedProductLabProactive
 consumer: advanced_product_lab_followup_planning
 planned_pr_count: 24
-dynamic_remaining_pr_count: 16
-last_completed_pr_number: 8
-active_pr_number: 9
+dynamic_remaining_pr_count: 15
+last_completed_pr_number: 9
+active_pr_number: 10
 current_mainline: advanced_product_lab_proactive_chat_first_integration
 is_detour: false
 mainline_blocker_being_removed: proactive_needs_chat_first_manager_style_integration_after_recommendation_closeout
@@ -283,6 +283,7 @@ estimate_notes:
   - After PR6 logical completion, remaining estimate moved to 18.
   - After PR7 logical completion, remaining estimate moved to 17.
   - After PR8 logical completion, remaining estimate moved to 16.
+  - After PR9 logical completion, remaining estimate moved to 15 after a real Grokfast send/skip diagnostic passed.
   - Estimate may increase if lab chat delivery exposes missing control-state or dashboard mirror contracts.
 
 last_merge_evidence:
@@ -327,3 +328,10 @@ last_merge_evidence:
       merge_commit: working_branch_uncommitted
       result: contextual_send_skip_fixture_provider_completed_locally
       dynamic_remaining_pr_count_after: 16
+    - pr_number: 9
+      pull_request: local_logical_slice
+      merge_commit: working_branch_uncommitted
+      result: contextual_send_skip_grokfast_live_diagnostic_completed_locally
+      live_artifact: artifacts/advanced_product_lab_proactive_send_skip_grokfast_diagnostic_pr9_live.json
+      live_grokfast_diagnostic_pass: true
+      dynamic_remaining_pr_count_after: 15
