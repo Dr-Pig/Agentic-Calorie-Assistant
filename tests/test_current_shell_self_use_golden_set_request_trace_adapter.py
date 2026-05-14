@@ -264,6 +264,131 @@ def test_request_trace_adapter_blocks_visible_kcal_when_fallback_400_is_not_allo
     assert "response.invented_nutrition_fact" in grade["blockers"]
 
 
+def test_request_trace_adapter_projects_component_basis_from_approved_packet() -> None:
+    trace = _gs5_request_trace()
+    trace["runtime"] = {"fallback_400_allowed": False}
+    trace["renderer_output"] = {"assistant_message": "Recorded 650 kcal from component evidence."}
+    trace["tool_outputs"] = {
+        "tool_results": [
+            {
+                "tool_name": "estimate_nutrition",
+                "evidence": {
+                    "nutrition_payload": {
+                        "meal_title": "component meal",
+                        "estimated_kcal": 650,
+                        "components": [
+                            {"name": "noodle", "estimated_kcal": 430},
+                            {"name": "egg", "estimated_kcal": 90},
+                        ],
+                        "trace_contract": {
+                            "db_hit_type": "approved_fooddb_packet",
+                            "shadow_stub": False,
+                            "approved_fooddb_evidence_trace": {
+                                "source_lane": "listed_component",
+                                "runtime_truth_allowed": True,
+                            },
+                            "canonical_write_decision": {"can_write_canonical": True},
+                        },
+                    }
+                },
+            }
+        ]
+    }
+    trace["phase_c_trace"]["mutation_outcome"]["canonical_commit_status"] = "committed"  # type: ignore[index]
+    trace["phase_c_trace"]["mutation_outcome"]["ledger_mutation_status"] = "updated"  # type: ignore[index]
+    trace["state_delta"]["canonical_commit"] = True  # type: ignore[index]
+    trace["state_delta"]["ledger_updated"] = True  # type: ignore[index]
+    trace["renderer_input_basis"] = {
+        "state_after": {
+            "active_meal": {
+                "item_candidates": [{"canonical_name": "noodle"}, {"canonical_name": "egg"}]
+            }
+        }
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS1", trace)
+
+    assert case_trace["runtime"]["component_basis_required"] is True
+    assert case_trace["runtime"]["fallback_400_allowed"] is False
+    assert case_trace["ui"]["meal_level_basis_visible"] is True
+    assert case_trace["response"].get("invented_nutrition_fact") is not True
+
+
+def test_request_trace_adapter_projects_component_basis_from_compact_packets() -> None:
+    trace = _gs5_request_trace()
+    trace["runtime"] = {"fallback_400_allowed": False}
+    trace.pop("tool_outputs", None)
+    trace["renderer_output"] = {"assistant_message": "已記錄這餐約 650 kcal。"}
+    trace["compact_packets"] = [
+        {
+            "tool_name": "estimate_nutrition",
+            "evidence": {
+                "nutrition_payload": {
+                    "meal_title": "鐵板麵 + 荷包蛋 + 豬肉片",
+                    "estimated_kcal": 650,
+                    "trace_contract": {
+                        "db_hit_type": "approved_fooddb_packet",
+                        "approved_fooddb_evidence_trace": {
+                            "source_lane": "listed_component",
+                            "runtime_truth_allowed": True,
+                            "evidence_ids": [
+                                "local_component_stub:鐵板麵",
+                                "local_component_stub:荷包蛋",
+                                "local_component_stub:早餐店豬肉片",
+                            ],
+                        },
+                        "commit_request_candidate": {
+                            "components": [
+                                {"name": "鐵板麵", "estimated_kcal": 430},
+                                {"name": "荷包蛋", "estimated_kcal": 90},
+                                {"name": "早餐店豬肉片", "estimated_kcal": 130},
+                            ]
+                        },
+                    },
+                }
+            },
+        }
+    ]
+    trace["phase_c_trace"]["mutation_outcome"]["canonical_commit_status"] = "committed"  # type: ignore[index]
+    trace["phase_c_trace"]["mutation_outcome"]["ledger_mutation_status"] = "updated"  # type: ignore[index]
+    trace["state_delta"]["canonical_commit"] = True  # type: ignore[index]
+    trace["state_delta"]["ledger_updated"] = True  # type: ignore[index]
+    trace["renderer_input_basis"] = {
+        "state_after": {
+            "active_meal": {
+                "item_candidates": [
+                    {"canonical_name": "鐵板麵"},
+                    {"canonical_name": "荷包蛋"},
+                    {"canonical_name": "早餐店豬肉片"},
+                ]
+            }
+        }
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS1", trace)
+
+    assert case_trace["runtime"]["component_basis_required"] is True
+    assert case_trace["runtime"]["fallback_400_allowed"] is False
+    assert case_trace["ui"]["meal_level_basis_visible"] is True
+    assert case_trace["response"].get("invented_nutrition_fact") is not True
+
+
+def test_request_trace_adapter_projects_meal_level_basis_from_state_after() -> None:
+    trace = _gs5_request_trace()
+    trace["state_after"] = {
+        "active_meal": {
+            "item_candidates": [
+                {"canonical_name": "鐵板麵"},
+                {"canonical_name": "荷包蛋"},
+            ]
+        }
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS1", trace)
+
+    assert case_trace["ui"]["meal_level_basis_visible"] is True
+
+
 def test_request_trace_adapter_detects_shadow_stub_from_manager_final_tool_results() -> None:
     trace = _gs5_request_trace()
     trace.pop("runtime", None)

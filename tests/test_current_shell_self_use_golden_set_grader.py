@@ -22,6 +22,7 @@ def _base_result(case_id: str) -> dict:
         "runtime": dict(case["expected_runtime"]),
         "ui": dict(case["ui_assertions"]),
         "response": {
+            "assistant_message": "已處理。",
             "zh_tw_primary": True,
             "internal_debug_words_present": False,
             "state_contradiction": False,
@@ -55,6 +56,19 @@ def test_grader_passes_a_valid_gs5_no_anchor_followup_result() -> None:
     assert grade["status"] == "pass"
     assert grade["blockers"] == []
     assert grade["case_id"] == "GS5"
+
+
+def test_grader_treats_canonical_write_commit_as_gs1_commit_effect() -> None:
+    result = _base_result("GS1")
+    result["runtime"]["workflow_effect"] = "canonical_write"
+    result["runtime"]["canonical_commit_status"] = "committed"
+    result["runtime"]["final_action"] = "commit"
+    result["response"]["assistant_message"] = "已記錄這餐。"
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "pass"
+    assert grade["blockers"] == []
 
 
 def test_grader_blocks_fixture_owned_semantics() -> None:

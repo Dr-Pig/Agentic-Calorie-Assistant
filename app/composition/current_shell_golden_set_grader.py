@@ -102,7 +102,13 @@ def _expected_mapping_blockers(
         if _skip_expected_item(expected_item):
             continue
         actual_item = actual.get(key)
-        if actual_item != expected_item:
+        if not _expected_item_matches(
+            prefix=prefix,
+            key=key,
+            expected_item=expected_item,
+            actual_item=actual_item,
+            actual=actual,
+        ):
             blockers.append(
                 f"{prefix}.{key}_expected:{_display(expected_item)}_actual:{_display(actual_item)}"
             )
@@ -116,6 +122,29 @@ def _skip_expected_item(value: Any) -> bool:
         "commit_or_commit_with_optional_refinement",
         "commit_or_ask_clarification",
     }
+
+
+def _expected_item_matches(
+    *,
+    prefix: str,
+    key: str,
+    expected_item: Any,
+    actual_item: Any,
+    actual: dict[str, Any],
+) -> bool:
+    if actual_item == expected_item:
+        return True
+    if (
+        prefix == "runtime"
+        and key == "workflow_effect"
+        and expected_item == "commit"
+        and actual_item == "canonical_write"
+    ):
+        return (
+            actual.get("final_action") == "commit"
+            and actual.get("canonical_commit_status") == "committed"
+        )
+    return False
 
 
 def _display(value: Any) -> str:
