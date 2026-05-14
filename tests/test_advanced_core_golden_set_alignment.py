@@ -221,8 +221,12 @@ def test_doc_index_points_to_advanced_core_alignment_sets() -> None:
 
     root = Path(__file__).resolve().parents[1]
     doc_index = (root / "docs" / "DOC_INDEX.md").read_text(encoding="utf-8-sig")
+    lab_index = (
+        root / "docs" / "quality" / "ADVANCED_PRODUCT_LAB_INDEX.md"
+    ).read_text(encoding="utf-8-sig")
 
-    assert "advanced_core_golden_set_coverage_matrix.yaml" in doc_index
-    assert "advanced_product_lab_recommendation_golden_set.yaml" in doc_index
-    assert "advanced_product_lab_proactive_golden_set.yaml" in doc_index
-    assert "advanced_product_lab_cross_journey_golden_set.yaml" in doc_index
+    assert "ADVANCED_PRODUCT_LAB_INDEX.md" in doc_index
+    assert "advanced_core_golden_set_coverage_matrix.yaml" in lab_index
+    assert "advanced_product_lab_recommendation_golden_set.yaml" in lab_index
+    assert "advanced_product_lab_proactive_golden_set.yaml" in lab_index
+    assert "advanced_product_lab_cross_journey_golden_set.yaml" in lab_index

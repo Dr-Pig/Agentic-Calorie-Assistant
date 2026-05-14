@@ -10,6 +10,7 @@ PLAN_PATH = (
     ROOT / "docs" / "quality" / "advanced_product_lab_rescue_phase1_pr_train.yaml"
 )
 DOC_INDEX_PATH = ROOT / "docs" / "DOC_INDEX.md"
+LAB_INDEX_PATH = ROOT / "docs" / "quality" / "ADVANCED_PRODUCT_LAB_INDEX.md"
 
 
 def _plan() -> dict:
@@ -150,9 +151,10 @@ def test_rescue_phase1_train_names_live_and_e2e_milestones() -> None:
 
 def test_rescue_phase1_train_is_indexed_without_becoming_bootstrap_truth() -> None:
     doc_index = DOC_INDEX_PATH.read_text(encoding="utf-8-sig")
+    lab_index = LAB_INDEX_PATH.read_text(encoding="utf-8-sig")
 
-    assert "advanced_product_lab_rescue_phase1_pr_train.yaml" in doc_index
-    assert "advanced rescue Phase 1 PR train" in doc_index
+    assert "ADVANCED_PRODUCT_LAB_INDEX.md" in doc_index
+    assert "advanced_product_lab_rescue_phase1_pr_train.yaml" in lab_index
     assert "advanced_product_lab_rescue_phase1_pr_train.yaml" not in doc_index[
         doc_index.index("## Active Bootstrap") : doc_index.index("## Active Truth Rules")
     ]

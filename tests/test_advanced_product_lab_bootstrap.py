@@ -34,12 +34,16 @@ def test_agents_bootstrap_records_two_layer_advanced_product_lab_strategy() -> N
 
 def test_docs_index_records_advanced_product_lab_runtime_closure_contract() -> None:
     index = (ROOT / "docs" / "DOC_INDEX.md").read_text(encoding="utf-8-sig")
+    lab_index = (
+        ROOT / "docs" / "quality" / "ADVANCED_PRODUCT_LAB_INDEX.md"
+    ).read_text(encoding="utf-8-sig")
     build_spec = (
         ROOT / "docs" / "quality" / "ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md"
     ).read_text(encoding="utf-8-sig")
 
-    assert "advanced product lab runtime closure" in index
-    assert "ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md" in index
+    assert "ADVANCED_PRODUCT_LAB_INDEX.md" in index
+    assert "advanced product lab runtime closure" in lab_index
+    assert "ADVANCED_MEMORY_MECHANISM_BUILD_SPEC.md" in lab_index
     assert "Advanced Product Lab Runtime Closure Record" in build_spec
     assert "chat action outcome replay" in build_spec
     assert "product loop closure" in build_spec

@@ -8,6 +8,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = ROOT / "docs" / "quality" / "advanced_capability_activation_ladder.yaml"
 DOC_INDEX_PATH = ROOT / "docs" / "DOC_INDEX.md"
+LAB_INDEX_PATH = ROOT / "docs" / "quality" / "ADVANCED_PRODUCT_LAB_INDEX.md"
 
 
 def _contract() -> dict[str, object]:
@@ -22,10 +23,11 @@ def _section(content: str, heading: str, next_heading: str) -> str:
 
 def test_activation_ladder_is_indexed_without_bootstrap_takeover() -> None:
     doc_index = DOC_INDEX_PATH.read_text(encoding="utf-8-sig")
+    lab_index = LAB_INDEX_PATH.read_text(encoding="utf-8-sig")
     active_bootstrap = _section(doc_index, "## Active Bootstrap", "## Active Truth Rules")
 
-    assert "advanced_capability_activation_ladder.yaml" in doc_index
-    assert "advanced capability activation ladder" in doc_index
+    assert "ADVANCED_PRODUCT_LAB_INDEX.md" in doc_index
+    assert "advanced_capability_activation_ladder.yaml" in lab_index
     assert "advanced_capability_activation_ladder.yaml" not in active_bootstrap
 
 

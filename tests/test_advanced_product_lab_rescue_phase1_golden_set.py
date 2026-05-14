@@ -13,6 +13,7 @@ TRAIN_PATH = (
     ROOT / "docs" / "quality" / "advanced_product_lab_rescue_phase1_pr_train.yaml"
 )
 DOC_INDEX_PATH = ROOT / "docs" / "DOC_INDEX.md"
+LAB_INDEX_PATH = ROOT / "docs" / "quality" / "ADVANCED_PRODUCT_LAB_INDEX.md"
 
 
 def _golden() -> dict:
@@ -130,10 +131,11 @@ def test_rescue_phase1_golden_cases_use_trace_fields_not_keyword_oracles() -> No
 def test_rescue_phase1_train_and_doc_index_point_to_golden_set() -> None:
     train = _train()
     doc_index = DOC_INDEX_PATH.read_text(encoding="utf-8-sig")
+    lab_index = LAB_INDEX_PATH.read_text(encoding="utf-8-sig")
 
     assert (
         "docs/quality/advanced_product_lab_rescue_phase1_golden_set.yaml"
         in train["dynamic_estimate_protocol"]["persistent_truth_files"]
     )
-    assert "advanced_product_lab_rescue_phase1_golden_set.yaml" in doc_index
-    assert "advanced rescue Phase 1 golden set" in doc_index
+    assert "ADVANCED_PRODUCT_LAB_INDEX.md" in doc_index
+    assert "advanced_product_lab_rescue_phase1_golden_set.yaml" in lab_index

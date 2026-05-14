@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DOC_INDEX_PATH = ROOT / "docs" / "DOC_INDEX.md"
+LAB_INDEX_PATH = ROOT / "docs" / "quality" / "ADVANCED_PRODUCT_LAB_INDEX.md"
 
 
 REQUIRED_CASE_TYPES = {
@@ -129,12 +130,13 @@ def test_runtime_lab_memory_edd_cases_do_not_encode_raw_keyword_semantic_oracles
 
 def test_runtime_lab_memory_edd_indexed_as_conditional_guidance_only() -> None:
     doc_index = DOC_INDEX_PATH.read_text(encoding="utf-8-sig")
+    lab_index = LAB_INDEX_PATH.read_text(encoding="utf-8-sig")
     active_bootstrap = doc_index[
         doc_index.index("## Active Bootstrap") : doc_index.index("## Active Truth Rules")
     ]
 
-    assert "runtime-lab memory EDD golden set" in doc_index
-    assert "runtime_lab_memory_edd_golden_set.yaml" in doc_index
+    assert "ADVANCED_PRODUCT_LAB_INDEX.md" in doc_index
+    assert "runtime_lab_memory_edd_golden_set.yaml" in lab_index
     assert "runtime_lab_memory_edd_golden_set.yaml" not in active_bootstrap
 
 

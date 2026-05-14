@@ -10,6 +10,7 @@ PLAN_PATH = (
     ROOT / "docs" / "quality" / "advanced_product_lab_context_engineering_pr_train.yaml"
 )
 DOC_INDEX_PATH = ROOT / "docs" / "DOC_INDEX.md"
+LAB_INDEX_PATH = ROOT / "docs" / "quality" / "ADVANCED_PRODUCT_LAB_INDEX.md"
 
 
 def _plan() -> dict:
@@ -161,10 +162,12 @@ def test_context_engineering_train_records_local_slice_progress() -> None:
 
 def test_context_engineering_train_is_indexed_without_becoming_bootstrap_truth() -> None:
     doc_index = DOC_INDEX_PATH.read_text(encoding="utf-8-sig")
+    lab_index = LAB_INDEX_PATH.read_text(encoding="utf-8-sig")
 
-    assert "advanced_product_lab_context_engineering_pr_train.yaml" in doc_index
-    assert "advanced_product_lab_recommendation_pr_train.yaml" in doc_index
-    assert "context engineering train" in doc_index
+    assert "ADVANCED_PRODUCT_LAB_INDEX.md" in doc_index
+    assert "advanced_product_lab_context_engineering_pr_train.yaml" in lab_index
+    assert "advanced_product_lab_recommendation_pr_train.yaml" in lab_index
+    assert "Context Engineering" in lab_index
     assert "advanced_product_lab_context_engineering_pr_train.yaml" not in doc_index[
         doc_index.index("## Active Bootstrap") : doc_index.index("## Active Truth Rules")
     ]

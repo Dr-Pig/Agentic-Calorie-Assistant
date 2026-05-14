@@ -19,6 +19,7 @@ REVIEW_PATH = (
     / "advanced_product_lab_context_engineering_mechanism_review.yaml"
 )
 DOC_INDEX_PATH = ROOT / "docs" / "DOC_INDEX.md"
+LAB_INDEX_PATH = ROOT / "docs" / "quality" / "ADVANCED_PRODUCT_LAB_INDEX.md"
 
 
 def _load(path: Path) -> dict:
@@ -113,7 +114,9 @@ def test_mechanism_review_records_decision_ownership_boundaries() -> None:
 
 def test_new_context_engineering_artifacts_are_indexed() -> None:
     doc_index = DOC_INDEX_PATH.read_text(encoding="utf-8-sig")
+    lab_index = LAB_INDEX_PATH.read_text(encoding="utf-8-sig")
 
-    assert "advanced_product_lab_context_engineering_golden_set.yaml" in doc_index
-    assert "advanced_product_lab_context_engineering_stress_pr_train.yaml" in doc_index
-    assert "advanced_product_lab_context_engineering_mechanism_review.yaml" in doc_index
+    assert "ADVANCED_PRODUCT_LAB_INDEX.md" in doc_index
+    assert "advanced_product_lab_context_engineering_golden_set.yaml" in lab_index
+    assert "advanced_product_lab_context_engineering_stress_pr_train.yaml" in lab_index
+    assert "advanced_product_lab_context_engineering_mechanism_review.yaml" in lab_index

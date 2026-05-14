@@ -28,6 +28,8 @@ This branch may be `codex/advanced-product-lab`, a long-lived isolated product-l
 
 Two-layer strategy: inside this branch, treat the lab as a complete product build with full runtime lab integration, complete UX, full E2E, live Grokfast diagnostics, control state loop, recommendation/rescue/proactive loop, long-term memory, and simulated dogfood traces; when planning merge back to main, self-use V1 remains isolated behind an activation wall.
 
+Use [docs/quality/ADVANCED_PRODUCT_LAB_INDEX.md](docs/quality/ADVANCED_PRODUCT_LAB_INDEX.md) for branch-local advanced lab train, golden-set, activation-wall, and mechanism navigation. `AGENTS.md` owns branch invariants, not the full advanced doc catalog.
+
 - Inside the lab branch, build the complete advanced product surface: runtime integration, UX, E2E, Grokfast diagnostics, control loop, recommendation/rescue/proactive loop, long-term memory, and simulated dogfood traces; do not reduce lab behavior to no-send/dormant-only constraints.
 - Lab runtime capability flags may be `true` when scoped to the isolated product lab. Do not keep memory tools, context injection, recommendation, rescue, proactive messaging, scheduler simulation, or user-facing lab responses disabled merely because mainline activation must remain walled off.
 - Merge-back to main/self-use V1 must keep production activation walled off unless a separate explicit activation PR enables route mounting, scheduler delivery, production DB migration, canonical mutation, durable product memory, or default runtime connection.
