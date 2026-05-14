@@ -38,6 +38,7 @@ These invariants apply to every Golden Set case.
 - Chat, Today, Body, Feedback, and Review consume backend/read-model truth only.
 - Pending and queued messages must survive navigation.
 - Dogfood traces must record timing, call topology, state changes, final visible response, and feedback linkage.
+- Exact-utterance-only passes, keyword shortcuts, and fixture-shaped semantic shortcuts are blockers. A case pass must represent the failure family behind the case, not only the literal text in the manifest.
 
 ## Golden Set Matrix
 
@@ -64,6 +65,8 @@ The v1 Golden Set has nineteen cases:
 - GS19 correlated browser UI E2E
 
 Cases are defined in the manifest so runners can consume the same truth that humans review. The manifest is intentionally explicit about expected runtime effect, UI assertions, response rubric, latency budget, and dogfood trace requirements.
+
+Each case is also a representative of a broader failure family. Passing the literal input text is not enough when trace evidence shows keyword routing, fixture-owned semantics, or case-specific prompt patching.
 
 ## Response Quality
 
