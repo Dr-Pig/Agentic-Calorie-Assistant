@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Callable
 
 
-GENERIC_CONTROL_ACTIONS = {"dismiss", "snooze", "undo"}
+GENERIC_CONTROL_ACTIONS = {"dismiss", "snooze", "undo", "opt_out", "reopen_or_modify"}
 
 
 def is_generic_control_only(*, workflow: str, action: str) -> bool:

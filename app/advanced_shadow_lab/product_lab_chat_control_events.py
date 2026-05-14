@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from app.advanced_shadow_lab.product_lab_feedback_event_bridge import (
+    feedback_projection_for_chat_control,
+)
+
 
 CONTROL_ACTIONS = {"dismiss", "snooze", "undo", "opt_out", "reopen_or_modify"}
 
@@ -13,7 +17,7 @@ def post_turn_chat_control_events(
 ) -> list[dict[str, Any]]:
     packets = _visible_packets_by_id(turn_artifact)
     return [
-        _control_event(action_spec, packets[target_id])
+        _control_event(turn_spec, action_spec, packets[target_id])
         for action_spec in _post_turn_chat_actions(turn_spec)
         if _action(action_spec) in CONTROL_ACTIONS
         for target_id in [str(action_spec.get("target_candidate_id") or "")]
@@ -22,6 +26,7 @@ def post_turn_chat_control_events(
 
 
 def _control_event(
+    turn_spec: Mapping[str, Any],
     action_spec: Mapping[str, Any],
     packet: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -32,6 +37,7 @@ def _control_event(
         or packet.get("next_signal_required")
         or ""
     )
+    source_refs = _source_refs(packet)
     return {
         "event_id": str(action_spec.get("event_id") or ""),
         "action": action,
@@ -51,8 +57,14 @@ def _control_event(
         "source_packet_id": target_id,
         "source_workflow_family": str(packet.get("workflow_family") or ""),
         "source_chat_action_event_id": str(action_spec.get("event_id") or ""),
-        "source_refs": _source_refs(packet),
+        "source_refs": source_refs,
         "chat_control_action_bridge_used": True,
+        **feedback_projection_for_chat_control(
+            turn_spec=turn_spec,
+            action_spec=action_spec,
+            packet=packet,
+            source_refs=source_refs,
+        ),
     }
 
 

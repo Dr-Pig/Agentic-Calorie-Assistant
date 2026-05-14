@@ -105,6 +105,12 @@ def _entry(
         "chat_control_action_bridge_used": (
             event.get("chat_control_action_bridge_used") is True
         ),
+        "feedback_event": event.get("feedback_event"),
+        "feedback_event_projection": event.get("feedback_event_projection"),
+        "feedback_event_projection_ready": (
+            event.get("feedback_event_projection_ready") is True
+        ),
+        "feedback_event_role": str(event.get("feedback_event_role") or ""),
         "raw_user_text_semantic_inference_performed": False,
         **dict(FALSE_FLAGS),
     }, blockers
