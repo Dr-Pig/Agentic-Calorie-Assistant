@@ -26,6 +26,7 @@ def _packet(index: int, candidate: Mapping[str, Any]) -> dict[str, Any]:
         "trigger_type": "pending_intake_followup",
         "candidate_kind": str(candidate.get("candidate_kind") or ""),
         "pending_intake_draft_ids": draft_ids,
+        "pending_meal_intent_ids": _intent_ids(candidate),
         "product_runtime_output_refs": [
             str(item) for item in candidate.get("source_output_refs") or []
         ],
@@ -45,6 +46,15 @@ def _packet(index: int, candidate: Mapping[str, Any]) -> dict[str, Any]:
 
 def _draft_ids(candidate: Mapping[str, Any]) -> list[str]:
     prefix = "pending_intake_draft:"
+    return [
+        str(ref)[len(prefix) :]
+        for ref in candidate.get("source_output_refs") or []
+        if str(ref).startswith(prefix)
+    ]
+
+
+def _intent_ids(candidate: Mapping[str, Any]) -> list[str]:
+    prefix = "pending_meal_intent:"
     return [
         str(ref)[len(prefix) :]
         for ref in candidate.get("source_output_refs") or []
