@@ -52,7 +52,7 @@ def test_memory_record_closeout_plan_keeps_legacy_lab_memory_paths_bounded() -> 
 def test_golden_set_next_slice_points_to_real_dogfood_after_closeout() -> None:
     golden = yaml.safe_load(GOLDEN_SET.read_text(encoding="utf-8-sig"))
 
-    assert golden["version"] == 1.3
+    assert golden["version"] == 1.4
     assert golden["runtime_lab_closure_alignment"]["next_required_slice"] == (
         "real_dogfood_trace_calibration_when_available"
     )

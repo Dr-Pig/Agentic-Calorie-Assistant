@@ -405,20 +405,23 @@ def test_product_lab_session_replay_records_manager_tool_loop_trace(
     )
 
     assert artifact["status"] == "pass"
-    assert artifact["manager_tool_loop_turn_count"] == 1
-    assert artifact["manager_tool_loop_source_refs"] == [
+    expected_source_refs = [
         "manager_tool_call:memory-search-1:memory.search",
         "manager_tool_call:recommendation-1:recommendation.run",
         "manager_tool_call:rescue-1:rescue.run",
         "manager_tool_call:proactive-1:proactive.run",
     ]
+    assert artifact["manager_tool_loop_turn_count"] == 2
+    assert artifact["manager_tool_loop_source_refs"] == [
+        *expected_source_refs,
+        *expected_source_refs,
+    ]
     assert artifact["manager_tool_loop_blockers"] == []
-    assert artifact["turn_summaries"][0]["manager_tool_loop_status"] == "not_run"
+    assert artifact["turn_summaries"][0]["manager_tool_loop_status"] == "pass"
     assert artifact["turn_summaries"][1]["manager_tool_loop_status"] == "pass"
+    assert artifact["turn_summaries"][0]["manager_tool_loop_enabled"] is True
     assert artifact["turn_summaries"][1]["manager_tool_loop_enabled"] is True
-    assert artifact["turn_summaries"][1]["manager_tool_loop_source_refs"] == (
-        artifact["manager_tool_loop_source_refs"]
-    )
+    assert artifact["turn_summaries"][1]["manager_tool_loop_source_refs"] == expected_source_refs
 
     turn_path = Path(artifact["turn_artifact_paths"][1])
     turn_record = read_json_artifact(turn_path)

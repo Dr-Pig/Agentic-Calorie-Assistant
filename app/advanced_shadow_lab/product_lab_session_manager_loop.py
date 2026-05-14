@@ -41,7 +41,9 @@ def session_manager_tool_summary(
     ]
     return {
         "manager_tool_loop_turn_count": sum(
-            1 for turn in turn_summaries if turn.get("manager_tool_loop_enabled") is True
+            1
+            for turn in turn_summaries
+            if str(turn.get("manager_tool_loop_status") or "not_run") != "not_run"
         ),
         "manager_tool_loop_source_refs": source_refs,
         "manager_tool_loop_blockers": blockers,

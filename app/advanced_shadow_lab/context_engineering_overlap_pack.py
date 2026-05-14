@@ -19,26 +19,36 @@ def build_context_engineering_overlap_case_pack() -> dict[str, Any]:
             "advanced_lab": _case_ids(cases, "advanced_lab"),
             "current_shell_bridge": _case_ids(cases, "current_shell_bridge"),
         },
-        "pairings": [
-            {
-                "pairing_id": "shared_vs_current_shell_query_memory",
-                "case_ids": ["ce-001", "ce-005"],
-            },
-            {
-                "pairing_id": "shared_vs_advanced_lab_rescue_memory",
-                "case_ids": ["ce-002", "ce-004"],
-            },
-            {
-                "pairing_id": "shared_vs_reusable_meal_entry",
-                "case_ids": ["ce-003", "ce-006"],
-            },
-        ],
+        "pairings": _stress_pairings(cases),
         "blockers": [],
     }
 
 
 def _case_ids(cases: list[dict[str, Any]], coverage_scope: str) -> list[str]:
     return [str(item["case_id"]) for item in cases if item["coverage_scope"] == coverage_scope]
+
+
+def _stress_pairings(cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_id = {str(item["case_id"]): item for item in cases}
+    candidate_pairings = [
+        {
+            "pairing_id": "current_shell_bridge_intake_query",
+            "case_ids": ["ce-stress-009", "ce-stress-013"],
+        },
+        {
+            "pairing_id": "advanced_lab_memory_recommendation",
+            "case_ids": ["ce-stress-002", "ce-stress-014"],
+        },
+        {
+            "pairing_id": "advanced_lab_pending_intent_loop",
+            "case_ids": ["ce-stress-006", "ce-stress-007"],
+        },
+    ]
+    return [
+        pairing
+        for pairing in candidate_pairings
+        if all(case_id in by_id for case_id in pairing["case_ids"])
+    ]
 
 
 __all__ = ["build_context_engineering_overlap_case_pack"]
