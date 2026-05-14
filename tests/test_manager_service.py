@@ -84,6 +84,14 @@ def test_single_manager_system_prompt_keeps_estimate_explanation_queries_read_on
     )
 
 
+def test_single_manager_system_prompt_keeps_user_replies_free_of_internal_estimate_labels() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+
+    assert "do not expose internal labels such as LLM, llm_only" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "macro visibility is not explicit" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "say macro data is insufficient instead of listing protein/carbs/fat grams" in SINGLE_MANAGER_SYSTEM_PROMPT
+
+
 def test_single_manager_system_prompt_keeps_no_plan_budget_queries_read_only() -> None:
     from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
 
@@ -466,10 +474,14 @@ async def test_run_intake_manager_injects_entry_scope_route_policy() -> None:
         "if_intake_execution_needed": {
             "manager_action": "final",
             "tool_calls": [],
-            "intent_type": "log_meal",
+            "intent_type_options": {
+                "new_meal": "log_meal",
+                "correction_or_refinement": "correct_meal",
+            },
             "final_action": "no_commit",
             "workflow_effect": "route_to_intake",
         },
+        "context_packet_read_only_flags": "context_evidence_only_not_current_turn_mutation_intent",
         "deterministic_boundary": "runtime_validates_tool_scope_only_no_raw_text_semantic_routing",
     }
 
@@ -507,8 +519,13 @@ async def test_run_intake_manager_uses_static_prompt_and_dynamic_entry_scope_pol
     assert "Entry scope is classification, handoff, and read-only tool planning only." in prompt
     assert "Explicit remove_item correction is different" in prompt
     assert "use target evidence from resolve_correction_target" in prompt
+    assert "context packet read_only" in prompt
+    assert "after an estimate-basis inquiry" in prompt
+    assert "do not ask for replacement confirmation" in prompt
     assert policy["manager_loop_scope"] == "turn_entry_or_read_only"
     assert policy["if_intake_execution_needed"]["workflow_effect"] == "route_to_intake"
+    assert policy["if_intake_execution_needed"]["intent_type_options"]["correction_or_refinement"] == "correct_meal"
+    assert policy["context_packet_read_only_flags"] == "context_evidence_only_not_current_turn_mutation_intent"
 
 
 @pytest.mark.asyncio

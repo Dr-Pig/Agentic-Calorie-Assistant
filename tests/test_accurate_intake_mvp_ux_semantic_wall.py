@@ -10,11 +10,12 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.composition.accurate_intake_debug_routes import build_accurate_intake_debug_payload
 from app.composition.canonical_persistence import commit_meal_payload_to_canonical
+from app.composition.inflight_chat_turn import PENDING_ASSISTANT_MESSAGE
 from app.composition.intake_turn_orchestrator import execute_intake_turn
 from app.composition.non_fooddb_read_only_turn import NON_FOODDB_READ_ONLY_MANAGER_TOOLS
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_or_create_user
-from app.models import Base, MealItemRecord, MealThreadRecord, MealVersionRecord
+from app.models import Base, MealItemRecord, MealThreadRecord, MealVersionRecord, MessageBuffer
 from app.schemas import CommitRequestCandidate, MealItemPayload
 
 
@@ -358,6 +359,14 @@ def test_runtime_keeps_estimate_explanation_query_read_only_even_with_active_mea
     assert debug_payload["model"]["today_summary"]["consumed_kcal"] == 620
     assert db.query(MealThreadRecord).count() == 1
     assert db.query(MealVersionRecord).count() == 1
+    assistant_messages = (
+        db.query(MessageBuffer)
+        .filter(MessageBuffer.role == "assistant")
+        .order_by(MessageBuffer.id.asc())
+        .all()
+    )
+    assert assistant_messages[-1].content == "answer_only"
+    assert assistant_messages[-1].content != PENDING_ASSISTANT_MESSAGE
     assert provider.calls[0]["raw_user_input_seen_by_manager"] == "你是怎麼估的？你估的組成是什麼？"
     manager_packet = provider.calls[0]["manager_context_packet_v1"]
     assert isinstance(manager_packet, dict)

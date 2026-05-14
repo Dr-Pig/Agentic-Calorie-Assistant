@@ -1681,6 +1681,38 @@ def _turn_answer_basis(manager_decision: dict[str, Any]) -> dict[str, Any]:
     basis = _dict(answer_contract.get("answer_basis"))
     if basis:
         return _json_safe(basis)
+    basis_text = str(answer_contract.get("answer_basis") or "").strip()
+    references_active_meal = answer_contract.get("references_active_meal") is True or _basis_text_references_active_meal(
+        basis_text
+    )
+    if basis_text and references_active_meal:
+        normalized = {
+            "references_active_meal": True,
+            "assumption_or_composition_explained": True,
+            "basis_text": basis_text,
+        }
+        active_basis = _active_meal_basis_from_manager_decision_trace(manager_decision)
+        for key in ("meal_thread_id", "meal_version_id"):
+            if active_basis.get(key) is not None:
+                normalized[key] = active_basis[key]
+        return _json_safe(normalized)
+    return {}
+
+
+def _basis_text_references_active_meal(basis_text: str) -> bool:
+    normalized = " ".join(str(basis_text or "").lower().split())
+    return "active_meal_estimate_basis" in normalized or "references_active_meal: true" in normalized
+
+
+def _active_meal_basis_from_manager_decision_trace(manager_decision: dict[str, Any]) -> dict[str, Any]:
+    trace = _dict(manager_decision.get("trace"))
+    for round_item in _list(trace.get("manager_rounds")):
+        phase_a_input = _dict(_dict(round_item).get("phase_a_input"))
+        packet = _dict(phase_a_input.get("manager_context_packet_v1"))
+        active_day_state = _dict(packet.get("active_day_state"))
+        active_basis = _dict(active_day_state.get("active_meal_estimate_basis"))
+        if active_basis:
+            return active_basis
     return {}
 
 

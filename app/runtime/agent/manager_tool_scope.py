@@ -51,10 +51,14 @@ def manager_scope_policy_payload(manager_loop_scope: str, available_tools: tuple
         "if_intake_execution_needed": {
             "manager_action": "final",
             "tool_calls": [],
-            "intent_type": "log_meal",
+            "intent_type_options": {
+                "new_meal": "log_meal",
+                "correction_or_refinement": "correct_meal",
+            },
             "final_action": "no_commit",
             "workflow_effect": "route_to_intake",
         },
+        "context_packet_read_only_flags": "context_evidence_only_not_current_turn_mutation_intent",
         "deterministic_boundary": "runtime_validates_tool_scope_only_no_raw_text_semantic_routing",
     }
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.runtime.agent import founder_live_manager_composition_refinement_policy as refinement_policy
 from app.shared.contracts.correction_operation import structured_correction_operation, structured_payload_requests_remove_item
 
 FOUNDER_LIVE_MANAGER_CONTRACT_PROFILE_ID = "founder_live_contract"
@@ -13,16 +14,8 @@ FOUNDER_LIVE_MANAGER_COMMIT_WITHOUT_EVIDENCE_REPAIR_FAMILY = "commit_without_evi
 FOUNDER_LIVE_MANAGER_REPAIR_REQUIRED_TOOL_BY_FAMILY = {
     FOUNDER_LIVE_MANAGER_COMMIT_WITHOUT_EVIDENCE_REPAIR_FAMILY: "estimate_nutrition",
 }
-FOUNDER_LIVE_MANAGER_EVIDENCE_REQUIRED_FINAL_ACTIONS = [
-    "commit",
-    "correction_applied",
-    "overshoot_note",
-]
-FOUNDER_LIVE_MANAGER_REPAIR_ALLOWED_TOOL_NAMES = [
-    "resolve_correction_target",
-    "estimate_nutrition",
-    "compare_against_budget",
-]
+FOUNDER_LIVE_MANAGER_EVIDENCE_REQUIRED_FINAL_ACTIONS = ["commit", "correction_applied", "overshoot_note"]
+FOUNDER_LIVE_MANAGER_REPAIR_ALLOWED_TOOL_NAMES = ["resolve_correction_target", "estimate_nutrition", "compare_against_budget"]
 
 FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS = [
     "manager_action",
@@ -141,6 +134,7 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY = {
         "forbidden_substitute_final_actions": ["ask_followup", "no_commit", "answer_only"],
         "runtime_role": "validate_evidence_packet_and_final_mapping_only",
     },
+    "composition_refinement_after_basis_query_rule": refinement_policy.COMPOSITION_REFINEMENT_AFTER_BASIS_QUERY_RULE,
     "followup_question_rule": {
         "question_required_postures": sorted(FOUNDER_LIVE_MANAGER_FOLLOWUP_QUESTION_REQUIRED_POSTURES),
         "fallback_postures_when_no_question": ["none", "refinement_optional", "closed"],
@@ -164,7 +158,8 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY_SUMMARY = (
     "for composition-unknown baskets because no estimable item list exists yet; "
     "when a later follow-up supplies concrete listed items for that basket, it is no longer composition-unknown: "
     "use prior turn context, call estimate_nutrition before commit, and do not repeat the same composition clarification; "
-    "refinement_not_commit_gate and size_clarification follow-up postures require a followup_question."
+    + refinement_policy.COMPOSITION_REFINEMENT_AFTER_BASIS_QUERY_SUMMARY
+    + "refinement_not_commit_gate and size_clarification follow-up postures require a followup_question."
 )
 FOUNDER_LIVE_MANAGER_EVIDENCE_INSTRUCTION = (
     "Current-loop nutrition evidence exists only when "
@@ -278,6 +273,7 @@ FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES = [
             },
         },
     },
+    refinement_policy.COMPOSITION_REFINEMENT_AFTER_BASIS_QUERY_EXAMPLE,
     {
         "name": "explicit_item_removal_as_correction",
         "valid": {
@@ -370,7 +366,8 @@ def founder_live_manager_tool_description() -> str:
         "required top-level fields. Use tool_calls=[] when manager_action is final; use a non-empty tool_calls "
         "array with supported tool names when manager_action is call_tools. Do not collapse query-only, estimate-basis inquiry, or correction turns into log_meal: "
         "answer_query uses intent_type='answer_query' and no mutation; estimate-basis inquiries use answer_query/answer_only/tool_calls=[] with "
-        "answer_contract.answer_basis from manager_context_packet_v1 when available; correct_meal uses intent_type='correct_meal' with correction_applied/correction_write. Do not use ask_followup, "
+        "answer_contract.answer_basis from manager_context_packet_v1 when available; answer those basis questions in user-facing language without exposing LLM/llm_only/internal enum labels or unsupported macro gram claims; "
+        "correct_meal uses intent_type='correct_meal' with correction_applied/correction_write. Do not use ask_followup, "
         "no_commit, or answer_only as substitutes for evidence-required commit/correction_applied/overshoot_note; "
         "call estimate_nutrition first. If you set evidence_posture to requires_tool or evidence_missing, use "
         "manager_action call_tools with estimate_nutrition; the invalid evidence-required candidate pattern is "
@@ -381,7 +378,8 @@ def founder_live_manager_tool_description() -> str:
         "ask_followup, and do not call estimate_nutrition for composition-unknown baskets; "
         "manager_action call_tools is invalid for composition-unknown baskets. For a "
         "listed-item follow-up, call estimate_nutrition and do not repeat the same composition clarification. "
-        "If followup_posture is refinement_not_commit_gate or size_clarification, include a followup_question. "
+        + refinement_policy.COMPOSITION_REFINEMENT_AFTER_BASIS_QUERY_DESCRIPTION
+        + "If followup_posture is refinement_not_commit_gate or size_clarification, include a followup_question. "
         "If you do not have a concrete follow-up question, use none, closed, or refinement_optional."
     )
 

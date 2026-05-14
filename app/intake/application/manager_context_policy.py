@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from app.intake.application.manager_context_scope_flags import current_turn_context_evidence_scope_flags
 from app.runtime.contracts.phase_a import CurrentTurnContextV1
 
 MANAGER_CONTEXT_POLICY_VERSION = "accurate_intake_mvp_context_policy_v1"
@@ -118,8 +119,7 @@ def build_manager_context_packet_v1(
             "raw_user_input": current_turn_context.user_utterance,
             "channel": channel,
             "manager_mode": manager_mode,
-            "read_only": True,
-            "mutation_authority": False,
+            **current_turn_context_evidence_scope_flags(),
             "interaction_event": _interaction_event_snapshot(current_turn_context.current_interaction_event),
         },
         "recent_chat_window": {
