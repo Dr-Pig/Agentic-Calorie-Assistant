@@ -459,7 +459,7 @@ def test_resolve_attachment_decision_attaches_pending_followup_answers_to_existi
     assert guard.verdict == "pass"
 
 
-def test_resolve_attachment_decision_targets_recent_committed_meal_for_correction() -> None:
+def test_resolve_attachment_decision_keeps_active_meal_back_reference_manager_owned() -> None:
     context = build_current_turn_context_v1(
         raw_user_input="actually change that meal to a half bowl",
         resolved_state=_resolved_state(
@@ -482,11 +482,15 @@ def test_resolve_attachment_decision_targets_recent_committed_meal_for_correctio
     )
 
     decision = resolve_attachment_decision(context)
+    guard = resolve_transition_guard(context, decision)
 
-    assert decision.disposition == "target_committed_thread"
-    assert decision.target_object_type == "meal_thread"
-    assert decision.target_object_id == "55"
-    assert decision.allowed_transition_class == "interpretation_update"
+    assert context.candidate_attachment_targets
+    assert decision.disposition == "answer_only"
+    assert decision.target_object_type == "none"
+    assert decision.target_object_id is None
+    assert decision.reason == "ambiguous_back_reference_requires_manager"
+    assert decision.allowed_transition_class == "none"
+    assert guard.verdict == "answer_only"
 
 
 def test_resolve_attachment_decision_does_not_pick_recent_meal_from_raw_back_reference() -> None:
