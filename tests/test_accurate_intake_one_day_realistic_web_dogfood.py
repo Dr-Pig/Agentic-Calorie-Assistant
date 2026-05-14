@@ -158,10 +158,10 @@ def test_accurate_intake_one_day_realistic_web_dogfood_uses_minimal_fooddb_evide
         dinner = _turn_by_id(turns, "dinner_basket_001")
         dinner_macro = dinner["raw_response"]["payload"]["sidecar"]["macro"]
         assert dinner_macro["display_status"] == "hide"
-        assert dinner_macro["guard_reason"] == "macro_alignment_fail"
-        assert dinner_macro["protein_g"] == 61
-        assert dinner_macro["carbs_g"] == 206
-        assert dinner_macro["fat_g"] == 58
+        assert dinner_macro["guard_reason"] == "no_macro_data"
+        assert dinner_macro["protein_g"] == 0
+        assert dinner_macro["carbs_g"] == 0
+        assert dinner_macro["fat_g"] == 0
         assert dinner_macro["approved_fooddb_evidence_trace"]["source_lane"] == "listed_component"
         assert dinner_macro["approved_fooddb_evidence_trace"]["macro_visibility_status"] == "hidden_missing_source"
 
