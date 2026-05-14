@@ -67,6 +67,16 @@ def test_single_manager_system_prompt_restricts_tool_calls_to_available_surface(
     assert "Scope policy has priority over evidence and target-resolution rules" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "manager_loop_scope='turn_entry_or_read_only'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "workflow_effect='route_to_intake'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "intent_type='correct_meal' for correction/refinement" in SINGLE_MANAGER_SYSTEM_PROMPT
+
+
+def test_single_manager_system_prompt_keeps_estimate_explanation_queries_read_only() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+
+    assert "asks how an existing meal was estimated" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "intent_type='answer_query'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "mutation_intent_candidate='no_mutation'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "Do not route estimate-explanation questions to intake execution" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
 def test_single_manager_system_prompt_keeps_no_plan_budget_queries_read_only() -> None:
@@ -617,7 +627,7 @@ async def test_run_intake_manager_keeps_prompt_registry_in_trace_only() -> None:
         "registry_version": "manager_prompt_registry.v1",
         "manager_loop_stage": "intake_manager_round",
         "system_prompt_id": "single_manager_system_prompt",
-        "system_prompt_version": "v16",
+        "system_prompt_version": "v17",
         "model_prompt_contract_id": "single_manager_user_payload_contract",
         "model_prompt_contract_version": "v1",
         "tool_surface_version": "current_shell_public_tools.v1",

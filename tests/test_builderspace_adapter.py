@@ -915,7 +915,9 @@ def test_founder_live_manager_contract_schema_uses_consumer_backed_required_fiel
         "answer_remaining_budget",
         "onboarding_required",
         "manager_unavailable",
+        "answer_query",
         "log_meal",
+        "correct_meal",
     ]
     assert schema["x-field-consumers"]["workflow_effect"] == "transition_guard_and_mutation_boundary"
     assert schema["x-field-consumers"]["answer_contract"] == "renderer_boundary"
@@ -1292,6 +1294,7 @@ def test_founder_live_manager_contract_payload_accepts_trace_repair_ack_outside_
 
     answer_query_without_top_level_final_action = dict(payload)
     answer_query_without_top_level_final_action.pop("final_action", None)
+    answer_query_without_top_level_final_action["intent_type"] = "answer_query"
     answer_query_without_top_level_final_action["workflow_effect"] = "answer_only"
     answer_query_without_top_level_final_action["semantic_decision"] = {
         **dict(payload["semantic_decision"]),
@@ -1309,6 +1312,7 @@ def test_founder_live_manager_contract_payload_accepts_trace_repair_ack_outside_
         )
 
     correction_as_new_commit = dict(payload)
+    correction_as_new_commit["intent_type"] = "correct_meal"
     correction_as_new_commit["final_action"] = "commit"
     correction_as_new_commit["semantic_decision"] = {
         **dict(payload["semantic_decision"]),
@@ -1643,6 +1647,7 @@ def test_founder_live_remove_item_can_finalize_with_target_evidence_without_nutr
         "canonical_name": "soup",
     }
     remove_item_final = _founder_live_payload(
+        intent_type="correct_meal",
         final_action="correction_applied",
         workflow_effect="correction",
         target_attachment=target_attachment,
@@ -1684,6 +1689,7 @@ def test_founder_live_remove_item_can_use_prior_target_evidence_operation(
         },
     }
     remove_item_final = _founder_live_payload(
+        intent_type="correct_meal",
         final_action="correction_applied",
         workflow_effect="correction_applied",
         target_attachment={"meal_item_id": 2, "canonical_name": "soup"},
@@ -1929,8 +1935,10 @@ def test_founder_live_contract_policy_names_existing_query_only_and_followup_inv
     policy = FOUNDER_LIVE_MANAGER_CONTRACT_POLICY
 
     assert policy["query_only_rule"]["semantic_intent"] == "answer_query"
+    assert policy["query_only_rule"]["intent_type"] == "answer_query"
     assert policy["query_only_rule"]["final_action"] == "answer_only"
     assert policy["query_only_rule"]["mutation_intent_candidate"] == "no_mutation"
+    assert policy["correction_rule"]["intent_type"] == "correct_meal"
     assert policy["correction_rule"]["final_action"] == "correction_applied"
     assert policy["composition_unknown_rule"]["mutation_intent_candidate"] == "no_mutation"
     assert policy["composition_unknown_rule"]["estimate_tool_allowed"] is False
@@ -2108,7 +2116,8 @@ def test_founder_live_manager_contract_uses_synthetic_tool_transport_with_schema
     assert transport_request["tool_name"] == "manager_structured_decision"
     assert transport_request["tool_choice"]["function"]["name"] == "manager_structured_decision"
     assert transport_request["tools"][0]["function"]["strict"] is True
-    assert "correct_meal -> log_meal" in transport_request["tools"][0]["function"]["description"]
+    assert "intent_type='correct_meal'" in transport_request["tools"][0]["function"]["description"]
+    assert "Do not collapse query-only or correction turns into log_meal" in transport_request["tools"][0]["function"]["description"]
     assert "estimate_nutrition" in transport_request["tools"][0]["function"]["description"]
     assert transport_request["tools"][0]["function"]["parameters"]["required"] == [
         "manager_action",
