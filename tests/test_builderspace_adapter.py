@@ -2018,7 +2018,9 @@ def test_founder_live_schema_guidance_names_composition_unknown_call_tools_as_in
     ]
 
     assert "manager_action=call_tools is invalid for composition-unknown" in manager_action_description
-    assert "composition_unknown_basket is not pending_tool_call" in estimation_posture_description
+    assert "composition_unknown_basket or unanchored_patterned_combo is not pending_tool_call" in (
+        estimation_posture_description
+    )
     assert "Do not include estimate_nutrition for composition-unknown" in tool_calls_description
 
 
