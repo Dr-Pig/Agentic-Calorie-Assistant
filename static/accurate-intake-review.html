@@ -120,6 +120,13 @@
     .status { color: var(--muted); }
     .status[data-state="error"] { color: var(--danger); }
     .empty { color: var(--muted); margin: 0; }
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
     @media (max-width: 760px) {
       .topbar { align-items: flex-start; flex-direction: column; }
       .grid { grid-template-columns: 1fr 1fr; }
@@ -154,6 +161,10 @@
   >
     <section class="panel">
       <h1>Review Queue</h1>
+      <p class="subtle">Review 是給開發者整理問題的佇列。如果你要回報問題，請用 Feedback；這一頁只是看已經送出的回饋是否被收進佇列。</p>
+      <div class="actions">
+        <a class="action-link" data-nav-target="feedback" href="/static/accurate-intake-feedback.html">Open Feedback</a>
+      </div>
       <p id="review-status" class="subtle" aria-live="polite" role="status">Loading.</p>
     </section>
     <section class="panel grid" aria-label="Review queue summary">

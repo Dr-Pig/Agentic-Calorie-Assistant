@@ -100,6 +100,23 @@
       color: var(--ink);
       font-weight: 800;
     }
+    details.context-details {
+      grid-column: 1 / -1;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fbfcfd;
+    }
+    details.context-details summary {
+      cursor: pointer;
+      font-weight: 800;
+    }
+    .context-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
     .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     button {
       border: 0;
@@ -123,7 +140,7 @@
     .status[data-state="error"] { color: var(--danger); }
     @media (max-width: 720px) {
       .topbar { align-items: flex-start; flex-direction: column; }
-      .session-strip, .form-grid { grid-template-columns: 1fr; }
+      .session-strip, .form-grid, .context-detail-grid { grid-template-columns: 1fr; }
       main { width: calc(100vw - 16px); margin: 8px auto; }
     }
   </style>
@@ -152,7 +169,7 @@
   >
     <section class="panel">
       <h1>Feedback</h1>
-      <p class="subtle">Local dogfood review.</p>
+      <p class="subtle">不用填 ID。寫下你剛剛遇到的問題；系統會自動帶入目前頁面、日期、最近一則訊息與餐點線索。</p>
     </section>
     <section class="panel session-strip" aria-label="Feedback context">
       <label>User ID
@@ -161,19 +178,28 @@
       <label>Date
         <input id="local-date" type="date" />
       </label>
-      <label>Trace ID
-        <input id="trace-id" autocomplete="off" />
-      </label>
-      <label>Request ID
-        <input id="request-id" autocomplete="off" />
-      </label>
-      <label>Meal ID
-        <input id="meal-id" autocomplete="off" />
-      </label>
       <div class="context-note" aria-label="Selected meal context">
         <strong>Meal</strong>
         <span id="meal-title-context">No meal selected</span>
       </div>
+      <details id="advanced-context-fields" class="context-details" open>
+        <summary>進階：自動帶入的上下文</summary>
+        <p class="subtle">這些欄位是給之後 triage / trace 對照用；日常回報不用手填。</p>
+        <div class="context-detail-grid">
+          <label>Trace ID
+            <input id="trace-id" autocomplete="off" />
+          </label>
+          <label>Request ID
+            <input id="request-id" autocomplete="off" />
+          </label>
+          <label>Message ID
+            <input id="message-id" autocomplete="off" />
+          </label>
+          <label>Meal ID
+            <input id="meal-id" autocomplete="off" />
+          </label>
+        </div>
+      </details>
     </section>
     <form id="feedback-form" class="panel form-grid" aria-busy="false">
       <label>Category
@@ -195,17 +221,14 @@
           <option value="high">High</option>
         </select>
       </label>
-      <label>Message ID
-        <input id="message-id" autocomplete="off" />
-      </label>
       <label class="wide">Note
-        <span id="feedback-text-help" class="subtle">What happened, what did you expect, and what page or meal were you using?</span>
+        <span id="feedback-text-help" class="subtle">描述發生什麼、你原本期待什麼；如果是估算錯誤，可以補上你認為餐點有哪些組成。</span>
         <textarea id="feedback-text" name="feedback_text" aria-describedby="feedback-text-help" required></textarea>
       </label>
       <div class="actions wide">
-        <button id="submit-feedback" type="submit">Submit</button>
-        <a class="action-link" data-nav-target="chat" href="/static/accurate-intake-chat.html">Back to Chat</a>
-        <a class="action-link" data-nav-target="review" href="/static/accurate-intake-review.html">Open Review</a>
+        <button id="submit-feedback" type="submit">送出回饋</button>
+        <a class="action-link" data-nav-target="chat" href="/static/accurate-intake-chat.html">回 Chat</a>
+        <a class="action-link" data-nav-target="review" href="/static/accurate-intake-review.html">打開 Review Queue</a>
         <span id="feedback-status" class="status" aria-live="polite" role="status">Not submitted.</span>
       </div>
     </form>
