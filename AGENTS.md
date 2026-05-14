@@ -72,6 +72,8 @@ Use these gates for non-trivial or PR-producing work. Skip them for fast-path ed
 
 ## Minimum Read Path
 
+Bootstrap read path is:
+
 1. `AGENTS.md`
 2. directly relevant task files
 3. [docs/DOC_INDEX.md](docs/DOC_INDEX.md) only when document ownership, active-vs-legacy routing, or file placement is uncertain
@@ -84,6 +86,8 @@ Use these gates for non-trivial or PR-producing work. Skip them for fast-path ed
 Default workflow is repo-truth-first interactive implementation. Unattended / overnight autonomy is optional and should only be loaded when the task intentionally uses an approval-light continuation protocol.
 
 ## Spec And Document Editing
+
+Use the lightest safe edit method: `apply_patch` for manual local edits, deterministic/native tooling for mechanical or generated changes, and parser-based updates for structured data when practical. Existing specs, architecture docs, and governance docs must stay section-level and coverage-preserving unless an explicit approved rewrite path exists. Never delete-and-recreate existing canonical docs as a routine edit.
 
 For existing specs, architecture docs, governance docs, and canonical markdown:
 

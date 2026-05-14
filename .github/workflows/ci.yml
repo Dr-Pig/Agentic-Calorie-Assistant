@@ -81,7 +81,33 @@ jobs:
             tests/test_tavily_timeout_contract.py \
             tests/test_text_integrity.py \
             tests/test_workflow_routing_decision.py \
+            tests/test_accurate_intake_context_conditioned_intent_wall.py \
+            tests/test_accurate_intake_correction_removal_fixture_flow.py \
             -q
+
+      - name: Build context-conditioned intent wall report
+        run: |
+          python scripts/run_accurate_intake_context_conditioned_intent_wall.py --output artifacts/accurate_intake_context_conditioned_intent_wall_ci.json
+
+      - name: Build correction/removal fixture flow report
+        run: |
+          python scripts/run_accurate_intake_correction_removal_fixture_flow.py --output artifacts/accurate_intake_correction_removal_fixture_flow_ci.json
+
+      - name: Upload context-conditioned intent wall report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: accurate-intake-context-conditioned-intent-wall-report
+          path: artifacts/accurate_intake_context_conditioned_intent_wall_ci.json
+          if-no-files-found: error
+
+      - name: Upload correction/removal fixture flow report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: accurate-intake-correction-removal-fixture-flow-report
+          path: artifacts/accurate_intake_correction_removal_fixture_flow_ci.json
+          if-no-files-found: error
 
   product-pages-browser-e2e:
     runs-on: ubuntu-latest
