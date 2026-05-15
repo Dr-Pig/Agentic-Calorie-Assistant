@@ -23,22 +23,27 @@ def _best_match(term: str, records: tuple[IndexedFoodRecord, ...]) -> dict[str, 
                 "record": record,
                 "match_path": "canonical_or_alias_exact",
                 "score": 100,
+                "specificity_score": len(term_key),
                 "confidence": "high",
                 "requires_manager_disambiguation": False,
             }
         elif term_key and any(term_key in key for key in name_keys):
+            specificity = max((len(key) for key in name_keys if term_key in key), default=0)
             candidate = {
                 "record": record,
                 "match_path": "canonical_or_alias_substring",
                 "score": 92,
+                "specificity_score": specificity,
                 "confidence": "medium_high",
                 "requires_manager_disambiguation": True,
             }
         elif term_key and any(key and key in term_key for key in name_keys):
+            specificity = max((len(key) for key in name_keys if key and key in term_key), default=0)
             candidate = {
                 "record": record,
                 "match_path": "query_contains_canonical_or_alias",
                 "score": 90,
+                "specificity_score": specificity,
                 "confidence": "medium_high",
                 "requires_manager_disambiguation": True,
             }
@@ -47,23 +52,31 @@ def _best_match(term: str, records: tuple[IndexedFoodRecord, ...]) -> dict[str, 
                 "record": record,
                 "match_path": expansion["match_path"],
                 "score": expansion["score"],
+                "specificity_score": len(expanded_key),
                 "confidence": expansion["confidence"],
                 "requires_manager_disambiguation": expansion["requires_manager_disambiguation"],
             }
         else:
             score = max((_similarity(term_key, key) for key in name_keys), default=0)
+            specificity = max((len(key) for key in name_keys), default=0)
             candidate = {
                 "record": record,
                 "match_path": "fuzzy_alias",
                 "score": score,
+                "specificity_score": specificity,
                 "confidence": "medium_high" if score >= 75 else "low",
                 "requires_manager_disambiguation": score < 90,
             }
         if candidate["score"] < 75:
             continue
-        if best is None or (candidate["score"], record.runtime_truth_allowed) > (
+        if best is None or (
+            candidate["score"],
+            record.runtime_truth_allowed,
+            candidate["specificity_score"],
+        ) > (
             best["score"],
             best["record"].runtime_truth_allowed,
+            best["specificity_score"],
         ):
             best = candidate
     return best

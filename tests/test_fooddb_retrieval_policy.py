@@ -9,6 +9,12 @@ from app.nutrition.application.fooddb_retrieval_policy import (
     build_runtime_retrieval_records_from_small_anchor_payload,
     retrieve_fooddb_candidates,
 )
+from app.nutrition.application.fooddb_retrieval_artifact_parts import (
+    approved_fooddb_trace,
+    candidate_component,
+    component_breakdown_item,
+)
+from app.nutrition.infrastructure.small_anchor_store_loader import load_small_anchor_seed_records
 
 
 def _small_anchor_payload() -> dict:
@@ -162,6 +168,47 @@ def test_retrieval_policy_marks_normalized_rice_modifier_as_equivalent_not_seman
         "rice_portion": "compatible_via_normalized_equivalent"
     }
     assert "modifier_compatible:rice_portion" not in candidate["ranking_reasons"]
+
+
+def test_retrieval_policy_recalls_chicken_rice_as_generic_common_serving() -> None:
+    records = build_runtime_retrieval_records_from_small_anchor_payload(
+        {"anchors": load_small_anchor_seed_records()}
+    )
+    result = retrieve_fooddb_candidates(
+        "午餐吃了一碗雞肉飯",
+        retrieval_records=records,
+    )
+
+    assert result["retrieval_boundary"] == "single_or_composite_candidate_recall"
+    assert [item["anchor_id"] for item in result["accepted_candidates"]] == [
+        "rice_bowl_chicken_rice"
+    ]
+    assert result["ambiguity_reason"] is None
+    candidate = result["accepted_candidates"][0]
+    assert candidate["anchor_id"] == "rice_bowl_chicken_rice"
+    assert candidate["source_lane"] == "generic_common_serving"
+    assert candidate["runtime_truth_allowed"] is True
+    assert candidate["requires_manager_disambiguation"] is False
+    assert candidate["kcal_range"] == [450, 700]
+    assert "runtime_truth_allowed" in candidate["ranking_reasons"]
+
+    component = candidate_component(candidate, source_lane_value="generic_common_serving")
+    breakdown = component_breakdown_item(
+        component,
+        candidate=candidate,
+        source_lane_value="generic_common_serving",
+    )
+    trace = approved_fooddb_trace(
+        source_lane_value="generic_common_serving",
+        retrieval_boundary=result["retrieval_boundary"],
+        evidence_ids=["rice_bowl_chicken_rice"],
+        macro_visible=False,
+        runtime_truth_allowed=True,
+        kcal_range=candidate["kcal_range"],
+    )
+
+    assert breakdown["kcal_range"] == [450, 700]
+    assert trace["kcal_range"] == [450, 700]
 
 
 def test_retrieval_policy_fuzzy_matches_alias_expansion_keys_without_vector_truth() -> None:

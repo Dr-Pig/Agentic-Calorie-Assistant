@@ -89,7 +89,7 @@ def retrieve_fooddb_candidates(
         )
         if payload not in candidates:
             candidates.append(payload)
-    candidates = _rank_candidates(candidates)[:limit]
+    candidates = _dedupe_candidates_by_anchor(_rank_candidates(candidates))[:limit]
 
     return _result(
         normalized_query=normalized,
@@ -212,6 +212,18 @@ def _source_lane_counts(records: tuple[IndexedFoodRecord, ...]) -> dict[str, int
         if lane in counts:
             counts[lane] += 1
     return counts
+
+
+def _dedupe_candidates_by_anchor(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        anchor_id = str(candidate.get("anchor_id") or "")
+        if anchor_id in seen:
+            continue
+        seen.add(anchor_id)
+        deduped.append(candidate)
+    return deduped
 
 
 def _now() -> str:

@@ -2,6 +2,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.composition.current_shell_golden_set_nutrition_projection import (
+    approved_nutrition_evidence_present as _approved_nutrition_evidence_present,
+    component_basis_present,
+    first_nutrition_trace_contract,
+    generic_range_evidence_present,
+    macro_visible,
+    nutrition_packet_present,
+    visible_range_or_basis_present,
+)
 from app.composition.current_shell_golden_set_request_trace_sources import trace_id
 
 
@@ -40,10 +49,10 @@ def runtime_from_request_trace(
         runtime["pending_followup_saved"] = bool(state_delta.get("draft_saved"))
     if "assumed_slot_question_required" not in runtime and _followup_question(manager_final):
         runtime["assumed_slot_question_required"] = True
-    component_basis = _component_basis_present(request_trace)
+    component_basis = component_basis_present(request_trace)
     if "component_basis_required" not in runtime and component_basis is not None:
         runtime["component_basis_required"] = component_basis
-    nutrition_trace = _first_nutrition_trace_contract(request_trace, manager_final)
+    nutrition_trace = first_nutrition_trace_contract(request_trace, manager_final)
     if nutrition_trace:
         for field in ("source_basis", "macro_visibility_status", "optional_refinement_allowed"):
             if (
@@ -54,7 +63,10 @@ def runtime_from_request_trace(
                 runtime[field] = nutrition_trace.get(field)
             elif field not in runtime and nutrition_trace.get(field) is not None:
                 runtime[field] = nutrition_trace.get(field)
-    if "fallback_400_allowed" not in runtime and _nutrition_packet_present(request_trace, manager_final):
+        if generic_range_evidence_present(nutrition_trace):
+            runtime.setdefault("uncertainty_basis_required", True)
+            runtime.setdefault("fake_exactness_allowed", False)
+    if "fallback_400_allowed" not in runtime and nutrition_packet_present(request_trace, manager_final):
         runtime["fallback_400_allowed"] = False
     if "pre_manager_estimability_shortcut_allowed" not in runtime:
         pre_manager_shortcut = _pre_manager_guard_feedback_present(request_trace)
@@ -84,9 +96,13 @@ def ui_from_request_trace(request_trace: dict[str, Any], state_delta: dict[str, 
         if basis_visible is not None:
             ui["meal_level_basis_visible"] = basis_visible
     if "macro_visible" not in ui:
-        macro_visible = _macro_visible(request_trace)
-        if macro_visible is not None:
-            ui["macro_visible"] = macro_visible
+        visible_macro = macro_visible(request_trace)
+        if visible_macro is not None:
+            ui["macro_visible"] = visible_macro
+    if "range_or_basis_visible" not in ui and generic_range_evidence_present(
+        first_nutrition_trace_contract(request_trace, {})
+    ):
+        ui["range_or_basis_visible"] = visible_range_or_basis_present(request_trace)
     return ui
 
 
@@ -134,6 +150,10 @@ def dogfood_trace_from_request_trace(request_trace: dict[str, Any]) -> dict[str,
     elif resolved_trace_id:
         trace.setdefault("feedback_links_to_trace", True)
     return trace
+
+
+def approved_nutrition_evidence_present(request_trace: dict[str, Any], manager_final: dict[str, Any]) -> bool:
+    return _approved_nutrition_evidence_present(request_trace, manager_final)
 
 
 def _attach_manager_semantics(
@@ -201,72 +221,6 @@ def _followup_question(manager_final: dict[str, Any]) -> str:
     answer_contract = _dict(manager_final.get("answer_contract"))
     semantic_decision = _dict(manager_final.get("semantic_decision"))
     return str(answer_contract.get("followup_question") or semantic_decision.get("followup_question") or "").strip()
-
-
-def approved_nutrition_evidence_present(request_trace: dict[str, Any], manager_final: dict[str, Any]) -> bool:
-    for payload in _nutrition_payloads(request_trace, manager_final):
-        trace_contract = _dict(payload.get("trace_contract"))
-        approved = _dict(trace_contract.get("approved_fooddb_evidence_trace"))
-        if approved.get("runtime_truth_allowed") is True:
-            return True
-        if trace_contract.get("db_hit_type") == "approved_fooddb_packet":
-            return True
-        user_kcal = _dict(trace_contract.get("approved_user_provided_kcal_trace"))
-        if user_kcal.get("runtime_truth_allowed") is True:
-            return True
-    return False
-
-
-def _first_nutrition_trace_contract(request_trace: dict[str, Any], manager_final: dict[str, Any]) -> dict[str, Any]:
-    for payload in _nutrition_payloads(request_trace, manager_final):
-        trace_contract = _dict(payload.get("trace_contract"))
-        if trace_contract:
-            return trace_contract
-    return {}
-
-
-def _macro_visible(request_trace: dict[str, Any]) -> bool | None:
-    for payload in _nutrition_payloads(request_trace, {}):
-        trace_contract = _dict(payload.get("trace_contract"))
-        if trace_contract.get("macro_visibility_status") == "visible":
-            return True
-        if trace_contract.get("macro_visibility_status") in {"hidden", "hidden_missing_source", "not_available"}:
-            return False
-    return None
-
-
-def _component_basis_present(request_trace: dict[str, Any]) -> bool | None:
-    for payload in _nutrition_payloads(request_trace, {}):
-        trace_contract = _dict(payload.get("trace_contract"))
-        approved = _dict(trace_contract.get("approved_fooddb_evidence_trace"))
-        commit_candidate = _dict(trace_contract.get("commit_request_candidate"))
-        components = (
-            _list(payload.get("components"))
-            or _list(payload.get("component_estimates"))
-            or _list(commit_candidate.get("items"))
-            or _list(commit_candidate.get("components"))
-        )
-        if approved.get("source_lane") == "listed_component" and components:
-            return True
-    return None
-
-
-def _nutrition_packet_present(request_trace: dict[str, Any], manager_final: dict[str, Any]) -> bool:
-    return bool(_nutrition_payloads(request_trace, manager_final))
-
-
-def _nutrition_payloads(request_trace: dict[str, Any], manager_final: dict[str, Any]) -> list[dict[str, Any]]:
-    payloads: list[dict[str, Any]] = []
-    tool_results = []
-    tool_results.extend(_list(_dict(request_trace.get("tool_outputs")).get("tool_results")))
-    tool_results.extend(_list(manager_final.get("tool_results")))
-    tool_results.extend(_list(request_trace.get("compact_packets")))
-    tool_results.extend(_list(_dict(request_trace.get("react_trace")).get("compact_packets")))
-    for result in tool_results:
-        payload = _dict(_dict(_dict(result).get("evidence")).get("nutrition_payload"))
-        if payload:
-            payloads.append(payload)
-    return payloads
 
 
 def _meal_level_basis_visible(request_trace: dict[str, Any]) -> bool | None:
