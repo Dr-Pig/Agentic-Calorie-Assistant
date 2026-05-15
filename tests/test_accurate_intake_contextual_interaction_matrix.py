@@ -163,7 +163,9 @@ def test_contextual_interaction_matrix_cli_writes_artifact(tmp_path: Path) -> No
 
 def test_contextual_interaction_matrix_stays_out_of_forbidden_boundaries() -> None:
     source_paths = [
+        Path("app/composition/accurate_intake_contextual_interaction_cases.py"),
         Path("app/composition/accurate_intake_contextual_interaction_matrix.py"),
+        Path("app/composition/accurate_intake_contextual_interaction_validation.py"),
         Path("scripts/build_accurate_intake_contextual_interaction_matrix.py"),
     ]
     forbidden = [
