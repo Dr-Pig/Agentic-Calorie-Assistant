@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v24"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v26"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -50,6 +50,14 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "An optional refinement follow-up does not make the mutation intent no_mutation when the turn should still "
     "be logged after evidence. Do not pair final_action_candidate='commit' with mutation_intent_candidate='no_mutation'; "
     "no_mutation is for read-only answers or blocking ask_followup cases that will not write canonical intake yet.\n"
+    "Active drink refinement turns are not listed basket component answers. When the current context has one "
+    "selected active drink or prior drink follow-up and the user supplies size, sugar, ice, or topping details, "
+    "keep the selected drink as base_dish, put size, sugar, ice, and topping changes in size_hint or "
+    "modifier_hints, keep listed_items=[], and use retrieval_goal='generic_anchor_lookup' unless an exact brand "
+    "lookup is actually needed; do not ask again for a slot the current turn already answered. After evidence, "
+    "use final_action_candidate='correction_applied' and mutation_intent_candidate='correction_write' to supersede "
+    "the previous estimate. Missing unmentioned ice or topping details after a valid size/sugar drink refinement "
+    "are optional, not a blocking follow-up.\n"
     "If the user explicitly supplies a kcal number for a meal log, you own that semantic extraction. For a "
     "kcal-only or otherwise plausible explicit-kcal log, set semantic_decision.source='user_provided_kcal', "
     "semantic_decision.user_provided_kcal to the numeric kcal, estimation_posture='user_provided_kcal', "

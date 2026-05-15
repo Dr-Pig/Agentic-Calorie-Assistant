@@ -12,7 +12,7 @@ from app.runtime.agent.manager_system_prompt import (
 
 
 def test_remove_item_target_evidence_reuse_is_static_prompt_policy() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v24"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v26"
     assert "target_evidence_present=true" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "target_evidence_operation='remove_item'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "do not call resolve_correction_target again" in SINGLE_MANAGER_SYSTEM_PROMPT

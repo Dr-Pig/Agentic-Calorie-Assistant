@@ -70,6 +70,18 @@ def test_dialogue_cue_never_applies_when_shadow_has_mutation_authority() -> None
     assert result.phase_a_trace["shadow_hypothesis_dialogue"]["skip_reason"] == "shadow_authoritative"
 
 
+def test_dialogue_cue_never_applies_after_committed_mutation() -> None:
+    result = apply_shadow_hypothesis_dialogue_cue(
+        assistant_message="已更新上一筆餐點：珍珠奶茶 450 kcal。",
+        phase_a_trace=_trace(),
+        mutation_committed=True,
+    )
+
+    assert result.assistant_message == "已更新上一筆餐點：珍珠奶茶 450 kcal。"
+    assert result.phase_a_trace["shadow_hypothesis_dialogue"]["applied"] is False
+    assert result.phase_a_trace["shadow_hypothesis_dialogue"]["skip_reason"] == "mutation_already_committed"
+
+
 @pytest.mark.asyncio
 async def test_intake_execution_response_applies_shadow_dialogue_cue_without_state_changes(
     monkeypatch: pytest.MonkeyPatch,

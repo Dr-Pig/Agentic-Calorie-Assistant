@@ -118,6 +118,21 @@ def test_single_manager_system_prompt_preserves_write_intent_for_committable_opt
     )
 
 
+def test_single_manager_system_prompt_guides_active_drink_optional_refinement_modifiers() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+
+    assert "Active drink refinement turns are not listed basket component answers" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "put size, sugar, ice, and topping changes in size_hint or modifier_hints" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "keep listed_items=[]" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "retrieval_goal='generic_anchor_lookup'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "do not ask again for a slot the current turn already answered" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "use final_action_candidate='correction_applied'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "mutation_intent_candidate='correction_write'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "Missing unmentioned ice or topping details after a valid size/sugar drink refinement are optional" in (
+        SINGLE_MANAGER_SYSTEM_PROMPT
+    )
+
+
 def test_single_manager_system_prompt_is_static_prefix_across_scopes() -> None:
     from app.runtime.agent.manager_system_prompt import single_manager_system_prompt_for_scope
 

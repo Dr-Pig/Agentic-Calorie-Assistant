@@ -594,6 +594,116 @@ def test_request_trace_adapter_projects_gs7_pending_listed_component_commit() ->
     assert grade["status"] == "pass"
 
 
+def test_request_trace_adapter_projects_gs8_optional_refinement_supersede() -> None:
+    trace = _gs5_request_trace()
+    trace["runtime"] = {"fallback_400_allowed": False}
+    trace["manager_final_decision"] = {
+        "workflow_effect": "canonical_write",
+        "final_action": "correction_applied",
+        "answer_contract": {"reply_text": "已更新上一筆餐點：珍珠奶茶中杯半糖，約 450 kcal。"},
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "workflow_effect": "canonical_write",
+            "final_action_candidate": "correction_applied",
+            "target_attachment": {
+                "meal_thread_id": 2,
+                "meal_item_id": 2,
+                "canonical_name": "珍珠奶茶",
+                "target_resolution_source": "active_meal_view",
+                "operation": "refine_item",
+            },
+            "mutation_intent_candidate": "correction_write",
+            "base_dish": "珍珠奶茶",
+            "size_hint": "中杯",
+            "modifier_hints": ["半糖"],
+        },
+    }
+    trace["phase_c_trace"]["mutation_outcome"].update(  # type: ignore[index, union-attr]
+        {
+            "canonical_commit_status": "committed",
+            "ledger_mutation_status": "updated",
+            "meal_version_delta": "superseded_previous",
+            "canonical_ids": {"meal_version_id": 3, "superseded_version_id": 2},
+        }
+    )
+    trace["state_delta"].update(  # type: ignore[union-attr]
+        {
+            "canonical_commit": True,
+            "ledger_updated": True,
+            "draft_saved": False,
+            "old_version_superseded": True,
+            "new_meal_version_created": True,
+        }
+    )
+    trace["tool_outputs"] = {
+        "tool_results": [
+            {
+                "tool_name": "estimate_nutrition",
+                "evidence": {
+                    "nutrition_payload": {
+                        "meal_title": "珍珠奶茶",
+                        "estimated_kcal": 450,
+                        "trace_contract": {
+                            "db_hit_type": "approved_fooddb_packet",
+                            "shadow_stub": False,
+                            "approved_fooddb_evidence_trace": {
+                                "source_lane": "generic_common_serving",
+                                "runtime_truth_allowed": True,
+                                "kcal_range": [350, 550],
+                            },
+                            "canonical_write_decision": {"can_write_canonical": True},
+                        },
+                    }
+                },
+            }
+        ]
+    }
+    trace["renderer_output"] = {
+        "assistant_message": "已更新上一筆餐點：珍珠奶茶 450 kcal。今天還剩約 862 kcal。"
+    }
+    trace["sidecar_output"] = {
+        "ui": {
+            "today": {
+                "consumed_kcal": 450,
+                "meals": [{"meal_version_id": 3, "meal_title": "珍珠奶茶"}],
+            }
+        }
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS8", trace)
+    grade = grade_golden_case_trace("GS8", case_trace)
+
+    assert case_trace["runtime"]["old_version_superseded"] is True
+    assert case_trace["runtime"]["ledger_delta_trace_required"] is True
+    assert case_trace["ui"]["old_version_not_counted"] is True
+    assert grade["status"] == "pass"
+
+
+def test_request_trace_adapter_flags_saved_change_contradiction_after_commit() -> None:
+    trace = _gs5_request_trace()
+    trace["renderer_output"] = {
+        "assistant_message": (
+            "I’m treating this as a tentative reference to meal thread 2; "
+            "this is not a saved change yet. 已更新上一筆餐點：珍珠奶茶 450 kcal。"
+        )
+    }
+    trace["phase_c_trace"]["mutation_outcome"].update(  # type: ignore[index, union-attr]
+        {"canonical_commit_status": "committed", "ledger_mutation_status": "updated"}
+    )
+    trace["state_delta"].update(  # type: ignore[union-attr]
+        {"canonical_commit": True, "ledger_updated": True}
+    )
+
+    case_trace = build_golden_case_trace_from_request_trace("GS8", trace)
+    grade = grade_golden_case_trace("GS8", case_trace)
+
+    assert case_trace["response"]["state_contradiction"] is True
+    assert case_trace["response"]["internal_debug_words_present"] is True
+    assert "response.state_contradiction" in grade["blockers"]
+    assert "response.internal_debug_words_present" in grade["blockers"]
+
+
 def test_request_trace_adapter_projects_meal_level_basis_from_state_after() -> None:
     trace = _gs5_request_trace()
     trace["state_after"] = {

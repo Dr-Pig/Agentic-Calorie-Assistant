@@ -75,6 +75,11 @@ def build_golden_case_trace_from_request_trace(
         and not approved_nutrition_evidence_present(request_trace, manager_final)
     ):
         response["invented_nutrition_fact"] = True
+    _attach_visible_response_quality_flags(
+        response=response,
+        runtime=runtime,
+        state_delta=state_delta,
+    )
 
     return {
         "case_id": case_id,
@@ -134,6 +139,44 @@ def _dict(value: Any) -> dict[str, Any]:
 def _contains_visible_kcal_claim(renderer_output: dict[str, Any]) -> bool:
     text = str(renderer_output.get("assistant_message") or renderer_output.get("coach_message") or "")
     return bool(re.search(r"\d+\s*(?:kcal|cal|卡|大卡)", text, flags=re.IGNORECASE))
+
+
+def _attach_visible_response_quality_flags(
+    *,
+    response: dict[str, Any],
+    runtime: dict[str, Any],
+    state_delta: dict[str, Any],
+) -> None:
+    text = str(
+        response.get("assistant_message")
+        or response.get("visible_text")
+        or response.get("reply_text")
+        or ""
+    )
+    if not text:
+        return
+    lowered = text.lower()
+    internal_phrase_present = any(
+        phrase in lowered
+        for phrase in (
+            "not a saved change",
+            "tentative reference",
+            "meal thread",
+            "provider",
+            "trace",
+        )
+    )
+    if internal_phrase_present:
+        response["internal_debug_words_present"] = True
+    committed = (
+        state_delta.get("canonical_commit") is True
+        or runtime.get("canonical_commit_status") == "committed"
+        or runtime.get("mutation_allowed") is True
+    )
+    if committed and ("not a saved change" in lowered or "not saved" in lowered):
+        response["state_contradiction"] = True
+    if response.get("zh_tw_primary") is None and internal_phrase_present:
+        response["zh_tw_primary"] = False
 
 
 __all__ = [

@@ -146,10 +146,27 @@ def _expected_item_matches(
         )
     if (
         prefix == "runtime"
+        and key == "workflow_effect"
+        and expected_item == "commit_then_refine"
+        and actual_item in {"canonical_write", "correction_write", "correction_applied"}
+    ):
+        return (
+            actual.get("final_action") == "correction_applied"
+            and actual.get("canonical_commit_status") == "committed"
+            and actual.get("old_version_superseded") is True
+        )
+    if (
+        prefix == "runtime"
         and key == "target_attachment"
         and expected_item == "pending_followup"
     ):
         return _matches_pending_followup_attachment(actual_item)
+    if (
+        prefix == "runtime"
+        and key == "target_attachment"
+        and expected_item == "prior_optional_followup"
+    ):
+        return _matches_prior_optional_followup_attachment(actual_item)
     return False
 
 
@@ -159,6 +176,21 @@ def _matches_pending_followup_attachment(actual_item: Any) -> bool:
     operation = str(actual_item.get("operation") or actual_item.get("mode") or "").strip()
     source = str(actual_item.get("target_resolution_source") or "").strip()
     return operation in {"attach_to_pending_followup", "draft_followup"} or source == "pending_followup_state"
+
+
+def _matches_prior_optional_followup_attachment(actual_item: Any) -> bool:
+    if not isinstance(actual_item, dict):
+        return False
+    operation = str(actual_item.get("operation") or actual_item.get("mode") or "").strip()
+    source = str(actual_item.get("target_resolution_source") or "").strip()
+    has_target_identity = any(
+        actual_item.get(field) not in (None, "")
+        for field in ("meal_thread_id", "meal_item_id", "target_object_id", "canonical_name")
+    )
+    return has_target_identity and (
+        operation in {"attach_to_pending_followup", "refine_item", "same_item_refinement"}
+        or source in {"pending_followup_state", "active_meal_view", "latest_active_meal"}
+    )
 
 
 def _display(value: Any) -> str:
