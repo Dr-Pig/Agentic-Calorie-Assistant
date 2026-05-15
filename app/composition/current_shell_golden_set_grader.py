@@ -158,7 +158,7 @@ def _expected_item_matches(
     if (
         prefix == "runtime"
         and key == "target_attachment"
-        and expected_item == "pending_followup"
+        and expected_item in {"pending_followup", "pending_teppan_combo"}
     ):
         return _matches_pending_followup_attachment(actual_item)
     if (

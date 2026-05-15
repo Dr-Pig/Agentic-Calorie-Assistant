@@ -379,6 +379,77 @@ def test_request_trace_adapter_projects_gs9_answer_query_from_manager_decision_t
     assert grade["status"] == "pass"
 
 
+def test_request_trace_adapter_projects_manager_owned_optional_drink_refinement() -> None:
+    request_trace = {
+        "trace_id": "trace-gs10",
+        "manager_decision": {
+            "workflow_effect": "canonical_write",
+            "final_action": "commit",
+            "semantic_decision": {
+                "current_turn_intent": "log_meal",
+                "workflow_effect": "canonical_write",
+                "mutation_intent_candidate": "canonical_write",
+                "followup_posture": "refinement_optional",
+                "followup_question": "如果紅茶的糖度或杯型不同，可以補充，我會幫你修正。",
+                "listed_items": ["鐵板麵", "紅茶"],
+            },
+            "answer_contract": {
+                "followup_question": "如果紅茶的糖度或杯型不同，可以補充，我會幫你修正。"
+            },
+            "trace": {
+                "react_trace": {
+                    "manager_pass_1": {"manager_action": "call_tools"},
+                    "requested_tools": ["estimate_nutrition"],
+                    "executed_tools": ["estimate_nutrition"],
+                }
+            },
+        },
+        "manager_final_decision": {
+            "workflow_effect": "canonical_write",
+            "final_action": "commit",
+            "semantic_decision": {
+                "current_turn_intent": "log_meal",
+                "workflow_effect": "canonical_write",
+                "mutation_intent_candidate": "canonical_write",
+                "followup_posture": "refinement_optional",
+                "followup_question": "如果紅茶的糖度或杯型不同，可以補充，我會幫你修正。",
+                "listed_items": ["鐵板麵", "紅茶"],
+            },
+            "answer_contract": {
+                "followup_question": "如果紅茶的糖度或杯型不同，可以補充，我會幫你修正。"
+            },
+        },
+        "compact_packets": [
+            {
+                "tool_name": "estimate_nutrition",
+                "evidence": {
+                    "nutrition_payload": {
+                        "trace_contract": {
+                            "optional_refinement_allowed": True,
+                            "optional_refinement_targets": ["紅茶"],
+                            "optional_refinement_question": (
+                                "如果紅茶的糖度或杯型不同，可以補充，我會幫你修正。"
+                            ),
+                        }
+                    }
+                },
+            }
+        ],
+        "phase_c_trace": {
+            "mutation_outcome": {
+                "canonical_commit_status": "committed",
+                "ledger_mutation_status": "updated",
+            }
+        },
+        "state_delta": {"canonical_commit": True, "ledger_updated": True},
+        "renderer_output": {"assistant_message": "已記錄，若紅茶糖度或杯型不同可以補充。"},
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS10", request_trace)
+
+    assert case_trace["runtime"]["optional_tea_refinement_allowed"] is True
+
+
 def test_request_trace_adapter_defaults_configured_provider_trace_to_live_invoked() -> None:
     trace = _gs5_request_trace()
     react_trace = dict(trace["react_trace"])  # type: ignore[index]
