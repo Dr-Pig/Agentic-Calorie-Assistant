@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from app.advanced_shadow_lab.product_lab_recommendation_ux import (
-    build_recommendation_ux_packet,
-)
+from app.advanced_shadow_lab.product_lab_recommendation_ux import build_recommendation_ux_packet
 from app.advanced_shadow_lab.product_lab_recommendation_offer_parts import (
     candidate_by_id,
     candidate_explanation,

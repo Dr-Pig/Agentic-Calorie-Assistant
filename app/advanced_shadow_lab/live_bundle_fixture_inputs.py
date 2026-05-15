@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from app.memory.application.runtime_lab_dogfood_replay import (
-    build_memory_dogfood_replay_review_artifact,
-)
+from app.memory.application.runtime_lab_dogfood_replay import build_memory_dogfood_replay_review_artifact
 from app.recommendation.application.three_node_shadow_contract import (
     build_fixture_recommendation_three_node_input,
 )
@@ -189,6 +187,7 @@ def _proposal_candidate_output() -> dict[str, Any]:
         },
     }
 
+
 def _controls(next_signal: str) -> dict[str, Any]:
     return {
         "dismiss_reason_choices": ["not_relevant_now", "already_handled", "too_frequent"],
@@ -196,5 +195,4 @@ def _controls(next_signal: str) -> dict[str, Any]:
         "undo_scope": "current_no_send_candidate_only",
         "next_signal_required": next_signal,
     }
-
 __all__ = ["SIDECAR_ACTIVATION_CONTRACT", "build_live_bundle_chain_payload", "build_live_bundle_memory_review"]

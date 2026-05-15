@@ -192,7 +192,6 @@ def _control_path_summary(sink: Mapping[str, Any]) -> dict[str, Any]:
 def _records(sink: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     return [item for item in sink.get("records") or [] if isinstance(item, Mapping)]
 
-
 def _mapping(value: Any) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 

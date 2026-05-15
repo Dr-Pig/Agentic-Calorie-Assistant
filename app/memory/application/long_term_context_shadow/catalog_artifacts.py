@@ -40,10 +40,10 @@ def _product_capability_context_map_artifact(
             "runtime_effect_allowed": False,
             "canonical_truth_replaced_by_memory": False,
             "source_specs": [
+                "docs/specs/L0_PRODUCT_CAPABILITY_SPEC.md",
+                "docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md",
                 "docs/specs/L4A_MEMORY_MODEL_SPEC.md",
                 "docs/specs/L4C_CONTEXT_PACKING_SPEC.md",
-                "docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md",
-                "docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md",
                 "docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md",
                 "docs/specs/L3_3A_DEFICIT_EXPENDITURE_CALIBRATION_MODEL_SPEC.md",
                 "docs/specs/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md",

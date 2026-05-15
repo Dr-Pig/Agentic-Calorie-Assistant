@@ -9,7 +9,7 @@ It is an additive architecture-planning document. It does not silently replace:
 - `docs/specs/WAVE_1_PHASE_B2_EVIDENCE_AND_SYNTHESIS_GATE.md`
 - `docs/specs/WAVE_1_EVIDENCE_PATH_SELECTION_MATRIX.md`
 - `docs/specs/L3_1_INTAKE_RUNTIME_CONTRACT_SPEC.md`
-- `docs/specs/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md`
+- `docs/_spec_snapshots/legacy_v2_wave_pack_20260515/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md` as historical reference only
 
 If this draft conflicts with canonical product status semantics or runtime ownership, resolve the product invariant first and then realign the gate docs explicitly.
 

@@ -455,32 +455,28 @@ def test_phase_a_manager_triggered_history_is_active_local_only_closure() -> Non
     assert expansion.tool_result()["evidence"]["history_expansion_result"]["transcript_snippets"] == []
 
 
-def test_phase_a_runtime_docs_mark_slice11_active_and_provider_history_deferred() -> None:
-    spec = Path("docs/specs/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md").read_text(encoding="utf-8-sig")
-    bootstrap = Path("docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md").read_text(encoding="utf-8-sig")
+def test_current_runtime_docs_keep_trace_and_provider_history_boundaries_active() -> None:
+    intake_spec = Path("docs/specs/L3_1_INTAKE_RUNTIME_CONTRACT_SPEC.md").read_text(encoding="utf-8-sig")
+    gate_ledger = Path("docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml").read_text(encoding="utf-8-sig")
 
-    assert "`Slice 11`: manager-triggered history expansion is active" in spec
-    assert "provider-side history tools and provider/tool-loop protocol redesign remain deferred" in spec
-    assert "manager-triggered history expansion remains deferred" not in bootstrap
-
-
-def test_phase_c_projection_baseline_docs_are_active_and_enforcement_deferred() -> None:
-    spec = Path("docs/specs/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md").read_text(encoding="utf-8-sig")
-    bootstrap = Path("docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md").read_text(encoding="utf-8-sig")
-
-    assert "Phase C Mutation Projection Baseline" in spec
-    assert "`phase_c_trace` is the active diagnostic surface" in spec
-    assert "missing Phase C values must be emitted as `not_available`" in spec
-    assert "Phase C enforcement and UI same-truth remain deferred" in spec
-    assert "Phase C projection baseline is active" in bootstrap
+    assert "trace_envelope" in intake_spec
+    assert "rt3_react_trace_contract" in gate_ledger
+    assert "rt12_trace_grading_v1" in gate_ledger
 
 
-def test_phase_c_same_truth_gate_docs_are_active_without_runtime_repair() -> None:
-    spec = Path("docs/specs/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md").read_text(encoding="utf-8-sig")
-    bootstrap = Path("docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md").read_text(encoding="utf-8-sig")
+def test_current_shell_docs_keep_projection_and_ui_same_truth_active() -> None:
+    golden_set = Path("docs/quality/CURRENT_SHELL_SELF_USE_GOLDEN_SET_SPEC.md").read_text(encoding="utf-8-sig")
+    track_status = Path("docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md").read_text(encoding="utf-8-sig")
 
-    assert "Phase C Structured Same-Truth Closure Gate" in spec
-    assert "`same_truth_closure_gate` is active as hard-fail evidence" in spec
-    assert "status: pass | flagged | hard_fail" in spec
-    assert "must not rewrite, repair, or block runtime output" in spec
-    assert "Phase C structured same-truth closure gate is active" in bootstrap
+    assert "Chat, Today, Body, Feedback, and Review consume backend/read-model truth only" in golden_set
+    assert "browser same-truth verification against backend/read-model/renderer structured fields" in track_status
+    assert "AppShell/browser consumption of machine-readable Current Shell contracts and ManagerRuntime gates" in track_status
+
+
+def test_current_shell_docs_keep_same_truth_gate_non_repairing() -> None:
+    golden_set = Path("docs/quality/CURRENT_SHELL_SELF_USE_GOLDEN_SET_SPEC.md").read_text(encoding="utf-8-sig")
+    operating_entry = Path("docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md").read_text(encoding="utf-8-sig")
+
+    assert "The frontend must not infer nutrition facts from text" in golden_set
+    assert "Deterministic runtime may validate, reject, downgrade, hide disallowed facts" in operating_entry
+    assert "must not use raw user text, food names, keyword heuristics" in operating_entry

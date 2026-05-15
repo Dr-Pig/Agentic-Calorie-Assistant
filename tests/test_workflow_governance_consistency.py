@@ -203,8 +203,9 @@ def test_docs_bootstrap_index_and_legacy_reference_are_consistent() -> None:
     assert "Current Shell" in operating_entry
     assert "Retired duplicate index files" in doc_index
     assert "intentionally not tracked" in legacy_index
-    assert "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md" in legacy_index
-    assert "Former V2 operating, implementation, and capability-map stubs are also intentionally not tracked" in legacy_index
+    assert "docs/_spec_snapshots/legacy_v2_wave_pack_20260515/" in legacy_index
+    assert "V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md" in legacy_index
+    assert "Former V2 operating, implementation, Wave planning, and capability-map packs are also intentionally not tracked" in legacy_index
     assert not (ROOT / "docs" / "specs" / "APP_V2_ENGINEERING_OPERATING_ENTRY.md").exists()
     assert not (ROOT / "docs" / "specs" / "APP_V2_IMPLEMENTATION_PLAN.md").exists()
 
@@ -269,11 +270,16 @@ def test_legacy_plan_and_capability_stubs_are_removed() -> None:
     assert "`docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md`" not in doc_index
     assert "`docs/specs/APP_V2_IMPLEMENTATION_PLAN.md`" not in doc_index
     assert "`docs/quality/V2_CAPABILITY_MAP.md`" not in doc_index
-    assert "Former V2 operating, implementation, and capability-map stubs are also intentionally not tracked" in legacy_index
+    assert "Former V2 operating, implementation, Wave planning, and capability-map packs are also intentionally not tracked" in legacy_index
     assert "docs/_spec_snapshots/APP_V2_ENGINEERING_OPERATING_ENTRY.md_20260508_1356" in legacy_index
+    assert "docs/_spec_snapshots/legacy_v2_wave_pack_20260515/" in legacy_index
     assert not (ROOT / "docs" / "specs" / "APP_V2_ENGINEERING_OPERATING_ENTRY.md").exists()
     assert not (ROOT / "docs" / "specs" / "APP_V2_IMPLEMENTATION_PLAN.md").exists()
     assert not (ROOT / "docs" / "quality" / "V2_CAPABILITY_MAP.md").exists()
+    assert not (ROOT / "docs" / "specs" / "V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md").exists()
+    assert not (ROOT / "docs" / "specs" / "V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md").exists()
+    assert not (ROOT / "docs" / "specs" / "V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md").exists()
+    assert not (ROOT / "docs" / "quality" / "V2_GRADING_RUBRIC.md").exists()
 
 
 def test_active_architecture_docs_use_current_shell_mainline_language() -> None:

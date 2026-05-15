@@ -22,8 +22,7 @@ For the current default mainline:
 - sole active docs index: `docs/DOC_INDEX.md`
 - retired duplicate docs indexes must not exist: `docs/index.md`, `docs/V2_DOC_INDEX.md`
 - sole active operating entry: `docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md`
-- retired V2 operating and implementation stubs must not be tracked under `docs/specs/`
-- retired V2 capability-map stubs must not be tracked under `docs/quality/`
+- retired V2/Wave planning packs must not be tracked under active `docs/specs/` or `docs/quality/`
 - sole legacy runtime reference index: `docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md`
 - canonical preservation path: `docs/_spec_snapshots/`
 
@@ -56,10 +55,6 @@ Do not start new implementation work from:
 - retired duplicate docs indexes: `docs/index.md`, `docs/V2_DOC_INDEX.md`
 - `docs/governance/EXECUTION_OPERATING_MODEL.md`
 - `docs/governance/EXECUTION_SELECTION_POLICY.md`
-- retired V2 operating and implementation stubs
-- `docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md`
-- `docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md`
-- `docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md`
-- retired V2 capability-map stubs
+- retired V2/Wave planning packs preserved under `docs/_spec_snapshots/legacy_v2_wave_pack_20260515/`
 
 Tracked files listed here may still carry canonical reference or compatibility value, but they are not the active bootstrap entry for new windows.

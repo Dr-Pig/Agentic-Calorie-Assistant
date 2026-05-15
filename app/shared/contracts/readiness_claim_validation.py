@@ -128,9 +128,8 @@ def _validate_readiness_scope(claim_scope: str, readiness_flags: dict[str, bool]
                 flag=flag_name,
                 claim_scope=claim_scope,
                 allowed_scopes=sorted(allowed_scopes),
-                artifact_path=artifact_path,
-            )
-
+            artifact_path=artifact_path,
+        )
 
 def _validate_producer_honesty(producer_honesty: dict[str, Any], readiness_flags: dict[str, bool], blockers: list[dict[str, Any]], artifact_path: str | None) -> None:
     if readiness_flags and producer_honesty.get("runner_inferred_semantics") is True:
