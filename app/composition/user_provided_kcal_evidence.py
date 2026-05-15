@@ -20,6 +20,12 @@ class UserProvidedKcalEvidenceSeed:
 
 def manager_owned_user_provided_kcal(manager_decision: Any) -> int | None:
     semantic_decision = dict(getattr(manager_decision, "semantic_decision", {}) or {})
+    return manager_owned_user_provided_kcal_from_semantics(semantic_decision)
+
+
+def manager_owned_user_provided_kcal_from_semantics(semantic_decision: dict[str, Any]) -> int | None:
+    if str(semantic_decision.get("source") or "") == "named_food_user_kcal_conflict":
+        return None
     if str(semantic_decision.get("source") or "") != "user_provided_kcal":
         return None
     value = semantic_decision.get("user_provided_kcal")

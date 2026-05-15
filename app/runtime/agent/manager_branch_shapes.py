@@ -86,10 +86,19 @@ def manager_semantic_decision_schema() -> dict[str, Any]:
                 "anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "null"}],
                 "description": (
                     "Manager-owned numeric kcal explicitly supplied by the user for this meal log. "
-                    "Runtime may validate this structured field but must not extract it from raw text."
+                    "Runtime may validate this structured field but must not extract it from raw text. "
+                    "For a named-food kcal conflict, this number is evidence for the user claim but is "
+                    "not sufficient by itself to create user_provided_kcal_evidence."
                 ),
             },
-            "source": {"type": "string"},
+            "source": {
+                "type": "string",
+                "description": (
+                    "Manager-owned source posture. Use source='user_provided_kcal' only for kcal-only or "
+                    "plausible explicit-kcal logs. For a named-food kcal conflict, use "
+                    "source='named_food_user_kcal_conflict' and gather/compare evidence before commit."
+                ),
+            },
             "semantic_owner": {"type": "string"},
             "deterministic_role": {"type": "string"},
         },

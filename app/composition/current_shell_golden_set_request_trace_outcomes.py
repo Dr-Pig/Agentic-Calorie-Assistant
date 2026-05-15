@@ -60,6 +60,14 @@ def runtime_from_request_trace(
         pre_manager_shortcut = _pre_manager_guard_feedback_present(request_trace)
         if pre_manager_shortcut is not None:
             runtime["pre_manager_estimability_shortcut_allowed"] = pre_manager_shortcut
+    _attach_implausible_kcal_conflict_outcome(
+        runtime=runtime,
+        manager_final=manager_final,
+        manager_decision=manager_decision,
+        workflow_effect=workflow_effect,
+        final_action=final_action,
+        mutation_allowed=mutation_allowed,
+    )
     return runtime
 
 
@@ -143,6 +151,36 @@ def _attach_manager_semantics(
         runtime.setdefault("target_attachment", semantic_decision.get("target_attachment"))
     if semantic_decision.get("current_turn_intent") is not None:
         runtime.setdefault("current_turn_intent", semantic_decision.get("current_turn_intent"))
+
+
+def _attach_implausible_kcal_conflict_outcome(
+    *,
+    runtime: dict[str, Any],
+    manager_final: dict[str, Any],
+    manager_decision: dict[str, Any],
+    workflow_effect: Any,
+    final_action: Any,
+    mutation_allowed: bool | None,
+) -> None:
+    if not _manager_named_food_kcal_conflict(manager_final, manager_decision):
+        return
+    if mutation_allowed is not False:
+        return
+    if str(final_action or workflow_effect or "") != "ask_followup":
+        return
+    runtime.setdefault("silent_accept_implausible_kcal_allowed", False)
+    runtime.setdefault("override_with_system_estimate_allowed", False)
+
+
+def _manager_named_food_kcal_conflict(
+    manager_final: dict[str, Any],
+    manager_decision: dict[str, Any],
+) -> bool:
+    semantic_decision = _dict(manager_final.get("semantic_decision")) or _dict(
+        manager_decision.get("semantic_decision")
+    )
+    source = str(semantic_decision.get("source") or manager_final.get("source") or "")
+    return source == "named_food_user_kcal_conflict"
 
 
 def _mutation_allowed_from_trace(
