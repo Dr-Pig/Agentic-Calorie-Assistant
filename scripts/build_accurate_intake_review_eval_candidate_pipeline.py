@@ -24,7 +24,7 @@ from app.composition.accurate_intake_context_conditioned_intent_wall import (  #
 from app.composition.accurate_intake_contextual_interaction_matrix import (  # noqa: E402
     build_contextual_interaction_matrix_artifact,
 )
-from app.composition.accurate_intake_pl_ce_context_coverage_matrix import (  # noqa: E402
+from app.composition.current_shell_context_coverage_matrix import (  # noqa: E402
     build_pl_ce_context_coverage_matrix_artifact,
 )
 from app.composition.accurate_intake_review_eval_candidate_pipeline import (  # noqa: E402

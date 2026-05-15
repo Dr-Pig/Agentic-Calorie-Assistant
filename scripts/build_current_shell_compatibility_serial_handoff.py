@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.composition.accurate_intake_pl_ce_serial_handoff import (  # noqa: E402
+from app.composition.current_shell_serial_handoff import (  # noqa: E402
     build_pl_ce_serial_handoff_artifact,
 )
 from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402

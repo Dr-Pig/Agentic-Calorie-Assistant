@@ -21,7 +21,7 @@ from app.composition.current_shell_compatibility_ids import (  # noqa: E402
     matches_alias,
     set_legacy_alias_metadata,
 )
-from app.composition.accurate_intake_pl_ce_metadata_freshness_pack import (  # noqa: E402
+from app.composition.current_shell_metadata_freshness_pack import (  # noqa: E402
     REQUIRED_PL_CE_METADATA_ARTIFACTS,
     build_pl_ce_metadata_freshness_pack,
 )
