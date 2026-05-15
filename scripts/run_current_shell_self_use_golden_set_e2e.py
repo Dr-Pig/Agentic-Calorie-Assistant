@@ -55,9 +55,11 @@ from app.composition.onboarding_service import (  # noqa: E402
     bootstrap_body_plan_for_date,
 )
 from app.database import get_db, get_or_create_user  # noqa: E402
+from app.intake.infrastructure.models import MealItemRecord, MealThreadRecord, MealVersionRecord  # noqa: E402
 from app.logging import REQUEST_TRACE_DIR  # noqa: E402
 from app.models import Base  # noqa: E402
 from app.routes import router  # noqa: E402
+from app.shared.infra.models import utcnow  # noqa: E402
 from scripts.build_current_shell_self_use_golden_set_replay import (  # noqa: E402
     DEFAULT_OUTPUT_PATH as DEFAULT_REPLAY_OUTPUT_PATH,
     build_golden_set_replay,
@@ -256,9 +258,113 @@ def _seed_case_state(
                     local_date=local_date,
                 ),
             )
+        if seed_state.get("recent_meal_thread") in {
+            "committed_teppan_or_generic_meal",
+            "committed_teppan_combo",
+        }:
+            _seed_committed_teppan_context_meal(
+                db,
+                user_id=user.id,
+                local_date=local_date,
+                source_request_id=f"{case.get('case_id')}-seed-meal",
+            )
         db.commit()
     finally:
         db.close()
+
+
+def _seed_committed_teppan_context_meal(
+    db: Session,
+    *,
+    user_id: int,
+    local_date: str,
+    source_request_id: str,
+) -> None:
+    """Seed read-model state only; never decide the Golden case semantics."""
+
+    created_at = utcnow()
+    meal_title = "\u65e9\u9910\u5e97\u9435\u677f\u9eb5\u5957\u9910"
+    thread = MealThreadRecord(
+        user_id=user_id,
+        title=meal_title,
+        thread_kind="golden_set_seed",
+        active_version_id=None,
+        created_at=created_at,
+        updated_at=created_at,
+    )
+    db.add(thread)
+    db.flush()
+    version = MealVersionRecord(
+        meal_thread_id=thread.id,
+        version_status="active",
+        version_reason="golden_set_state_seed",
+        reason_payload_json={"fixture_state_only": True, "semantic_authority": False},
+        resolution_status="completed_meal",
+        meal_title=meal_title,
+        raw_input="\u65e9\u9910\u5e97\u9435\u677f\u9eb5\u5957\u9910\uff0c\u542b\u9435\u677f\u9eb5\u3001\u8377\u5305\u86cb\u3001\u8c6c\u8089\u7247",
+        source_request_id=source_request_id,
+        manager_intent="seeded_prior_committed_meal",
+        local_date=local_date,
+        occurred_at=created_at,
+        total_kcal=620,
+        protein_g=24,
+        carb_g=70,
+        fat_g=22,
+        created_at=created_at,
+    )
+    db.add(version)
+    db.flush()
+    thread.active_version_id = version.id
+    db.add_all(
+        [
+            thread,
+            MealItemRecord(
+                meal_version_id=version.id,
+                item_index=0,
+                name="\u9435\u677f\u9eb5",
+                quantity_hint="1 \u4efd",
+                source="fooddb",
+                evidence_role="component",
+                estimate_basis="fooddb_generic_component",
+                confidence_tier="medium",
+                estimated_kcal=420,
+                protein_g=10,
+                carb_g=62,
+                fat_g=14,
+                evidence_ids_json=["gs-seed-teppan-noodles"],
+            ),
+            MealItemRecord(
+                meal_version_id=version.id,
+                item_index=1,
+                name="\u8377\u5305\u86cb",
+                quantity_hint="1 \u9846",
+                source="fooddb",
+                evidence_role="component",
+                estimate_basis="fooddb_component",
+                confidence_tier="high",
+                estimated_kcal=90,
+                protein_g=6,
+                carb_g=1,
+                fat_g=7,
+                evidence_ids_json=["gs-seed-fried-egg"],
+            ),
+            MealItemRecord(
+                meal_version_id=version.id,
+                item_index=2,
+                name="\u8c6c\u8089\u7247",
+                quantity_hint="\u5c0f\u4efd",
+                source="fooddb",
+                evidence_role="component",
+                estimate_basis="fooddb_component",
+                confidence_tier="medium",
+                estimated_kcal=110,
+                protein_g=8,
+                carb_g=7,
+                fat_g=1,
+                evidence_ids_json=["gs-seed-pork-slices"],
+            ),
+        ]
+    )
 
 
 def _build_test_client(

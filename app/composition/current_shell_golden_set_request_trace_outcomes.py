@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.composition.current_shell_golden_set_answer_query_projection import (
+    attach_answer_query_no_mutation_outcome,
+    state_delta_has_no_meal_change,
+)
+from app.composition.current_shell_golden_set_kcal_conflict_projection import (
+    attach_implausible_kcal_conflict_outcome,
+)
 from app.composition.current_shell_golden_set_nutrition_projection import (
     approved_nutrition_evidence_present as _approved_nutrition_evidence_present,
     component_basis_present,
@@ -57,6 +64,12 @@ def runtime_from_request_trace(
         runtime["ledger_delta_trace_required"] = ledger_delta_trace_present(phase_c_mutation, state_delta)
     if "pending_followup_saved" not in runtime and "draft_saved" in state_delta:
         runtime["pending_followup_saved"] = bool(state_delta.get("draft_saved"))
+    attach_answer_query_no_mutation_outcome(
+        runtime=runtime,
+        manager_final=manager_final,
+        manager_decision=manager_decision,
+        state_delta=state_delta,
+    )
     if "assumed_slot_question_required" not in runtime and _followup_question(manager_final):
         runtime["assumed_slot_question_required"] = True
     component_basis = component_basis_present(request_trace)
@@ -91,7 +104,7 @@ def runtime_from_request_trace(
         workflow_effect=workflow_effect,
         final_action=final_action,
     )
-    _attach_implausible_kcal_conflict_outcome(
+    attach_implausible_kcal_conflict_outcome(
         runtime=runtime,
         manager_final=manager_final,
         manager_decision=manager_decision,
@@ -130,6 +143,8 @@ def ui_from_request_trace(request_trace: dict[str, Any], state_delta: dict[str, 
         not_counted = old_version_not_counted(request_trace, state_delta)
         if not_counted is not None:
             ui["old_version_not_counted"] = not_counted
+    if "existing_meal_unchanged" not in ui and state_delta_has_no_meal_change(state_delta):
+        ui["existing_meal_unchanged"] = True
     return ui
 
 
@@ -223,36 +238,6 @@ def _attach_manager_semantics(
         runtime.setdefault("target_attachment", semantic_decision.get("target_attachment"))
     if semantic_decision.get("current_turn_intent") is not None:
         runtime.setdefault("current_turn_intent", semantic_decision.get("current_turn_intent"))
-
-
-def _attach_implausible_kcal_conflict_outcome(
-    *,
-    runtime: dict[str, Any],
-    manager_final: dict[str, Any],
-    manager_decision: dict[str, Any],
-    workflow_effect: Any,
-    final_action: Any,
-    mutation_allowed: bool | None,
-) -> None:
-    if not _manager_named_food_kcal_conflict(manager_final, manager_decision):
-        return
-    if mutation_allowed is not False:
-        return
-    if str(final_action or workflow_effect or "") != "ask_followup":
-        return
-    runtime.setdefault("silent_accept_implausible_kcal_allowed", False)
-    runtime.setdefault("override_with_system_estimate_allowed", False)
-
-
-def _manager_named_food_kcal_conflict(
-    manager_final: dict[str, Any],
-    manager_decision: dict[str, Any],
-) -> bool:
-    semantic_decision = _dict(manager_final.get("semantic_decision")) or _dict(
-        manager_decision.get("semantic_decision")
-    )
-    source = str(semantic_decision.get("source") or manager_final.get("source") or "")
-    return source == "named_food_user_kcal_conflict"
 
 
 def _mutation_allowed_from_trace(

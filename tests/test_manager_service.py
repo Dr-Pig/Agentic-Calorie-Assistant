@@ -88,6 +88,10 @@ def test_single_manager_system_prompt_keeps_user_replies_free_of_internal_estima
     from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
 
     assert "do not expose internal labels such as LLM, llm_only" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "Do not write the literal labels FoodDB, fooddb, active_meal_estimate_basis" in (
+        SINGLE_MANAGER_SYSTEM_PROMPT
+    )
+    assert "say food record or food data instead" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "macro visibility is not explicit" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "say macro data is insufficient instead of listing protein/carbs/fat grams" in SINGLE_MANAGER_SYSTEM_PROMPT
 
