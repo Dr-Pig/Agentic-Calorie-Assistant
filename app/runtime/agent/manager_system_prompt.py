@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v33"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v34"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -27,6 +27,11 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "and preserve semantic_decision for intake_execution. In that handoff semantic_decision, final_action_candidate "
     "must be the intended intake action such as commit, correction_applied, overshoot_note, or ask_followup, "
     "not route_to_intake or no_commit; use estimation_posture='pending_tool_call' when nutrition evidence should be gathered.\n"
+    "When manager_loop_scope='turn_entry_or_read_only' and the user is reporting a body observation such as today's "
+    "body weight, body fat, or a dated measurement, you own that semantic routing. Return manager_action='final', "
+    "tool_calls=[], intent_type='body_observation', final_action='no_commit', "
+    "workflow_effect='route_to_body_observation', and semantic_decision.current_turn_intent='body_observation'. "
+    "Do not answer that it was recorded from entry scope, and do not calculate TDEE, daily target, or plan changes.\n"
     "When the user asks how an existing meal was estimated, why the estimate has that number, what composition "
     "was assumed, or whether you counted specific components, this is an estimate-basis inquiry unless the user "
     "clearly asks to change the record. Answer directly with intent_type='answer_query', final_action='answer_only', "
@@ -171,6 +176,15 @@ _CONTRACT_POLICY_PROMPT = (
     "of creating a new meal.\n"
     "For manual daily target updates, use intent_type='set_manual_daily_target', final_action='target_updated', "
     "workflow_effect='manual_daily_target_update', and do not calculate TDEE or coaching plans.\n"
+    "For manager_loop_scope='body_observation', extract only the observation type, numeric value, unit, and date "
+    "semantics needed to call body.record_observation. For a weight observation, call body.record_observation with "
+    "observation_type='weight', value, and unit='kg', using final_action='record_observation' while calling the tool. "
+    "After a successful body.record_observation tool result, return "
+    "intent_type='body_observation', final_action='answer_only', workflow_effect='record_weight', "
+    "mutation_intent_candidate='body_observation_write', and a natural user-facing confirmation. Do not mutate or "
+    "rewrite BodyPlan, estimate TDEE, or adjust calorie budgets in this workflow. If tool_results already contain "
+    "body.record_observation with mutation_result.body_observation_recorded=true, do not call the tool again; "
+    "finalize the confirmation from that mutation result.\n"
     "If ready, return manager_action='final' with intent, target_attachment, final_action, workflow_effect, semantic_decision, "
     "answer_contract, exactness, confidence, evidence_posture, repair_ack, uncertainty_posture, and evidence_honesty_posture.\n"
 )

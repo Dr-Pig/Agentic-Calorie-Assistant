@@ -213,6 +213,59 @@ def test_compact_tool_results_preserves_latest_weight_read_model_evidence() -> N
     assert "observed_at" not in str(compact)
 
 
+def test_compact_tool_results_preserves_body_observation_mutation_result() -> None:
+    compact = compact_tool_results_prompt_payload(
+        [
+            {
+                "tool_name": "body.record_observation",
+                "evidence": {
+                    "recorded_body_observation": {
+                        "observation_id": 8,
+                        "observation_type": "weight",
+                        "value": 84.0,
+                        "unit": "kg",
+                        "local_date": "2026-05-14",
+                        "observed_at": "2026-05-14T08:00:00",
+                        "debug_blob": "x" * 1000,
+                    }
+                },
+                "mutation_result": {
+                    "status": "recorded",
+                    "body_observation_recorded": True,
+                    "body_plan_mutated": False,
+                    "ledger_mutated": False,
+                    "debug_blob": "x" * 1000,
+                },
+                "provenance": {
+                    "canonical_tool_name": "body.record_observation",
+                    "truth_owner": "body_domain",
+                    "tool_kind": "mutation_bearing",
+                    "mutation_authority": False,
+                },
+                "confidence": "available",
+                "failure_family": None,
+            }
+        ]
+    )
+
+    result = compact[0]
+    assert result["evidence"]["recorded_body_observation"] == {
+        "observation_id": 8,
+        "observation_type": "weight",
+        "value": 84.0,
+        "unit": "kg",
+        "local_date": "2026-05-14",
+    }
+    assert result["mutation_result"] == {
+        "status": "recorded",
+        "body_observation_recorded": True,
+        "body_plan_mutated": False,
+        "ledger_mutated": False,
+    }
+    assert "debug_blob" not in str(compact)
+    assert "observed_at" not in str(compact)
+
+
 class FakeLoopProvider:
     def __init__(self, responses: list[dict[str, object]]) -> None:
         self.responses = list(responses)

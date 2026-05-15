@@ -10,6 +10,16 @@ from app.runtime.agent.founder_live_manager_removal_policy import (
     target_evidence_requests_removal,
 )
 from app.runtime.agent.founder_live_manager_followup_contract import validate_ask_followup_contract
+from app.runtime.agent.founder_live_manager_allowed_values import (
+    FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS,
+    FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES,
+    FOUNDER_LIVE_MANAGER_CALL_TOOLS_FINAL_ACTIONS,
+    FOUNDER_LIVE_MANAGER_EVIDENCE_REQUIRED_FINAL_ACTIONS,
+    FOUNDER_LIVE_MANAGER_FOLLOWUP_QUESTION_REQUIRED_POSTURES,
+    FOUNDER_LIVE_MANAGER_INTENT_TYPE_BY_SEMANTIC_INTENT,
+    FOUNDER_LIVE_MANAGER_REPAIR_ALLOWED_TOOL_NAMES,
+    FOUNDER_LIVE_MANAGER_RESPONSE_ONLY_FINAL_ACTIONS,
+)
 from app.runtime.agent.nutrition_evidence_state import nutrition_evidence_present
 from app.shared.contracts.correction_operation import structured_correction_operation
 
@@ -22,8 +32,6 @@ FOUNDER_LIVE_MANAGER_COMMIT_WITHOUT_EVIDENCE_REPAIR_FAMILY = "commit_without_evi
 FOUNDER_LIVE_MANAGER_REPAIR_REQUIRED_TOOL_BY_FAMILY = {
     FOUNDER_LIVE_MANAGER_COMMIT_WITHOUT_EVIDENCE_REPAIR_FAMILY: "estimate_nutrition",
 }
-FOUNDER_LIVE_MANAGER_EVIDENCE_REQUIRED_FINAL_ACTIONS = ["commit", "correction_applied", "overshoot_note"]
-FOUNDER_LIVE_MANAGER_REPAIR_ALLOWED_TOOL_NAMES = ["resolve_correction_target", "estimate_nutrition", "compare_against_budget"]
 
 FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS = [
     "manager_action",
@@ -55,48 +63,6 @@ FOUNDER_LIVE_MANAGER_FIELD_CONSUMERS = {
     "answer_contract": "renderer_boundary",
 }
 
-FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES = [
-    "complete_onboarding", "answer_remaining_budget", "onboarding_required", "manager_unavailable",
-    "answer_query", "log_meal", "correct_meal",
-]
-FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS = [
-    "commit",
-    "ask_followup",
-    "correction_applied",
-    "overshoot_note",
-    "answer_only",
-    "no_commit",
-    "answer_remaining_budget",
-    "onboarding_required",
-    "manager_unavailable",
-    "complete_onboarding",
-]
-FOUNDER_LIVE_MANAGER_CALL_TOOLS_FINAL_ACTIONS = [
-    "commit",
-    "correction_applied",
-    "overshoot_note",
-]
-FOUNDER_LIVE_MANAGER_RESPONSE_ONLY_FINAL_ACTIONS = [
-    "ask_followup",
-    "answer_only",
-    "no_commit",
-    "answer_remaining_budget",
-    "onboarding_required",
-    "manager_unavailable",
-    "complete_onboarding",
-]
-FOUNDER_LIVE_MANAGER_FOLLOWUP_QUESTION_REQUIRED_POSTURES = {
-    "refinement_not_commit_gate",
-    "size_clarification",
-}
-
-FOUNDER_LIVE_MANAGER_INTENT_TYPE_BY_SEMANTIC_INTENT = {
-    "complete_onboarding": "complete_onboarding",
-    "answer_remaining_budget": "answer_remaining_budget",
-    "answer_query": "answer_query",
-    "log_meal": "log_meal",
-    "correct_meal": "correct_meal",
-}
 FOUNDER_LIVE_MANAGER_CONTRACT_POLICY = {
     "intent_type_by_semantic_intent": dict(FOUNDER_LIVE_MANAGER_INTENT_TYPE_BY_SEMANTIC_INTENT),
     "final_actions_requiring_evidence": list(FOUNDER_LIVE_MANAGER_EVIDENCE_REQUIRED_FINAL_ACTIONS),
