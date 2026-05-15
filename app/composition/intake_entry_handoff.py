@@ -37,8 +37,8 @@ def entry_handoff_tool_calls(manager_decision: Any, *, resolved_state: Any | Non
     merged_target = _hydrate_manager_selected_target({**target, **semantic_target}, resolved_state)
     final_candidate = str(semantic_decision.get("final_action_candidate") or "")
     operation = structured_correction_operation(merged_target)
-    if final_candidate == "correction_applied" and operation == "remove_item":
-        return [_remove_item_target_handoff_call(merged_target)]
+    if final_candidate == "correction_applied" and operation in {"remove_item", "remove_meal"}:
+        return [_target_resolution_handoff_call(merged_target)]
     calls: list[dict[str, Any]] = []
     if _requires_target_resolution_handoff(semantic_decision, merged_target, final_candidate):
         calls.append(_target_resolution_handoff_call(merged_target))
@@ -103,6 +103,8 @@ def _nutrition_evidence_handoff_tool_calls(
     if estimation_posture in _COMPOSITION_UNKNOWN_ESTIMATION_POSTURES:
         return []
     if manager_owned_user_provided_kcal_from_semantics(semantic_decision) is not None:
+        return []
+    if structured_correction_operation(target) in {"remove_item", "remove_meal"}:
         return []
     arguments = {
         "manager_semantic_decision": {

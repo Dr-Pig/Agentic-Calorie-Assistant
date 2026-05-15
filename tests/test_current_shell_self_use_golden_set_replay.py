@@ -39,6 +39,7 @@ def _gs5_trace_case() -> dict[str, object]:
             "workflow_effect": "ask_followup",
             "mutation_allowed": False,
             "fallback_400_allowed": False,
+            "pre_manager_estimability_shortcut_allowed": False,
             "pending_followup_saved": True,
             "assumed_slot_question_required": True,
         },
@@ -48,6 +49,7 @@ def _gs5_trace_case() -> dict[str, object]:
             "frontend_nutrition_math_allowed": False,
         },
         "response": {
+            "visible_text": "這個套餐內容可能差很多，請補一下主餐、蛋、飲料或其他配菜，我再幫你估。",
             "zh_tw_primary": True,
             "internal_debug_words_present": False,
             "state_contradiction": False,

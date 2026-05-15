@@ -32,6 +32,8 @@ def determine_meal_status(
         isinstance(canonical_write_decision, dict)
         and canonical_write_decision.get("can_write_canonical") is True
     )
+    if canonical_write_allowed and str(trace_contract.get("correction_operation") or "") == "remove_meal":
+        return "completed_meal"
     exact_like = str(trace_contract.get("db_hit_type") or "") == "exact_truth" or str(
         quality_signals.get("estimate_mode") or ""
     ) == "exact_item"

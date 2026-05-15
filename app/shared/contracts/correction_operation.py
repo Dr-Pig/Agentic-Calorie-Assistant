@@ -11,6 +11,7 @@ THREAD_LEVEL_CORRECTION_OPERATIONS = frozenset(
         "replace_meal_components",
         "portion_correction",
         "composition_correction",
+        "remove_meal",
     }
 )
 
@@ -77,6 +78,10 @@ def structured_payload_requests_remove_item(payload: dict[str, Any] | None) -> b
     return structured_correction_operation(payload) == "remove_item"
 
 
+def structured_payload_requests_remove_meal(payload: dict[str, Any] | None) -> bool:
+    return structured_correction_operation(payload) == "remove_meal"
+
+
 def structured_payload_requests_thread_level_correction(payload: dict[str, Any] | None) -> bool:
     return structured_correction_operation(payload) in THREAD_LEVEL_CORRECTION_OPERATIONS
 
@@ -85,5 +90,6 @@ __all__ = [
     "THREAD_LEVEL_CORRECTION_OPERATIONS",
     "structured_correction_operation",
     "structured_payload_requests_remove_item",
+    "structured_payload_requests_remove_meal",
     "structured_payload_requests_thread_level_correction",
 ]

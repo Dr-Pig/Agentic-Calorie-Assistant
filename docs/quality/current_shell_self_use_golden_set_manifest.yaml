@@ -375,7 +375,7 @@ cases:
     hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G2_context_engineering, G4_manager_react_loop, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
     required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, guard_result, mutation_result, renderer_input_basis, final_response_basis, latency_cost_cache_usage]
     expected_runtime:
-      workflow_effect: remove_item
+      workflow_effect: remove_meal
       target_attachment: unique_recent_or_named_slot
       removed_versions_excluded_from_ledger: true
       mutation_allowed: true

@@ -18,6 +18,7 @@ from app.database import (
 )
 from app.intake.application.state_transition import determine_meal_status
 from app.schemas import EstimatePayload
+from app.shared.contracts.correction_operation import structured_correction_operation
 from app.shared.infra.models import MealLog, User
 
 
@@ -47,6 +48,8 @@ def persist_text_meal_result(
     persisted_log: MealLog | None = None
     canonical_write_decision = dict(payload.trace_contract.get("canonical_write_decision") or {})
     canonical_write_allowed = canonical_write_decision.get("can_write_canonical", True) is not False
+    correction_operation = structured_correction_operation(payload.trace_contract)
+    whole_meal_removal = correction_operation == "remove_meal"
     boundary_followup = bool((payload.boundary_trace or {}).get("boundary_followup_triggered"))
     resolved_meal_status = determine_meal_status(
         payload_action_taken=payload.action_taken,
@@ -72,6 +75,9 @@ def persist_text_meal_result(
     if boundary_followup:
         action = "skip_log_boundary_clarification"
         persisted_status = latest_log.status if latest_log else None
+    elif canonical_write_allowed and whole_meal_removal:
+        action = "save_completed_log"
+        persisted_status = "completed_meal"
     elif (
         canonical_write_allowed
         and payload.estimated_kcal > 0
@@ -154,7 +160,7 @@ def persist_text_meal_result(
 
     canonical_commit = None
     if (
-        persisted_log is not None
+        (persisted_log is not None or whole_meal_removal)
         and persisted_status == "completed_meal"
         and canonical_write_allowed
     ):
@@ -194,7 +200,7 @@ def persist_text_meal_result(
             user=user,
             candidate=commit_candidate,
             latest_log_id=latest_log.id if latest_log is not None else None,
-            persisted_log_id=persisted_log.id,
+            persisted_log_id=persisted_log.id if persisted_log is not None else None,
         )
 
     return {

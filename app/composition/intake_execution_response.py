@@ -108,6 +108,11 @@ def build_intake_execution_response(
         nutrition_payload=payload,
         persistence_result=persistence_result,
         manager_final_action=manager_result.final_action if manager_result is not None else None,
+        manager_answer_contract=(
+            dict(getattr(manager_result, "answer_contract", {}) or {})
+            if manager_result is not None
+            else None
+        ),
         budget_summary=budget_summary,
     )
     trace_summary = {

@@ -557,8 +557,9 @@ async def test_run_intake_manager_uses_static_prompt_and_dynamic_entry_scope_pol
     prompt = provider.calls[0]["system_prompt"]
     policy = provider.calls[0]["user_payload"]["manager_scope_policy"]
     assert "Entry scope is classification, handoff, and read-only tool planning only." in prompt
-    assert "Explicit remove_item correction is different" in prompt
+    assert "Explicit removal correction is different" in prompt
     assert "use target evidence from resolve_correction_target" in prompt
+    assert "runtime must not infer remove_meal from raw text" in prompt
     assert "context packet read_only" in prompt
     assert "after an estimate-basis inquiry" in prompt
     assert "do not ask for replacement confirmation" in prompt
@@ -605,8 +606,9 @@ async def test_run_intake_manager_uses_same_static_prompt_with_intake_scope_poli
 
     prompt = provider.calls[0]["system_prompt"]
     policy = provider.calls[0]["user_payload"]["manager_scope_policy"]
-    assert "Explicit remove_item correction is different" in prompt
+    assert "Explicit removal correction is different" in prompt
     assert "use target evidence from resolve_correction_target" in prompt
+    assert "runtime must not infer remove_meal from raw text" in prompt
     assert policy["manager_loop_scope"] == "intake_execution"
 
 

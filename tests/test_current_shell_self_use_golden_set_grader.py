@@ -105,6 +105,25 @@ def test_grader_accepts_structured_previous_teppan_meal_attachment() -> None:
     assert grade["blockers"] == []
 
 
+def test_grader_accepts_structured_whole_meal_removal_attachment() -> None:
+    result = _base_result("GS12")
+    result["runtime"]["workflow_effect"] = "correction_applied"
+    result["runtime"]["canonical_commit_status"] = "committed"
+    result["runtime"]["final_action"] = "correction_applied"
+    result["runtime"]["old_version_superseded"] = True
+    result["runtime"]["removed_versions_excluded_from_ledger"] = True
+    result["runtime"]["target_attachment"] = {
+        "meal_thread_id": 3,
+        "operation": "remove_meal",
+        "target_resolution_source": "resolve_correction_target",
+    }
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "pass"
+    assert grade["blockers"] == []
+
+
 def test_grader_blocks_fixture_owned_semantics() -> None:
     result = _base_result("GS5")
     result["fixture_decisions"]["action"] = True

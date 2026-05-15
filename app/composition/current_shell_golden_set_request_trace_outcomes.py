@@ -9,6 +9,9 @@ from app.composition.current_shell_golden_set_answer_query_projection import (
 from app.composition.current_shell_golden_set_kcal_conflict_projection import (
     attach_implausible_kcal_conflict_outcome,
 )
+from app.composition.current_shell_golden_set_correction_projection import (
+    attach_removed_version_projection,
+)
 from app.composition.current_shell_golden_set_nutrition_projection import (
     approved_nutrition_evidence_present as _approved_nutrition_evidence_present,
     component_basis_present,
@@ -18,7 +21,6 @@ from app.composition.current_shell_golden_set_nutrition_projection import (
     nutrition_packet_present,
     visible_range_or_basis_present,
 )
-from app.composition.current_shell_golden_set_request_trace_sources import trace_id
 from app.composition.current_shell_golden_set_version_projection import (
     ledger_delta_trace_present,
     old_version_not_counted,
@@ -60,6 +62,14 @@ def runtime_from_request_trace(
     superseded = old_version_superseded(phase_c_mutation, state_delta)
     if "old_version_superseded" not in runtime and superseded is not None:
         runtime["old_version_superseded"] = superseded
+    attach_removed_version_projection(
+        runtime,
+        request_trace=request_trace,
+        state_delta=state_delta,
+        manager_final=manager_final,
+        manager_decision=manager_decision,
+        phase_c_mutation=phase_c_mutation,
+    )
     if "ledger_recomputed" not in runtime and "ledger_updated" in state_delta:
         runtime["ledger_recomputed"] = bool(state_delta.get("ledger_updated"))
     if "ledger_delta_trace_required" not in runtime and superseded is True:
@@ -147,20 +157,10 @@ def ui_from_request_trace(request_trace: dict[str, Any], state_delta: dict[str, 
         not_counted = old_version_not_counted(request_trace, state_delta)
         if not_counted is not None:
             ui["old_version_not_counted"] = not_counted
+            ui.setdefault("removed_item_not_counted", not_counted)
     if "existing_meal_unchanged" not in ui and state_delta_has_no_meal_change(state_delta):
         ui["existing_meal_unchanged"] = True
     return ui
-
-
-def response_from_request_trace(request_trace: dict[str, Any]) -> dict[str, Any]:
-    explicit = _dict(request_trace.get("response"))
-    if explicit:
-        return _with_visible_response_text(explicit, request_trace)
-    response_grade = _dict(request_trace.get("response_grade"))
-    if response_grade:
-        return _with_visible_response_text(response_grade, request_trace)
-    sidecar_response = _dict(_dict(request_trace.get("sidecar_output")).get("response"))
-    return _with_visible_response_text(sidecar_response, request_trace)
 
 
 def latency_from_request_trace(request_trace: dict[str, Any], react_trace: dict[str, Any]) -> dict[str, Any]:
@@ -178,24 +178,6 @@ def latency_from_request_trace(request_trace: dict[str, Any], react_trace: dict[
     if "latency_attribution" not in latency and latency_tracking.get("latency_attribution") is not None:
         latency["latency_attribution"] = latency_tracking.get("latency_attribution")
     return latency
-
-
-def dogfood_trace_from_request_trace(request_trace: dict[str, Any]) -> dict[str, Any]:
-    trace = _dict(request_trace.get("dogfood_trace"))
-    trace_refs = _dict(request_trace.get("trace_refs"))
-    resolved_trace_id = trace_id(request_trace)
-    if resolved_trace_id:
-        trace.setdefault("trace_id", resolved_trace_id)
-    if trace_refs.get("request_id"):
-        trace.setdefault("request_id", trace_refs.get("request_id"))
-    feedback = _dict(request_trace.get("feedback_linkage"))
-    if feedback:
-        trace.setdefault("feedback_linkage", feedback)
-        if feedback.get("feedback_links_to_trace") is not None:
-            trace.setdefault("feedback_links_to_trace", bool(feedback.get("feedback_links_to_trace")))
-    elif resolved_trace_id:
-        trace.setdefault("feedback_links_to_trace", True)
-    return trace
 
 
 def approved_nutrition_evidence_present(request_trace: dict[str, Any], manager_final: dict[str, Any]) -> bool:
@@ -287,25 +269,6 @@ def _meal_level_basis_visible(request_trace: dict[str, Any]) -> bool | None:
     if candidates:
         return True
     return None
-def _with_visible_response_text(response: dict[str, Any], request_trace: dict[str, Any]) -> dict[str, Any]:
-    visible_text = _visible_response_text(request_trace)
-    if visible_text:
-        response.setdefault("assistant_message", visible_text)
-    return response
-def _visible_response_text(request_trace: dict[str, Any]) -> str:
-    renderer_output = _dict(request_trace.get("renderer_output"))
-    text = str(renderer_output.get("assistant_message") or renderer_output.get("message") or "").strip()
-    if text:
-        return text
-    manager_final = _dict(request_trace.get("manager_final_decision"))
-    answer_contract = _dict(manager_final.get("answer_contract"))
-    return str(
-        answer_contract.get("reply_text")
-        or answer_contract.get("text")
-        or manager_final.get("response_summary")
-        or ""
-    ).strip()
-
 def _pre_manager_guard_feedback_present(request_trace: dict[str, Any]) -> bool | None:
     react_trace = _dict(request_trace.get("react_trace"))
     manager_pass_1 = _dict(react_trace.get("manager_pass_1"))

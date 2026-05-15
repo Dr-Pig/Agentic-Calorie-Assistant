@@ -33,6 +33,21 @@ def resolve_correction_target_tool(
     resolved_state: Any,
 ) -> dict[str, Any]:
     target = ((resolved_state.injected_context or {}).get("TARGET_MEAL_REFERENCE") or {}).copy()
+    thread_candidates: list[dict[str, Any]] = []
+    seen_thread_ids = set()
+    if target.get("meal_thread_id") is not None:
+        seen_thread_ids.add(target.get("meal_thread_id"))
+        thread_candidates.append(
+            {
+                "meal_thread_id": target.get("meal_thread_id"),
+                "meal_version_id": target.get("meal_version_id"),
+                "meal_title": target.get("meal_title"),
+                "target_resolution_source": target.get("target_resolution_source"),
+                "source": "target_meal_reference",
+                "mutation_authority": False,
+                "selected_target": False,
+            }
+        )
     item_candidates = [
         dict(item) for item in (target.get("item_candidates") or []) if isinstance(item, dict)
     ]
@@ -42,6 +57,20 @@ def resolve_correction_target_tool(
     for meal in (resolved_state.injected_context or {}).get("RECENT_COMMITTED_MEALS_SUMMARY") or []:
         if not isinstance(meal, dict):
             continue
+        meal_thread_id = meal.get("meal_thread_id")
+        if meal_thread_id is not None and meal_thread_id not in seen_thread_ids:
+            seen_thread_ids.add(meal_thread_id)
+            thread_candidates.append(
+                {
+                    "meal_thread_id": meal_thread_id,
+                    "meal_version_id": meal.get("meal_version_id"),
+                    "meal_title": meal.get("meal_title"),
+                    "total_kcal": meal.get("total_kcal"),
+                    "source": "recent_committed_meal",
+                    "mutation_authority": False,
+                    "selected_target": False,
+                }
+            )
         for item in meal.get("item_candidates") or []:
             if not isinstance(item, dict):
                 continue
@@ -61,6 +90,8 @@ def resolve_correction_target_tool(
             )
     if item_candidates:
         target["item_candidates"] = item_candidates
+    if thread_candidates:
+        target["thread_candidates"] = thread_candidates
     pending = conversation_pending_followup(getattr(resolved_state, "conversation_state", None))
     if pending.get("is_open"):
         target["target_resolution_source"] = "pending_followup_state"

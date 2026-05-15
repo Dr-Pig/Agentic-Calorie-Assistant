@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v29"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v30"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -132,8 +132,14 @@ _CONTRACT_POLICY_PROMPT = (
     "is no longer an entry handoff: do not return workflow_effect='route_to_intake' or final_action='no_commit'. "
     "Use final_action='commit', 'correction_applied', or 'overshoot_note' according to semantic_decision.final_action_candidate, "
     "with manager_action='final' and tool_calls=[].\n"
-    "Explicit remove_item correction is different: use target evidence from resolve_correction_target or a runtime-validated "
-    "target_attachment, then final_action='correction_applied' without estimate_nutrition.\n"
+    "Explicit removal correction is different: use target evidence from resolve_correction_target or a runtime-validated "
+    "target_attachment, then final_action='correction_applied' without estimate_nutrition. For whole meal, meal entry, "
+    "or named meal slot deletion, use operation='remove_meal' with a Manager-selected meal_thread_id from "
+    "RECENT_COMMITTED_MEALS_SUMMARY or manager_context_packet_v1 target candidates. For component/item deletion inside a "
+    "meal, use operation='remove_item'. If the current turn names a different meal or slot than an open pending follow-up, "
+    "do not let a stale pending follow-up override the explicit current-turn target. runtime validates that selected thread id "
+    "against context candidates and applies versioned removal; runtime must not infer remove_meal from raw text, slot words, "
+    "or food names. If multiple candidates match, ask a target clarification and do not mutate.\n"
     "For explicit item removal, set semantic_decision.target_attachment.operation='remove_item' or action_type='remove_item', "
     "mutation_intent_candidate='correction_write', and estimation_posture='target_evidence_needed'; this is not nutrition pending_tool_call.\n"
     "For a portion or removal correction where the active meal context already contains the original components and "

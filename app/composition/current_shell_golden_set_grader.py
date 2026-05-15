@@ -5,6 +5,11 @@ from typing import Any
 
 import yaml
 
+from app.composition.current_shell_golden_set_correction_matchers import (
+    matches_remove_meal_workflow,
+    matches_unique_recent_or_named_slot_attachment,
+)
+
 
 GOLDEN_SET_MANIFEST_PATH = Path("docs/quality/current_shell_self_use_golden_set_manifest.yaml")
 
@@ -158,6 +163,12 @@ def _expected_item_matches(
     if (
         prefix == "runtime"
         and key == "workflow_effect"
+        and expected_item == "remove_meal"
+    ):
+        return matches_remove_meal_workflow(actual, actual_item)
+    if (
+        prefix == "runtime"
+        and key == "workflow_effect"
         and expected_item == "commit_then_refine"
         and actual_item in {"canonical_write", "correction_write", "correction_applied"}
     ):
@@ -178,6 +189,12 @@ def _expected_item_matches(
         and expected_item == "previous_teppan_meal"
     ):
         return _matches_previous_meal_attachment(actual_item)
+    if (
+        prefix == "runtime"
+        and key == "target_attachment"
+        and expected_item == "unique_recent_or_named_slot"
+    ):
+        return matches_unique_recent_or_named_slot_attachment(actual_item)
     if (
         prefix == "runtime"
         and key == "target_attachment"

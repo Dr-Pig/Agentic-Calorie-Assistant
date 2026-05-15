@@ -85,8 +85,8 @@ def build_commit_request_candidate(
         trace_ref["correction_target_ref"] = dict(correction_target_ref)
         if resolved_meal_thread_id is None and correction_target_ref.get("meal_thread_id") is not None:
             resolved_meal_thread_id = int(correction_target_ref["meal_thread_id"])
-    if trace_contract.get("correction_operation") == "remove_item":
-        trace_ref["correction_operation"] = "remove_item"
+    if trace_contract.get("correction_operation") in {"remove_item", "remove_meal"}:
+        trace_ref["correction_operation"] = trace_contract.get("correction_operation")
         items = []
     resolved_version_reason = version_reason or (
         "correction" if parent_version_id is not None or "correction_target_ref" in trace_ref else "new_intake"
