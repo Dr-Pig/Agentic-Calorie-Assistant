@@ -66,7 +66,7 @@
     .subtle { margin: 0; color: var(--muted); }
     .session-strip, .form-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
     }
     label { display: grid; gap: 6px; font-weight: 650; }
@@ -100,6 +100,12 @@
       color: var(--ink);
       font-weight: 800;
     }
+    .context-note .context-secondary {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .hidden-context-fields { display: none; }
     details.context-details {
       grid-column: 1 / -1;
       border: 1px solid var(--line);
@@ -169,37 +175,32 @@
   >
     <section class="panel">
       <h1>Feedback</h1>
-      <p class="subtle">不用填 ID，也不需要手動填 ID。寫下你剛剛遇到的問題；系統會自動帶入目前頁面、日期、最近一則訊息與餐點線索。</p>
+      <p class="subtle">直接寫你剛剛遇到的問題。系統會自動附上目前頁面、最近對話、trace 與 read model 摘要；你不需要填任何內部 ID。</p>
     </section>
     <section class="panel session-strip" aria-label="Feedback context">
-      <label>User ID
-        <input id="user-id" value="local-self-use-001" autocomplete="off" />
-      </label>
-      <label>Date
-        <input id="local-date" type="date" />
-      </label>
       <div class="context-note" aria-label="Selected meal context">
-        <strong>Meal</strong>
+        <strong>Context</strong>
         <span id="meal-title-context">No meal selected</span>
+        <span id="trace-context" class="context-secondary">Loading recent turn...</span>
       </div>
-      <details id="advanced-context-fields" class="context-details">
-        <summary>進階：自動帶入的上下文</summary>
-        <p class="subtle">這些欄位是給之後 triage / trace 對照用；日常回報不用手填。</p>
-        <div class="context-detail-grid">
-          <label>Trace ID
-            <input id="trace-id" autocomplete="off" />
-          </label>
-          <label>Request ID
-            <input id="request-id" autocomplete="off" />
-          </label>
-          <label>Message ID
-            <input id="message-id" autocomplete="off" />
-          </label>
-          <label>Meal ID
-            <input id="meal-id" autocomplete="off" />
-          </label>
-        </div>
-      </details>
+      <div class="context-note" aria-label="Feedback scope">
+        <strong>Scope</strong>
+        <span id="feedback-scope-context">local-self-use-001 / today</span>
+        <span class="context-secondary">local dogfood only</span>
+      </div>
+      <div class="context-note" aria-label="Recent context preview">
+        <strong>Recent turn</strong>
+        <span id="recent-context-preview">No recent turn loaded yet</span>
+        <span class="context-secondary">display only, not product truth</span>
+      </div>
+      <div class="hidden-context-fields" aria-hidden="true">
+        <input id="user-id" value="local-self-use-001" autocomplete="off" />
+        <input id="local-date" type="hidden" />
+        <input id="trace-id" autocomplete="off" />
+        <input id="request-id" autocomplete="off" />
+        <input id="message-id" autocomplete="off" />
+        <input id="meal-id" autocomplete="off" />
+      </div>
     </section>
     <form id="feedback-form" class="panel form-grid" aria-busy="false">
       <label>Category
@@ -222,13 +223,13 @@
         </select>
       </label>
       <label class="wide">Note
-        <span id="feedback-text-help" class="subtle">描述發生什麼、你原本期待什麼；如果是估算錯誤，可以補上你認為餐點有哪些組成。</span>
+        <span id="feedback-text-help" class="subtle">描述你看到的問題、期待的結果；如果是估算錯誤，可以補上你認為餐點實際有哪些組成。</span>
         <textarea id="feedback-text" name="feedback_text" aria-describedby="feedback-text-help" required></textarea>
       </label>
       <div class="actions wide">
         <button id="submit-feedback" type="submit">送出回饋</button>
-        <a class="action-link" data-nav-target="chat" href="/static/accurate-intake-chat.html">回 Chat</a>
-        <a class="action-link" data-nav-target="review" href="/static/accurate-intake-review.html">打開 Review Queue</a>
+        <a class="action-link" data-nav-target="chat" href="/static/accurate-intake-chat.html">回到 Chat</a>
+        <a class="action-link" data-nav-target="review" href="/static/accurate-intake-review.html">Open Review</a>
         <span id="feedback-status" class="status" aria-live="polite" role="status">Not submitted.</span>
       </div>
     </form>
@@ -249,6 +250,7 @@
     el("message-id").value = params.get("message_id") || "";
     el("meal-id").value = params.get("meal_id") || "";
     el("meal-title-context").textContent = params.get("meal_title") || "No meal selected";
+    el("feedback-scope-context").textContent = `${el("user-id").value} / ${el("local-date").value}`;
 
     function userId() {
       return el("user-id").value.trim() || "default_user";
@@ -258,6 +260,9 @@
     }
     function sourcePage() {
       return params.get("source_page") || CURRENT_PAGE;
+    }
+    function updateScopeContext() {
+      el("feedback-scope-context").textContent = `${userId()} / ${selectedDate()}`;
     }
     function pageUrl(page) {
       const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
@@ -343,7 +348,12 @@
         el("trace-id").value = el("trace-id").value || latest.trace_id || "";
         el("request-id").value = el("request-id").value || latest.trace_id || "";
         el("message-id").value = el("message-id").value || latest.message_id || "";
+        el("trace-context").textContent = `已附上最近 turn：${latest.trace_id}`;
+      } else {
+        el("trace-context").textContent = "沒有找到最近 trace，仍可送出回饋";
       }
+      const recent = messages.slice(-2).map((message) => `${message.role}: ${message.content || ""}`).join(" / ");
+      el("recent-context-preview").textContent = recent || "No recent turn loaded yet";
     }
     function feedbackPayload() {
       return {
@@ -408,11 +418,13 @@
     });
     ["user-id", "local-date"].forEach((id) => {
       el(id).addEventListener("change", () => {
+        updateScopeContext();
         updateCurrentUrl();
         updateNavigationLinks();
       });
     });
     updateNavigationLinks();
+    updateScopeContext();
     updateCurrentUrl();
     loadLatestTraceContext().catch((error) => {
       if (reconnectThroughFriendlyRoute(error)) {

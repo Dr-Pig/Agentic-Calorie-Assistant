@@ -4,7 +4,12 @@ import json
 from pathlib import Path
 
 from app.composition import accurate_intake_debug_routes, local_data_hygiene_routes
+from app.database import append_message, get_or_create_user
+from app.shared.infra.models import Base
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 
 from scripts.run_accurate_intake_desktop_dogfood_launcher import (
     DESKTOP_PAGES,
@@ -13,6 +18,50 @@ from scripts.run_accurate_intake_desktop_dogfood_launcher import (
     close_desktop_dogfood_app,
     main,
 )
+
+
+def _seed_feedback_chat_trace(db_path: Path) -> None:
+    engine = create_engine(
+        f"sqlite:///{db_path.as_posix()}",
+        connect_args={"check_same_thread": False},
+        poolclass=NullPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+    try:
+        with SessionLocal() as db:
+            user = get_or_create_user(db, "dogfood-user")
+            trace = {
+                "request_id": "trace-auto-ctx-001",
+                "local_date": "2026-05-10",
+                "assistant_response": {"structured_followup_question": None},
+                "trace_chain": {
+                    "manager_decision_present": True,
+                    "evidence_packet_present": True,
+                    "evidence_requirement_satisfied": True,
+                    "final_mapping_present": True,
+                    "state_before_present": True,
+                    "state_after_present": True,
+                },
+            }
+            append_message(
+                db,
+                user,
+                "user",
+                "早餐吃鐵板麵、荷包蛋、豬肉片",
+                trace_id="trace-auto-ctx-001",
+                trace_json={"runtime_turn_trace": trace},
+            )
+            append_message(
+                db,
+                user,
+                "assistant",
+                "已記錄這餐，並用鐵板麵、荷包蛋、豬肉片估算。",
+                trace_id="trace-auto-ctx-001",
+                trace_json={"runtime_turn_trace": trace},
+            )
+    finally:
+        engine.dispose()
 
 
 def test_desktop_dogfood_launch_descriptor_uses_persistent_local_sqlite_and_launchpad_url() -> None:
@@ -214,6 +263,67 @@ def test_desktop_dogfood_launcher_app_path_captures_feedback_into_review_queue(
         assert review_payload["canonical_eval_promotion_allowed"] is False
         assert data.json()["db_path"].endswith("accurate_intake.sqlite3")
         assert db_path.exists()
+    finally:
+        close_desktop_dogfood_app(app)
+
+
+def test_desktop_feedback_auto_attaches_recent_trace_and_read_model_without_manual_ids(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    token = "launcher-token"
+    db_path = tmp_path / "accurate_intake.sqlite3"
+    feedback_dir = tmp_path / "feedback"
+    review_path = tmp_path / "review" / "queue.json"
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", token)
+    monkeypatch.setattr(accurate_intake_debug_routes, "DOGFOOD_FEEDBACK_DIR", feedback_dir, raising=False)
+    monkeypatch.setattr(
+        accurate_intake_debug_routes,
+        "DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH",
+        review_path,
+        raising=False,
+    )
+    _seed_feedback_chat_trace(db_path)
+    app = build_app_for_desktop_dogfood(db_path)
+    try:
+        with TestClient(app) as client:
+            establish = client.post("/accurate-intake/local-debug-session", json={"token": token})
+            feedback = client.post(
+                "/accurate-intake/feedback",
+                json={
+                    "category": "manager_behavior",
+                    "feedback_text": "它把詢問估算依據誤解成修改餐點。",
+                    "page": "chat",
+                    "selected_date": "2026-05-10",
+                    "user_external_id": "dogfood-user",
+                    "severity": "high",
+                    "ui_event": {"source_page": "chat", "route": "/static/accurate-intake-chat.html"},
+                },
+            )
+            review = client.get("/accurate-intake/review-queue")
+
+        assert establish.status_code == 204
+        assert feedback.status_code == 200
+        assert review.status_code == 200
+        feedback_payload = feedback.json()
+        linked = feedback_payload["linked_context"]
+        assert linked["context_status"] == "auto_attached"
+        assert linked["auto_context_source"] == "chat_history_and_read_model"
+        assert linked["trace_id"] == "trace-auto-ctx-001"
+        assert linked["request_id"] == "trace-auto-ctx-001"
+        assert str(linked["message_id"])
+        assert linked["feedback_links_to_trace"] is True
+        assert [message["role"] for message in linked["recent_messages"]] == ["user", "assistant"]
+        assert "鐵板麵" in linked["recent_messages"][0]["content"]
+        assert linked["read_model_snapshot"]["state_posture"] == "canonical_user_state"
+        assert linked["read_model_snapshot"]["local_date"] == "2026-05-10"
+        assert feedback_payload["operation_context"]["auto_context_status"] == "auto_attached"
+        assert feedback_payload["manager_context_injection_allowed"] is False
+        assert feedback_payload["canonical_eval_promotion_allowed"] is False
+        review_payload = review.json()
+        review_record = review_payload["desktop_feedback_records"][0]
+        assert review_record["linked_context"]["trace_id"] == "trace-auto-ctx-001"
+        assert review_record["linked_context"]["read_model_snapshot"]["local_date"] == "2026-05-10"
     finally:
         close_desktop_dogfood_app(app)
 
