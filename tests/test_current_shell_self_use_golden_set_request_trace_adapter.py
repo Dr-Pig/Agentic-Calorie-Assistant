@@ -174,6 +174,53 @@ def test_request_trace_adapter_does_not_infer_from_raw_request_text() -> None:
     assert "trace_layers.manager_pass_1_decision_missing" in grade["blockers"]
 
 
+def test_request_trace_adapter_projects_target_ambiguity_from_validator_trace_only() -> None:
+    trace = _gs5_request_trace()
+    trace["request"] = {
+        "user_id": "local-self-use-001",
+        "local_date": "2026-05-14",
+        "text": "早餐那筆刪掉",
+    }
+    trace["manager_final_decision"] = {
+        "workflow_effect": "ask_followup",
+        "final_action": "ask_followup",
+        "answer_contract": {"followup_question": "請確認要刪除哪一筆早餐？"},
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "target_attachment": {"operation": "remove_meal"},
+            "workflow_effect": "ask_followup",
+            "final_action_candidate": "ask_followup",
+            "followup_posture": "target_clarification",
+            "mutation_intent_candidate": "no_mutation",
+            "uncertainty_posture": "target_ambiguous",
+            "source": "live_manager_structured_output",
+        },
+    }
+    trace["tool_outputs"] = {
+        "tool_results": [
+            {
+                "tool_name": "resolve_correction_target",
+                "provenance": {
+                    "correction_target": {
+                        "manager_target_proposal_validation": {
+                            "status": "rejected",
+                            "failure_family": "manager_thread_target_proposal_ambiguous",
+                            "target_candidates_supplied": True,
+                            "deterministic_target_choice_allowed": False,
+                        }
+                    }
+                },
+            }
+        ]
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS13", trace)
+
+    assert case_trace["runtime"]["target_candidates_supplied"] is True
+    assert case_trace["runtime"]["deterministic_target_choice_allowed"] is False
+
+
 def test_request_trace_adapter_projects_manager_owned_blocking_basket_outcome() -> None:
     trace = _gs5_request_trace()
     trace.pop("runtime", None)
@@ -933,6 +980,19 @@ def test_request_trace_adapter_flags_internal_fooddb_or_basis_labels_in_visible_
 
     case_trace = build_golden_case_trace_from_request_trace("GS9", trace)
     grade = grade_golden_case_trace("GS9", case_trace)
+
+    assert case_trace["response"]["internal_debug_words_present"] is True
+    assert "response.internal_debug_words_present" in grade["blockers"]
+
+
+def test_request_trace_adapter_flags_internal_object_ids_in_visible_reply() -> None:
+    trace = _gs5_request_trace()
+    trace["renderer_output"] = {
+        "assistant_message": "早餐飯糰是最近的早餐記錄（meal_thread_id: 8），請確認要刪哪一筆。"
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS13", trace)
+    grade = grade_golden_case_trace("GS13", case_trace)
 
     assert case_trace["response"]["internal_debug_words_present"] is True
     assert "response.internal_debug_words_present" in grade["blockers"]

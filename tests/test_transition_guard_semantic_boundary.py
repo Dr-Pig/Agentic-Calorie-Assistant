@@ -98,6 +98,32 @@ def test_manager_target_validator_accepts_manager_selected_recent_thread_candida
     assert resolved["manager_target_proposal_validation"]["status"] == "accepted"
 
 
+def test_manager_target_validator_rejects_entry_handoff_default_when_thread_candidates_are_ambiguous() -> None:
+    resolved = validate_manager_target_proposal(
+        correction_target={
+            "meal_thread_id": 22,
+            "meal_version_id": 33,
+            "target_resolution_source": "active_meal_view",
+            "thread_candidates": [
+                {"meal_thread_id": 11, "meal_version_id": 12, "meal_title": "breakfast teppan set"},
+                {"meal_thread_id": 22, "meal_version_id": 33, "meal_title": "breakfast rice ball"},
+            ],
+        },
+        proposal={
+            "meal_thread_id": 22,
+            "operation": "remove_meal",
+            "target_proposal_source": "entry_manager_handoff",
+        },
+    )
+
+    validation = resolved["manager_target_proposal_validation"]
+    assert validation["status"] == "rejected"
+    assert validation["failure_family"] == "manager_thread_target_proposal_ambiguous"
+    assert validation["target_candidates_supplied"] is True
+    assert validation["deterministic_target_choice_allowed"] is False
+    assert "meal_thread_id" not in validation
+
+
 def test_manager_target_validator_rejects_whole_meal_removal_without_manager_selected_thread_id() -> None:
     resolved = validate_manager_target_proposal(
         correction_target={

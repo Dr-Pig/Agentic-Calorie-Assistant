@@ -12,7 +12,7 @@ from app.runtime.agent.manager_system_prompt import (
 
 
 def test_remove_item_target_evidence_reuse_is_static_prompt_policy() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v30"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v33"
     assert "target_evidence_present=true" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "target_evidence_operation='remove_item'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "do not call resolve_correction_target again" in SINGLE_MANAGER_SYSTEM_PROMPT
@@ -29,7 +29,7 @@ def test_remove_item_target_evidence_reuse_is_static_prompt_policy() -> None:
 
 
 def test_whole_meal_removal_is_static_prompt_policy_without_deterministic_semantics() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v30"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v33"
     assert "operation='remove_meal'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "whole meal, meal entry, or named meal slot deletion" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "Manager-selected meal_thread_id" in SINGLE_MANAGER_SYSTEM_PROMPT
@@ -40,6 +40,12 @@ def test_whole_meal_removal_is_static_prompt_policy_without_deterministic_semant
         SINGLE_MANAGER_SYSTEM_PROMPT
     )
     assert "must not infer remove_meal from raw text" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "Do not default to the active/latest meal_thread_id" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "multiple meal_thread candidates" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "current turn does not uniquely identify one target" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "target clarification must use final_action='ask_followup'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "workflow_effect='ask_followup'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "Do not expose meal_thread_id" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
 def test_remove_item_target_evidence_reuse_is_tool_schema_policy() -> None:

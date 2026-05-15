@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
+_DEFAULT_THREAD_TARGET_SOURCES = {
+    "",
+    "active_meal_view",
+    "entry_manager_handoff",
+    "manager_structured_output",
+}
+
 
 def thread_target_candidates(correction_target: dict[str, Any]) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
@@ -27,3 +34,32 @@ def thread_target_candidates(correction_target: dict[str, Any]) -> list[dict[str
             }
         )
     return candidates
+
+
+def ambiguous_default_thread_target_rejection(
+    *,
+    correction_target: dict[str, Any],
+    proposal: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Reject default thread targets when context exposes multiple legal candidates.
+
+    This validates uniqueness only. It does not infer the intended target from text.
+    """
+    thread_candidates = thread_target_candidates(correction_target)
+    if len(thread_candidates) < 2:
+        return None
+    proposal_source = str(proposal.get("target_proposal_source") or "manager_structured_output")
+    if proposal_source not in _DEFAULT_THREAD_TARGET_SOURCES:
+        return None
+    return {
+        **dict(correction_target),
+        "manager_target_proposal_validation": {
+            "status": "rejected",
+            "failure_family": "manager_thread_target_proposal_ambiguous",
+            "truth_owner": "deterministic_target_validator",
+            "proposal_source": proposal_source,
+            "target_candidate_count": len(thread_candidates),
+            "target_candidates_supplied": True,
+            "deterministic_target_choice_allowed": False,
+        },
+    }
