@@ -64,9 +64,20 @@ def apply_shadow_hypothesis_dialogue_cue(
     *,
     assistant_message: str,
     phase_a_trace: dict[str, Any] | None,
+    mutation_committed: bool = False,
 ) -> ShadowHypothesisDialogueResult:
     updated_trace = dict(phase_a_trace or {})
     shadow = _shadow_trace(updated_trace)
+    if mutation_committed:
+        return ShadowHypothesisDialogueResult(
+            assistant_message=assistant_message,
+            phase_a_trace=_add_trace(
+                updated_trace,
+                applied=False,
+                skip_reason="mutation_already_committed",
+                shadow=shadow,
+            ),
+        )
     skip_reason = _skip_reason(shadow)
     if skip_reason is not None:
         return ShadowHypothesisDialogueResult(

@@ -71,15 +71,18 @@ def manager_semantic_decision_schema() -> dict[str, Any]:
                 "description": (
                     "Manager-owned list of concrete food components from the current turn or context. "
                     "Use when the user explicitly lists concrete components; leave empty when composition is "
-                    "unknown. Runtime must not fill this with a raw-text deterministic parser."
+                    "unknown. Active drink size/sugar/ice/topping refinements are modifiers for the selected "
+                    "drink, not listed basket components; keep listed_items empty for that posture. Runtime "
+                    "must not fill this with a raw-text deterministic parser."
                 ),
             },
             "retrieval_goal": {
                 "type": "string",
                 "description": (
                     "Manager-owned retrieval intent. Use listed_item_lookup for explicit listed components "
-                    "that need nutrition evidence before commit; do not use generic or ask-first posture solely "
-                    "because portions are rough."
+                    "that need nutrition evidence before commit; use generic_anchor_lookup with base_dish plus "
+                    "modifier_hints for selected drink refinements. Do not use generic or ask-first posture "
+                    "solely because portions are rough."
                 ),
             },
             "user_provided_kcal": {

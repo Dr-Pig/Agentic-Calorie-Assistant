@@ -118,6 +118,72 @@ def test_entry_handoff_executes_manager_owned_nutrition_evidence_requirement() -
     ]
 
 
+def test_entry_handoff_hydrates_manager_selected_target_name_from_state() -> None:
+    decision = SimpleNamespace(
+        workflow_effect="route_to_intake",
+        target_attachment={},
+        semantic_decision={
+            "final_action_candidate": "commit",
+            "mutation_intent_candidate": "canonical_write",
+            "estimation_posture": "pending_tool_call",
+            "target_attachment": {
+                "operation": "attach_to_pending_followup",
+                "target_meal_id": 1,
+                "source_meal_id": 1,
+            },
+        },
+    )
+    resolved_state = SimpleNamespace(
+        active_meal={
+            "meal_thread_id": 1,
+            "meal_item_id": 1,
+            "canonical_name": "\u73cd\u73e0\u5976\u8336",
+        },
+    )
+
+    calls = entry_handoff_tool_calls(decision, resolved_state=resolved_state)
+
+    assert calls[0]["arguments"]["manager_semantic_decision"]["base_dish"] == "\u73cd\u73e0\u5976\u8336"
+
+
+def test_entry_handoff_hydrates_pending_followup_legacy_target_to_active_thread() -> None:
+    decision = SimpleNamespace(
+        workflow_effect="route_to_intake",
+        target_attachment={},
+        semantic_decision={
+            "final_action_candidate": "correction_applied",
+            "mutation_intent_candidate": "correction_write",
+            "estimation_posture": "pending_tool_call",
+            "target_attachment": {
+                "operation": "attach_to_pending_followup",
+                "target_resolution_source": "pending_followup_state",
+                "meal_id": 7,
+                "source_meal_id": 7,
+            },
+            "base_dish": "\u73cd\u5976",
+            "size_hint": "\u4e2d\u676f",
+            "modifier_hints": ["\u534a\u7cd6"],
+            "retrieval_goal": "generic_anchor_lookup",
+        },
+    )
+    resolved_state = SimpleNamespace(
+        active_meal={
+            "meal_thread_id": 3,
+            "meal_item_id": 4,
+            "meal_title": "\u73cd\u73e0\u5976\u8336",
+            "canonical_name": "\u73cd\u73e0\u5976\u8336",
+        },
+    )
+
+    calls = entry_handoff_tool_calls(decision, resolved_state=resolved_state)
+
+    assert calls[0]["name"] == "resolve_correction_target"
+    assert calls[0]["arguments"]["meal_thread_id"] == 3
+    assert calls[0]["arguments"]["meal_item_id"] == 4
+    assert calls[1]["name"] == "estimate_nutrition"
+    assert calls[1]["arguments"]["manager_semantic_decision"]["base_dish"] == "\u73cd\u5976"
+
+
 def test_entry_handoff_executes_correction_target_and_nutrition_requirements() -> None:
     decision = SimpleNamespace(
         workflow_effect="route_to_intake",

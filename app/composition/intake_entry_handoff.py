@@ -28,13 +28,13 @@ _B2_RETRIEVAL_GOALS = {
 }
 
 
-def entry_handoff_tool_calls(manager_decision: Any) -> list[dict[str, Any]]:
+def entry_handoff_tool_calls(manager_decision: Any, *, resolved_state: Any | None = None) -> list[dict[str, Any]]:
     if str(getattr(manager_decision, "workflow_effect", "") or "") != "route_to_intake":
         return []
     semantic_decision = dict(getattr(manager_decision, "semantic_decision", {}) or {})
     target = dict(getattr(manager_decision, "target_attachment", {}) or {})
     semantic_target = dict(semantic_decision.get("target_attachment") or {})
-    merged_target = {**target, **semantic_target}
+    merged_target = _hydrate_manager_selected_target({**target, **semantic_target}, resolved_state)
     final_candidate = str(semantic_decision.get("final_action_candidate") or "")
     operation = structured_correction_operation(merged_target)
     if final_candidate == "correction_applied" and operation == "remove_item":
@@ -177,7 +177,7 @@ async def execute_entry_handoff_seed(
     now_ms: Any,
     record_timing: Any,
 ) -> dict[str, Any]:
-    tool_calls = entry_handoff_tool_calls(manager_decision)
+    tool_calls = entry_handoff_tool_calls(manager_decision, resolved_state=resolved_state)
     if not tool_calls:
         return {"tool_results": [], "manager_rounds": []}
     stage_start = now_ms()
@@ -199,3 +199,59 @@ async def execute_entry_handoff_seed(
             )
         ],
     }
+
+
+def _hydrate_manager_selected_target(target: dict[str, Any], resolved_state: Any | None) -> dict[str, Any]:
+    if resolved_state is None or not _manager_selected_existing_target(target):
+        return target
+    active_meal = _as_dict(getattr(resolved_state, "active_meal", None))
+    if not active_meal or not _target_matches_active_meal(target, active_meal):
+        return target
+    hydrated = dict(target)
+    if not str(hydrated.get("canonical_name") or "").strip():
+        canonical_name = str(active_meal.get("canonical_name") or active_meal.get("meal_title") or "").strip()
+        if canonical_name:
+            hydrated["canonical_name"] = canonical_name
+    for key in ("meal_thread_id", "meal_item_id"):
+        if hydrated.get(key) in (None, "") and active_meal.get(key) not in (None, ""):
+            hydrated[key] = active_meal.get(key)
+    return hydrated
+
+
+def _manager_selected_existing_target(target: dict[str, Any]) -> bool:
+    operation = str(target.get("operation") or target.get("action_type") or "").strip()
+    source = str(target.get("target_resolution_source") or "").strip()
+    return (
+        operation == "attach_to_pending_followup"
+        or source == "pending_followup_state"
+        or any(target.get(key) not in (None, "") for key in ("meal_thread_id", "meal_item_id", "target_meal_id", "source_meal_id"))
+    )
+
+
+def _target_matches_active_meal(target: dict[str, Any], active_meal: dict[str, Any]) -> bool:
+    if not target:
+        return False
+    operation = str(target.get("operation") or target.get("action_type") or "").strip()
+    source = str(target.get("target_resolution_source") or "").strip()
+    if operation == "attach_to_pending_followup" or source == "pending_followup_state":
+        return any(
+            active_meal.get(key) not in (None, "")
+            for key in ("meal_thread_id", "meal_item_id", "canonical_name", "meal_title")
+        )
+    target_ids = {
+        value
+        for key in ("meal_thread_id", "meal_item_id", "target_meal_id", "source_meal_id")
+        if (value := target.get(key)) not in (None, "")
+    }
+    active_ids = {
+        value
+        for key in ("meal_thread_id", "meal_item_id")
+        if (value := active_meal.get(key)) not in (None, "")
+    }
+    if target_ids and active_ids:
+        return bool(target_ids.intersection(active_ids))
+    return False
+
+
+def _as_dict(value: Any) -> dict[str, Any]:
+    return dict(value) if isinstance(value, dict) else {}

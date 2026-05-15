@@ -12,6 +12,11 @@ from app.composition.current_shell_golden_set_nutrition_projection import (
     visible_range_or_basis_present,
 )
 from app.composition.current_shell_golden_set_request_trace_sources import trace_id
+from app.composition.current_shell_golden_set_version_projection import (
+    ledger_delta_trace_present,
+    old_version_not_counted,
+    old_version_superseded,
+)
 
 
 def runtime_from_request_trace(
@@ -45,6 +50,11 @@ def runtime_from_request_trace(
         runtime.setdefault("macro_visibility_status", phase_c_mutation.get("macro_visibility_status"))
         if "pending_followup_saved" not in runtime and phase_c_mutation.get("draft_status") == "saved":
             runtime["pending_followup_saved"] = True
+    superseded = old_version_superseded(phase_c_mutation, state_delta)
+    if "old_version_superseded" not in runtime and superseded is not None:
+        runtime["old_version_superseded"] = superseded
+    if "ledger_delta_trace_required" not in runtime and superseded is True:
+        runtime["ledger_delta_trace_required"] = ledger_delta_trace_present(phase_c_mutation, state_delta)
     if "pending_followup_saved" not in runtime and "draft_saved" in state_delta:
         runtime["pending_followup_saved"] = bool(state_delta.get("draft_saved"))
     if "assumed_slot_question_required" not in runtime and _followup_question(manager_final):
@@ -116,6 +126,10 @@ def ui_from_request_trace(request_trace: dict[str, Any], state_delta: dict[str, 
         first_nutrition_trace_contract(request_trace, {})
     ):
         ui["range_or_basis_visible"] = visible_range_or_basis_present(request_trace)
+    if "old_version_not_counted" not in ui:
+        not_counted = old_version_not_counted(request_trace, state_delta)
+        if not_counted is not None:
+            ui["old_version_not_counted"] = not_counted
     return ui
 
 
@@ -270,13 +284,11 @@ def _meal_level_basis_visible(request_trace: dict[str, Any]) -> bool | None:
         return True
     return None
 
-
 def _with_visible_response_text(response: dict[str, Any], request_trace: dict[str, Any]) -> dict[str, Any]:
     visible_text = _visible_response_text(request_trace)
     if visible_text:
         response.setdefault("assistant_message", visible_text)
     return response
-
 
 def _visible_response_text(request_trace: dict[str, Any]) -> str:
     renderer_output = _dict(request_trace.get("renderer_output"))
@@ -292,7 +304,6 @@ def _visible_response_text(request_trace: dict[str, Any]) -> str:
         or ""
     ).strip()
 
-
 def _pre_manager_guard_feedback_present(request_trace: dict[str, Any]) -> bool | None:
     react_trace = _dict(request_trace.get("react_trace"))
     manager_pass_1 = _dict(react_trace.get("manager_pass_1"))
@@ -300,10 +311,8 @@ def _pre_manager_guard_feedback_present(request_trace: dict[str, Any]) -> bool |
         return None
     return bool(manager_pass_1.get("guard_feedback_input"))
 
-
 def _dict(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
-
 
 def _list(value: Any) -> list[Any]:
     return list(value) if isinstance(value, list) else []

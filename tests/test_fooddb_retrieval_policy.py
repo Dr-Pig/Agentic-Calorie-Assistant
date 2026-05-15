@@ -14,6 +14,8 @@ from app.nutrition.application.fooddb_retrieval_artifact_parts import (
     candidate_component,
     component_breakdown_item,
 )
+from app.nutrition.application.retrieval_semantic_decision import B2ManagerSemanticDecision
+from app.composition.intake_estimation_tools import _manager_owned_retrieval_query
 from app.nutrition.infrastructure.small_anchor_store_loader import load_small_anchor_seed_records
 
 
@@ -254,6 +256,54 @@ def test_retrieval_policy_recalls_manager_owned_listed_basket_components() -> No
         item["requires_manager_disambiguation"] is False
         for item in result["accepted_candidates"]
     )
+
+
+def test_manager_owned_refinement_query_combines_target_and_user_modifier_text() -> None:
+    decision = B2ManagerSemanticDecision(
+        base_dish="\u73cd\u73e0\u5976\u8336",
+        aliases=[],
+        brand_hint=None,
+        size_hint="\u4e2d\u676f",
+        modifier_hints=["\u534a\u7cd6"],
+        listed_items=[],
+        retrieval_goal="generic_anchor_lookup",
+        semantic_authority_source="live_manager_structured_output",
+    )
+
+    assert _manager_owned_retrieval_query(
+        decision,
+        raw_user_input="\u4e2d\u676f\u534a\u7cd6",
+    ) == "\u73cd\u73e0\u5976\u8336 \u4e2d\u676f \u534a\u7cd6"
+
+
+def test_manager_owned_base_query_does_not_append_raw_utterance_as_modifier_text() -> None:
+    decision = B2ManagerSemanticDecision(
+        base_dish="\u73cd\u5976",
+        aliases=[],
+        brand_hint=None,
+        size_hint=None,
+        modifier_hints=[],
+        listed_items=[],
+        retrieval_goal="generic_anchor_lookup",
+        semantic_authority_source="live_manager_structured_output",
+    )
+
+    assert _manager_owned_retrieval_query(
+        decision,
+        raw_user_input="\u559d\u4e86\u4e00\u676f\u73cd\u5976",
+    ) == "\u73cd\u5976"
+
+
+def test_semantic_schema_distinguishes_drink_modifiers_from_listed_components() -> None:
+    from app.runtime.agent.manager_branch_shapes import manager_semantic_decision_schema
+
+    schema = manager_semantic_decision_schema()
+    listed_description = schema["properties"]["listed_items"]["description"]
+    retrieval_description = schema["properties"]["retrieval_goal"]["description"]
+
+    assert "Active drink size/sugar/ice/topping refinements are modifiers" in listed_description
+    assert "keep listed_items empty" in listed_description
+    assert "generic_anchor_lookup with base_dish plus modifier_hints" in retrieval_description
 
 
 def test_retrieval_policy_fuzzy_matches_alias_expansion_keys_without_vector_truth() -> None:

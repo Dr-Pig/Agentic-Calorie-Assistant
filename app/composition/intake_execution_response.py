@@ -151,6 +151,13 @@ def build_intake_execution_response(
     shadow_dialogue = apply_shadow_hypothesis_dialogue_cue(
         assistant_message=assistant_message,
         phase_a_trace=phase_a_trace,
+        mutation_committed=(
+            state_mutation_summary.get("canonical_commit") is True
+            or (
+                persistence_result is not None
+                and getattr(persistence_result, "canonical_commit", None) is not None
+            )
+        ),
     )
     assistant_message = shadow_dialogue.assistant_message
     phase_a_trace = shadow_dialogue.phase_a_trace

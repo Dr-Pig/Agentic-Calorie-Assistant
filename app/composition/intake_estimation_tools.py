@@ -161,7 +161,10 @@ def _approved_fooddb_retrieval_artifact(
     if not anchors:
         return None
     retrieval_records = build_runtime_retrieval_records_from_small_anchor_payload({"anchors": anchors})
-    retrieval_query = _manager_owned_retrieval_query(manager_semantic_decision) or raw_user_input
+    retrieval_query = _manager_owned_retrieval_query(
+        manager_semantic_decision,
+        raw_user_input=raw_user_input,
+    ) or raw_user_input
     retrieval_result = retrieve_fooddb_candidates(
         retrieval_query,
         retrieval_records=retrieval_records,
@@ -179,14 +182,32 @@ def _approved_fooddb_retrieval_artifact(
 
 def _manager_owned_retrieval_query(
     manager_semantic_decision: B2ManagerSemanticDecision | None,
+    *,
+    raw_user_input: str | None = None,
 ) -> str | None:
     if manager_semantic_decision is None:
         return None
     base_dish = str(getattr(manager_semantic_decision, "base_dish", "") or "").strip()
     retrieval_goal = str(getattr(manager_semantic_decision, "retrieval_goal", "") or "").strip()
     if base_dish and retrieval_goal in {"generic_anchor_lookup", "listed_item_lookup"}:
+        modifier_text = _manager_owned_modifier_text(manager_semantic_decision, raw_user_input=raw_user_input)
+        if modifier_text and modifier_text not in base_dish:
+            return f"{base_dish} {modifier_text}"
         return base_dish
     return None
+
+
+def _manager_owned_modifier_text(
+    manager_semantic_decision: B2ManagerSemanticDecision,
+    *,
+    raw_user_input: str | None,
+) -> str:
+    del raw_user_input
+    hints = [
+        str(getattr(manager_semantic_decision, "size_hint", "") or "").strip(),
+        *[str(item).strip() for item in getattr(manager_semantic_decision, "modifier_hints", None) or []],
+    ]
+    return " ".join(item for item in hints if item)
 
 
 def _manager_owned_listed_components(
