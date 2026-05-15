@@ -103,7 +103,9 @@ def test_today_macro_mirror_gate_cli_writes_artifact_from_renderer_source_map_js
 
 def test_today_macro_mirror_gate_source_stays_out_of_fooddb_websearch_and_live_boundaries() -> None:
     source_paths = [
+        Path("app/composition/accurate_intake_today_macro_mirror_contract.py"),
         Path("app/composition/accurate_intake_today_macro_mirror_gate.py"),
+        Path("app/composition/accurate_intake_today_macro_panel_probe.py"),
         Path("scripts/build_accurate_intake_today_macro_mirror_gate.py"),
     ]
     combined_source = "\n".join(path.read_text(encoding="utf-8") for path in source_paths)
