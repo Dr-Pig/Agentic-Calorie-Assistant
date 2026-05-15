@@ -225,8 +225,8 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
             "category": "nutrition_estimate",
             "feedback_text": module.DEFAULT_TODAY_MEAL_FEEDBACK_TEXT,
             "page": "today_diary",
-            "trace_id": "trace-browser-feedback",
-            "message_id": "assistant-browser-feedback",
+            "trace_id": "present",
+            "message_id": "present",
             "source_page": "today_diary",
             "do_not_commit": True,
             "manager_context_injection_allowed": False,
@@ -389,7 +389,7 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
                     "method": "POST",
                     "body": (
                         '{"category":"nutrition_estimate","feedback_text":"Today meal feedback",'
-                        '"trace_id":"trace-browser-feedback"}'
+                        '"page":"today_diary"}'
                     ),
                 },
                 {"url": "/accurate-intake/local-data-hygiene", "method": "GET"},

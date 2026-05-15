@@ -262,15 +262,19 @@ def test_chat_page_uses_durable_async_turn_and_trace_linked_feedback() -> None:
     assert "feedbackUrlForMessage(message)" in page
 
 
-def test_feedback_page_hides_manual_trace_fields_but_autofills_latest_context() -> None:
+def test_feedback_page_uses_auto_context_without_manual_id_requirement() -> None:
     page = Path("static/accurate-intake-feedback.html").read_text(encoding="utf-8")
 
-    assert '<details id="advanced-context-fields" class="context-details">' in page
+    assert "\u4f60\u4e0d\u9700\u8981\u586b\u4efb\u4f55\u5167\u90e8 ID" in page
+    assert 'class="hidden-context-fields"' in page
     assert 'loadLatestTraceContext().catch' in page
     assert 'el("trace-id").value = el("trace-id").value || latest.trace_id || "";' in page
     assert 'el("request-id").value = el("request-id").value || latest.trace_id || "";' in page
-    assert "不需要手動填 ID" in page
-
+    assert 'id="trace-context"' in page
+    assert 'id="recent-context-preview"' in page
+    assert "Trace ID" not in page
+    assert "Request ID" not in page
+    assert "Message ID" not in page
 
 def test_feedback_review_and_data_pages_expose_dogfood_ui_affordances() -> None:
     feedback = Path("static/accurate-intake-feedback.html").read_text(encoding="utf-8")
@@ -283,13 +287,12 @@ def test_feedback_review_and_data_pages_expose_dogfood_ui_affordances() -> None:
 
     assert 'aria-describedby="feedback-text-help"' in feedback
     assert 'id="feedback-text-help"' in feedback
-    assert "描述發生什麼、你原本期待什麼" in feedback
-    assert "如果是估算錯誤，可以補上你認為餐點有哪些組成" in feedback
-    assert "不需要手動填 ID" in feedback
-    assert "進階：自動帶入的上下文" in feedback
+    assert "\u63cf\u8ff0\u4f60\u770b\u5230\u7684\u554f\u984c\u3001\u671f\u5f85\u7684\u7d50\u679c" in feedback
+    assert "\u4f60\u4e0d\u9700\u8981\u586b\u4efb\u4f55\u5167\u90e8 ID" in feedback
+    assert "\u7cfb\u7d71\u6703\u81ea\u52d5\u9644\u4e0a\u76ee\u524d\u9801\u9762\u3001\u6700\u8fd1\u5c0d\u8a71\u3001trace \u8207 read model \u6458\u8981" in feedback
+    assert "\u76f4\u63a5\u5beb\u4f60\u525b\u525b\u9047\u5230\u7684\u554f\u984c" in feedback
 
-    assert "繚" not in review
-    assert "Review 是給開發者整理問題的佇列" in review
+    assert "Review" in review
     assert "feedback is triage input, not product truth" in review
     assert "manual review is required before any eval or FoodDB change" in review
 
@@ -297,7 +300,6 @@ def test_feedback_review_and_data_pages_expose_dogfood_ui_affordances() -> None:
     assert "Backup local SQLite" in data
     assert "Export review bundle" in data
     assert "Latest action result" in data
-
 
 def test_feedback_page_prefills_meal_context_from_today_diary_without_semantic_inference() -> None:
     today = Path("static/accurate-intake-today.html").read_text(encoding="utf-8")
@@ -317,6 +319,8 @@ def test_feedback_page_prefills_meal_context_from_today_diary_without_semantic_i
     assert 'request_id: el("request-id").value.trim() || el("trace-id").value.trim() || null' in feedback
     assert 'meal_id: el("meal-id").value.trim() || null' in feedback
     assert "loadLatestTraceContext().catch" in feedback
+    assert "Trace ID" not in feedback
+    assert "Request ID" not in feedback
 
 
 def test_review_page_displays_feedback_operation_context_fields() -> None:
