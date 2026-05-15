@@ -975,6 +975,41 @@ def test_founder_live_intake_scope_schema_keeps_intake_tool_calls(
     ]
 
 
+def test_founder_live_body_observation_scope_schema_keeps_body_tool_calls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        "manager_contract_profile_id": "founder_live_contract",
+        "manager_contract_schema_name": "founder_live_manager_contract",
+        "manager_contract_schema_version": "v1",
+        "manager_contract_transport_policy": "synthetic_tool_transport",
+        "manager_loop_scope": "body_observation",
+        "available_tools": ["body.record_observation"],
+    }
+
+    schema = adapter._response_schema_for_stage("intake_manager_round", constraints=constraints)
+
+    assert schema is not None
+    assert schema["properties"]["intent_type"]["enum"] == ["body_observation", "manager_unavailable"]
+    assert schema["properties"]["manager_action"]["enum"] == ["call_tools", "final"]
+    assert schema["properties"]["final_action"]["enum"] == [
+        "record_observation",
+        "answer_only",
+        "no_commit",
+        "manager_unavailable",
+    ]
+    assert schema["properties"]["tool_calls"]["items"]["properties"]["name"]["enum"] == [
+        "body.record_observation",
+    ]
+    call_tools_rule = next(
+        item
+        for item in schema["allOf"]
+        if item["if"]["properties"]["manager_action"]["const"] == "call_tools"
+    )
+    assert call_tools_rule["then"]["properties"]["final_action"]["enum"] == ["record_observation"]
+
+
 def test_founder_live_decision_transport_tool_schema_is_stable_across_manager_scopes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -574,6 +574,14 @@ async def test_run_intake_manager_injects_entry_scope_route_policy() -> None:
             "final_action": "no_commit",
             "workflow_effect": "route_to_intake",
         },
+        "if_body_observation_needed": {
+            "manager_action": "final",
+            "tool_calls": [],
+            "intent_type": "body_observation",
+            "final_action": "no_commit",
+            "workflow_effect": "route_to_body_observation",
+            "body_observation_tool_scope": "body_observation",
+        },
         "context_packet_read_only_flags": "context_evidence_only_not_current_turn_mutation_intent",
         "deterministic_boundary": "runtime_validates_tool_scope_only_no_raw_text_semantic_routing",
     }

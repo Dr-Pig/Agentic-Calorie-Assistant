@@ -10,6 +10,7 @@ from app.runtime.agent.founder_live_manager_removal_policy import (
     target_evidence_requests_removal,
 )
 from app.runtime.agent.founder_live_manager_followup_contract import validate_ask_followup_contract
+from app.runtime.agent.founder_live_manager_tool_description import founder_live_manager_tool_description
 from app.runtime.agent.founder_live_manager_allowed_values import (
     FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS,
     FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES,
@@ -19,6 +20,9 @@ from app.runtime.agent.founder_live_manager_allowed_values import (
     FOUNDER_LIVE_MANAGER_INTENT_TYPE_BY_SEMANTIC_INTENT,
     FOUNDER_LIVE_MANAGER_REPAIR_ALLOWED_TOOL_NAMES,
     FOUNDER_LIVE_MANAGER_RESPONSE_ONLY_FINAL_ACTIONS,
+    founder_live_manager_allowed_final_actions_for_constraints,
+    founder_live_manager_response_only_final_actions_for_constraints,
+    founder_live_manager_tool_names_for_constraints,
 )
 from app.runtime.agent.nutrition_evidence_state import nutrition_evidence_present
 from app.shared.contracts.correction_operation import structured_correction_operation
@@ -300,31 +304,6 @@ def founder_live_manager_contract_constraints(
         },
     }
 
-def founder_live_manager_tool_description() -> str:
-    return (
-        "Return the ManagerRuntime structured decision payload. Follow the system prompt and founder live "
-        "manager contract; this tool description is compact transport guidance, not product truth. Always include "
-        "required top-level fields. Use tool_calls=[] when manager_action is final; use a non-empty tool_calls "
-        "array with supported tool names when manager_action is call_tools. Do not collapse query-only, estimate-basis inquiry, or correction turns into log_meal: "
-        "answer_query uses intent_type='answer_query' and no mutation; estimate-basis inquiries use answer_query/answer_only/tool_calls=[] with "
-        "answer_contract.answer_basis from manager_context_packet_v1 when available; answer those basis questions in user-facing language without exposing LLM/llm_only/internal enum labels or unsupported macro gram claims; "
-        "correct_meal uses intent_type='correct_meal' with correction_applied/correction_write. Do not use ask_followup, "
-        "no_commit, or answer_only as substitutes for evidence-required commit/correction_applied/overshoot_note; "
-        "call estimate_nutrition first unless user_provided_kcal_evidence is already present. For a named-food kcal conflict such as a whole bowl or plate with suspicious kcal, do not treat it as a kcal-only shortcut. If you set evidence_posture to requires_tool or evidence_missing, use "
-        "manager_action call_tools with estimate_nutrition; the invalid evidence-required candidate pattern is "
-        "manager_action final while final_action_candidate still points at commit/correction/overshoot. If target_evidence_present is true with target_evidence_operation "
-        "remove_item or target_evidence_operation remove_meal, finalize correction_applied and do not call resolve_correction_target again; "
-        "use versioned whole-meal removal only when the Manager-selected meal_thread_id has been validated; do not "
-        "hard-delete or rely on deterministic raw text routing. For a composition-unknown "
-        "self-selected basket or unanchored patterned combo, return final ask_followup directly, use tool_calls=[] for composition-unknown "
-        "ask_followup, and do not call estimate_nutrition for composition-unknown baskets; "
-        "manager_action call_tools is invalid for composition-unknown baskets. For a "
-        "turn that explicitly lists concrete food components, include them in semantic_decision.listed_items, set retrieval_goal='listed_item_lookup', and do not classify that turn as composition-unknown; for a listed-item follow-up, call estimate_nutrition and do not repeat the same composition clarification. If guard_feedback.failure_family is nutrition_evidence_not_commit_eligible, guard rejected a Manager-proposed commit; choose legal final ask_followup/no_mutation/tool_calls=[] and never commit a fallback value. "
-        + refinement_policy.COMPOSITION_REFINEMENT_AFTER_BASIS_QUERY_DESCRIPTION
-        + "If followup_posture is refinement_not_commit_gate or size_clarification, include a followup_question. "
-        "If you do not have a concrete follow-up question, use none, closed, or refinement_optional."
-    )
-
 def _tool_result_names(tool_results: list[dict[str, Any]] | None) -> list[str]:
     names: list[str] = []
     for item in tool_results or []:
@@ -412,7 +391,7 @@ def validate_founder_live_manager_contract_consistency(
                 "founder live manager contract requires non-empty tool_calls when manager_action='call_tools'"
             )
         call_tools_final_action = str(payload.get("final_action") or "")
-        if call_tools_final_action in FOUNDER_LIVE_MANAGER_RESPONSE_ONLY_FINAL_ACTIONS:
+        if call_tools_final_action in founder_live_manager_response_only_final_actions_for_constraints(constraints):
             raise RuntimeError(
                 "founder live manager contract call_tools cannot use response-only final_action "
                 f"{call_tools_final_action!r}; use a target evidence or nutrition evidence action candidate"
@@ -421,7 +400,8 @@ def validate_founder_live_manager_contract_consistency(
             str(item.get("name") or item.get("tool_name") or "")
             for item in tool_calls
             if not isinstance(item, dict)
-            or str(item.get("name") or item.get("tool_name") or "") not in FOUNDER_LIVE_MANAGER_REPAIR_ALLOWED_TOOL_NAMES
+            or str(item.get("name") or item.get("tool_name") or "")
+            not in founder_live_manager_tool_names_for_constraints(constraints)
         ]
         if invalid_tool_names:
             raise RuntimeError(
@@ -429,7 +409,7 @@ def validate_founder_live_manager_contract_consistency(
                 f"{invalid_tool_names!r}"
             )
     final_action = str(payload.get("final_action") or "")
-    if final_action and final_action not in FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS:
+    if final_action and final_action not in founder_live_manager_allowed_final_actions_for_constraints(constraints):
         raise RuntimeError(f"founder live manager contract final_action invalid: {final_action!r}")
     evidence_state = constraints.get("manager_contract_evidence_state") if isinstance(constraints, dict) else None
     nutrition_evidence_present = (
