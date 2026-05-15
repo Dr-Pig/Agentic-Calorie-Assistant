@@ -147,6 +147,17 @@ def _expected_item_matches(
     if (
         prefix == "runtime"
         and key == "workflow_effect"
+        and expected_item == "correction"
+        and actual_item in {"correction", "correction_write", "correction_applied", "canonical_write"}
+    ):
+        return (
+            actual.get("final_action") == "correction_applied"
+            and actual.get("canonical_commit_status") == "committed"
+            and actual.get("old_version_superseded") is True
+        )
+    if (
+        prefix == "runtime"
+        and key == "workflow_effect"
         and expected_item == "commit_then_refine"
         and actual_item in {"canonical_write", "correction_write", "correction_applied"}
     ):
@@ -161,6 +172,12 @@ def _expected_item_matches(
         and expected_item in {"pending_followup", "pending_teppan_combo"}
     ):
         return _matches_pending_followup_attachment(actual_item)
+    if (
+        prefix == "runtime"
+        and key == "target_attachment"
+        and expected_item == "previous_teppan_meal"
+    ):
+        return _matches_previous_meal_attachment(actual_item)
     if (
         prefix == "runtime"
         and key == "target_attachment"
@@ -191,6 +208,19 @@ def _matches_prior_optional_followup_attachment(actual_item: Any) -> bool:
         operation in {"attach_to_pending_followup", "refine_item", "same_item_refinement"}
         or source in {"pending_followup_state", "active_meal_view", "latest_active_meal"}
     )
+
+
+def _matches_previous_meal_attachment(actual_item: Any) -> bool:
+    if not isinstance(actual_item, dict):
+        return False
+    source = str(actual_item.get("target_resolution_source") or "").strip()
+    return bool(actual_item.get("meal_thread_id")) and source in {
+        "active_meal_view",
+        "recent_committed_meal",
+        "latest_active_meal",
+        "tool_result_validated",
+        "manager_target_proposal_validated",
+    }
 
 
 def _display(value: Any) -> str:

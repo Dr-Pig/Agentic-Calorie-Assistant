@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from app.shared.contracts.intake import ComponentEstimate
 
 _TEPPAN_NOODLE = "\u9435\u677f\u9eb5"
+_TEPPAN_NOODLE_HALF = "\u9435\u677f\u9eb5\u534a\u4efd"
 _FRIED_EGG = "\u8377\u5305\u86cb"
 _PORK_SLICES = "\u8c6c\u8089\u7247"
 _BREAKFAST_PORK_SLICES = "\u65e9\u9910\u5e97\u8c6c\u8089\u7247"
@@ -25,6 +26,13 @@ _COMPONENT_FACTS = {
         "protein_g": 12,
         "carb_g": 68,
         "fat_g": 14,
+    },
+    _TEPPAN_NOODLE_HALF: {
+        "quantity_hint": "half serving",
+        "estimated_kcal": 210,
+        "protein_g": 6,
+        "carb_g": 34,
+        "fat_g": 7,
     },
     _FRIED_EGG: {
         "quantity_hint": "1 egg",
@@ -120,7 +128,7 @@ def component_estimates_from_manager_listed_items(
 ) -> list[ComponentEstimate] | None:
     estimates: list[ComponentEstimate] = []
     for item in listed_items or []:
-        canonical = _ALIASES.get(str(item).strip(), str(item).strip())
+        canonical = _canonical_component_name(item)
         facts = _COMPONENT_FACTS.get(canonical)
         if facts is None:
             continue
@@ -145,9 +153,23 @@ def component_estimates_from_manager_listed_items(
 
 def optional_refinement_for_manager_listed_items(listed_items: Sequence[str] | None) -> dict[str, object] | None:
     for item in listed_items or []:
-        canonical = _ALIASES.get(str(item).strip(), str(item).strip())
+        canonical = _canonical_component_name(item)
         facts = _COMPONENT_FACTS.get(canonical) or {}
         refinement = facts.get("optional_refinement")
         if isinstance(refinement, dict) and refinement.get("optional_refinement_allowed") is True:
             return dict(refinement)
     return None
+
+
+def _canonical_component_name(item: object) -> str:
+    text = str(item).strip()
+    compact = (
+        text.replace(" ", "")
+        .replace("(", "")
+        .replace(")", "")
+        .replace("（", "")
+        .replace("）", "")
+    )
+    if _TEPPAN_NOODLE in compact and any(marker in compact for marker in ("一半", "半份")):
+        return _TEPPAN_NOODLE_HALF
+    return _ALIASES.get(text, text)

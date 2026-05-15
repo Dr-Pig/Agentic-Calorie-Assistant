@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from app.shared.contracts.correction_operation import structured_payload_requests_thread_level_correction
+
 
 @dataclass(frozen=True)
 class CorrectionTargetRef:
@@ -39,6 +41,17 @@ def validate_correction_target_ref(correction_target: Any | None) -> dict[str, A
             "failure_family": "correction_thread_target_missing",
             "truth_owner": "meal_item_id",
             "reason": "meal_thread_id_required",
+            **diagnostic_fields,
+        }
+    if structured_payload_requests_thread_level_correction(correction_target):
+        return {
+            "resolved": True,
+            "failure_family": None,
+            "truth_owner": "meal_thread_id",
+            "reason": "stable_thread_target_present",
+            "meal_thread_id": correction_target.get("meal_thread_id"),
+            "meal_version_id": correction_target.get("meal_version_id"),
+            "operation": str(correction_target.get("operation") or correction_target.get("correction_operation") or ""),
             **diagnostic_fields,
         }
     if correction_target.get("meal_item_id") is None:

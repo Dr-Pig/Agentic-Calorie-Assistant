@@ -92,6 +92,35 @@ def _removal_candidate(*, meal_thread_id: int, meal_item_id: int, canonical_name
     )
 
 
+def _thread_level_correction_candidate(*, meal_thread_id: int, meal_version_id: int) -> CommitRequestCandidate:
+    return CommitRequestCandidate(
+        request_id="correction-uow-thread-level-update",
+        manager_intent="food_estimation",
+        meal_thread_id=meal_thread_id,
+        version_reason="correction",
+        meal_title="lunch plate",
+        raw_input="replace the whole lunch with a smaller plate",
+        estimated_kcal=360,
+        protein_g=22,
+        carb_g=44,
+        fat_g=10,
+        resolution_status="completed_meal",
+        local_date="2026-05-02",
+        items=[
+            MealItemPayload(name="half chicken rice", estimated_kcal=260, protein_g=20, carb_g=40, fat_g=8),
+            MealItemPayload(name="soup", estimated_kcal=100, protein_g=2, carb_g=4, fat_g=2),
+        ],
+        trace_ref={
+            "correction_operation": "correct_meal",
+            "correction_target_ref": {
+                "meal_thread_id": meal_thread_id,
+                "meal_version_id": meal_version_id,
+                "operation": "correct_meal",
+            },
+        },
+    )
+
+
 def _items_for_version(db: Session, version_id: int) -> list[MealItemRecord]:
     return db.execute(
         select(MealItemRecord)
@@ -196,6 +225,41 @@ def test_item_level_correction_requires_explicit_target_reference() -> None:
     assert len(db.execute(select(MealVersionRecord)).scalars().all()) == 1
     ledger = db.execute(select(DayBudgetLedgerRecord)).scalar_one()
     assert ledger.consumed_kcal == 650
+
+
+def test_thread_level_correction_replaces_whole_meal_without_item_target() -> None:
+    db = _session()
+    user = get_or_create_user(db, "correction-uow-thread-level")
+    initial = commit_meal_payload_to_canonical(db, user=user, candidate=_initial_candidate(), budget_kcal=1800)
+    assert initial is not None
+
+    correction = commit_meal_payload_to_canonical(
+        db,
+        user=user,
+        candidate=_thread_level_correction_candidate(
+            meal_thread_id=initial.meal_thread_id,
+            meal_version_id=initial.meal_version_id,
+        ),
+        budget_kcal=1800,
+    )
+
+    assert correction is not None
+    assert correction.superseded_version_id == initial.meal_version_id
+    thread = db.get(MealThreadRecord, initial.meal_thread_id)
+    assert thread is not None
+    assert thread.active_version_id == correction.meal_version_id
+    old_version = db.get(MealVersionRecord, initial.meal_version_id)
+    assert old_version is not None
+    assert old_version.version_status == "superseded"
+
+    new_items = _items_for_version(db, correction.meal_version_id)
+    assert [(item.name, item.estimated_kcal) for item in new_items] == [
+        ("half chicken rice", 260),
+        ("soup", 100),
+    ]
+    ledger = db.execute(select(DayBudgetLedgerRecord)).scalar_one()
+    assert ledger.consumed_kcal == 360
+    assert ledger.remaining_kcal == 1440
 
 
 def test_explicit_item_removal_creates_new_version_without_deleting_thread_or_non_target_items() -> None:

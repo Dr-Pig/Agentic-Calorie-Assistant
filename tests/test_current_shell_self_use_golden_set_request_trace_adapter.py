@@ -814,6 +814,91 @@ def test_request_trace_adapter_projects_gs8_optional_refinement_supersede() -> N
     assert grade["status"] == "pass"
 
 
+def test_request_trace_adapter_projects_gs11_thread_level_correction_ledger_recompute() -> None:
+    trace = _gs5_request_trace()
+    trace["runtime"] = {"fallback_400_allowed": False}
+    trace["manager_final_decision"] = {
+        "workflow_effect": "correction_applied",
+        "final_action": "correction_applied",
+        "target_attachment": {
+            "meal_thread_id": 5,
+            "operation": "correct_active_meal",
+            "correction_operation": "correct_active_meal",
+            "target_resolution_source": "tool_result_validated",
+        },
+        "answer_contract": {"reply_text": "已修正上一筆餐點，今天剩餘熱量已更新。"},
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "workflow_effect": "correction_applied",
+            "final_action_candidate": "correction_applied",
+            "target_attachment": {
+                "meal_thread_id": 5,
+                "operation": "correct_active_meal",
+                "correction_operation": "correct_active_meal",
+                "target_resolution_source": "tool_result_validated",
+            },
+            "mutation_intent_candidate": "correction_write",
+        },
+    }
+    trace["phase_c_trace"]["mutation_outcome"].update(  # type: ignore[index, union-attr]
+        {
+            "canonical_commit_status": "committed",
+            "ledger_mutation_status": "updated",
+            "meal_version_delta": "superseded_previous",
+            "canonical_ids": {"meal_version_id": 6, "superseded_version_id": 5},
+        }
+    )
+    trace["state_delta"].update(  # type: ignore[union-attr]
+        {
+            "canonical_commit": True,
+            "ledger_updated": True,
+            "draft_saved": False,
+            "old_version_superseded": True,
+            "new_meal_version_created": True,
+        }
+    )
+    trace["renderer_output"] = {"assistant_message": "已更新上一筆餐點，這餐約 300 kcal。"}
+    trace["tool_outputs"] = {
+        "tool_results": [
+            {
+                "tool_name": "estimate_nutrition",
+                "evidence": {
+                    "nutrition_payload": {
+                        "estimated_kcal": 300,
+                        "trace_contract": {
+                            "db_hit_type": "approved_fooddb_packet",
+                            "shadow_stub": False,
+                            "approved_fooddb_evidence_trace": {
+                                "source_lane": "listed_component",
+                                "runtime_truth_allowed": True,
+                                "evidence_ids": ["local_component_stub:half_chicken_rice"],
+                            },
+                            "canonical_write_decision": {"can_write_canonical": True},
+                        },
+                    }
+                },
+            }
+        ]
+    }
+    trace["sidecar_output"] = {
+        "ui": {
+            "today": {
+                "consumed_kcal": 300,
+                "meals": [{"meal_version_id": 6, "meal_title": "corrected meal"}],
+            }
+        }
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS11", trace)
+    grade = grade_golden_case_trace("GS11", case_trace)
+
+    assert case_trace["runtime"]["workflow_effect"] == "correction_applied"
+    assert case_trace["runtime"]["ledger_recomputed"] is True
+    assert case_trace["runtime"]["old_version_superseded"] is True
+    assert grade["status"] == "pass"
+
+
 def test_request_trace_adapter_flags_saved_change_contradiction_after_commit() -> None:
     trace = _gs5_request_trace()
     trace["renderer_output"] = {

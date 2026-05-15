@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.composition.commit_boundary_preflight import run_commit_boundary_preflight
+from app.composition.intake_manager_tool_batch import validate_manager_target_proposal
 from app.intake.application.transition_guard import resolve_transition_guard
 from app.runtime.contracts.phase_a import AttachmentDecision, CurrentTurnContextV1, InteractionEvent
 from app.shared.contracts.intake_results import EstimatePayload
@@ -45,6 +46,50 @@ def test_commit_boundary_blocks_correction_without_resolved_target() -> None:
     assert result.blocked is True
     assert result.mutation_effect_class == "correction_persistence"
     assert result.correction_target_resolved is False
+
+
+def test_manager_target_validator_accepts_manager_owned_thread_level_correction() -> None:
+    resolved = validate_manager_target_proposal(
+        correction_target={
+            "meal_thread_id": 77,
+            "meal_version_id": 88,
+            "target_resolution_source": "active_meal_view",
+            "item_candidates": [
+                {"meal_item_id": 1, "canonical_name": "teppan noodles"},
+                {"meal_item_id": 2, "canonical_name": "egg"},
+            ],
+        },
+        proposal={
+            "meal_thread_id": 77,
+            "operation": "correct_active_meal",
+            "target_proposal_source": "manager_result.semantic_decision.target_attachment",
+        },
+    )
+
+    assert resolved["meal_thread_id"] == 77
+    assert resolved["meal_version_id"] == 88
+    assert resolved["operation"] == "correct_active_meal"
+    assert resolved["manager_target_proposal_validation"]["status"] == "accepted"
+    assert resolved["manager_target_proposal_validation"]["truth_owner"] == "deterministic_target_validator"
+
+
+def test_manager_target_validator_does_not_treat_thread_id_as_remove_item_target() -> None:
+    resolved = validate_manager_target_proposal(
+        correction_target={
+            "meal_thread_id": 77,
+            "meal_version_id": 88,
+            "target_resolution_source": "active_meal_view",
+            "item_candidates": [{"meal_item_id": 1, "canonical_name": "teppan noodles"}],
+        },
+        proposal={
+            "meal_thread_id": 77,
+            "operation": "remove_item",
+            "target_proposal_source": "manager_result.semantic_decision.target_attachment",
+        },
+    )
+
+    assert resolved["manager_target_proposal_validation"]["status"] == "rejected"
+    assert resolved["manager_target_proposal_validation"]["failure_family"] == "manager_target_proposal_not_found"
 
 
 def test_attachment_resolver_does_not_import_manager_keyword_fallbacks() -> None:

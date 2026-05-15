@@ -6,6 +6,7 @@ from app.composition.intake_entry_handoff import entry_handoff_tool_calls
 from app.shared.contracts.correction_operation import (
     structured_correction_operation,
     structured_payload_requests_remove_item,
+    structured_payload_requests_thread_level_correction,
 )
 
 
@@ -24,6 +25,22 @@ def test_structured_correction_operation_does_not_infer_from_raw_text() -> None:
 
     assert structured_correction_operation(payload) == ""
     assert structured_payload_requests_remove_item(payload) is False
+    assert structured_payload_requests_thread_level_correction(payload) is False
+
+
+def test_structured_correction_operation_identifies_thread_level_correction() -> None:
+    payload = {"semantic_decision": {"target_attachment": {"operation": "correct_active_meal"}}}
+
+    assert structured_correction_operation(payload) == "correct_active_meal"
+    assert structured_payload_requests_thread_level_correction(payload) is True
+    assert structured_payload_requests_remove_item(payload) is False
+
+
+def test_structured_correction_operation_accepts_manager_correct_meal_alias() -> None:
+    payload = {"target_attachment": {"operation": "correct_meal"}}
+
+    assert structured_correction_operation(payload) == "correct_meal"
+    assert structured_payload_requests_thread_level_correction(payload) is True
 
 
 def test_entry_handoff_preserves_manager_owned_action_type_alias() -> None:
@@ -211,6 +228,48 @@ def test_entry_handoff_executes_correction_target_and_nutrition_requirements() -
                 "manager_semantic_decision": {
                     "base_dish": "chicken rice",
                     "retrieval_goal": "generic_anchor_lookup",
+                    "semantic_authority_source": "live_manager_structured_output",
+                },
+                "handoff_source": "entry_manager_semantic_decision",
+                "deterministic_role": "execute_manager_owned_evidence_requirement_only",
+            },
+        },
+    ]
+
+
+def test_entry_handoff_preserves_manager_owned_thread_level_correction_operation() -> None:
+    decision = SimpleNamespace(
+        workflow_effect="route_to_intake",
+        target_attachment={},
+        semantic_decision={
+            "final_action_candidate": "correction_applied",
+            "mutation_intent_candidate": "correction_write",
+            "estimation_posture": "pending_tool_call",
+            "target_attachment": {
+                "meal_thread_id": 3,
+                "meal_version_id": 4,
+                "operation": "correct_active_meal",
+            },
+            "listed_items": ["teppan noodles half", "egg"],
+            "retrieval_goal": "listed_item_lookup",
+        },
+    )
+
+    assert entry_handoff_tool_calls(decision) == [
+        {
+            "name": "resolve_correction_target",
+            "arguments": {
+                "meal_thread_id": 3,
+                "operation": "correct_active_meal",
+                "target_proposal_source": "entry_manager_handoff",
+            },
+        },
+        {
+            "name": "estimate_nutrition",
+            "arguments": {
+                "manager_semantic_decision": {
+                    "listed_items": ["teppan noodles half", "egg"],
+                    "retrieval_goal": "listed_item_lookup",
                     "semantic_authority_source": "live_manager_structured_output",
                 },
                 "handoff_source": "entry_manager_semantic_decision",

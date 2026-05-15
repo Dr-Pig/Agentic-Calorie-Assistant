@@ -105,6 +105,16 @@ def test_single_manager_system_prompt_preserves_optional_drink_refinement_after_
     assert "cup size" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
+def test_single_manager_system_prompt_finalizes_evidence_backed_portion_corrections() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+
+    assert "portion or removal correction" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "do not ask for original composition details already present in active meal context" in (
+        SINGLE_MANAGER_SYSTEM_PROMPT
+    )
+    assert "final_action='correction_applied'" in SINGLE_MANAGER_SYSTEM_PROMPT
+
+
 def test_single_manager_system_prompt_keeps_no_plan_budget_queries_read_only() -> None:
     from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
 
