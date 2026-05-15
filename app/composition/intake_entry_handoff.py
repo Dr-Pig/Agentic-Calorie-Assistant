@@ -62,12 +62,14 @@ def _remove_item_target_handoff_call(target: dict[str, Any]) -> dict[str, Any]:
 
 
 def _target_resolution_handoff_call(target: dict[str, Any]) -> dict[str, Any]:
+    operation = structured_correction_operation(target)
     arguments = {
         key: value
         for key, value in {
             "canonical_name": target.get("canonical_name"),
             "meal_thread_id": target.get("meal_thread_id"),
             "meal_item_id": target.get("meal_item_id"),
+            "operation": operation,
             "target_proposal_source": "entry_manager_handoff",
         }.items()
         if value not in (None, "")

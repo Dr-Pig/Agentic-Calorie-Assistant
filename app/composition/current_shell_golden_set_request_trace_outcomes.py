@@ -60,6 +60,8 @@ def runtime_from_request_trace(
     superseded = old_version_superseded(phase_c_mutation, state_delta)
     if "old_version_superseded" not in runtime and superseded is not None:
         runtime["old_version_superseded"] = superseded
+    if "ledger_recomputed" not in runtime and "ledger_updated" in state_delta:
+        runtime["ledger_recomputed"] = bool(state_delta.get("ledger_updated"))
     if "ledger_delta_trace_required" not in runtime and superseded is True:
         runtime["ledger_delta_trace_required"] = ledger_delta_trace_present(phase_c_mutation, state_delta)
     if "pending_followup_saved" not in runtime and "draft_saved" in state_delta:
@@ -285,13 +287,11 @@ def _meal_level_basis_visible(request_trace: dict[str, Any]) -> bool | None:
     if candidates:
         return True
     return None
-
 def _with_visible_response_text(response: dict[str, Any], request_trace: dict[str, Any]) -> dict[str, Any]:
     visible_text = _visible_response_text(request_trace)
     if visible_text:
         response.setdefault("assistant_message", visible_text)
     return response
-
 def _visible_response_text(request_trace: dict[str, Any]) -> str:
     renderer_output = _dict(request_trace.get("renderer_output"))
     text = str(renderer_output.get("assistant_message") or renderer_output.get("message") or "").strip()

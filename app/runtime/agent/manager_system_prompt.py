@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v28"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v29"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -136,6 +136,10 @@ _CONTRACT_POLICY_PROMPT = (
     "target_attachment, then final_action='correction_applied' without estimate_nutrition.\n"
     "For explicit item removal, set semantic_decision.target_attachment.operation='remove_item' or action_type='remove_item', "
     "mutation_intent_candidate='correction_write', and estimation_posture='target_evidence_needed'; this is not nutrition pending_tool_call.\n"
+    "For a portion or removal correction where the active meal context already contains the original components and "
+    "estimate_nutrition returns commit-eligible evidence for the updated component list, do not ask for original "
+    "composition details already present in active meal context; finalize with final_action='correction_applied' "
+    "and mutation_intent_candidate='correction_write'.\n"
     "If manager_contract_evidence_state.target_evidence_present=true with target_evidence_operation='remove_item', "
     "do not call resolve_correction_target again; return manager_action='final', final_action='correction_applied', "
     "and tool_calls=[] so guard/mutation can apply the validated removal.\n"

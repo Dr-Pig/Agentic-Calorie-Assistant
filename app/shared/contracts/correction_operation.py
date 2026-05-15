@@ -3,6 +3,18 @@ from __future__ import annotations
 from typing import Any
 
 
+THREAD_LEVEL_CORRECTION_OPERATIONS = frozenset(
+    {
+        "correct_meal",
+        "correct_active_meal",
+        "update_meal_components",
+        "replace_meal_components",
+        "portion_correction",
+        "composition_correction",
+    }
+)
+
+
 def structured_correction_operation(payload: dict[str, Any] | None) -> str:
     """Return a manager-owned correction operation from structured fields only."""
 
@@ -65,4 +77,13 @@ def structured_payload_requests_remove_item(payload: dict[str, Any] | None) -> b
     return structured_correction_operation(payload) == "remove_item"
 
 
-__all__ = ["structured_correction_operation", "structured_payload_requests_remove_item"]
+def structured_payload_requests_thread_level_correction(payload: dict[str, Any] | None) -> bool:
+    return structured_correction_operation(payload) in THREAD_LEVEL_CORRECTION_OPERATIONS
+
+
+__all__ = [
+    "THREAD_LEVEL_CORRECTION_OPERATIONS",
+    "structured_correction_operation",
+    "structured_payload_requests_remove_item",
+    "structured_payload_requests_thread_level_correction",
+]

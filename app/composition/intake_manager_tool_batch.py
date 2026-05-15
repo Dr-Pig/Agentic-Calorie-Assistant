@@ -20,7 +20,10 @@ from app.composition.intake_tool_evidence_summary import (
 from app.intake.application.target_evidence_artifacts import payload_is_target_evidence
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
-from app.shared.contracts.correction_operation import structured_correction_operation
+from app.shared.contracts.correction_operation import (
+    structured_correction_operation,
+    structured_payload_requests_thread_level_correction,
+)
 
 def validate_manager_target_proposal(
     *,
@@ -34,6 +37,33 @@ def validate_manager_target_proposal(
     proposed_id = proposal.get("meal_item_id")
     proposed_name = str(proposal.get("canonical_name") or proposal.get("item_name") or "").strip()
     operation = structured_correction_operation(proposal)
+    proposed_thread_id = proposal.get("meal_thread_id") or proposal.get("target_object_id")
+    if structured_payload_requests_thread_level_correction(proposal):
+        current_thread_id = correction_target.get("meal_thread_id")
+        thread_matches = proposed_thread_id is not None and current_thread_id is not None and str(proposed_thread_id) == str(current_thread_id)
+        if thread_matches:
+            return {
+                **dict(correction_target),
+                "meal_thread_id": current_thread_id,
+                "meal_version_id": correction_target.get("meal_version_id"),
+                "operation": operation,
+                "correction_operation": operation,
+                "target_resolution_source": "manager_target_proposal_validated",
+                "correction_confidence": "high",
+                "manager_target_proposal_validation": {
+                    "status": "accepted",
+                    "truth_owner": "deterministic_target_validator",
+                    "proposal_source": str(proposal.get("target_proposal_source") or "manager_structured_output"),
+                },
+            }
+        return {
+            **dict(correction_target),
+            "manager_target_proposal_validation": {
+                "status": "rejected",
+                "failure_family": "manager_thread_target_proposal_not_found",
+                "truth_owner": "deterministic_target_validator",
+            },
+        }
     matched: dict[str, Any] | None = None
     for candidate in candidates:
         id_matches = proposed_id is not None and candidate.get("meal_item_id") == proposed_id
@@ -87,8 +117,10 @@ def attach_correction_target_ref_to_payload(
     trace_contract = payload_trace_contract(payload)
     trace_contract["correction_target_ref"] = {
         "meal_thread_id": correction_target.get("meal_thread_id"),
+        "meal_version_id": correction_target.get("meal_version_id"),
         "meal_item_id": correction_target.get("meal_item_id"),
         "canonical_name": correction_target.get("canonical_name"),
+        "operation": correction_target.get("operation") or correction_target.get("correction_operation"),
     }
     trace_contract["correction_target_ref_source"] = source
     payload.trace_contract = trace_contract

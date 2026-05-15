@@ -11,6 +11,10 @@ from app.composition.canonical_commit_support import (
 )
 from app.intake.infrastructure.models import MealItemRecord, MealVersionRecord
 from app.schemas import CommitRequestCandidate, EstimatePayload
+from app.shared.contracts.correction_operation import (
+    structured_payload_requests_remove_item,
+    structured_payload_requests_thread_level_correction,
+)
 
 
 def _item_records_from_payload(version_id: int, payload: EstimatePayload) -> list[MealItemRecord]:
@@ -103,7 +107,17 @@ def _correction_target_ref(candidate: CommitRequestCandidate) -> dict[str, Any]:
 
 
 def _is_item_removal_correction(candidate: CommitRequestCandidate) -> bool:
-    return dict(candidate.trace_ref or {}).get("correction_operation") == "remove_item"
+    trace_ref = dict(candidate.trace_ref or {})
+    return structured_payload_requests_remove_item(trace_ref) or structured_payload_requests_remove_item(
+        _correction_target_ref(candidate)
+    )
+
+
+def _is_thread_level_correction(candidate: CommitRequestCandidate) -> bool:
+    trace_ref = dict(candidate.trace_ref or {})
+    return structured_payload_requests_thread_level_correction(trace_ref) or structured_payload_requests_thread_level_correction(
+        _correction_target_ref(candidate)
+    )
 
 
 def candidate_with_item_removal_totals(db: Session, candidate: CommitRequestCandidate) -> CommitRequestCandidate:
@@ -168,6 +182,19 @@ def item_records_for_candidate(
     target_ref = _correction_target_ref(candidate)
     target_item_id = target_ref.get("meal_item_id")
     if candidate.version_reason in {"correction", "historical_correction"} and target_item_id is None:
+        if _is_thread_level_correction(candidate):
+            if source_payload is not None:
+                records = _item_records_from_payload(version_id, source_payload)
+            elif candidate.items:
+                records = [
+                    _item_record_from_candidate_item(version_id, index, item)
+                    for index, item in enumerate(candidate.items)
+                ]
+            else:
+                records = []
+            if not records:
+                raise ValueError("correction_replacement_item_missing")
+            return records
         raise ValueError("correction_requires_explicit_item_target")
     if candidate.version_reason in {"correction", "historical_correction"} and target_item_id is not None:
         target_item = db.get(MealItemRecord, target_item_id)

@@ -291,6 +291,32 @@ def test_commit_boundary_preflight_blocks_correction_with_thread_but_missing_ite
     assert result.trace_payload()["correction_target_validation"]["failure_family"] == "correction_item_target_missing"
 
 
+def test_commit_boundary_preflight_allows_manager_owned_thread_level_correction() -> None:
+    result = run_commit_boundary_preflight(
+        payload=_payload(estimated_kcal=300),
+        manager_final_action="correction_applied",
+        active_body_plan_present=True,
+        correction_target={
+            "target_resolution_source": "manager_target_proposal_validated",
+            "meal_thread_id": 77,
+            "operation": "correct_active_meal",
+            "correction_operation": "correct_active_meal",
+        },
+        manager_semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "workflow_effect": "correction_applied",
+            "final_action_candidate": "correction_applied",
+            "mutation_intent_candidate": "correction_write",
+        },
+    )
+
+    assert result.blocked is False
+    assert result.mutation_effect_class == "correction_persistence"
+    assert result.correction_target_resolved is True
+    assert result.trace_payload()["correction_target_validation"]["truth_owner"] == "meal_thread_id"
+
+
 def test_commit_boundary_preflight_traces_canonical_name_mismatch_without_using_name_as_authority() -> None:
     result = run_commit_boundary_preflight(
         payload=_payload(estimated_kcal=420),
