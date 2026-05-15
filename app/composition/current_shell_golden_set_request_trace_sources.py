@@ -20,6 +20,9 @@ def manager_final_decision(request_trace: dict[str, Any]) -> dict[str, Any]:
     final_decision = _dict(request_trace.get("manager_final_decision"))
     if final_decision:
         return final_decision
+    manager_decision = _dict(request_trace.get("manager_decision"))
+    if manager_decision:
+        return manager_decision
     execution_manager = _dict(request_trace.get("intake_execution_manager"))
     return _dict(execution_manager.get("final"))
 
@@ -29,7 +32,16 @@ def react_trace(request_trace: dict[str, Any]) -> dict[str, Any]:
     if trace:
         return trace
     final_decision = _dict(request_trace.get("manager_final_decision"))
-    return _dict(_dict(final_decision.get("trace")).get("react_trace"))
+    trace = _dict(_dict(final_decision.get("trace")).get("react_trace"))
+    if trace:
+        return trace
+    manager_decision = _dict(request_trace.get("manager_decision"))
+    trace = _dict(_dict(manager_decision.get("trace")).get("react_trace"))
+    if trace:
+        return trace
+    execution_manager = _dict(request_trace.get("intake_execution_manager"))
+    execution_final = _dict(execution_manager.get("final"))
+    return _dict(_dict(execution_final.get("trace")).get("react_trace"))
 
 
 def manager_provider(

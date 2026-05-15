@@ -76,7 +76,7 @@ def _active_meal_summary(db: Session, current_budget_view: Any) -> dict[str, Any
         "meal_title": sanitize_text_value(latest_meal.meal_title),
         "total_kcal": latest_meal.total_kcal,
         "occurred_at": latest_meal.occurred_at.isoformat() if latest_meal.occurred_at is not None else None,
-        "resolution_status": latest_meal.resolution_status,
+        "resolution_status": latest_meal.resolution_status, "read_only": True, "mutation_authority": False,
     }
     summary.update(_item_target_reference_for_version(db, meal_version_id=latest_meal.meal_version_id))
     return summary
@@ -104,7 +104,7 @@ def _recent_committed_meal_summaries(
             "meal_title": sanitize_text_value(meal.meal_title),
             "total_kcal": meal.total_kcal,
             "occurred_at": meal.occurred_at.isoformat() if meal.occurred_at is not None else None,
-            "source_request_id": meal.source_request_id,
+            "source_request_id": meal.source_request_id, "read_only": True, "mutation_authority": False,
         }
         summary.update(_item_target_reference_for_version(db, meal_version_id=meal.meal_version_id))
         summaries.append(summary)

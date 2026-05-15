@@ -316,6 +316,69 @@ def test_request_trace_adapter_detects_live_provider_from_final_manager_pass() -
     assert case_trace["manager_provider"]["semantic_owner"] == "manager_llm"
 
 
+def test_request_trace_adapter_projects_gs9_answer_query_from_manager_decision_trace() -> None:
+    trace = {
+        "request_id": "req-gs9-real",
+        "request": {"text": "basis inquiry must not be parsed by the adapter"},
+        "manager_decision": {
+            "workflow_effect": "answer_only",
+            "final_action": "answer_only",
+            "answer_contract": {
+                "reply_text": "I used the active meal basis snapshot and did not change the meal.",
+                "answer_basis": "active_meal_estimate_basis total 620 kcal from component evidence.",
+                "references_active_meal": True,
+            },
+            "semantic_decision": {
+                "semantic_authority": "manager_llm",
+                "current_turn_intent": "answer_query",
+                "workflow_effect": "answer_only",
+                "final_action_candidate": "answer_only",
+                "mutation_intent_candidate": "no_mutation",
+                "estimation_posture": "basis_explained",
+                "source": "active_meal_estimate_basis",
+            },
+            "trace": {
+                "prompt_registry": {"system_prompt_version": "v26"},
+                "react_trace": {
+                    "manager_pass_count": 1,
+                    "tool_call_count": 0,
+                    "manager_pass_1": {
+                        "manager_action": "final",
+                        "workflow_effect": "answer_only",
+                        "provider_trace": {
+                            "provider": "builderspace",
+                            "model": "grok-4-fast",
+                            "request_payload": {"messages": []},
+                        },
+                    },
+                    "requested_tools": [],
+                    "executed_tools": [],
+                },
+            },
+        },
+        "state_delta": {
+            "canonical_commit": False,
+            "ledger_updated": False,
+            "new_meal_version_created": False,
+            "old_version_superseded": False,
+        },
+        "renderer_output": {
+            "assistant_message": "I used the active meal basis snapshot and did not change the meal."
+        },
+        "feedback_linkage": {"feedback_links_to_trace": True},
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS9", trace)
+    grade = grade_golden_case_trace("GS9", case_trace)
+
+    assert case_trace["react_trace"]["manager_pass_1"]["workflow_effect"] == "answer_only"
+    assert case_trace["manager_provider"]["provider"] == "builderspace"
+    assert case_trace["runtime"]["inquiry_may_be_treated_as_correction"] is False
+    assert case_trace["runtime"]["estimate_basis_required"] is True
+    assert case_trace["ui"]["existing_meal_unchanged"] is True
+    assert grade["status"] == "pass"
+
+
 def test_request_trace_adapter_defaults_configured_provider_trace_to_live_invoked() -> None:
     trace = _gs5_request_trace()
     react_trace = dict(trace["react_trace"])  # type: ignore[index]
@@ -701,6 +764,21 @@ def test_request_trace_adapter_flags_saved_change_contradiction_after_commit() -
     assert case_trace["response"]["state_contradiction"] is True
     assert case_trace["response"]["internal_debug_words_present"] is True
     assert "response.state_contradiction" in grade["blockers"]
+    assert "response.internal_debug_words_present" in grade["blockers"]
+
+
+def test_request_trace_adapter_flags_internal_fooddb_or_basis_labels_in_visible_reply() -> None:
+    trace = _gs5_request_trace()
+    trace["renderer_output"] = {
+        "assistant_message": (
+            "This came from fooddb and active_meal_estimate_basis, not a user-facing explanation."
+        )
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS9", trace)
+    grade = grade_golden_case_trace("GS9", case_trace)
+
+    assert case_trace["response"]["internal_debug_words_present"] is True
     assert "response.internal_debug_words_present" in grade["blockers"]
 
 

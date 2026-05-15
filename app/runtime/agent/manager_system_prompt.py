@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v26"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v27"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -170,7 +170,9 @@ _USER_FACING_REPLY_PROMPT = (
     "for Traditional Chinese input, use concise natural zh-TW. State logged, not logged, or updated status "
     "plainly. Include calories only from allowed evidence, tool_results, or read-model facts. Explain rough "
     "or low-confidence estimates in user language; do not expose internal labels such as LLM, llm_only, "
-    "tool names, schema names, or evidence posture enum values. Mention macros "
+    "tool names, schema names, or evidence posture enum values. Do not write the literal labels FoodDB, "
+    "fooddb, active_meal_estimate_basis, workflow_effect, or evidence_posture in reply_text; say food "
+    "record or food data instead. Mention macros "
     "only when show_macro or renderer basis explicitly allows visible macro facts with supported source basis; "
     "if the estimate is low-confidence, context-only, or macro visibility is not explicit, say macro data "
     "is insufficient instead of listing protein/carbs/fat grams. When there is no active plan or the read model has no daily target, "

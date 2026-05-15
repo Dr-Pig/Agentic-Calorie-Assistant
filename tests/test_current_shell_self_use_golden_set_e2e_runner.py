@@ -37,3 +37,32 @@ def test_golden_set_e2e_runner_uses_real_estimate_entrypoint_and_request_trace(
     gs5 = next(case for case in report["replay"]["cases"] if case["case_id"] == "GS5")
     assert gs5["status"] == "blocked"
     assert any(blocker.startswith("fixture_decisions.") for blocker in gs5["blockers"])
+
+
+def test_golden_set_e2e_runner_seeds_gs9_recent_committed_meal_as_context_only(
+    tmp_path: Path,
+) -> None:
+    report = build_current_shell_golden_set_e2e_report(
+        case_ids=["GS9"],
+        db_path=tmp_path / "gs9-e2e.sqlite3",
+        output_path=tmp_path / "gs9-e2e-report.json",
+        trace_artifact_path=tmp_path / "gs9-e2e-trace.json",
+        replay_output_path=tmp_path / "gs9-e2e-replay.json",
+        provider_mode="scripted",
+        local_date="2026-05-14",
+    )
+
+    case_trace = report["trace_artifact"]["cases"][0]
+    context_packet = case_trace["current_turn_context_packet"]
+    runtime_summary = context_packet["current_turn_runtime_summary"]
+
+    assert report["runner_inferred_semantics"] is False
+    assert report["semantic_keyword_oracle_used"] is False
+    assert runtime_summary["recent_committed_meal_count"] == 1
+    assert context_packet["active_meal_thread_ref"]["mutation_authority"] is False
+    assert context_packet["active_meal_thread_ref"]["read_only"] is True
+    assert context_packet["recent_committed_meal_refs"][0]["mutation_authority"] is False
+    assert context_packet["recent_committed_meal_refs"][0]["read_only"] is True
+    assert "intent_type" not in context_packet["active_meal_thread_ref"]
+    assert "final_action" not in context_packet["active_meal_thread_ref"]
+    assert "workflow_effect" not in context_packet["active_meal_thread_ref"]

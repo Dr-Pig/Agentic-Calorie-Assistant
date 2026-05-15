@@ -162,6 +162,12 @@ def _attach_visible_response_quality_flags(
             "not a saved change",
             "tentative reference",
             "meal thread",
+            "fooddb",
+            "active_meal_estimate_basis",
+            "llm_only",
+            "llm_hint",
+            "workflow_effect",
+            "evidence_posture",
             "provider",
             "trace",
         )
