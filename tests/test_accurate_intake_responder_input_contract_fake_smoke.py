@@ -168,7 +168,9 @@ def test_responder_input_contract_fake_smoke_cli_writes_artifact(tmp_path: Path)
 
 def test_responder_input_contract_fake_smoke_stays_out_of_forbidden_boundaries() -> None:
     source_paths = [
+        Path("app/composition/accurate_intake_responder_input_contract_claims.py"),
         Path("app/composition/accurate_intake_responder_input_contract_fake_smoke.py"),
+        Path("app/composition/accurate_intake_responder_input_contract_scenarios.py"),
         Path("scripts/run_accurate_intake_responder_input_contract_fake_smoke.py"),
     ]
     forbidden = [
@@ -190,10 +192,10 @@ def test_responder_input_contract_fake_smoke_stays_out_of_forbidden_boundaries()
             assert fragment not in source
 
 
-def test_ci_runs_responder_input_contract_fake_smoke() -> None:
+def test_ci_does_not_make_responder_fake_smoke_a_standalone_required_gate() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
-    assert "test_accurate_intake_responder_input_contract_fake_smoke.py" in workflow
-    assert "run_accurate_intake_responder_input_contract_fake_smoke.py" in workflow
-    assert "accurate_intake_responder_input_contract_fake_smoke_ci.json" in workflow
-    assert "accurate-intake-responder-input-contract-fake-smoke-report" in workflow
+    assert "test_accurate_intake_responder_input_contract_fake_smoke.py" not in workflow
+    assert "run_accurate_intake_responder_input_contract_fake_smoke.py" not in workflow
+    assert "accurate_intake_responder_input_contract_fake_smoke_ci.json" not in workflow
+    assert "accurate-intake-responder-input-contract-fake-smoke-report" not in workflow
