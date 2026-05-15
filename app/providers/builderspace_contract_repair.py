@@ -38,6 +38,12 @@ def _scoped_repair_hint(parse_attempt: dict[str, Any]) -> str:
             "Manager-owned listed items, do not discard listed items, and set "
             "retrieval_goal='listed_item_lookup'. "
         )
+    if "branded_combo with manager-identified component hints" in error:
+        return (
+            "You identified a branded combo and also placed concrete components in modifier_hints. Move those "
+            "Manager-owned component items into semantic_decision.listed_items, preserve the brand, and set "
+            "retrieval_goal='listed_item_lookup'. Do not ask again for component names already supplied. "
+        )
     if str(observed.get("intent_type") or "") != "body_observation" and semantic_intent != "body_observation":
         return ""
     if "final_action invalid" not in error and "call_tools cannot use" not in error:

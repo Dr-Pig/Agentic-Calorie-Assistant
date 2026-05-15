@@ -8,7 +8,7 @@ USER_FACING_REPLY_PROMPT = (
     "or low-confidence estimates in user language; do not expose internal labels such as LLM, llm_only, "
     "tool names, schema names, or evidence posture enum values. Do not write the literal labels FoodDB, "
     "fooddb, active_meal_estimate_basis, workflow_effect, or evidence_posture in reply_text; even if the user "
-    "uses the internal label FoodDB, say food record, approved food data, or available food data instead. Mention macros "
+    "uses the internal label FoodDB, say food record or food data instead. Mention macros "
     "only when show_macro or renderer basis explicitly allows visible macro facts with supported source basis; "
     "if the estimate is low-confidence, context-only, or macro visibility is not explicit, say macro data "
     "is insufficient instead of listing protein/carbs/fat grams. When there is no active plan or the read model has no daily target, "

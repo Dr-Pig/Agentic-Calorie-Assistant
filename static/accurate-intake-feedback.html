@@ -312,33 +312,6 @@
       const token = (window.LOCAL_DEBUG_API_TOKEN || "").trim();
       return token ? { "X-Local-Debug-Token": token } : {};
     }
-    function feedbackDraftKey() {
-      return `accurate-intake-feedback-draft:${userId()}:${selectedDate()}:${sourcePage()}`;
-    }
-    function loadFeedbackDraft() {
-      try {
-        const draft = window.localStorage.getItem(feedbackDraftKey());
-        if (draft && !el("feedback-text").value.trim()) {
-          el("feedback-text").value = draft;
-        }
-      } catch (_error) {
-        // Draft persistence is a local convenience. Feedback capture still works without storage.
-      }
-    }
-    function saveFeedbackDraft() {
-      try {
-        window.localStorage.setItem(feedbackDraftKey(), el("feedback-text").value);
-      } catch (_error) {
-        // Ignore local storage failures.
-      }
-    }
-    function clearFeedbackDraft() {
-      try {
-        window.localStorage.removeItem(feedbackDraftKey());
-      } catch (_error) {
-        // Ignore local storage failures.
-      }
-    }
     async function requestJson(url, options = {}) {
       const response = await fetch(url, {
         ...options,
@@ -433,7 +406,6 @@
         });
         el("feedback-status").textContent = `Captured ${payload.feedback_id || "feedback"}.`;
         el("feedback-text").value = "";
-        clearFeedbackDraft();
       } catch (error) {
         if (reconnectThroughFriendlyRoute(error)) {
           return;
@@ -449,14 +421,11 @@
         updateScopeContext();
         updateCurrentUrl();
         updateNavigationLinks();
-        loadFeedbackDraft();
       });
     });
-    el("feedback-text").addEventListener("input", saveFeedbackDraft);
     updateNavigationLinks();
     updateScopeContext();
     updateCurrentUrl();
-    loadFeedbackDraft();
     loadLatestTraceContext().catch((error) => {
       if (reconnectThroughFriendlyRoute(error)) {
         return;

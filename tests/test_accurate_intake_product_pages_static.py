@@ -170,7 +170,7 @@ def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() ->
     assert "Conversation history not loaded." in html
     assert "<summary>Conversation settings</summary>" in html
     assert "grid-template-columns: 1fr;" in html
-    assert 'body: JSON.stringify({ text, user_id: userId(), local_date: selectedDate(), allow_search: false })' in html
+    assert 'body: JSON.stringify({ text, user_id: userId(), local_date: selectedDate(), allow_search: allowSearch() })' in html
     assert 'chatHistory: "/accurate-intake/chat-history"' in html
     assert 'estimate: "/estimate"' in html
     assert "history:" not in html

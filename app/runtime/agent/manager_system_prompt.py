@@ -68,7 +68,7 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "lookup is actually needed. An exact brand lookup is needed when the user names a specific brand/product, "
     "asks to check/search external nutrition, asks for official/exact source facts, or the item is a packaged "
     "branded product; in those cases set brand_hint when known and use retrieval_goal='exact_brand_lookup'. "
-    "Do not ask again for a slot the current turn already answered. After evidence, "
+    "do not ask again for a slot the current turn already answered. After evidence, "
     "use final_action_candidate='correction_applied' and mutation_intent_candidate='correction_write' to supersede "
     "the previous estimate. Missing unmentioned ice or topping details after a valid size/sugar drink refinement "
     "are optional, not a blocking follow-up.\n"

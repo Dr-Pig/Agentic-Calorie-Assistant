@@ -26,6 +26,20 @@ def validate_semantic_field_consistency(payload: dict[str, Any]) -> None:
             "founder live manager contract non-empty semantic_decision.listed_items "
             "requires retrieval_goal='listed_item_lookup'"
         )
+    modifier_hints = semantic_decision.get("modifier_hints")
+    manager_identified_component_hints = (
+        isinstance(modifier_hints, list) and any(str(item or "").strip() for item in modifier_hints)
+    )
+    if (
+        str(semantic_decision.get("source") or "") == "branded_combo"
+        and retrieval_goal == "exact_brand_lookup"
+        and manager_identified_component_hints
+        and not (isinstance(listed_items, list) and any(str(item or "").strip() for item in listed_items))
+    ):
+        raise RuntimeError(
+            "founder live manager contract branded_combo with manager-identified component hints "
+            "requires semantic_decision.listed_items and retrieval_goal='listed_item_lookup'"
+        )
 
 
 def validate_body_observation_scope_handoff(

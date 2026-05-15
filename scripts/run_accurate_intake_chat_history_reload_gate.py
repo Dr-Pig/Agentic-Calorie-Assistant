@@ -24,7 +24,7 @@ from scripts.run_accurate_intake_mvp_manager_style_smoke import DeterministicSel
 
 DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_chat_history_reload_gate.sqlite3"
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_chat_history_reload_gate.json"
-DEFAULT_CJK_MESSAGE = "早餐吃茶葉蛋和拿鐵"
+DEFAULT_CJK_MESSAGE = "早餐吃茶葉蛋"
 NOT_CLAIMING = [
     "product_ready",
     "rollout_ready",
