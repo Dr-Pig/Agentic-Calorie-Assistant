@@ -3,8 +3,16 @@ from __future__ import annotations
 from pathlib import Path
 
 from scripts.run_current_shell_self_use_golden_set_e2e import (
+    _select_cases,
     build_current_shell_golden_set_e2e_report,
 )
+from app.composition.current_shell_golden_set_grader import load_golden_set_manifest
+
+
+def test_golden_set_e2e_runner_can_select_websearch_extension_cases() -> None:
+    selected = _select_cases(load_golden_set_manifest(), ["GSW1", "GSW3"])
+
+    assert [case["case_id"] for case in selected] == ["GSW1", "GSW3"]
 
 
 def test_golden_set_e2e_runner_uses_real_estimate_entrypoint_and_request_trace(

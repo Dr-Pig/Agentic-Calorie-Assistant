@@ -30,6 +30,7 @@ def _gs5_trace_artifact() -> dict:
             "workflow_effect": "ask_followup",
             "mutation_allowed": False,
             "fallback_400_allowed": False,
+            "pre_manager_estimability_shortcut_allowed": False,
             "pending_followup_saved": True,
             "assumed_slot_question_required": True,
         },
@@ -39,6 +40,7 @@ def _gs5_trace_artifact() -> dict:
             "frontend_nutrition_math_allowed": False,
         },
         "response": {
+            "visible_text": "我先確認套餐內容後再幫你估，這一筆還沒有記入今日熱量。",
             "zh_tw_primary": True,
             "internal_debug_words_present": False,
             "state_contradiction": False,

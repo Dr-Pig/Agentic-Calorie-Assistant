@@ -125,6 +125,128 @@ fooddb_posture_policy:
     - macro_visibility_status
     - macro_source_strength
   no_anchor_behavior: ask_followup_without_commit
+websearch_extension:
+  case_count: 4
+  status: required_before_self_use_closeout
+  source_truth_role: candidate_evidence_only_until_approved_packet
+  manager_decides_search_need: true
+  deterministic_search_routing_allowed: false
+  no_snippet_as_truth: true
+  no_runtime_mutation_from_candidate: true
+  cases:
+    - case_id: GSW1
+      title: Exact item FoodDB miss uses WebSearch as candidate evidence only
+      entrypoint: manager_runtime
+      journeys: [B]
+      script:
+        - turn: 1
+          utterance_zh_tw: 我喝了一杯迷客夏珍珠紅茶拿鐵，FoodDB 沒有的話幫我查一下
+      seed_state:
+        body_plan: active
+        fooddb_packets: milksha_black_tea_latte_exact_missing
+        websearch_candidate_sources: recorded_candidate_packet
+      hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G1A_no_pre_manager_estimability_shortcut, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G5_nutrition_synthesis, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+      required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, filtered_tool_plan, executed_tools, compact_packets, manager_pass_2_synthesis, guard_result, mutation_result, renderer_input_basis, final_response_basis, latency_cost_cache_usage]
+      expected_runtime:
+        workflow_effect: answer_or_ask_followup_no_mutation
+        websearch_tool_call_expected: true
+        websearch_candidate_only: true
+        websearch_snippet_as_truth_allowed: false
+        runtime_mutation_allowed: false
+        fooddb_truth_promotion_allowed: false
+        pre_manager_websearch_routing_allowed: false
+        websearch_candidate_to_commit_allowed: false
+      ui_assertions: {today_consumed_updates: false, frontend_nutrition_math_allowed: false, candidate_source_label_visible: true}
+      response_rubric:
+        must_include: [candidate_source_status, no_logged_status, next_step_or_clarification]
+        must_not_include: [recorded_status, official_truth_claim, snippet_as_exact_truth]
+        llm_judge: scoped_content_and_naturalness
+      latency_call_budget: {case_class: websearch_exact_candidate, max_llm_calls: 2, max_tool_calls: 4, timeout_is_product_target: false}
+      dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+    - case_id: GSW2
+      title: Wrong-brand or near-match WebSearch candidate is not promoted
+      entrypoint: manager_runtime
+      journeys: [B]
+      script:
+        - turn: 1
+          utterance_zh_tw: 目標是迷客夏珍珠紅茶拿鐵；搜尋結果只有不同品牌的同類飲料
+      seed_state:
+        body_plan: active
+        fooddb_packets: milksha_black_tea_latte_exact_missing
+        websearch_candidate_sources: wrong_brand_same_family_recorded_packet
+      hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G1A_no_pre_manager_estimability_shortcut, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G5_nutrition_synthesis, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+      required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, filtered_tool_plan, executed_tools, compact_packets, manager_pass_2_synthesis, guard_result, mutation_result, renderer_input_basis, final_response_basis, latency_cost_cache_usage]
+      expected_runtime:
+        workflow_effect: ask_followup_or_answer_insufficient_evidence
+        websearch_tool_call_expected: true
+        weak_generic_context_allowed: true
+        wrong_brand_promotion_allowed: false
+        exact_promotion_allowed: false
+        macro_truth_allowed: false
+        source_truth_claim_allowed: false
+        websearch_snippet_as_truth_allowed: false
+        runtime_mutation_allowed: false
+      ui_assertions: {today_consumed_updates: false, frontend_nutrition_math_allowed: false, mismatch_warning_visible: true}
+      response_rubric:
+        must_include: [insufficient_exact_match, clarification_or_candidate_mismatch]
+        must_not_include: [recorded_status, wrong_brand_truth_claim, fake_exactness]
+        llm_judge: scoped_content_and_naturalness
+      latency_call_budget: {case_class: websearch_wrong_brand, max_llm_calls: 2, max_tool_calls: 4, timeout_is_product_target: false}
+      dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+    - case_id: GSW3
+      title: Generic common food should not search the web by default
+      entrypoint: manager_runtime
+      journeys: [B]
+      script:
+        - turn: 1
+          utterance_zh_tw: 午餐吃了一碗雞肉飯
+      seed_state:
+        body_plan: active
+        fooddb_packets: generic_chicken_rice_available
+        websearch_candidate_sources: not_needed
+      hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G1A_no_pre_manager_estimability_shortcut, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G5_nutrition_synthesis, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+      required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, filtered_tool_plan, executed_tools, compact_packets, manager_pass_2_synthesis, guard_result, mutation_result, renderer_input_basis, final_response_basis, latency_cost_cache_usage]
+      expected_runtime:
+        workflow_effect: commit_or_commit_with_optional_refinement
+        websearch_tool_call_expected: false
+        use_generic_or_fooddb_anchor_first: true
+        fake_exactness_allowed: false
+        fooddb_anchor_bypass_allowed: false
+        runtime_mutation_allowed: true
+      ui_assertions: {today_consumed_updates: true, frontend_nutrition_math_allowed: false, generic_basis_visible: true}
+      response_rubric:
+        must_include: [recorded_status, uncertainty_basis]
+        must_not_include: [web_source_claim, official_label_claim, fake_exactness]
+        llm_judge: scoped_content_and_naturalness
+      latency_call_budget: {case_class: generic_food_no_websearch, max_llm_calls: 2, max_tool_calls: 3, timeout_is_product_target: false}
+      dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
+    - case_id: GSW4
+      title: Exact macro item exposes macros only from official or approved evidence
+      entrypoint: manager_runtime
+      journeys: [B]
+      script:
+        - turn: 1
+          utterance_zh_tw: 我喝了一瓶義美全脂鮮乳 400ml，幫我記一下
+      seed_state:
+        body_plan: active
+        fooddb_packets: exact_item_missing_or_partial
+        websearch_candidate_sources: third_party_macro_candidate_recorded_packet
+      hard_invariants: [G0_real_entrypoint_no_fake_pass, G1_semantic_owner, G1A_no_pre_manager_estimability_shortcut, G2_context_engineering, G3_evidence_and_food_truth, G4_manager_react_loop, G5_nutrition_synthesis, G6_state_and_versioning, G7_response_contract, G8_ui_same_truth, G10_observability_and_latency, G11_activation_boundary]
+      required_trace_layers: [provider_profile_and_prompt_versions, current_turn_context_packet, manager_pass_1_decision, requested_tools, filtered_tool_plan, executed_tools, compact_packets, manager_pass_2_synthesis, guard_result, mutation_result, renderer_input_basis, final_response_basis, latency_cost_cache_usage]
+      expected_runtime:
+        workflow_effect: answer_or_ask_followup_no_mutation_until_approved_packet
+        websearch_tool_call_expected: true
+        macro_visible_only_from_official_or_approved_evidence: true
+        websearch_candidate_to_macro_truth_allowed: false
+        websearch_snippet_as_truth_allowed: false
+        runtime_mutation_allowed: false
+      ui_assertions: {today_consumed_updates: false, frontend_nutrition_math_allowed: false, macro_hidden_when_candidate_only: true, macro_source_status_visible: true}
+      response_rubric:
+        must_include: [candidate_source_status, macro_visibility_status]
+        must_not_include: [recorded_status, invented_macro, official_truth_claim_without_approval]
+        llm_judge: scoped_content_and_naturalness
+      latency_call_budget: {case_class: websearch_exact_macro_candidate, max_llm_calls: 2, max_tool_calls: 4, timeout_is_product_target: false}
+      dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
 cases:
   - case_id: GS1
     title: Clear component breakfast meal
