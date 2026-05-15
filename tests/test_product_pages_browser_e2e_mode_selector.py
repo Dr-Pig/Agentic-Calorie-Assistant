@@ -120,3 +120,4 @@ def test_ci_workflow_keeps_required_check_but_gates_playwright_install() -> None
     assert "if: steps.browser_mode.outputs.mode == 'full'" in workflow
     assert "if: steps.browser_mode.outputs.mode == 'fast_pass'" in workflow
     assert "python -m playwright install --with-deps chromium" in workflow
+    assert "Install dependencies\n        if: steps.browser_mode.outputs.mode == 'full'" in workflow

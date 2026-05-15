@@ -10,9 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate import (  # noqa: E402
+from app.composition.current_shell_browser_activation_evidence_gate import (  # noqa: E402
     REQUIRED_INPUTS,
-    build_pl_ce_browser_activation_evidence_gate_artifact,
+    build_current_shell_browser_activation_evidence_gate_artifact,
 )
 from app.composition.current_shell_compatibility_ids import (  # noqa: E402
     CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
@@ -45,9 +45,9 @@ DEFAULT_ARTIFACT_PATHS = {
     "body_observation_same_truth_gate": ROOT
     / "artifacts"
     / "accurate_intake_body_observation_same_truth_gate.json",
-    "fixture_full_product_loop_e2e": ROOT
+    "current_shell_fixture_e2e": ROOT
     / "artifacts"
-    / "accurate_intake_fixture_full_product_loop_e2e.json",
+    / "accurate_intake_current_shell_fixture_e2e.json",
     "product_pages_self_use_flow_gate": ROOT
     / "artifacts"
     / "accurate_intake_current_shell_compatibility_product_pages_self_use_flow_gate.json",
@@ -141,7 +141,7 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 2
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(
         build_input_artifacts(path_overrides=path_overrides)
     )
     write_json_artifact(Path(args.output), artifact)

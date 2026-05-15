@@ -74,7 +74,7 @@ def browser_gate_blockers(payload: dict[str, Any]) -> list[str]:
         "requires_short_term_context_render",
         "requires_target_candidate_ui",
         "requires_body_noplan_degraded_browser",
-        "requires_fixture_full_product_loop_e2e",
+        "requires_current_shell_fixture_e2e",
         "requires_product_pages_self_use_flow_gate",
         "requires_visual_qa",
         "requires_no_debug_trace_leak",
@@ -85,8 +85,8 @@ def browser_gate_blockers(payload: dict[str, Any]) -> list[str]:
         blockers.append("pl_ce_browser_activation_evidence_gate.self_use_flow_gate_not_checked")
     if summary.get("self_use_flow_gate_strongest_pass_type") != "browser_executed":
         blockers.append("pl_ce_browser_activation_evidence_gate.self_use_flow_gate_not_browser_executed")
-    if _int_value(summary.get("fixture_product_loop_step_count")) < 10:
-        blockers.append("pl_ce_browser_activation_evidence_gate.fixture_product_loop_step_count_too_low")
+    if _int_value(summary.get("current_shell_fixture_step_count")) < 10:
+        blockers.append("pl_ce_browser_activation_evidence_gate.current_shell_fixture_step_count_too_low")
     return blockers
 
 

@@ -9,10 +9,10 @@ from app.composition.accurate_intake_local_candidate_bundle_validators import (
     EXPECTED_GATE_IDS,
     EXPECTED_STATUSES,
     FORBIDDEN_TRUE_FLAGS,
-    REQUIRED_FIXTURE_FULL_PRODUCT_LOOP_STEPS,
+    REQUIRED_CURRENT_SHELL_FIXTURE_STEPS,
     context_live_anti_overfit_blockers,
     context_live_matrix_blockers,
-    fixture_full_product_loop_blockers,
+    current_shell_fixture_blockers,
     runtime_replay_blockers,
     validate_input_artifacts,
 )
@@ -33,7 +33,7 @@ REQUIRED_INPUTS = (
     "fake_provider_tool_loop_smoke",
     "review_eval_candidate_pipeline",
     "local_operator_data_hygiene_bundle",
-    "fixture_full_product_loop_e2e",
+    "current_shell_fixture_e2e",
     "mvp_gate_summary",
 )
 
@@ -91,7 +91,7 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
     correction_summary = _object_dict(inputs["correction_removal_fixture_flow"].get("summary"))
     responder_summary = _object_dict(inputs["responder_input_contract_fake_smoke"].get("summary"))
     review_pipeline = inputs["review_eval_candidate_pipeline"]
-    fixture_full_product_loop = inputs["fixture_full_product_loop_e2e"]
+    current_shell_fixture = inputs["current_shell_fixture_e2e"]
     blockers.extend(runtime_replay_blockers(inputs["short_term_context_runtime_replay"]))
     blockers.extend(context_live_matrix_blockers(inputs["context_live_diagnostic_case_matrix"]))
     blockers.extend(
@@ -99,7 +99,7 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
             inputs["context_live_diagnostic_anti_overfit_guard"]
         )
     )
-    blockers.extend(fixture_full_product_loop_blockers(fixture_full_product_loop))
+    blockers.extend(current_shell_fixture_blockers(current_shell_fixture))
     status = (
         cs_ids.CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS
         if not blockers
@@ -204,10 +204,10 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
                 "review_candidate_count": int(
                     review_pipeline.get("review_candidate_count") or 0
                 ),
-                "fixture_full_product_loop_steps": len(
-                    list(fixture_full_product_loop.get("completed_product_loop_steps") or [])
+                "current_shell_fixture_steps": len(
+                    list(current_shell_fixture.get("completed_current_shell_steps") or [])
                 ),
-                "fixture_full_product_loop_browser_executed": fixture_full_product_loop.get("browser_executed") is True,
+                "current_shell_fixture_browser_executed": current_shell_fixture.get("browser_executed") is True,
                 "activation_browser_required": True,
                 "human_review_required": True,
             },
@@ -221,6 +221,6 @@ __all__ = [
     "EXPECTED_STATUSES",
     "FORBIDDEN_TRUE_FLAGS",
     "REQUIRED_INPUTS",
-    "REQUIRED_FIXTURE_FULL_PRODUCT_LOOP_STEPS",
+    "REQUIRED_CURRENT_SHELL_FIXTURE_STEPS",
     "build_pl_ce_local_mvp_candidate_bundle_artifact",
 ]

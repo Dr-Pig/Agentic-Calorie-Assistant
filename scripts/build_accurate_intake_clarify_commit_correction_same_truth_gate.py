@@ -20,7 +20,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--product-pages-browser-smoke-json", required=True)
     parser.add_argument("--product-pages-short-term-context-smoke-json", required=True)
     parser.add_argument("--product-pages-target-candidate-ui-smoke-json", required=True)
-    parser.add_argument("--fixture-full-product-loop-e2e-json", required=True)
+    parser.add_argument("--current-shell-fixture-e2e-json", required=True)
     parser.add_argument("--manager-runtime-gate-ledger-json")
     parser.add_argument(
         "--output",
@@ -44,8 +44,8 @@ def main(argv: list[str] | None = None) -> int:
         target_candidate_ui_smoke=json.loads(
             Path(args.product_pages_target_candidate_ui_smoke_json).read_text(encoding="utf-8")
         ),
-        fixture_full_product_loop_e2e=json.loads(
-            Path(args.fixture_full_product_loop_e2e_json).read_text(encoding="utf-8")
+        current_shell_fixture_e2e=json.loads(
+            Path(args.current_shell_fixture_e2e_json).read_text(encoding="utf-8")
         ),
         manager_runtime_gate_ledger=manager_runtime_gate_ledger,
     )

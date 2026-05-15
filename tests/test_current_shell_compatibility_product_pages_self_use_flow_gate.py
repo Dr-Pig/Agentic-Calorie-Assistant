@@ -14,9 +14,9 @@ from app.composition.current_shell_fooddb_triad_same_truth_contract import (
 from app.composition.accurate_intake_current_shell_claim_boundary import (
     build_current_shell_appshell_claim_boundary,
 )
-from app.composition.accurate_intake_pl_ce_product_pages_self_use_flow_gate import (
+from app.composition.current_shell_product_pages_self_use_flow_gate import (
     REQUIRED_INPUTS,
-    build_pl_ce_product_pages_self_use_flow_gate_artifact,
+    build_current_shell_product_pages_self_use_flow_gate_artifact,
 )
 
 
@@ -373,10 +373,10 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
-        "fixture_full_product_loop_e2e": {
-            "artifact_type": "accurate_intake_fixture_full_product_loop_e2e",
-            "status": "fixture_product_loop_e2e_diagnostic_pass",
-            "completed_product_loop_steps": [
+        "current_shell_fixture_e2e": {
+            "artifact_type": "accurate_intake_current_shell_fixture_e2e",
+            "status": "current_shell_fixture_e2e_diagnostic_pass",
+            "completed_current_shell_steps": [
                 "target_update",
                 "food_log",
                 "listed_basket_commit",
@@ -402,7 +402,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
 
 
 def test_product_pages_self_use_flow_gate_accepts_complete_fixture_browser_chain() -> None:
-    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(_valid_inputs())
+    artifact = build_current_shell_product_pages_self_use_flow_gate_artifact(_valid_inputs())
     claim_boundary = build_current_shell_appshell_claim_boundary()
 
     assert artifact["artifact_type"] == CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE
@@ -425,7 +425,7 @@ def test_product_pages_self_use_flow_gate_accepts_complete_fixture_browser_chain
     assert artifact["summary"]["context_target_browser_closure_checked"] is True
     assert artifact["summary"]["body_noplan_degraded_checked"] is True
     assert artifact["summary"]["body_observation_same_truth_checked"] is True
-    assert artifact["summary"]["fixture_product_loop_steps_checked"] == 10
+    assert artifact["summary"]["current_shell_steps_checked"] == 10
     assert artifact["summary"]["strongest_consumed_pass_type"] == "browser_executed"
     assert artifact["all_required_browser_artifacts_executed"] is True
     assert artifact["browser_executed_required"] is True
@@ -446,7 +446,7 @@ def test_product_pages_self_use_flow_gate_accepts_complete_fixture_browser_chain
 
 
 def test_product_pages_self_use_flow_gate_reports_runtime_claim_dependency_without_inventing_runtime_pass() -> None:
-    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(_valid_inputs())
+    artifact = build_current_shell_product_pages_self_use_flow_gate_artifact(_valid_inputs())
     boundary = artifact["appshell_claim_boundary"]
 
     assert artifact["pass_type"] == "contract"
@@ -463,7 +463,7 @@ def test_product_pages_self_use_flow_gate_blocks_optional_browser_blocked_state(
     inputs["product_pages_visual_qa"]["status"] = "blocked"
     inputs["product_pages_visual_qa"]["browser_executed"] = False
 
-    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(inputs)
+    artifact = build_current_shell_product_pages_self_use_flow_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "product_pages_visual_qa.unexpected_status:blocked" in artifact["blockers"]
@@ -476,16 +476,16 @@ def test_product_pages_self_use_flow_gate_blocks_semantic_or_truth_overclaims() 
     inputs = _valid_inputs()
     inputs["product_pages_target_candidate_ui_smoke"]["frontend_selected_target"] = True
     inputs["product_pages_short_term_context_smoke"]["deterministic_semantic_inference_used"] = True
-    inputs["fixture_full_product_loop_e2e"]["ready_for_fdb_integration"] = True
-    inputs["fixture_full_product_loop_e2e"]["dogfood_pass"] = True
+    inputs["current_shell_fixture_e2e"]["ready_for_fdb_integration"] = True
+    inputs["current_shell_fixture_e2e"]["dogfood_pass"] = True
 
-    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(inputs)
+    artifact = build_current_shell_product_pages_self_use_flow_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "product_pages_target_candidate_ui_smoke.frontend_selected_target" in artifact["blockers"]
     assert "product_pages_short_term_context_smoke.deterministic_semantic_inference_used" in artifact["blockers"]
-    assert "fixture_full_product_loop_e2e.ready_for_fdb_integration" in artifact["blockers"]
-    assert "fixture_full_product_loop_e2e.dogfood_pass" in artifact["blockers"]
+    assert "current_shell_fixture_e2e.ready_for_fdb_integration" in artifact["blockers"]
+    assert "current_shell_fixture_e2e.dogfood_pass" in artifact["blockers"]
     assert "ready_for_fdb_integration" not in artifact
 
 
@@ -493,15 +493,15 @@ def test_product_pages_self_use_flow_gate_blocks_missing_target_candidate_or_con
     inputs = _valid_inputs()
     inputs["product_pages_target_candidate_ui_smoke"]["target_candidate_surface_checked"] = False
     inputs["product_pages_short_term_context_smoke"]["pending_followup_reloaded"] = False
-    inputs["fixture_full_product_loop_e2e"]["completed_product_loop_steps"] = ["target_update"]
+    inputs["current_shell_fixture_e2e"]["completed_current_shell_steps"] = ["target_update"]
 
-    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(inputs)
+    artifact = build_current_shell_product_pages_self_use_flow_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "product_pages_target_candidate_ui_smoke.target_candidate_surface_checked_not_true" in artifact["blockers"]
     assert "product_pages_short_term_context_smoke.pending_followup_reloaded_not_true" in artifact["blockers"]
-    assert "fixture_full_product_loop_e2e.completed_step_missing:food_log" in artifact["blockers"]
-    assert "fixture_full_product_loop_e2e.completed_step_missing:fake_provider_context_smoke" in artifact["blockers"]
+    assert "current_shell_fixture_e2e.completed_step_missing:food_log" in artifact["blockers"]
+    assert "current_shell_fixture_e2e.completed_step_missing:fake_provider_context_smoke" in artifact["blockers"]
 
 
 def test_product_pages_self_use_flow_gate_requires_product_pages_macro_browser_evidence() -> None:
@@ -509,7 +509,7 @@ def test_product_pages_self_use_flow_gate_requires_product_pages_macro_browser_e
     inputs["product_pages_browser_smoke"].pop("macro_present_exact_item_browser_checked", None)
     inputs["product_pages_browser_smoke"].pop("macro_missing_exact_item_browser_checked", None)
 
-    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(inputs)
+    artifact = build_current_shell_product_pages_self_use_flow_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "product_pages_browser_smoke.macro_present_exact_item_browser_checked_not_true" in artifact["blockers"]
@@ -520,7 +520,7 @@ def test_product_pages_self_use_flow_gate_requires_route_backed_macro_budget_tru
     inputs = _valid_inputs()
     inputs["product_pages_browser_smoke"].pop("route_backed_macro_browser_checked", None)
 
-    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(inputs)
+    artifact = build_current_shell_product_pages_self_use_flow_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "product_pages_browser_smoke.route_backed_macro_browser_checked_not_true" in artifact["blockers"]
@@ -531,7 +531,7 @@ def test_product_pages_self_use_flow_gate_requires_fooddb_triad_same_truth() -> 
     inputs = _valid_inputs()
     inputs["product_pages_browser_smoke"].pop("fooddb_triad_same_truth_browser_checked", None)
 
-    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(inputs)
+    artifact = build_current_shell_product_pages_self_use_flow_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert (
@@ -549,7 +549,7 @@ def test_product_pages_self_use_flow_gate_requires_runtime_and_browser_closure_i
     inputs["body_observation_same_truth_gate"]["summary"]["all_required_browser_flags_true"] = False  # type: ignore[index]
     inputs["product_pages_context_target_browser_closure"]["context_engineering_present"] = False
 
-    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(inputs)
+    artifact = build_current_shell_product_pages_self_use_flow_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "today_macro_runtime_mirror_gate.unexpected_status:blocked" in artifact["blockers"]
@@ -597,9 +597,9 @@ def test_product_pages_self_use_flow_gate_cli_writes_from_existing_artifacts(
 
 def test_product_pages_self_use_flow_gate_source_stays_out_of_forbidden_boundaries() -> None:
     source_paths = (
-        Path("app/composition/accurate_intake_pl_ce_product_pages_self_use_flow_gate.py"),
+        Path("app/composition/current_shell_product_pages_self_use_flow_gate.py"),
         Path("scripts/build_current_shell_compatibility_product_pages_self_use_flow_gate.py"),
-        Path("scripts/build_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py"),
+        Path("scripts/build_current_shell_product_pages_self_use_flow_gate.py"),
     )
     forbidden = (
         "NutritionEvidenceStorePort",
@@ -622,12 +622,12 @@ def test_ci_keeps_product_pages_self_use_flow_gate_out_of_required_merge_path() 
 
     assert "product-pages-browser-e2e" in workflow
     assert "tests/test_current_shell_compatibility_product_pages_self_use_flow_gate.py" in workflow
-    assert "tests/test_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py" not in workflow
-    assert "build_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py" not in workflow
+    assert "tests/test_current_shell_product_pages_self_use_flow_gate.py" not in workflow
+    assert "build_current_shell_product_pages_self_use_flow_gate.py" not in workflow
     assert "ui_same_truth_contract=artifacts/accurate_intake_ui_same_truth_render_contract_ci.json" not in workflow
     assert (
         "product_pages_target_candidate_ui_smoke="
         "artifacts/accurate_intake_product_pages_target_candidate_ui_smoke_ci.json"
     ) not in workflow
-    assert "fixture_full_product_loop_e2e=artifacts/accurate_intake_fixture_full_product_loop_e2e_ci.json" not in workflow
+    assert "current_shell_fixture_e2e=artifacts/accurate_intake_current_shell_fixture_e2e_ci.json" not in workflow
     assert "artifacts/accurate_intake_pl_ce_product_pages_self_use_flow_gate_ci.json" not in workflow

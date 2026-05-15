@@ -65,12 +65,12 @@ from app.composition.accurate_intake_non_fooddb_mutation_tool_guard_smoke import
 from app.composition.accurate_intake_non_fooddb_read_only_tool_loop_fake_smoke import (  # noqa: E402
     build_non_fooddb_read_only_tool_loop_fake_smoke_artifact,
 )
-from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate import (  # noqa: E402
+from app.composition.current_shell_browser_activation_evidence_gate import (  # noqa: E402
     REQUIRED_INPUTS as BROWSER_GATE_REQUIRED_INPUTS,
-    build_pl_ce_browser_activation_evidence_gate_artifact,
+    build_current_shell_browser_activation_evidence_gate_artifact,
 )
-from app.composition.accurate_intake_pl_ce_product_pages_self_use_flow_gate import (  # noqa: E402
-    build_pl_ce_product_pages_self_use_flow_gate_artifact,
+from app.composition.current_shell_product_pages_self_use_flow_gate import (  # noqa: E402
+    build_current_shell_product_pages_self_use_flow_gate_artifact,
 )
 from app.composition.accurate_intake_pl_ce_context_coverage_matrix import (  # noqa: E402
     build_pl_ce_context_coverage_matrix_artifact,
@@ -188,8 +188,8 @@ from scripts.run_accurate_intake_context_live_diagnostic_gate import (  # noqa: 
 from scripts.build_accurate_intake_review_eval_candidate_pipeline import (  # noqa: E402
     build_review_eval_candidate_pipeline_report,
 )
-from scripts.run_accurate_intake_fixture_full_product_loop_e2e import (  # noqa: E402
-    build_fixture_full_product_loop_e2e_report,
+from scripts.run_current_shell_fixture_e2e import (  # noqa: E402
+    build_current_shell_fixture_e2e_report,
 )
 from scripts.run_accurate_intake_browser_one_day_fixture_dogfood import (  # noqa: E402
     build_browser_one_day_fixture_dogfood_report,
@@ -273,7 +273,7 @@ REFRESHED_ARTIFACT_FILENAMES = {
         "accurate_intake_product_pages_context_target_browser_closure.json"
     ),
     "product_pages_visual_qa": "accurate_intake_product_pages_visual_qa.json",
-    "fixture_full_product_loop_e2e": "accurate_intake_fixture_full_product_loop_e2e.json",
+    "current_shell_fixture_e2e": "accurate_intake_current_shell_fixture_e2e.json",
     "accurate_intake_mvp_gate": "accurate_intake_mvp_gate.json",
     CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: (
         "accurate_intake_pl_ce_local_mvp_candidate_bundle.json"
@@ -853,11 +853,11 @@ def _generate_product_pages_visual_qa(*, artifacts_dir: Path) -> dict[str, Any]:
     )
 
 
-def _generate_fixture_full_product_loop_e2e(*, artifacts_dir: Path) -> dict[str, Any]:
-    return build_fixture_full_product_loop_e2e_report(
-        db_path=artifacts_dir / "accurate_intake_fixture_full_product_loop_e2e.sqlite3",
+def _generate_current_shell_fixture_e2e(*, artifacts_dir: Path) -> dict[str, Any]:
+    return build_current_shell_fixture_e2e_report(
+        db_path=artifacts_dir / "accurate_intake_current_shell_fixture_e2e.sqlite3",
         browser_db_path=artifacts_dir
-        / "accurate_intake_fixture_full_product_loop_e2e_browser.sqlite3",
+        / "accurate_intake_current_shell_fixture_e2e_browser.sqlite3",
         require_browser_execution=True,
         timeout_ms=30000,
         headless=True,
@@ -922,10 +922,10 @@ def _generate_current_shell_local_mvp_candidate_bundle(
                 ),
             ),
             "local_operator_data_hygiene_bundle": build_local_operator_data_hygiene_bundle(
-                db_path=artifacts_dir / "accurate_intake_fixture_full_product_loop_e2e.sqlite3"
+                db_path=artifacts_dir / "accurate_intake_current_shell_fixture_e2e.sqlite3"
             ),
-            "fixture_full_product_loop_e2e": _read_payload(
-                _group_path(artifacts_dir, PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["fixture_full_product_loop_e2e"])
+            "current_shell_fixture_e2e": _read_payload(
+                _group_path(artifacts_dir, PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["current_shell_fixture_e2e"])
             ),
             "mvp_gate_summary": mvp_gate_summary,
         }
@@ -1112,11 +1112,11 @@ def _generate_current_shell_prelive_evidence_alignment(
         },
     )
     local_dogfood_data_hygiene = build_local_dogfood_data_manifest(
-        db_path=artifacts_dir / "accurate_intake_fixture_full_product_loop_e2e.sqlite3",
+        db_path=artifacts_dir / "accurate_intake_current_shell_fixture_e2e.sqlite3",
         operation="inspect",
     )
     local_operator_data_hygiene_bundle = build_local_operator_data_hygiene_bundle(
-        db_path=artifacts_dir / "accurate_intake_fixture_full_product_loop_e2e.sqlite3"
+        db_path=artifacts_dir / "accurate_intake_current_shell_fixture_e2e.sqlite3"
     )
     aligned_artifacts = {
         "browser_shell_smoke": browser_shell_smoke,
@@ -1246,7 +1246,7 @@ def _generate_current_shell_local_review_inputs(
         "browser_shell_smoke": prelive_alignment_artifacts["browser_shell_smoke"],
         "browser_fixture_dogfood": browser_fixture_dogfood,
         "browser_realistic_dogfood": browser_realistic_dogfood,
-        "fixture_full_product_loop_e2e": refreshed_artifacts["fixture_full_product_loop_e2e"],
+        "current_shell_fixture_e2e": refreshed_artifacts["current_shell_fixture_e2e"],
         "pl_ce_review_bundle": pl_ce_review_bundle,
         "context_review": context_review,
         "context_target_candidate_eval": context_target_candidate_eval,
@@ -1454,11 +1454,11 @@ def build_local_web_self_use_candidate_refresh_chain(
         "product_pages_visual_qa",
         lambda: _generate_product_pages_visual_qa(artifacts_dir=artifacts_dir),
     )
-    refreshed_artifacts["fixture_full_product_loop_e2e"] = (
+    refreshed_artifacts["current_shell_fixture_e2e"] = (
         _read_or_generate_product_page_artifact(
             artifacts_dir,
-            "fixture_full_product_loop_e2e",
-            lambda: _generate_fixture_full_product_loop_e2e(artifacts_dir=artifacts_dir),
+            "current_shell_fixture_e2e",
+            lambda: _generate_current_shell_fixture_e2e(artifacts_dir=artifacts_dir),
         )
     )
     for group_id, artifact in refreshed_artifacts.items():
@@ -1480,7 +1480,7 @@ def build_local_web_self_use_candidate_refresh_chain(
         body_observation_same_truth_gate,
     )
 
-    product_pages_self_use_flow_gate = build_pl_ce_product_pages_self_use_flow_gate_artifact(
+    product_pages_self_use_flow_gate = build_current_shell_product_pages_self_use_flow_gate_artifact(
         build_product_pages_flow_inputs(
             path_overrides=_product_pages_flow_path_overrides(artifacts_dir)
         )
@@ -1553,8 +1553,8 @@ def build_local_web_self_use_candidate_refresh_chain(
                     PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["product_pages_target_candidate_ui_smoke"],
                 )
             ),
-            fixture_full_product_loop_e2e=_read_payload(
-                _group_path(artifacts_dir, PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["fixture_full_product_loop_e2e"])
+            current_shell_fixture_e2e=_read_payload(
+                _group_path(artifacts_dir, PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["current_shell_fixture_e2e"])
             ),
         )
     )
@@ -1566,7 +1566,7 @@ def build_local_web_self_use_candidate_refresh_chain(
         clarify_commit_correction_same_truth_gate,
     )
 
-    browser_activation_evidence_gate = build_pl_ce_browser_activation_evidence_gate_artifact(
+    browser_activation_evidence_gate = build_current_shell_browser_activation_evidence_gate_artifact(
         _browser_gate_inputs(artifacts_dir)
     )
     write_json_artifact(

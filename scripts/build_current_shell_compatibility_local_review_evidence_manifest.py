@@ -25,7 +25,7 @@ DEFAULT_EVIDENCE_PATHS = {
     "browser_shell_smoke": ROOT / "artifacts" / "accurate_intake_browser_shell_smoke.json",
     "browser_fixture_dogfood": ROOT / "artifacts" / "accurate_intake_browser_one_day_fixture_dogfood.json",
     "browser_realistic_dogfood": ROOT / "artifacts" / "accurate_intake_browser_realistic_web_dogfood_v2.json",
-    "fixture_full_product_loop_e2e": ROOT / "artifacts" / "accurate_intake_fixture_full_product_loop_e2e.json",
+    "current_shell_fixture_e2e": ROOT / "artifacts" / "accurate_intake_current_shell_fixture_e2e.json",
     "pl_ce_review_bundle": ROOT / "artifacts" / "accurate_intake_product_loop_review_bundle.json",
     "context_review": ROOT / "artifacts" / "accurate_intake_context_review_artifact.json",
     "context_target_candidate_eval": ROOT / "artifacts" / "accurate_intake_context_target_candidate_eval.json",

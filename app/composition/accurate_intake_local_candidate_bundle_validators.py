@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 
-REQUIRED_FIXTURE_FULL_PRODUCT_LOOP_STEPS = (
+REQUIRED_CURRENT_SHELL_FIXTURE_STEPS = (
     "target_update",
     "food_log",
     "listed_basket_commit",
@@ -36,7 +36,7 @@ EXPECTED_STATUSES = {
     "fake_provider_tool_loop_smoke": "fake_provider_tool_loop_smoke_pass",
     "review_eval_candidate_pipeline": "review_eval_candidate_pipeline_ready",
     "local_operator_data_hygiene_bundle": "local_operator_data_hygiene_ready",
-    "fixture_full_product_loop_e2e": "fixture_product_loop_e2e_diagnostic_pass",
+    "current_shell_fixture_e2e": "current_shell_fixture_e2e_diagnostic_pass",
     "mvp_gate_summary": "pass",
 }
 
@@ -54,7 +54,7 @@ EXPECTED_ARTIFACT_TYPES = {
     "fake_provider_tool_loop_smoke": "accurate_intake_fake_provider_tool_loop_smoke",
     "review_eval_candidate_pipeline": "accurate_intake_review_eval_candidate_pipeline",
     "local_operator_data_hygiene_bundle": "accurate_intake_local_operator_data_hygiene_bundle",
-    "fixture_full_product_loop_e2e": "accurate_intake_fixture_full_product_loop_e2e",
+    "current_shell_fixture_e2e": "accurate_intake_current_shell_fixture_e2e",
 }
 
 EXPECTED_GATE_IDS = {
@@ -195,13 +195,13 @@ def context_live_anti_overfit_blockers(payload: dict[str, Any]) -> list[str]:
     return blockers
 
 
-def fixture_full_product_loop_blockers(payload: dict[str, Any]) -> list[str]:
+def current_shell_fixture_blockers(payload: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
-    completed_steps = {str(step) for step in list(payload.get("completed_product_loop_steps") or []) if str(step).strip()}
-    if not set(REQUIRED_FIXTURE_FULL_PRODUCT_LOOP_STEPS).issubset(completed_steps):
-        blockers.append("fixture_full_product_loop_e2e.completed_steps_missing")
+    completed_steps = {str(step) for step in list(payload.get("completed_current_shell_steps") or []) if str(step).strip()}
+    if not set(REQUIRED_CURRENT_SHELL_FIXTURE_STEPS).issubset(completed_steps):
+        blockers.append("current_shell_fixture_e2e.completed_steps_missing")
     if payload.get("browser_executed") is not True:
-        blockers.append("fixture_full_product_loop_e2e.browser_not_executed")
+        blockers.append("current_shell_fixture_e2e.browser_not_executed")
     if payload.get("fixture_evidence_used") is not True:
-        blockers.append("fixture_full_product_loop_e2e.fixture_evidence_missing")
+        blockers.append("current_shell_fixture_e2e.fixture_evidence_missing")
     return blockers

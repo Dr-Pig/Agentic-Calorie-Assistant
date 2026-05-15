@@ -180,9 +180,9 @@ def _fast_expensive_refresh_chain_generators(monkeypatch: pytest.MonkeyPatch) ->
             **browser_gate_payloads["product_pages_visual_qa"],
             "browser_execution_required": True,
         },
-        "_generate_fixture_full_product_loop_e2e": {
-            **product_page_payloads["fixture_full_product_loop_e2e"],
-            **browser_gate_payloads["fixture_full_product_loop_e2e"],
+        "_generate_current_shell_fixture_e2e": {
+            **product_page_payloads["current_shell_fixture_e2e"],
+            **browser_gate_payloads["current_shell_fixture_e2e"],
             "diagnostic_only": True,
             "local_only": True,
         },
@@ -247,7 +247,7 @@ def _seed_required_gate_inputs(
     artifact_dir: Path,
     *,
     omit_browser_target_ui: bool = False,
-    omit_fixture_full_product_loop_e2e: bool = False,
+    omit_current_shell_fixture_e2e: bool = False,
 ) -> None:
     from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
 
@@ -271,7 +271,7 @@ def _seed_required_gate_inputs(
     for group_id, payload in product_pages_flow_inputs.items():
         if group_id == "product_pages_target_candidate_ui_smoke" and omit_browser_target_ui:
             continue
-        if group_id == "fixture_full_product_loop_e2e" and omit_fixture_full_product_loop_e2e:
+        if group_id == "current_shell_fixture_e2e" and omit_current_shell_fixture_e2e:
             continue
         target_path = artifact_dir / module.PRODUCT_PAGES_FLOW_ARTIFACT_PATHS[group_id].name
         _write(target_path, payload)
@@ -286,11 +286,11 @@ def _seed_required_gate_inputs(
         ("product_pages_short_term_context_smoke", "product_pages_short_term_context_smoke"),
         ("product_pages_visual_qa", "product_pages_visual_qa"),
         ("product_pages_body_noplan_degraded_smoke", "product_pages_body_noplan_degraded_smoke"),
-        ("fixture_full_product_loop_e2e", "fixture_full_product_loop_e2e"),
+        ("current_shell_fixture_e2e", "current_shell_fixture_e2e"),
         ("product_pages_self_use_flow_gate", "product_pages_self_use_flow_gate"),
     )
     for path_group_id, payload_group_id in browser_input_groups:
-        if path_group_id == "fixture_full_product_loop_e2e" and omit_fixture_full_product_loop_e2e:
+        if path_group_id == "current_shell_fixture_e2e" and omit_current_shell_fixture_e2e:
             continue
         target_path = artifact_dir / module.BROWSER_GATE_ARTIFACT_PATHS[path_group_id].name
         _merge_write(target_path, browser_gate_inputs[payload_group_id])
@@ -647,7 +647,7 @@ def test_refresh_chain_reuses_existing_expensive_closeout_artifacts(
         "_generate_product_pages_body_noplan_degraded_smoke",
         "_generate_product_pages_target_candidate_ui_smoke",
         "_generate_product_pages_visual_qa",
-        "_generate_fixture_full_product_loop_e2e",
+        "_generate_current_shell_fixture_e2e",
     ]:
         monkeypatch.setattr(module, name, fail_if_regenerated)
 
@@ -698,7 +698,7 @@ def test_refresh_chain_generates_fixture_dependency_before_browser_activation_ga
     from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
 
     artifact_dir = tmp_path / "artifacts"
-    _seed_required_gate_inputs(artifact_dir, omit_fixture_full_product_loop_e2e=True)
+    _seed_required_gate_inputs(artifact_dir, omit_current_shell_fixture_e2e=True)
 
     exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
     printed = json.loads(capsys.readouterr().out)
@@ -722,14 +722,14 @@ def test_refresh_chain_generates_fixture_dependency_before_browser_activation_ga
     fixture_loop = json.loads(
         (
             artifact_dir
-            / module.REFRESHED_ARTIFACT_FILENAMES["fixture_full_product_loop_e2e"]
+            / module.REFRESHED_ARTIFACT_FILENAMES["current_shell_fixture_e2e"]
         ).read_text(encoding="utf-8")
     )
 
     assert exit_code == 0
     assert printed["status"] == "pass"
     assert (
-        "fixture_full_product_loop_e2e"
+        "current_shell_fixture_e2e"
         not in printed["closeout_navigation"]["missing_evidence"]
     )
     assert printed["closeout_navigation"]["first_blocking_gate"] is None
@@ -741,7 +741,7 @@ def test_refresh_chain_generates_fixture_dependency_before_browser_activation_ga
     assert browser_activation["blockers"] == []
     assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
     assert "ready_for_live_diagnostic_decision" not in pre_live_pack
-    assert fixture_loop["status"] == "fixture_product_loop_e2e_diagnostic_pass"
+    assert fixture_loop["status"] == "current_shell_fixture_e2e_diagnostic_pass"
     assert fixture_loop["product_readiness_claimed"] is False
     assert fixture_loop["private_self_use_approved"] is False
     assert product_loop_handoff["status"] == (
@@ -1063,19 +1063,19 @@ def test_refresh_chain_generates_required_fixture_full_product_loop_before_next_
     printed = json.loads(capsys.readouterr().out)
 
     fixture_loop_path = artifact_dir / module.PRODUCT_PAGES_FLOW_ARTIFACT_PATHS[
-        "fixture_full_product_loop_e2e"
+        "current_shell_fixture_e2e"
     ].name
     fixture_loop = json.loads(fixture_loop_path.read_text(encoding="utf-8"))
 
     _assert_refresh_chain_closeout_pass(exit_code, printed)
-    assert fixture_loop["status"] == "fixture_product_loop_e2e_diagnostic_pass"
+    assert fixture_loop["status"] == "current_shell_fixture_e2e_diagnostic_pass"
     assert fixture_loop["browser_executed"] is True
     assert fixture_loop["diagnostic_only"] is True
     assert fixture_loop["local_only"] is True
     assert fixture_loop["product_readiness_claimed"] is False
     assert fixture_loop["private_self_use_approved"] is False
     assert (
-        "fixture_full_product_loop_e2e"
+        "current_shell_fixture_e2e"
         not in printed["closeout_navigation"]["missing_evidence"]
     )
 
@@ -1094,8 +1094,8 @@ def test_local_mvp_candidate_bundle_consumes_generated_fixture_full_loop(
         valid_inputs["ui_same_truth_contract"],
     )
     _write(
-        artifact_dir / module.PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["fixture_full_product_loop_e2e"].name,
-        valid_inputs["fixture_full_product_loop_e2e"],
+        artifact_dir / module.PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["current_shell_fixture_e2e"].name,
+        valid_inputs["current_shell_fixture_e2e"],
     )
     monkeypatch.setattr(module, "build_context_conditioned_intent_wall_artifact", lambda: valid_inputs["context_conditioned_intent_wall"])
     monkeypatch.setattr(module, "build_short_term_context_runtime_replay_artifact", lambda: valid_inputs["short_term_context_runtime_replay"])
@@ -1119,9 +1119,9 @@ def test_local_mvp_candidate_bundle_consumes_generated_fixture_full_loop(
     assert bundle["artifact_type"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE
     assert bundle["status"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS
     assert bundle["blockers"] == []
-    fixture_status = bundle["included_artifact_statuses"]["fixture_full_product_loop_e2e"]
+    fixture_status = bundle["included_artifact_statuses"]["current_shell_fixture_e2e"]
     assert fixture_status["present"] is True
-    assert fixture_status["status"] == "fixture_product_loop_e2e_diagnostic_pass"
+    assert fixture_status["status"] == "current_shell_fixture_e2e_diagnostic_pass"
 
 
 def test_refresh_chain_generates_local_mvp_candidate_bundle_before_browser_activation(

@@ -24,7 +24,7 @@ REQUIRED_INPUTS = [
     "fake_provider_tool_loop_smoke",
     "review_eval_candidate_pipeline",
     "local_operator_data_hygiene_bundle",
-    "fixture_full_product_loop_e2e",
+    "current_shell_fixture_e2e",
     "mvp_gate_summary",
 ]
 
@@ -160,10 +160,10 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "import_allowed": False,
             "production_db_used": False,
         },
-        "fixture_full_product_loop_e2e": {
-            "artifact_type": "accurate_intake_fixture_full_product_loop_e2e",
-            "status": "fixture_product_loop_e2e_diagnostic_pass",
-            "completed_product_loop_steps": [
+        "current_shell_fixture_e2e": {
+            "artifact_type": "accurate_intake_current_shell_fixture_e2e",
+            "status": "current_shell_fixture_e2e_diagnostic_pass",
+            "completed_current_shell_steps": [
                 "target_update",
                 "food_log",
                 "listed_basket_commit",
@@ -253,9 +253,9 @@ def test_pl_ce_local_mvp_candidate_bundle_includes_new_context_and_responder_sli
     assert artifact["summary"]["correction_removal_scenarios"] == 5
     assert artifact["summary"]["responder_fake_smoke_scenarios"] == 5
     assert artifact["summary"]["review_candidate_count"] >= 5
-    assert artifact["summary"]["fixture_full_product_loop_steps"] == 10
-    assert artifact["summary"]["fixture_full_product_loop_browser_executed"] is True
-    assert included["fixture_full_product_loop_e2e"]["status"] == "fixture_product_loop_e2e_diagnostic_pass"  # type: ignore[index]
+    assert artifact["summary"]["current_shell_fixture_steps"] == 10
+    assert artifact["summary"]["current_shell_fixture_browser_executed"] is True
+    assert included["current_shell_fixture_e2e"]["status"] == "current_shell_fixture_e2e_diagnostic_pass"  # type: ignore[index]
 
 
 def test_pl_ce_local_mvp_candidate_bundle_blocks_overclaim_inputs() -> None:
@@ -333,30 +333,30 @@ def test_pl_ce_local_mvp_candidate_bundle_blocks_missing_required_input() -> Non
 
 def test_pl_ce_local_mvp_candidate_bundle_blocks_fixture_full_loop_gaps() -> None:
     inputs = _valid_inputs()
-    inputs["fixture_full_product_loop_e2e"] = {
-        "artifact_type": "accurate_intake_fixture_full_product_loop_e2e",
-        "status": "fixture_product_loop_e2e_diagnostic_pass",
-        "completed_product_loop_steps": ["target_update", "food_log"],
+    inputs["current_shell_fixture_e2e"] = {
+        "artifact_type": "accurate_intake_current_shell_fixture_e2e",
+        "status": "current_shell_fixture_e2e_diagnostic_pass",
+        "completed_current_shell_steps": ["target_update", "food_log"],
         "browser_executed": False,
     }
 
     artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
 
     assert artifact["status"] == "blocked"
-    assert "fixture_full_product_loop_e2e.completed_steps_missing" in artifact["blockers"]
-    assert "fixture_full_product_loop_e2e.browser_not_executed" in artifact["blockers"]
+    assert "current_shell_fixture_e2e.completed_steps_missing" in artifact["blockers"]
+    assert "current_shell_fixture_e2e.browser_not_executed" in artifact["blockers"]
 
 
 def test_pl_ce_local_mvp_candidate_bundle_blocks_fixture_full_loop_overclaims() -> None:
     inputs = _valid_inputs()
-    inputs["fixture_full_product_loop_e2e"]["dogfood_pass"] = True
-    inputs["fixture_full_product_loop_e2e"]["ready_for_fdb_integration"] = True
+    inputs["current_shell_fixture_e2e"]["dogfood_pass"] = True
+    inputs["current_shell_fixture_e2e"]["ready_for_fdb_integration"] = True
 
     artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
 
     assert artifact["status"] == "blocked"
-    assert "fixture_full_product_loop_e2e.dogfood_pass" in artifact["blockers"]
-    assert "fixture_full_product_loop_e2e.ready_for_fdb_integration" in artifact["blockers"]
+    assert "current_shell_fixture_e2e.dogfood_pass" in artifact["blockers"]
+    assert "current_shell_fixture_e2e.ready_for_fdb_integration" in artifact["blockers"]
 
 
 def test_pl_ce_local_mvp_candidate_bundle_blocks_missing_context_live_case_matrix() -> None:

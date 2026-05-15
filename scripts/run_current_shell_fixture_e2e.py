@@ -15,8 +15,8 @@ from app.composition.accurate_intake_context_replay_pack import (  # noqa: E402
 from app.composition.accurate_intake_fake_provider_context_smoke import (  # noqa: E402
     build_fake_provider_context_smoke_artifact,
 )
-from app.composition.accurate_intake_fixture_full_product_loop_e2e import (  # noqa: E402
-    build_fixture_full_product_loop_e2e_artifact,
+from app.composition.current_shell_fixture_e2e import (  # noqa: E402
+    build_current_shell_fixture_e2e_artifact,
 )
 from scripts.run_accurate_intake_browser_realistic_web_dogfood_v2 import (  # noqa: E402
     build_browser_realistic_web_dogfood_v2_report,
@@ -26,14 +26,14 @@ from scripts.run_accurate_intake_mvp_self_use_smoke import (  # noqa: E402
     build_one_day_self_use_scenario_wall_report,
 )
 
-DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_fixture_full_product_loop_e2e.sqlite3"
+DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_current_shell_fixture_e2e.sqlite3"
 DEFAULT_BROWSER_DB_PATH = (
-    ROOT / ".pytest_tmp_local" / "accurate_intake_fixture_full_product_loop_e2e_browser.sqlite3"
+    ROOT / ".pytest_tmp_local" / "accurate_intake_current_shell_fixture_e2e_browser.sqlite3"
 )
-DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_fixture_full_product_loop_e2e.json"
+DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_current_shell_fixture_e2e.json"
 
 
-def build_fixture_full_product_loop_e2e_report(
+def build_current_shell_fixture_e2e_report(
     *,
     db_path: Path = DEFAULT_DB_PATH,
     browser_db_path: Path = DEFAULT_BROWSER_DB_PATH,
@@ -53,7 +53,7 @@ def build_fixture_full_product_loop_e2e_report(
         timeout_ms=timeout_ms,
         headless=headless,
     )
-    return build_fixture_full_product_loop_e2e_artifact(
+    return build_current_shell_fixture_e2e_artifact(
         one_day_wall=one_day_wall,
         reopen_continuity=reopen_continuity,
         browser_realistic=browser_realistic,
@@ -64,7 +64,7 @@ def build_fixture_full_product_loop_e2e_report(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Run the fixture-only full Product Loop + Context Engineering E2E diagnostic."
+        description="Run the fixture-only CurrentShell E2E diagnostic."
     )
     parser.add_argument("--db-path", default=str(DEFAULT_DB_PATH))
     parser.add_argument("--browser-db-path", default=str(DEFAULT_BROWSER_DB_PATH))
@@ -74,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--timeout-ms", type=int, default=15000)
     args = parser.parse_args(argv)
 
-    report = build_fixture_full_product_loop_e2e_report(
+    report = build_current_shell_fixture_e2e_report(
         db_path=Path(args.db_path),
         browser_db_path=Path(args.browser_db_path),
         require_browser_execution=args.require_browser_execution,
@@ -88,7 +88,7 @@ def main(argv: list[str] | None = None) -> int:
         encoding="utf-8",
     )
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    if report["status"] == "fixture_product_loop_e2e_diagnostic_pass":
+    if report["status"] == "current_shell_fixture_e2e_diagnostic_pass":
         return 0
     if report["status"] == "blocked_browser_execution_unavailable" and not args.require_browser_execution:
         return 0
