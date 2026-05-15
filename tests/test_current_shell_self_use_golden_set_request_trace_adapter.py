@@ -208,6 +208,43 @@ def test_request_trace_adapter_blocks_pre_manager_guard_feedback_shortcut() -> N
     assert "runtime.pre_manager_estimability_shortcut_allowed_expected:False_actual:True" in grade["blockers"]
 
 
+def test_request_trace_adapter_projects_non_commit_implausible_kcal_flags_from_trace_outcome() -> None:
+    trace = _gs5_request_trace()
+    trace["request"] = {"text": "unrelated text must not decide GS3 semantics"}
+    trace["runtime"] = {}
+    manager_final = dict(trace["manager_final_decision"])  # type: ignore[index]
+    manager_final["final_action"] = "ask_followup"
+    manager_final["workflow_effect"] = "ask_followup"
+    manager_final["semantic_decision"] = {
+        "semantic_authority": "manager",
+        "source": "named_food_user_kcal_conflict",
+        "user_provided_kcal": 250,
+        "workflow_effect": "ask_followup",
+        "final_action_candidate": "ask_followup",
+        "mutation_intent_candidate": "no_mutation",
+    }
+    trace["manager_final_decision"] = manager_final
+    trace["state_delta"] = {
+        "canonical_commit": False,
+        "ledger_updated": False,
+        "draft_saved": True,
+    }
+    trace["phase_c_trace"] = {
+        "mutation_outcome": {
+            "canonical_commit_status": "not_committed",
+            "ledger_mutation_status": "not_updated",
+            "draft_status": "saved",
+        }
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS3", trace)
+
+    assert case_trace["runtime"]["workflow_effect"] == "ask_followup"
+    assert case_trace["runtime"]["mutation_allowed"] is False
+    assert case_trace["runtime"]["silent_accept_implausible_kcal_allowed"] is False
+    assert case_trace["runtime"]["override_with_system_estimate_allowed"] is False
+
+
 def test_request_trace_adapter_detects_live_provider_from_final_manager_pass() -> None:
     trace = _gs5_request_trace()
     react_trace = dict(trace["react_trace"])  # type: ignore[index]
