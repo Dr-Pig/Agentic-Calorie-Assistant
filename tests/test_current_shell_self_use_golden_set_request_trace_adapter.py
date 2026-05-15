@@ -174,6 +174,54 @@ def test_request_trace_adapter_does_not_infer_from_raw_request_text() -> None:
     assert "trace_layers.manager_pass_1_decision_missing" in grade["blockers"]
 
 
+def test_request_trace_adapter_projects_manager_owned_blocking_basket_outcome() -> None:
+    trace = _gs5_request_trace()
+    trace.pop("runtime", None)
+    trace["tool_outputs"] = {"tool_results": []}
+    trace["react_trace"] = {
+        "manager_pass_count": 1,
+        "tool_call_count": 0,
+        "manager_pass_1": {
+            "manager_action": "final",
+            "workflow_effect": "ask_followup",
+            "final_action": "ask_followup",
+            "tool_calls": [],
+        },
+        "manager_pass_final": {
+            "manager_action": "final",
+            "workflow_effect": "ask_followup",
+            "final_action": "ask_followup",
+            "tool_calls": [],
+        },
+    }
+    trace["manager_final_decision"] = {
+        "workflow_effect": "ask_followup",
+        "final_action": "ask_followup",
+        "answer_contract": {"followup_question": "請列出自助餐的具體食物和份量"},
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "workflow_effect": "ask_followup",
+            "final_action_candidate": "ask_followup",
+            "estimation_posture": "composition_unknown_basket",
+            "followup_posture": "blocking_composition_clarification",
+            "mutation_intent_candidate": "no_mutation",
+            "source": "self_selected_basket_without_listed_items",
+            "retrieval_goal": "none",
+        },
+    }
+    trace["renderer_output"] = {
+        "assistant_message": "自助餐的內容很多元，請告訴我你吃了哪些具體食物和大概份量。"
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS6", trace)
+    grade = grade_golden_case_trace("GS6", case_trace)
+
+    assert case_trace["runtime"]["one_bundled_question_required"] is True
+    assert case_trace["runtime"]["estimate_allowed"] is False
+    assert grade["status"] == "pass"
+
+
 def test_request_trace_adapter_preserves_fixture_provider_blocker() -> None:
     trace = _gs5_request_trace()
     react_trace = dict(trace["react_trace"])  # type: ignore[index]
