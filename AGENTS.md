@@ -30,7 +30,7 @@ Use [docs/DOC_INDEX.md](docs/DOC_INDEX.md) to find advanced product lab referenc
 
 Mainline self-use V1 remains isolated from advanced lab activation unless a separate explicit activation PR enables route mounting, scheduler delivery, production DB migration, canonical mutation, durable product memory, or default runtime connection.
 
-## Truth Rules
+## Product Truth Priority And Truth Rules
 
 Default truth families:
 
