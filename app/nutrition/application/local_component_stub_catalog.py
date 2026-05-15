@@ -46,6 +46,11 @@ _COMPONENT_FACTS = {
         "protein_g": 0,
         "carb_g": 30,
         "fat_g": 0,
+        "optional_refinement": {
+            "optional_refinement_allowed": True,
+            "optional_refinement_targets": [_BLACK_TEA],
+            "optional_refinement_question": "如果紅茶的糖度或杯型不同，可以補充，我會幫你修正。",
+        },
     },
     _CHICKEN_RICE: {
         "quantity_hint": "1 bowl",
@@ -119,6 +124,10 @@ def component_estimates_from_manager_listed_items(
         facts = _COMPONENT_FACTS.get(canonical)
         if facts is None:
             continue
+        estimate_facts = {
+            key: facts[key]
+            for key in ("quantity_hint", "estimated_kcal", "protein_g", "carb_g", "fat_g")
+        }
         estimates.append(
             ComponentEstimate(
                 name=canonical,
@@ -128,7 +137,17 @@ def component_estimates_from_manager_listed_items(
                 confidence_tier="medium",
                 reason="manager_listed_item_component_stub",
                 evidence_ids=[f"local_component_stub:{canonical}"],
-                **facts,
+                **estimate_facts,
             )
         )
     return estimates or None
+
+
+def optional_refinement_for_manager_listed_items(listed_items: Sequence[str] | None) -> dict[str, object] | None:
+    for item in listed_items or []:
+        canonical = _ALIASES.get(str(item).strip(), str(item).strip())
+        facts = _COMPONENT_FACTS.get(canonical) or {}
+        refinement = facts.get("optional_refinement")
+        if isinstance(refinement, dict) and refinement.get("optional_refinement_allowed") is True:
+            return dict(refinement)
+    return None

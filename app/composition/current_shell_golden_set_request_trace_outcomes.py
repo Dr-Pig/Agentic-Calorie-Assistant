@@ -91,6 +91,8 @@ def runtime_from_request_trace(
         if generic_range_evidence_present(nutrition_trace):
             runtime.setdefault("uncertainty_basis_required", True)
             runtime.setdefault("fake_exactness_allowed", False)
+        if _manager_owned_optional_drink_refinement(manager_final, nutrition_trace):
+            runtime.setdefault("optional_tea_refinement_allowed", True)
     if "fallback_400_allowed" not in runtime and nutrition_packet_present(request_trace, manager_final):
         runtime["fallback_400_allowed"] = False
     if "pre_manager_estimability_shortcut_allowed" not in runtime:
@@ -258,6 +260,21 @@ def _followup_question(manager_final: dict[str, Any]) -> str:
     answer_contract = _dict(manager_final.get("answer_contract"))
     semantic_decision = _dict(manager_final.get("semantic_decision"))
     return str(answer_contract.get("followup_question") or semantic_decision.get("followup_question") or "").strip()
+
+
+def _manager_owned_optional_drink_refinement(
+    manager_final: dict[str, Any],
+    nutrition_trace: dict[str, Any],
+) -> bool:
+    if nutrition_trace.get("optional_refinement_allowed") is not True:
+        return False
+    if not _followup_question(manager_final):
+        return False
+    semantic_decision = _dict(manager_final.get("semantic_decision"))
+    if str(semantic_decision.get("followup_posture") or "") != "refinement_optional":
+        return False
+    targets = [str(item) for item in nutrition_trace.get("optional_refinement_targets") or []]
+    return any("茶" in item for item in targets)
 
 
 def _meal_level_basis_visible(request_trace: dict[str, Any]) -> bool | None:

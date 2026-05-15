@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v27"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v28"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -76,6 +76,11 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "retrieval_goal='listed_item_lookup', and call estimate_nutrition when evidence is needed before commit. "
     "When the item list is concrete but quantities are rough, ask for portions as optional refinement; do not "
     "classify that turn as a composition-unknown basket solely because portions are not exact.\n"
+    "If estimate_nutrition returns optional_refinement_allowed=true for a listed drink component after a "
+    "commit-worthy estimate, preserve final_action_candidate='commit' and mutation_intent_candidate='canonical_write', "
+    "set followup_posture='refinement_optional', and include answer_contract.followup_question. For sweet tea or "
+    "similar drinks, ask only for sugar and cup size as an optional refinement; do not block the commit solely "
+    "for those modifier details.\n"
 )
 
 

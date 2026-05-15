@@ -145,3 +145,22 @@ def test_render_generic_common_serving_reply_exposes_range_basis() -> None:
     assert "參考範圍 450-700 kcal" in text
     assert "今天還剩約 752 kcal" in text
     _assert_no_internal_words(text)
+
+
+def test_render_commit_reply_appends_only_manager_owned_optional_refinement() -> None:
+    payload = _payload()
+    payload.followup_question = "如果紅茶的糖度或杯型不同，可以補充，我會幫你修正。"
+    payload.trace_contract["manager_followup_projection"] = {
+        "source": "manager_answer_contract",
+        "role": "manager_owned_renderer_projection",
+    }
+
+    text = render_intake_reply(
+        intent_type="log_meal",
+        nutrition_payload=payload,
+        persistence_result=_persistence_result(),
+        manager_final_action="commit",
+        remaining_budget=_remaining_budget(remaining_kcal=1150),
+    )
+
+    assert "如果紅茶的糖度或杯型不同" in text

@@ -13,6 +13,7 @@ from app.nutrition.application.fooddb_macro_contract import (
 )
 from app.nutrition.application.local_component_stub_catalog import (
     component_estimates_from_manager_listed_items,
+    optional_refinement_for_manager_listed_items,
 )
 from app.shared.contracts.common import EstimateRequest
 from app.shared.contracts.intake import EstimatePayload
@@ -30,6 +31,7 @@ def build_manager_listed_component_anchor_artifact(
     component_estimates = component_estimates_from_manager_listed_items(listed_items)
     if not listed_items or not component_estimates or len(component_estimates) != len(listed_items):
         return None
+    optional_refinement = optional_refinement_for_manager_listed_items(listed_items) or {}
 
     request = EstimateRequest(text=raw_user_input, allow_search=False, user_id=user_external_id)
     runtime_context = load_request_runtime_context(
@@ -131,6 +133,7 @@ def build_manager_listed_component_anchor_artifact(
             "search_query": None,
             "websearch_evidence_used": False,
             "shadow_stub": False,
+            **optional_refinement,
         },
     )
     return EstimatedNutritionArtifact(request=request, runtime_context=runtime_context, payload=payload)

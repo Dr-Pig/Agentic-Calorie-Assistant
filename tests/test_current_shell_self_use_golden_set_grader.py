@@ -71,6 +71,22 @@ def test_grader_treats_canonical_write_commit_as_gs1_commit_effect() -> None:
     assert grade["blockers"] == []
 
 
+def test_grader_accepts_structured_pending_teppan_combo_attachment() -> None:
+    result = _base_result("GS10")
+    result["runtime"]["workflow_effect"] = "canonical_write"
+    result["runtime"]["canonical_commit_status"] = "committed"
+    result["runtime"]["final_action"] = "commit"
+    result["runtime"]["target_attachment"] = {
+        "operation": "attach_to_pending_followup",
+        "target_resolution_source": "pending_followup_state",
+    }
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "pass"
+    assert grade["blockers"] == []
+
+
 def test_grader_blocks_fixture_owned_semantics() -> None:
     result = _base_result("GS5")
     result["fixture_decisions"]["action"] = True

@@ -96,6 +96,15 @@ def test_single_manager_system_prompt_keeps_user_replies_free_of_internal_estima
     assert "say macro data is insufficient instead of listing protein/carbs/fat grams" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
+def test_single_manager_system_prompt_preserves_optional_drink_refinement_after_commit() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+
+    assert "optional_refinement_allowed=true" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "answer_contract.followup_question" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "sugar" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "cup size" in SINGLE_MANAGER_SYSTEM_PROMPT
+
+
 def test_single_manager_system_prompt_keeps_no_plan_budget_queries_read_only() -> None:
     from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
 

@@ -85,6 +85,7 @@ _TRACE_CONTRACT_PROMPT_FIELDS = (
     "canonical_write_decision",
     "approved_user_provided_kcal_trace", "macro_display_authorized",
     "macro_visibility_status", "macro_guard_reason", "optional_refinement_allowed",
+    "optional_refinement_targets", "optional_refinement_question",
     "grounding_summary",
     "why_not_exact",
     "search_attempt_count",

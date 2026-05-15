@@ -9,7 +9,7 @@ from app.runtime.agent.manager_system_prompt import (
 
 
 def test_self_selected_basket_blocking_clarify_policy_is_explicit_static_prompt_guidance() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v27"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v28"
     assert "Self-selected basket examples include" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "滷味" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "鹽酥雞" in SINGLE_MANAGER_SYSTEM_PROMPT
@@ -72,7 +72,7 @@ def test_explicit_listed_components_are_not_blocking_combo_prompt_guidance() -> 
 
 
 def test_pending_followup_commit_requires_manager_owned_target_attachment() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v27"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v28"
     assert "target_resolution_source='pending_followup_state'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "operation='attach_to_pending_followup'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "Do not return target_attachment={}" in SINGLE_MANAGER_SYSTEM_PROMPT

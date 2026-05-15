@@ -52,6 +52,17 @@ def _remaining_text(remaining_budget: Any | None) -> str:
     return f"今天還剩約 {remaining_kcal} kcal。"
 
 
+def _with_manager_owned_optional_followup(text: str, nutrition_payload: Any) -> str:
+    trace_contract = dict(getattr(nutrition_payload, "trace_contract", {}) or {})
+    projection = dict(trace_contract.get("manager_followup_projection") or {})
+    if projection.get("role") != "manager_owned_renderer_projection":
+        return text
+    followup_question = str(getattr(nutrition_payload, "followup_question", None) or "").strip()
+    if not followup_question or followup_question in text:
+        return text
+    return f"{text} {followup_question}"
+
+
 def _user_provided_kcal_reply(*, nutrition_payload: Any, remaining_budget: Any | None) -> str:
     trace_contract = dict(getattr(nutrition_payload, "trace_contract", {}) or {})
     kcal = int(trace_contract.get("user_provided_kcal") or getattr(nutrition_payload, "estimated_kcal", 0) or 0)
@@ -148,11 +159,23 @@ def render_intake_reply(
                     over_by = abs(int((budget_summary or {}).get("predicted_remaining_kcal_after") or 0))
                     if over_by <= 0:
                         over_by = abs(remaining_kcal)
-                    return f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。{basis_text}今天超出約 {over_by} kcal。"
+                    return _with_manager_owned_optional_followup(
+                        f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。{basis_text}今天超出約 {over_by} kcal。",
+                        nutrition_payload,
+                    )
                 if remaining_kcal < 0:
-                    return f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。{basis_text}今天超出約 {abs(remaining_kcal)} kcal。"
-                return f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。{basis_text}今天還剩約 {remaining_kcal} kcal。"
-            return f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。{basis_text}"
+                    return _with_manager_owned_optional_followup(
+                        f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。{basis_text}今天超出約 {abs(remaining_kcal)} kcal。",
+                        nutrition_payload,
+                    )
+                return _with_manager_owned_optional_followup(
+                    f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。{basis_text}今天還剩約 {remaining_kcal} kcal。",
+                    nutrition_payload,
+                )
+            return _with_manager_owned_optional_followup(
+                f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。{basis_text}",
+                nutrition_payload,
+            )
         if (
             persistence_result is not None
             and getattr(persistence_result, "canonical_commit", None) is None
