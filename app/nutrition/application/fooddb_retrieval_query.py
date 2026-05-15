@@ -46,11 +46,27 @@ MODIFIER_PATTERNS = {
     },
 }
 
+_QUERY_WRAPPER_TERMS = (
+    "\u65e9\u9910",
+    "\u5348\u9910",
+    "\u665a\u9910",
+    "\u5bb5\u591c",
+    "\u5403\u4e86",
+    "\u5403",
+    "\u559d\u4e86",
+    "\u559d",
+    "\u4e00\u7897",
+    "\u4e00\u4efd",
+    "\u4e00\u76e4",
+    "\u4e00\u500b",
+)
+
 
 def _candidate_query_terms(normalized: dict[str, Any]) -> list[str]:
     text = normalized["normalized_text"]
     terms = [text]
     compact = _strip_known_modifier_terms(text)
+    compact = _strip_query_wrapper_terms(compact)
     compact = re.sub(r"(我|吃了|喝了|一杯|一份|一個|一顆|大杯|中杯|小杯|半糖|無糖|全糖)", "", compact)
     compact = compact.strip(" ，,。")
     if compact and compact not in terms:
@@ -64,6 +80,13 @@ def _strip_known_modifier_terms(text: str) -> str:
         for pattern in patterns:
             if pattern:
                 compact = compact.replace(pattern, "")
+    return compact
+
+
+def _strip_query_wrapper_terms(text: str) -> str:
+    compact = text
+    for term in _QUERY_WRAPPER_TERMS:
+        compact = compact.replace(term, "")
     return compact
 
 

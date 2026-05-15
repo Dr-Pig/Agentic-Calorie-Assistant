@@ -101,6 +101,7 @@ def _build_fooddb_candidate_artifact(
         evidence_ids=evidence_ids,
         macro_visible=False,
         runtime_truth_allowed=True,
+        kcal_range=_single_candidate_kcal_range(candidates),
     )
     meal_title = " + ".join(component.name for component in components) or raw_user_input
     payload = EstimatePayload(
@@ -170,4 +171,13 @@ def _build_fooddb_candidate_artifact(
         },
     )
     return EstimatedNutritionArtifact(request=request, runtime_context=runtime_context, payload=payload)
+
+
+def _single_candidate_kcal_range(candidates: list[dict[str, Any]]) -> list[int] | None:
+    if len(candidates) != 1:
+        return None
+    kcal_range = candidates[0].get("kcal_range")
+    if not isinstance(kcal_range, list) or len(kcal_range) < 2:
+        return None
+    return [int(kcal_range[0]), int(kcal_range[1])]
 __all__ = ["build_fooddb_retrieval_artifact"]

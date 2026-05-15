@@ -1,0 +1,116 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "rice_bowl_chicken_rice",
+      "canonical_name": "\u96de\u8089\u98ef",
+      "aliases": [
+        "\u96de\u8089\u98ef",
+        "\u96de\u8089\u98ef\u4e00\u7897",
+        "chicken rice bowl",
+        "Taiwan chicken rice"
+      ],
+      "dish_type": "rice_bowl",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "rice_bowl",
+        "taiwan_lunch_dinner_staple"
+      ],
+      "followup_hints": [
+        "ask_rice_portion",
+        "ask_meat_amount",
+        "ask_sauce_or_oil"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        450,
+        700
+      ],
+      "baseline_likely_kcal": 560,
+      "major_modifiers": [
+        {
+          "name": "rice_portion",
+          "values": [
+            "small",
+            "regular",
+            "large"
+          ]
+        },
+        {
+          "name": "meat_amount",
+          "values": [
+            "light",
+            "regular",
+            "extra"
+          ]
+        }
+      ],
+      "composition_hints": [
+        "rice",
+        "chicken",
+        "sauce_or_oil",
+        "optional_sides"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "bowl",
+        "portion_quantity": 1,
+        "label": "one generic bowl of chicken rice",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "self_use_common_serving_batch_policy"
+        ]
+      },
+      "kcal_point": 560,
+      "kcal_range": [
+        450,
+        700
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_rice_bowl_chicken_rice",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 560,
+          "kcal_range": [
+            450,
+            700
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw_batch_038_generic_rice_bowls.json",
+        "source_url": null,
+        "record_id": "rice_bowl_chicken_rice",
+        "raw_row_hash": "pending_batch_policy_hash"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "self_use_common_serving_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "self_use_common_serving_batch_approved",
+        "approval_scope": "current_shell_v1_common_taiwan_food_batch",
+        "policy_version": "fooddb_self_use_common_serving_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "reviewed_common_serving_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
+    }
+  ]
+}

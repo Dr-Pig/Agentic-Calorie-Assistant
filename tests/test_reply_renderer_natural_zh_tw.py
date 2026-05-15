@@ -37,6 +37,46 @@ def _payload(*, total_kcal: int = 650) -> EstimatePayload:
     )
 
 
+def _generic_payload() -> EstimatePayload:
+    component = ComponentEstimate(
+        name="雞肉飯",
+        estimated_kcal=560,
+        source="lookup",
+        evidence_role="meal_pattern_prior",
+        estimate_basis="anchored",
+        confidence_tier="medium",
+        quantity_hint="common_serving",
+        evidence_ids=["rice_bowl_chicken_rice"],
+    )
+    return EstimatePayload(
+        request_id="reply-renderer-generic-range-basis",
+        meal_title="雞肉飯",
+        components=[component.name],
+        component_estimates=[component],
+        component_breakdown=[
+            {
+                "name": "雞肉飯",
+                "estimated_kcal": 560,
+                "source_lane": "generic_common_serving",
+                "kcal_range": [450, 700],
+            }
+        ],
+        estimated_kcal=560,
+        reply_text="internal fallback",
+        action_taken="direct_answer",
+        route_target="direct_answer",
+        source_decision="ready",
+        trace_contract={
+            "approved_fooddb_evidence_trace": {
+                "source_lane": "generic_common_serving",
+                "runtime_truth_allowed": True,
+                "evidence_ids": ["rice_bowl_chicken_rice"],
+                "kcal_range": [450, 700],
+            }
+        },
+    )
+
+
 def _persistence_result() -> SimpleNamespace:
     return SimpleNamespace(canonical_commit={"meal_version_id": 123})
 
@@ -87,4 +127,21 @@ def test_render_no_commit_reply_is_user_facing_zh_tw() -> None:
     )
 
     assert text == "這次我沒有記錄到日記裡。你可以再補一句餐點內容，我再幫你估。"
+    _assert_no_internal_words(text)
+
+
+def test_render_generic_common_serving_reply_exposes_range_basis() -> None:
+    text = render_intake_reply(
+        intent_type="log_meal",
+        nutrition_payload=_generic_payload(),
+        persistence_result=_persistence_result(),
+        manager_final_action="commit",
+        remaining_budget=_remaining_budget(remaining_kcal=752),
+    )
+
+    assert "已記錄" in text
+    assert "雞肉飯 560 kcal" in text
+    assert "常見份量" in text
+    assert "參考範圍 450-700 kcal" in text
+    assert "今天還剩約 752 kcal" in text
     _assert_no_internal_words(text)

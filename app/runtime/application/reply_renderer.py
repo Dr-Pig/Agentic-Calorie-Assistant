@@ -16,6 +16,33 @@ def _component_text(component_estimates: list[Any]) -> str:
     )
 
 
+def _generic_range_basis_text(nutrition_payload: Any) -> str:
+    trace_contract = dict(getattr(nutrition_payload, "trace_contract", {}) or {})
+    approved_trace = dict(trace_contract.get("approved_fooddb_evidence_trace") or {})
+    if approved_trace.get("source_lane") != "generic_common_serving":
+        return ""
+    kcal_range = (
+        approved_trace.get("kcal_range")
+        or trace_contract.get("kcal_range")
+        or _first_component_kcal_range(nutrition_payload)
+    )
+    if isinstance(kcal_range, list) and len(kcal_range) >= 2:
+        lower = int(kcal_range[0])
+        upper = int(kcal_range[1])
+        return f"以常見份量估算，參考範圍 {lower}-{upper} kcal。"
+    return "以常見份量估算。"
+
+
+def _first_component_kcal_range(nutrition_payload: Any) -> list[Any] | None:
+    for item in list(getattr(nutrition_payload, "component_breakdown", []) or []):
+        if not isinstance(item, dict):
+            continue
+        kcal_range = item.get("kcal_range")
+        if isinstance(kcal_range, list) and len(kcal_range) >= 2:
+            return kcal_range
+    return None
+
+
 def _remaining_text(remaining_budget: Any | None) -> str:
     if remaining_budget is None or remaining_budget.status != "ready":
         return ""
@@ -89,12 +116,13 @@ def render_intake_reply(
         if component_estimates:
             item_parts = _component_text(component_estimates)
             total_kcal = int(getattr(nutrition_payload, "estimated_kcal", 0) or 0)
+            basis_text = _generic_range_basis_text(nutrition_payload)
             if manager_final_action == "ask_followup":
                 reply_text = getattr(nutrition_payload, "reply_text", None)
                 followup_question = str(getattr(nutrition_payload, "followup_question", None) or "").strip()
                 budget_part = ""
                 if remaining_budget is not None and remaining_budget.status == "ready":
-                    budget_part = f"這餐約 {total_kcal} kcal。{_remaining_text(remaining_budget)}"
+                    budget_part = f"這餐約 {total_kcal} kcal。{basis_text}{_remaining_text(remaining_budget)}"
 
                 if reply_text and followup_question:
                     digits = [char for char in str(reply_text) if char.isdigit()]
@@ -113,18 +141,18 @@ def render_intake_reply(
                 else ""
             )
             if manager_final_action == "correction_applied":
-                return f"已更新上一筆餐點：{item_parts}。這餐約 {total_kcal} kcal。{_remaining_text(remaining_budget)}"
+                return f"已更新上一筆餐點：{item_parts}。這餐約 {total_kcal} kcal。{basis_text}{_remaining_text(remaining_budget)}"
             if remaining_budget is not None and remaining_budget.status == "ready":
                 remaining_kcal = int(remaining_budget.remaining_kcal or 0)
                 if manager_final_action == "overshoot_note":
                     over_by = abs(int((budget_summary or {}).get("predicted_remaining_kcal_after") or 0))
                     if over_by <= 0:
                         over_by = abs(remaining_kcal)
-                    return f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。今天超出約 {over_by} kcal。"
+                    return f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。{basis_text}今天超出約 {over_by} kcal。"
                 if remaining_kcal < 0:
-                    return f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。今天超出約 {abs(remaining_kcal)} kcal。"
-                return f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。今天還剩約 {remaining_kcal} kcal。"
-            return f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。"
+                    return f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。{basis_text}今天超出約 {abs(remaining_kcal)} kcal。"
+                return f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。{basis_text}今天還剩約 {remaining_kcal} kcal。"
+            return f"{logged_prefix}{item_parts}。這餐約 {total_kcal} kcal。{basis_text}"
         if (
             persistence_result is not None
             and getattr(persistence_result, "canonical_commit", None) is None

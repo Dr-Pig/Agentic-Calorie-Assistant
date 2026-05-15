@@ -48,8 +48,9 @@ def approved_fooddb_trace(
     macro_visible: bool,
     runtime_truth_allowed: bool,
     disambiguation_required: bool = False,
+    kcal_range: list[int] | None = None,
 ) -> dict[str, Any]:
-    return {
+    trace = {
         "source_lane": source_lane_value,
         "schema_version": APPROVED_PACKET_READY_SCHEMA_VERSION,
         "source_quality": APPROVED_PACKET_READY_SOURCE_QUALITY,
@@ -68,6 +69,9 @@ def approved_fooddb_trace(
         "packet_is_not_mutation_authority": True,
         "disambiguation_required": disambiguation_required,
     }
+    if kcal_range:
+        trace["kcal_range"] = list(kcal_range)
+    return trace
 
 
 def build_fooddb_followup_artifact(
@@ -174,6 +178,7 @@ def component_breakdown_item(
         "title": component.name,
         "quantity_hint": component.quantity_hint,
         "estimated_kcal": component.estimated_kcal,
+        "kcal_range": list(candidate.get("kcal_range") or []),
         "protein_g": component.protein_g,
         "carb_g": component.carb_g,
         "fat_g": component.fat_g,

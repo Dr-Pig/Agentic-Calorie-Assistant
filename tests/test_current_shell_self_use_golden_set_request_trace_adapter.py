@@ -351,6 +351,55 @@ def test_request_trace_adapter_projects_component_basis_from_approved_packet() -
     assert case_trace["response"].get("invented_nutrition_fact") is not True
 
 
+def test_request_trace_adapter_projects_generic_range_basis_from_approved_packet() -> None:
+    trace = _gs5_request_trace()
+    trace["runtime"] = {"fallback_400_allowed": False}
+    trace["renderer_output"] = {
+        "assistant_message": "已記錄：雞肉飯 560 kcal。這餐約 560 kcal。以常見份量估算，參考範圍 450-700 kcal。今天還剩約 752 kcal。"
+    }
+    trace["tool_outputs"] = {
+        "tool_results": [
+            {
+                "tool_name": "estimate_nutrition",
+                "evidence": {
+                    "nutrition_payload": {
+                        "meal_title": "雞肉飯",
+                        "estimated_kcal": 560,
+                        "component_breakdown": [
+                            {
+                                "name": "雞肉飯",
+                                "estimated_kcal": 560,
+                                "source_lane": "generic_common_serving",
+                                "kcal_range": [450, 700],
+                            }
+                        ],
+                        "trace_contract": {
+                            "db_hit_type": "approved_fooddb_packet",
+                            "shadow_stub": False,
+                            "approved_fooddb_evidence_trace": {
+                                "source_lane": "generic_common_serving",
+                                "runtime_truth_allowed": True,
+                                "kcal_range": [450, 700],
+                            },
+                            "canonical_write_decision": {"can_write_canonical": True},
+                        },
+                    }
+                },
+            }
+        ]
+    }
+    trace["phase_c_trace"]["mutation_outcome"]["canonical_commit_status"] = "committed"  # type: ignore[index]
+    trace["phase_c_trace"]["mutation_outcome"]["ledger_mutation_status"] = "updated"  # type: ignore[index]
+    trace["state_delta"]["canonical_commit"] = True  # type: ignore[index]
+    trace["state_delta"]["ledger_updated"] = True  # type: ignore[index]
+
+    case_trace = build_golden_case_trace_from_request_trace("GS4", trace)
+
+    assert case_trace["runtime"]["uncertainty_basis_required"] is True
+    assert case_trace["runtime"]["fake_exactness_allowed"] is False
+    assert case_trace["ui"]["range_or_basis_visible"] is True
+
+
 def test_request_trace_adapter_projects_component_basis_from_compact_packets() -> None:
     trace = _gs5_request_trace()
     trace["runtime"] = {"fallback_400_allowed": False}
