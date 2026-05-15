@@ -9,7 +9,7 @@ from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (
     EXPECTED_STATUSES as LOCAL_MVP_EXPECTED_STATUSES,
     REQUIRED_INPUTS as LOCAL_MVP_REQUIRED_INPUTS,
 )
-from app.composition.accurate_intake_pl_ce_ui_context_alignment_pack import (
+from app.composition.current_shell_ui_context_alignment_pack import (
     REQUIRED_INPUTS as UI_CONTEXT_REQUIRED_INPUTS,
 )
 from app.composition.accurate_intake_context_live_diagnostic_case_matrix import (
