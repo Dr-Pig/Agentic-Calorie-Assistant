@@ -1,43 +1,21 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any
 
 from ...shared.domain import ActiveBodyPlanView, CurrentBudgetView, ProposalOption
 from .calibration_model import CalibrationModelResult
 from .calibration_proposal_gate import CalibrationProposalGateResult, CalibrationProposalOptionFamily
-
-CalibrationSurfaceAction = Literal[
-    "accept_calibration_proposal",
-    "defer_calibration_proposal",
-    "reject_calibration_proposal",
-]
-
-_PRIMARY_FAMILY_ORDER: tuple[CalibrationProposalOptionFamily, ...] = (
-    "logging_quality_first",
-    "monitor_only",
-    "budget_adjustment",
-    "pace_adjustment",
-    "plan_reset",
+from .calibration_proposal_response_contract import (
+    CalibrationProposalResponseResult,
+    CalibrationSurfaceAction,
+    PLAN_CHANGING_FAMILIES,
+    PRIMARY_FAMILY_ORDER,
 )
-_PLAN_CHANGING_FAMILIES = frozenset({"budget_adjustment", "pace_adjustment", "plan_reset"})
-
-
-@dataclass(frozen=True)
-class CalibrationProposalResponseResult:
-    surfaced: bool
-    proposal_family: str | None
-    reply_text: str
-    top_option: ProposalOption | None
-    backup_options: list[ProposalOption]
-    proposal_cards: list[dict[str, Any]]
-    quick_actions: list[dict[str, Any]]
-    ui_hints: dict[str, Any]
 
 
 def _family_priority(family: CalibrationProposalOptionFamily) -> int:
     try:
-        return len(_PRIMARY_FAMILY_ORDER) - _PRIMARY_FAMILY_ORDER.index(family)
+        return len(PRIMARY_FAMILY_ORDER) - PRIMARY_FAMILY_ORDER.index(family)
     except ValueError:
         return 0
 
@@ -209,7 +187,7 @@ def _quick_actions(*, top_option: ProposalOption | None) -> list[dict[str, Any]]
             "label": "Apply this plan",
             "action_kind": "stored_proposal_action",
             "requires_proposal_container_id": True,
-            "mutation_authorized": top_option.option_type in _PLAN_CHANGING_FAMILIES,
+            "mutation_authorized": top_option.option_type in PLAN_CHANGING_FAMILIES,
             "raw_text_authorized_mutation": False,
         },
         {
@@ -243,7 +221,7 @@ def _quick_actions(*, top_option: ProposalOption | None) -> list[dict[str, Any]]
 
 
 def _proposal_card(*, option: ProposalOption, is_primary: bool) -> dict[str, Any]:
-    plan_changing = option.option_type in _PLAN_CHANGING_FAMILIES
+    plan_changing = option.option_type in PLAN_CHANGING_FAMILIES
     effect_payload = dict(option.effect_payload or {})
     return {
         "proposal_option_id": option.proposal_option_id,

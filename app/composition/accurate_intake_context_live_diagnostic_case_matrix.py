@@ -1,10 +1,10 @@
 from __future__ import annotations
-
 from datetime import UTC, datetime
 import json
 from typing import Any
-
-
+from app.composition.accurate_intake_context_live_diagnostic_case_summary import (
+    build_context_live_diagnostic_case_summary,
+)
 REQUIRED_CASE_IDS = (
     "context_live_001_general_chat_no_mutation",
     "context_live_002_simple_food_log_candidate",
@@ -18,12 +18,8 @@ REQUIRED_CASE_IDS = (
     "context_live_010_cancel_do_not_log",
     "context_live_011_ambiguous_back_reference",
 )
-
-
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
-
-
 def _case(
     *,
     case_id: str,
@@ -65,7 +61,6 @@ def _case(
             "mutation_changed": False,
         }
     )
-
 
 def _cases() -> list[dict[str, Any]]:
     common_context = [
@@ -244,7 +239,6 @@ def _cases() -> list[dict[str, Any]]:
         ),
     ]
 
-
 def _validate(cases: list[dict[str, Any]]) -> list[str]:
     blockers: list[str] = []
     case_ids = [str(case.get("case_id") or "") for case in cases]
@@ -296,7 +290,6 @@ def _validate(cases: list[dict[str, Any]]) -> list[str]:
                 blockers.append(f"{case_id}.ambiguity_without_clarification")
     return blockers
 
-
 def build_context_live_diagnostic_case_matrix_artifact() -> dict[str, Any]:
     cases = _cases()
     blockers = _validate(cases)
@@ -320,23 +313,7 @@ def build_context_live_diagnostic_case_matrix_artifact() -> dict[str, Any]:
             "manager_context_packet_schema_changed": False,
             "shared_contract_changed": False,
             "blockers": blockers,
-            "summary": {
-                "case_count": len(cases),
-                "holdout_utterance_variant_count": sum(
-                    len(case.get("holdout_utterance_variants") or [])
-                    for case in cases
-                    if isinstance(case.get("holdout_utterance_variants"), list)
-                ),
-                "target_candidate_cases": sum(1 for case in cases if case["target_candidates_expected"]),
-                "pending_pin_cases": sum(1 for case in cases if case["pending_pin_expected"]),
-                "ambiguity_cases": sum(1 for case in cases if case["ambiguity_expected"]),
-                "compound_cases": sum(
-                    1 for case in cases if case["case_id"] == "context_live_009_simultaneous_log_and_modify"
-                ),
-            },
+            "summary": build_context_live_diagnostic_case_summary(cases),
             "cases": cases,
         }
     )
-
-
-__all__ = ["build_context_live_diagnostic_case_matrix_artifact"]

@@ -4,56 +4,16 @@ from copy import deepcopy
 from typing import Any
 
 from app.intake.application.manager_context_scope_flags import current_turn_context_evidence_scope_flags
+from app.intake.application.manager_context_policy_constants import (
+    DEFERRED_CONTEXT_REASONS,
+    DISPLAY_LABEL_FIELDS,
+    INTERACTION_EVENT_FIELDS,
+    MANAGER_CONTEXT_POLICY_VERSION,
+    POLICY_EXCLUDED_CONTEXT_IDS,
+    TARGET_CANDIDATE_BOOL_FIELDS,
+    TARGET_CANDIDATE_FIELDS,
+)
 from app.runtime.contracts.phase_a import CurrentTurnContextV1
-
-MANAGER_CONTEXT_POLICY_VERSION = "accurate_intake_mvp_context_policy_v1"
-
-_DEFERRED_CONTEXT_REASONS = {
-    "debug_artifacts": "debug_surface_trace_only",
-    "dogfood_review_artifacts": "operator_review_not_manager_input",
-    "raw_trace_dump": "trace_dump_not_manager_input",
-    "food_gap_candidates": "review_candidate_not_food_truth",
-    "long_term_memory": "out_of_scope_for_mvp",
-    "proactive_context": "out_of_scope_for_mvp",
-    "rescue_context": "out_of_scope_for_mvp",
-    "recommendation_context": "out_of_scope_for_mvp",
-}
-
-_POLICY_EXCLUDED_CONTEXT_IDS = (
-    "debug_artifacts",
-    "dogfood_review_artifacts",
-    "raw_trace_dump",
-    "food_gap_candidates_as_truth",
-    "full_day_transcript_by_default",
-    "long_term_memory",
-    "proactive_context",
-    "rescue_context",
-    "recommendation_context",
-)
-
-_INTERACTION_EVENT_FIELDS = (
-    "source",
-    "surface_mode",
-    "event_type",
-    "raw_text",
-    "action_id",
-    "target_object_type",
-    "target_object_id",
-    "occurred_at",
-)
-_DISPLAY_LABEL_FIELDS = ("display_name", "target_label", "label")
-_TARGET_CANDIDATE_FIELDS = (
-    "item_id",
-    "meal_item_id",
-    "meal_thread_id",
-    "meal_version_id",
-    "target_object_type",
-    "target_object_id",
-    "display_name", "canonical_name", "estimated_kcal", "estimate_basis",
-    "confidence_tier", "source", "evidence_role", "uniqueness_status",
-)
-_TARGET_CANDIDATE_BOOL_FIELDS = ("removable", "eligible")
-
 
 def build_manager_context_packet_v1(
     *,
@@ -226,7 +186,7 @@ def _bounded_recent_chat_turns_with_artifact(
             "recent_chat_messages_omitted": omitted_count,
             "omitted_by_message_limit": omitted_by_message_limit,
             "omitted_by_char_cap": omitted_by_char_cap,
-            "policy_excluded_context_ids": list(_POLICY_EXCLUDED_CONTEXT_IDS),
+            "policy_excluded_context_ids": list(POLICY_EXCLUDED_CONTEXT_IDS),
         },
     }
     return messages, artifact
@@ -238,7 +198,7 @@ def _interaction_event_snapshot(event: Any | None) -> dict[str, Any] | None:
     payload = event.model_dump(mode="json") if hasattr(event, "model_dump") else dict(event)
     snapshot = {
         key: payload.get(key)
-        for key in _INTERACTION_EVENT_FIELDS
+        for key in INTERACTION_EVENT_FIELDS
         if payload.get(key) is not None
     }
     event_payload = _display_label_snapshot(payload.get("payload"))
@@ -259,7 +219,7 @@ def _display_label_snapshot(value: Any) -> dict[str, Any]:
         return {}
     return {
         key: value[key]
-        for key in _DISPLAY_LABEL_FIELDS
+        for key in DISPLAY_LABEL_FIELDS
         if key in value and _safe_scalar(value[key])
     }
 
@@ -292,10 +252,10 @@ def _target_candidates(
             continue
         item = {
             key: candidate[key]
-            for key in _TARGET_CANDIDATE_FIELDS
+            for key in TARGET_CANDIDATE_FIELDS
             if key in candidate and _safe_scalar(candidate[key])
         }
-        for key in _TARGET_CANDIDATE_BOOL_FIELDS:
+        for key in TARGET_CANDIDATE_BOOL_FIELDS:
             if isinstance(candidate.get(key), bool):
                 item[key] = candidate[key]
         item.setdefault("uniqueness_status", "candidate")
@@ -317,10 +277,7 @@ def _readonly_copy(value: Any) -> Any:
 
 def _omitted_context(values: dict[str, Any]) -> list[dict[str, str]]:
     return [
-        {"context_id": key, "reason": _DEFERRED_CONTEXT_REASONS[key]}
+        {"context_id": key, "reason": DEFERRED_CONTEXT_REASONS[key]}
         for key, value in values.items()
         if value is not None
     ]
-
-
-__all__ = ["MANAGER_CONTEXT_POLICY_VERSION", "build_manager_context_packet_v1"]

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 
 from sqlalchemy import select
@@ -12,21 +11,9 @@ from app.composition.current_budget_read_model import build_current_budget_view
 from app.database import get_or_create_user
 from app.intake.infrastructure.models import MealItemRecord
 from app.shared.infra.models import MessageBuffer
+from app.composition.state_contracts import V2ResolvedState
 from .conversation_state_loader import load_conversation_state
 from app.text_integrity import sanitize_text_structure, sanitize_text_value
-
-
-@dataclass(frozen=True)
-class V2ResolvedState:
-    user_external_id: str
-    user_id: int
-    local_date: str
-    onboarding_ready: bool
-    active_body_plan_view: Any
-    current_budget_view: Any
-    active_meal: dict[str, Any] | None
-    conversation_state: Any
-    injected_context: dict[str, Any]
 
 
 def _item_target_reference_for_version(db: Session, *, meal_version_id: int | None) -> dict[str, Any]:

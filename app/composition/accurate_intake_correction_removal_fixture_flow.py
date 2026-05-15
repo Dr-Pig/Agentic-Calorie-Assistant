@@ -315,6 +315,3 @@ def build_correction_removal_fixture_flow_artifact() -> dict[str, Any]:
             "scenarios": scenarios,
         }
     )
-
-
-__all__ = ["build_correction_removal_fixture_flow_artifact"]

@@ -315,6 +315,3 @@ def _hit(
         "applicability_notes": "deterministic fixture candidate",
         "raw_ref": raw_ref,
     }
-
-
-__all__ = ["build_expanded_websearch_pipeline_cases"]
