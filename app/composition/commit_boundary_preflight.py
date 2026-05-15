@@ -14,6 +14,10 @@ from app.runtime.contracts.phase_a import PhaseABoundaryProjection
 from app.shared.contracts.correction_target import validate_correction_target_ref
 from app.shared.contracts.intake_results import EstimatePayload
 
+NAMED_FOOD_KCAL_CONFLICT_REQUIRES_CONFIRMATION = (
+    "named_food_user_kcal_conflict_requires_confirmation"
+)
+
 
 @dataclass(frozen=True)
 class CommitBoundaryPreflightResult:
@@ -91,6 +95,11 @@ def _manager_semantic_decision_authorizes_canonical_write(
         return False
     if decision.get("mutation_intent_candidate") != "canonical_write":
         return False
+    if _manager_named_food_kcal_conflict_requires_confirmation(
+        manager_final_action=manager_final_action,
+        manager_semantic_decision=decision,
+    ):
+        return False
     trace_contract = dict(payload.trace_contract or {})
     if trace_contract.get("response_mode_hint") == "clarify_first":
         return False
@@ -99,6 +108,54 @@ def _manager_semantic_decision_authorizes_canonical_write(
     if commit_evidence_blockers(trace_contract):
         return False
     return int(payload.estimated_kcal or 0) > 0
+
+
+def _manager_named_food_kcal_conflict_requires_confirmation(
+    *,
+    manager_final_action: str,
+    manager_semantic_decision: dict[str, Any] | None,
+) -> bool:
+    if manager_final_action != "commit":
+        return False
+    decision = dict(manager_semantic_decision or {})
+    if str(decision.get("source") or "") != "named_food_user_kcal_conflict":
+        return False
+    return decision.get("user_provided_kcal") not in (None, "")
+
+
+def _apply_named_food_kcal_conflict_guard(
+    *,
+    payload: EstimatePayload,
+    manager_final_action: str,
+    manager_semantic_decision: dict[str, Any] | None,
+) -> None:
+    if not _manager_named_food_kcal_conflict_requires_confirmation(
+        manager_final_action=manager_final_action,
+        manager_semantic_decision=manager_semantic_decision,
+    ):
+        return
+    trace_contract = dict(payload.trace_contract or {})
+    existing_decision = trace_contract.get("canonical_write_decision")
+    decision = dict(existing_decision) if isinstance(existing_decision, dict) else {}
+    blockers = list(decision.get("blockers") or [])
+    if "named_food_user_kcal_conflict_requires_confirmation" not in blockers:
+        blockers.append("named_food_user_kcal_conflict_requires_confirmation")
+    decision.update(
+        {
+            "can_write_canonical": False,
+            "source": "commit_evidence_policy",
+            "failure_family": NAMED_FOOD_KCAL_CONFLICT_REQUIRES_CONFIRMATION,
+            "blockers": blockers,
+        }
+    )
+    trace_contract["canonical_write_decision"] = decision
+    trace_contract["named_food_user_kcal_conflict_guard"] = {
+        "source": "manager_semantic_decision",
+        "deterministic_role": "reject_commit_until_user_confirms_conflicting_kcal",
+        "raw_user_input_used": False,
+        "deterministic_food_classification_used": False,
+    }
+    payload.trace_contract = trace_contract
 
 
 def _apply_manager_semantic_canonical_write_decision(
@@ -168,6 +225,11 @@ def run_commit_boundary_preflight(
         )
 
     apply_commit_evidence_policy_to_payload(payload)
+    _apply_named_food_kcal_conflict_guard(
+        payload=payload,
+        manager_final_action=str(manager_final_action or ""),
+        manager_semantic_decision=manager_semantic_decision,
+    )
     _apply_manager_semantic_canonical_write_decision(
         payload=payload,
         manager_final_action=str(manager_final_action or ""),

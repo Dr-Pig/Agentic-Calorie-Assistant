@@ -3,9 +3,11 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+from app.runtime.agent.manager_user_facing_reply_prompt import USER_FACING_REPLY_PROMPT
+
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v34"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v38"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -32,6 +34,10 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "tool_calls=[], intent_type='body_observation', final_action='no_commit', "
     "workflow_effect='route_to_body_observation', and semantic_decision.current_turn_intent='body_observation'. "
     "Do not answer that it was recorded from entry scope, and do not calculate TDEE, daily target, or plan changes.\n"
+    "When manager_loop_scope is not 'body_observation' and the user is reporting a body observation, route it to "
+    "body_observation scope with intent_type='body_observation', final_action='no_commit', "
+    "workflow_effect='route_to_body_observation', tool_calls=[], and semantic_decision.current_turn_intent='body_observation'. "
+    "Do not use final_action='commit' for body observations outside body_observation scope.\n"
     "When the user asks how an existing meal was estimated, why the estimate has that number, what composition "
     "was assumed, or whether you counted specific components, this is an estimate-basis inquiry unless the user "
     "clearly asks to change the record. Answer directly with intent_type='answer_query', final_action='answer_only', "
@@ -59,7 +65,10 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "selected active drink or prior drink follow-up and the user supplies size, sugar, ice, or topping details, "
     "keep the selected drink as base_dish, put size, sugar, ice, and topping changes in size_hint or "
     "modifier_hints, keep listed_items=[], and use retrieval_goal='generic_anchor_lookup' unless an exact brand "
-    "lookup is actually needed; do not ask again for a slot the current turn already answered. After evidence, "
+    "lookup is actually needed. An exact brand lookup is needed when the user names a specific brand/product, "
+    "asks to check/search external nutrition, asks for official/exact source facts, or the item is a packaged "
+    "branded product; in those cases set brand_hint when known and use retrieval_goal='exact_brand_lookup'. "
+    "Do not ask again for a slot the current turn already answered. After evidence, "
     "use final_action_candidate='correction_applied' and mutation_intent_candidate='correction_write' to supersede "
     "the previous estimate. Missing unmentioned ice or topping details after a valid size/sugar drink refinement "
     "are optional, not a blocking follow-up.\n"
@@ -81,6 +90,11 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "retrieval_goal='listed_item_lookup', and call estimate_nutrition when evidence is needed before commit. "
     "When the item list is concrete but quantities are rough, ask for portions as optional refinement; do not "
     "classify that turn as a composition-unknown basket solely because portions are not exact.\n"
+    "For branded commercial food or drink items, branded packaged items, or user turns that explicitly ask to "
+    "check/search because FoodDB may not have the item, you own the retrieval posture: use "
+    "retrieval_goal='exact_brand_lookup' with brand_hint/product/size fields when known. WebSearch/external "
+    "results are candidate evidence only unless the runtime returns an approved packet; do not claim official "
+    "truth, macro truth, or logged status from a web candidate alone.\n"
     "If estimate_nutrition returns optional_refinement_allowed=true for a listed drink component after a "
     "commit-worthy estimate, preserve final_action_candidate='commit' and mutation_intent_candidate='canonical_write', "
     "set followup_posture='refinement_optional', and include answer_contract.followup_question. For sweet tea or "
@@ -133,6 +147,12 @@ _CONTRACT_POLICY_PROMPT = (
     "repair by choosing a legal final action. When your semantic judgment is that missing composition caused the "
     "illegal commit, ask a blocking follow-up with manager_action='final', final_action='ask_followup', "
     "workflow_effect='ask_followup', mutation_intent_candidate='no_mutation', tool_calls=[], and no calorie or macro claim.\n"
+    "If guard_feedback says named_food_user_kcal_conflict_requires_confirmation, your own semantic_decision already "
+    "identified a named-food kcal conflict and runtime rejected a silent commit. Repair with "
+    "manager_action='final', final_action='ask_followup', workflow_effect='ask_followup', "
+    "mutation_intent_candidate='no_mutation', source='named_food_user_kcal_conflict', and a user-facing question "
+    "asking whether the user's kcal number was a special portion/source or whether to use the evidence-backed "
+    "estimate. Do not log, overwrite, or claim the system estimate was recorded before the user confirms.\n"
     "Once current-loop nutrition evidence is present for an estimable intake write or correction, intake_execution final mapping "
     "is no longer an entry handoff: do not return workflow_effect='route_to_intake' or final_action='no_commit'. "
     "Use final_action='commit', 'correction_applied', or 'overshoot_note' according to semantic_decision.final_action_candidate, "
@@ -154,6 +174,15 @@ _CONTRACT_POLICY_PROMPT = (
     "estimate_nutrition returns commit-eligible evidence for the updated component list, do not ask for original "
     "composition details already present in active meal context; finalize with final_action='correction_applied' "
     "and mutation_intent_candidate='correction_write'.\n"
+    "For a correction that removes an existing component or changes an existing portion, apply the user's removal or portion change to the existing item candidates, "
+    "keep unchanged prior components from ACTIVE_MEAL or RECENT_COMMITTED_MEALS_SUMMARY, and call estimate_nutrition for the updated component list. "
+    "Do not ask for facts already available in those context candidates; ask only when the target meal or changed component is still ambiguous.\n"
+    "For meal-level component replacement or portion correction, use operation='update_meal_components' in target_attachment; "
+    "do not use operation='correct_item' for a whole-meal component list update.\n"
+    "If the user names a meal slot such as breakfast, lunch, dinner, or the recent meal for removal, select that matching meal_thread_id from RECENT_COMMITTED_MEALS_SUMMARY. "
+    "target_display_name alone is not a valid target; include the concrete meal_thread_id and meal_version_id when they are present in context candidates. "
+    "Use final_action='correction_applied', workflow_effect='correction', and mutation_intent_candidate='correction_write' after target validation. "
+    "If multiple candidates match the named slot, ask a target clarification. Never expose internal identifiers such as meal_thread_id to the user; do not expose meal_thread_id in reply_text.\n"
     "If manager_contract_evidence_state.target_evidence_present=true with target_evidence_operation='remove_item', "
     "do not call resolve_correction_target again; return manager_action='final', final_action='correction_applied', "
     "and tool_calls=[] so guard/mutation can apply the validated removal.\n"
@@ -174,6 +203,12 @@ _CONTRACT_POLICY_PROMPT = (
     "target_resolution_source='pending_followup_state'; include the pending meal_id or source_meal_id when present. "
     "Do not return target_attachment={} when prior pending-followup context is the reason the turn attaches instead "
     "of creating a new meal.\n"
+    "A blocking pending follow-up answer for an unresolved draft completes the original draft as a new meal log: "
+    "use current_turn_intent='log_meal', intent_type='log_meal', final_action='commit', workflow_effect='commit', "
+    "and mutation_intent_candidate='canonical_write' after current-loop nutrition evidence. Do not use "
+    "correct_meal/correction_applied for that unresolved draft completion. Optional refinement of an already "
+    "committed item is different: use correct_meal/correction_applied only when the context target is an existing "
+    "committed meal or version that can be superseded.\n"
     "For manual daily target updates, use intent_type='set_manual_daily_target', final_action='target_updated', "
     "workflow_effect='manual_daily_target_update', and do not calculate TDEE or coaching plans.\n"
     "For manager_loop_scope='body_observation', extract only the observation type, numeric value, unit, and date "
@@ -197,28 +232,7 @@ _SCOPE_POLICY_PROMPT = (
 )
 
 
-_USER_FACING_REPLY_PROMPT = (
-    "User-facing reply policy: answer_contract.reply_text is visible to the user. Match the user's language; "
-    "for Traditional Chinese input, use concise natural zh-TW. State logged, not logged, or updated status "
-    "plainly. Include calories only from allowed evidence, tool_results, or read-model facts. Explain rough "
-    "or low-confidence estimates in user language; do not expose internal labels such as LLM, llm_only, "
-    "tool names, schema names, or evidence posture enum values. Do not write the literal labels FoodDB, "
-    "fooddb, active_meal_estimate_basis, workflow_effect, or evidence_posture in reply_text; say food "
-    "record or food data instead. Mention macros "
-    "only when show_macro or renderer basis explicitly allows visible macro facts with supported source basis; "
-    "if the estimate is low-confidence, context-only, or macro visibility is not explicit, say macro data "
-    "is insufficient instead of listing protein/carbs/fat grams. When there is no active plan or the read model has no daily target, "
-    "answer consumed/logged state only from read-model facts; if daily_target_kcal or remaining_kcal is null, "
-    "say target or remaining budget is unavailable until setup and do not describe missing target or "
-    "remaining budget as 0. For no-plan budget questions, use final_action='onboarding_required' and "
-    "workflow_effect='answer_only' with no mutation. Ask at most one necessary follow-up question for "
-    "blocking cases. Do not expose debug, "
-    "trace, provider, request_id, tool_calls, internal schema names, raw contract labels, or internal object IDs "
-    "such as meal_thread_id, meal_version_id, or meal_item_id in reply_text. Do not expose meal_thread_id; "
-    "describe meals by natural names, date, time, or user-visible descriptions instead.\n"
-    "Tools only provide evidence or mutation results. Do not assume hidden state.\n"
-    "Do not emit freeform internal rationale fields.\n"
-)
+_USER_FACING_REPLY_PROMPT = USER_FACING_REPLY_PROMPT
 
 
 _SINGLE_MANAGER_SYSTEM_PROMPT_SECTIONS = (

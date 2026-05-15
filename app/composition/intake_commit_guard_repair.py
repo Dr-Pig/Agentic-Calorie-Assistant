@@ -3,7 +3,49 @@ from __future__ import annotations
 from typing import Any
 
 from app.composition.commit_boundary_preflight import run_commit_boundary_preflight
+from app.composition.commit_boundary_preflight import NAMED_FOOD_KCAL_CONFLICT_REQUIRES_CONFIRMATION
 from app.shared.contracts.intake_results import EstimatePayload
+
+
+def _repair_instruction_for_failure(failure_family: str | None) -> dict[str, Any]:
+    if failure_family == NAMED_FOOD_KCAL_CONFLICT_REQUIRES_CONFIRMATION:
+        return {
+            "role": "bounded_manager_repair",
+            "deterministic_role": "reject_conflicting_user_kcal_commit_only",
+            "manager_role": "ask user to confirm the provided kcal or portion before committing",
+            "allowed_repairs": [
+                {
+                    "manager_action": "final",
+                    "final_action": "ask_followup",
+                    "workflow_effect": "ask_followup",
+                    "tool_calls": [],
+                    "semantic_decision": {
+                        "source": "named_food_user_kcal_conflict",
+                        "final_action_candidate": "ask_followup",
+                        "mutation_intent_candidate": "no_mutation",
+                        "estimation_posture": "user_kcal_plausibility_check",
+                    },
+                }
+            ],
+        }
+    return {
+        "role": "bounded_manager_repair",
+        "deterministic_role": "reject_evidence_ineligible_commit_only",
+        "manager_role": "choose legal final action",
+        "allowed_repairs": [
+            {
+                "manager_action": "final",
+                "final_action": "ask_followup",
+                "workflow_effect": "ask_followup",
+                "tool_calls": [],
+                "semantic_decision": {
+                    "final_action_candidate": "ask_followup",
+                    "mutation_intent_candidate": "no_mutation",
+                    "estimation_posture": "composition_unknown_basket",
+                },
+            }
+        ],
+    }
 
 
 def commit_boundary_guard_repair_outcome(
@@ -26,10 +68,11 @@ def commit_boundary_guard_repair_outcome(
     )
     if not commit_preflight.blocked:
         return None
+    failure_family = commit_preflight.failure_family or "phase_a_commit_boundary_blocked"
     return {
         "ok": False,
         "repair_request": True,
-        "failure_family": commit_preflight.failure_family or "phase_a_commit_boundary_blocked",
+        "failure_family": failure_family,
         "guard_feedback_source": {
             "source": "commit_evidence_policy",
             "input_authority": "manager_owned_candidate_evidence",
@@ -42,22 +85,5 @@ def commit_boundary_guard_repair_outcome(
         "deterministic_followup_text": False,
         "phase_a_transition_guard_preflight": dict(transition_preflight_trace or {}),
         "phase_a_commit_boundary_preflight": commit_preflight.trace_payload(),
-        "repair_instruction": {
-            "role": "bounded_manager_repair",
-            "deterministic_role": "reject_evidence_ineligible_commit_only",
-            "manager_role": "choose legal final action",
-            "allowed_repairs": [
-                {
-                    "manager_action": "final",
-                    "final_action": "ask_followup",
-                    "workflow_effect": "ask_followup",
-                    "tool_calls": [],
-                    "semantic_decision": {
-                        "final_action_candidate": "ask_followup",
-                        "mutation_intent_candidate": "no_mutation",
-                        "estimation_posture": "composition_unknown_basket",
-                    },
-                }
-            ],
-        },
+        "repair_instruction": _repair_instruction_for_failure(failure_family),
     }

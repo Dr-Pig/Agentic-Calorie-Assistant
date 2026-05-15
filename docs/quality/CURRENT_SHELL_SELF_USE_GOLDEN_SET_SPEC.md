@@ -88,6 +88,19 @@ Cases are defined in the manifest so runners can consume the same truth that hum
 
 Each case is also a representative of a broader failure family. Passing the literal input text is not enough when trace evidence shows keyword routing, fixture-owned semantics, or case-specific prompt patching.
 
+## Holdout Browser Variants
+
+Core GS1-GS19 pass is necessary but not sufficient for self-use closeout. The manifest also defines a small holdout extension that must run through the same browser entrypoint before closeout. Holdouts use different natural wording for the same product capabilities instead of new semantics:
+
+- clear component logging
+- generic common-food estimation with uncertainty basis
+- patterned combo clarification without pre-Manager estimability shortcuts
+- estimate-basis inquiry with no mutation
+- correction with version/ledger recompute
+- remaining-budget read-only query
+
+Holdout cases are not allowed to change product truth, fixture ownership, or Manager boundaries. They are an anti-overfit check: if a holdout fails, the fix must target the underlying capability family and trace owner, not the literal wording.
+
 ## WebSearch Golden Extension
 
 WebSearch is part of the Current Shell evidence path but is not a runtime truth owner for kcal, macro, source exactness, commit posture, or ledger mutation. The core GS1-GS19 matrix does not by itself prove that the user entrypoint can handle a FoodDB miss, exact-item lookup, wrong-brand result, or macro-bearing official source through WebSearch. The WebSearch extension cases therefore run as required Golden Set extension coverage before self-use closeout.

@@ -5,7 +5,10 @@ from dataclasses import dataclass
 from typing import Any
 
 
-SAFE_NO_COMMIT_REPLY = "I could not safely complete that turn, so nothing was committed."
+SAFE_NO_COMMIT_REPLY = (
+    "我還不能安全地更新日記，這一輪沒有寫入餐點。"
+    "請補充必要資訊後我再幫你記。"
+)
 SAFE_DEGRADED_BUDGET_REPLY = "Onboarding is required before I can answer remaining budget."
 
 _CANONICAL_STATE_FLAGS = (
@@ -97,7 +100,35 @@ def _clear_flags(target: dict[str, Any], flags: tuple[str, ...]) -> bool:
 
 def _minimal_false_commit_claim(reply_text: str) -> bool:
     normalized = reply_text.strip().lower()
-    return normalized.startswith("logged") or normalized.startswith("committed")
+    if normalized.startswith("logged") or normalized.startswith("committed"):
+        return True
+    positive_commit_markers = (
+        "已記錄",
+        "已更新",
+        "已加到",
+        "已加入",
+        "已寫入",
+        "已經記錄",
+        "已經更新",
+        "已經加到",
+        "logged",
+        "committed",
+        "saved",
+    )
+    negation_markers = (
+        "沒有寫入",
+        "尚未寫入",
+        "還沒寫入",
+        "沒有更新",
+        "尚未更新",
+        "還沒更新",
+        "not saved",
+        "not committed",
+        "nothing was committed",
+    )
+    if any(marker in normalized for marker in negation_markers):
+        return False
+    return any(marker in normalized for marker in positive_commit_markers)
 
 
 def _minimal_concrete_remaining_claim(reply_text: str, remaining_kcal: Any) -> bool:
@@ -243,6 +274,8 @@ def enforce_budget_output_honesty(
 __all__ = [
     "BudgetOutputHonestyResult",
     "IntakeOutputHonestyResult",
+    "SAFE_DEGRADED_BUDGET_REPLY",
+    "SAFE_NO_COMMIT_REPLY",
     "enforce_budget_output_honesty",
     "enforce_intake_output_honesty",
 ]

@@ -89,6 +89,108 @@ def test_single_manager_prompt_names_commit_without_evidence_repair_tool() -> No
     assert "estimate_nutrition" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
+def test_single_manager_prompt_separates_pending_draft_answer_from_optional_refinement() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+
+    assert "blocking pending follow-up answer for an unresolved draft" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "use current_turn_intent='log_meal'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "final_action='commit'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "Optional refinement of an already committed item" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "correct_meal/correction_applied" in SINGLE_MANAGER_SYSTEM_PROMPT
+
+
+def test_single_manager_prompt_routes_body_observation_from_non_body_scope() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+
+    assert "When manager_loop_scope is not 'body_observation'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "workflow_effect='route_to_body_observation'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "final_action='no_commit'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "Do not use final_action='commit' for body observations outside body_observation scope" in (
+        SINGLE_MANAGER_SYSTEM_PROMPT
+    )
+
+
+def test_single_manager_prompt_uses_context_for_correction_and_named_removal() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+
+    assert "apply the user's removal or portion change to the existing item candidates" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "keep unchanged prior components from ACTIVE_MEAL or RECENT_COMMITTED_MEALS_SUMMARY" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "call estimate_nutrition for the updated component list" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "If the user names a meal slot such as breakfast, lunch, dinner, or the recent meal" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "select that matching meal_thread_id from RECENT_COMMITTED_MEALS_SUMMARY" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "target_display_name alone is not a valid target" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "use operation='update_meal_components'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "do not use operation='correct_item'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "do not expose meal_thread_id" in SINGLE_MANAGER_SYSTEM_PROMPT
+
+
+def test_pending_followup_attach_guard_requests_repair_for_unresolved_draft_correction() -> None:
+    from app.composition.pending_followup_attach_guard import (
+        pending_followup_attach_repair_outcome,
+    )
+
+    outcome = pending_followup_attach_repair_outcome(
+        manager_payload={
+            "final_action": "correction_applied",
+            "workflow_effect": "correction_applied",
+            "semantic_decision": {
+                "current_turn_intent": "correct_meal",
+                "mutation_intent_candidate": "correction_write",
+                "target_attachment": {
+                    "operation": "attach_to_pending_followup",
+                    "target_resolution_source": "pending_followup_state",
+                },
+            },
+        },
+        correction_target={
+            "meal_thread_id": None,
+            "meal_version_id": None,
+            "target_resolution_source": "pending_followup_state",
+        },
+    )
+
+    assert outcome == {
+        "ok": False,
+        "repair_request": True,
+        "failure_family": "pending_followup_attach_requires_commit",
+        "repair_instruction": (
+            "A blocking pending follow-up answer for an unresolved draft completes a new meal log: "
+            "use current_turn_intent='log_meal', final_action='commit', "
+            "workflow_effect='commit', and mutation_intent_candidate='canonical_write'. "
+            "Use correct_meal/correction_applied only for optional refinement of an already committed target."
+        ),
+    }
+
+
+def test_pending_followup_attach_guard_does_not_block_resolved_committed_refinement() -> None:
+    from app.composition.pending_followup_attach_guard import (
+        pending_followup_attach_repair_outcome,
+    )
+
+    outcome = pending_followup_attach_repair_outcome(
+        manager_payload={
+            "final_action": "correction_applied",
+            "workflow_effect": "correction_applied",
+            "semantic_decision": {
+                "current_turn_intent": "correct_meal",
+                "mutation_intent_candidate": "correction_write",
+                "target_attachment": {
+                    "operation": "attach_to_pending_followup",
+                    "target_resolution_source": "pending_followup_state",
+                },
+            },
+        },
+        correction_target={
+            "meal_thread_id": 10,
+            "meal_version_id": 20,
+            "operation": "update_meal_components",
+            "target_resolution_source": "pending_followup_state",
+        },
+    )
+
+    assert outcome is None
+
+
 def test_intake_persistence_consumes_effect_policy_instead_of_owning_action_set() -> None:
     from app.composition import intake_execution_persistence
 

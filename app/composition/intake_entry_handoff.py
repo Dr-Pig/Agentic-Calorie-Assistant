@@ -54,6 +54,7 @@ def _remove_item_target_handoff_call(target: dict[str, Any]) -> dict[str, Any]:
             "meal_thread_id": target.get("meal_thread_id"),
             "meal_item_id": target.get("meal_item_id"),
             "operation": "remove_item",
+            "target_resolution_source": target.get("target_resolution_source"),
             "target_proposal_source": "entry_manager_handoff",
         }.items()
         if value not in (None, "")
@@ -70,6 +71,7 @@ def _target_resolution_handoff_call(target: dict[str, Any]) -> dict[str, Any]:
             "meal_thread_id": target.get("meal_thread_id"),
             "meal_item_id": target.get("meal_item_id"),
             "operation": operation,
+            "target_resolution_source": target.get("target_resolution_source"),
             "target_proposal_source": "entry_manager_handoff",
         }.items()
         if value not in (None, "")

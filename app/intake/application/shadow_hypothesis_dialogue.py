@@ -90,16 +90,15 @@ def apply_shadow_hypothesis_dialogue_cue(
             ),
         )
 
-    cue = (
-        f"I’m treating this as a tentative reference to {_candidate_label(shadow)}; "
-        "this is not a saved change yet. "
-    )
+    # The shadow hypothesis may be useful review evidence, but it is not the
+    # final response owner. Exposing target-object labels here leaks internal
+    # state and can contradict the Manager-owned answer.
     return ShadowHypothesisDialogueResult(
-        assistant_message=f"{cue}{assistant_message}",
+        assistant_message=assistant_message,
         phase_a_trace=_add_trace(
             updated_trace,
-            applied=True,
-            skip_reason=None,
+            applied=False,
+            skip_reason="user_visible_cue_disabled",
             shadow=shadow,
         ),
     )

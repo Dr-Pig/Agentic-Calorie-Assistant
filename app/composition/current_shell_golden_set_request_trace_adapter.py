@@ -51,6 +51,8 @@ def build_golden_case_trace_from_request_trace(
     response_assertions = _dict(assertions.get("response"))
     dogfood_assertions = _dict(assertions.get("dogfood_trace"))
     generalization_assertions = _dict(assertions.get("generalization"))
+    if assertions:
+        generalization_assertions.setdefault("external_assertion_override_used", True)
 
     manager_final = manager_final_decision(request_trace)
     manager_decision = _dict(request_trace.get("manager_decision"))

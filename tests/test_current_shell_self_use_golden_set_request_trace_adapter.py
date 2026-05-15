@@ -158,6 +158,102 @@ def test_request_trace_adapter_projects_structured_runtime_trace_without_text_se
     assert grade["status"] == "pass"
 
 
+def test_request_trace_adapter_counts_live_provider_rounds_not_synthetic_handoff_passes() -> None:
+    trace = _gs5_request_trace()
+    trace["react_trace"]["manager_pass_count"] = 3  # type: ignore[index]
+    trace["react_trace"]["manager_round_latency_ms"] = [0, 11000, 9000]  # type: ignore[index]
+    trace["react_trace"]["call_topology"] = [  # type: ignore[index]
+        {
+            "operation": "manager_provider_round",
+            "stage": "intake_manager_round",
+            "duration_ms": 11000,
+            "round_index": 1,
+        },
+        {
+            "operation": "guard_check",
+            "stage": "manager_transition_guard",
+            "duration_ms": 0,
+            "round_index": 1,
+        },
+        {
+            "operation": "manager_provider_round",
+            "stage": "intake_manager_round",
+            "duration_ms": 9000,
+            "round_index": 2,
+        },
+    ]
+
+    case_trace = build_golden_case_trace_from_request_trace("GS5", trace)
+
+    assert case_trace["latency"]["llm_calls"] == 2
+
+
+def test_request_trace_adapter_projects_websearch_candidate_boundary_from_tool_trace() -> None:
+    trace = _gs5_request_trace()
+    trace["renderer_output"] = {
+        "assistant_message": (
+            "外部資料目前只是候選來源，還不能當作官方記錄；"
+            "三大營養素資料不足，請確認是否要用粗估。"
+        )
+    }
+    payload = trace["tool_outputs"]["tool_results"][0]["evidence"]["nutrition_payload"]  # type: ignore[index]
+    payload["trace_contract"]["web_runtime_trace"] = {  # type: ignore[index]
+        "attempted": True,
+        "search_attempt_count": 1,
+        "packetized_candidate_present": True,
+        "semantic_authority_source": "live_manager_structured_output",
+        "retrieval_goal": "exact_brand_lookup",
+    }
+    payload["trace_contract"]["search_attempt_count"] = 1  # type: ignore[index]
+
+    case_trace = build_golden_case_trace_from_request_trace("GSW1", trace)
+
+    runtime = case_trace["runtime"]
+    assert runtime["websearch_tool_call_expected"] is True
+    assert runtime["websearch_candidate_only"] is True
+    assert runtime["websearch_snippet_as_truth_allowed"] is False
+    assert runtime["fooddb_truth_promotion_allowed"] is False
+    assert runtime["pre_manager_websearch_routing_allowed"] is False
+    assert runtime["websearch_candidate_to_commit_allowed"] is False
+    assert case_trace["ui"]["candidate_source_label_visible"] is True
+    assert case_trace["ui"]["macro_source_status_visible"] is True
+
+
+def test_request_trace_adapter_prefers_manager_final_web_trace_over_draft_tool_trace() -> None:
+    trace = _gs5_request_trace()
+    trace["renderer_output"] = {
+        "assistant_message": "目前只有候選參考資料，還不能當作確切紀錄；三大營養素資料不足。"
+    }
+    trace["manager_final_decision"]["tool_results"] = [  # type: ignore[index]
+        {
+            "tool_name": "estimate_nutrition",
+            "evidence": {
+                "nutrition_payload": {
+                    "estimated_kcal": 0,
+                    "trace_contract": {
+                        "web_runtime_trace": {
+                            "attempted": True,
+                            "search_attempt_count": 1,
+                            "packetized_candidate_present": True,
+                            "semantic_authority_source": "live_manager_structured_output",
+                            "retrieval_goal": "exact_brand_lookup",
+                        },
+                        "search_attempt_count": 1,
+                    },
+                }
+            },
+        }
+    ]
+
+    case_trace = build_golden_case_trace_from_request_trace("GSW1", trace)
+
+    assert case_trace["runtime"]["websearch_tool_call_expected"] is True
+    assert case_trace["runtime"]["websearch_candidate_only"] is True
+    assert case_trace["runtime"]["runtime_mutation_allowed"] is False
+    assert case_trace["ui"]["candidate_source_label_visible"] is True
+    assert case_trace["ui"]["macro_source_status_visible"] is True
+
+
 def test_request_trace_adapter_does_not_infer_from_raw_request_text() -> None:
     case_trace = build_golden_case_trace_from_request_trace(
         "GS5",
@@ -834,6 +930,61 @@ def test_request_trace_adapter_projects_generic_range_basis_from_approved_packet
     assert case_trace["ui"]["range_or_basis_visible"] is True
 
 
+def test_request_trace_adapter_projects_generic_anchor_lookup_basis_from_manager_owned_trace() -> None:
+    trace = _gs5_request_trace()
+    trace["runtime"] = {"fallback_400_allowed": False}
+    trace["renderer_output"] = {
+        "assistant_message": (
+            "\u5df2\u8a18\u9304\uff1a\u96de\u8089\u98ef 560 kcal\u3002"
+            "\u4f9d\u5e38\u898b\u4efd\u91cf\u4f30\u7b97\uff0c"
+            "\u5be6\u969b\u6703\u56e0\u4efd\u91cf\u8207\u505a\u6cd5\u6709\u8aa4\u5dee\u3002"
+        )
+    }
+    trace["tool_outputs"] = {
+        "tool_results": [
+            {
+                "tool_name": "estimate_nutrition",
+                "evidence": {
+                    "nutrition_payload": {
+                        "meal_title": "\u96de\u8089\u98ef",
+                        "estimated_kcal": 560,
+                        "component_breakdown": [
+                            {
+                                "name": "\u96de\u8089\u98ef",
+                                "estimated_kcal": 560,
+                                "source_lane": "listed_component",
+                            }
+                        ],
+                        "trace_contract": {
+                            "db_hit_type": "approved_fooddb_packet",
+                            "shadow_stub": False,
+                            "web_runtime_trace": {
+                                "retrieval_goal": "generic_anchor_lookup",
+                                "semantic_authority_source": "live_manager_structured_output",
+                            },
+                            "approved_fooddb_evidence_trace": {
+                                "source_lane": "listed_component",
+                                "runtime_truth_allowed": True,
+                            },
+                            "canonical_write_decision": {"can_write_canonical": True},
+                        },
+                    }
+                },
+            }
+        ]
+    }
+    trace["phase_c_trace"]["mutation_outcome"]["canonical_commit_status"] = "committed"  # type: ignore[index]
+    trace["phase_c_trace"]["mutation_outcome"]["ledger_mutation_status"] = "updated"  # type: ignore[index]
+    trace["state_delta"]["canonical_commit"] = True  # type: ignore[index]
+    trace["state_delta"]["ledger_updated"] = True  # type: ignore[index]
+
+    case_trace = build_golden_case_trace_from_request_trace("GS4", trace)
+
+    assert case_trace["runtime"]["uncertainty_basis_required"] is True
+    assert case_trace["runtime"]["fake_exactness_allowed"] is False
+    assert case_trace["ui"]["range_or_basis_visible"] is True
+
+
 def test_request_trace_adapter_projects_component_basis_from_compact_packets() -> None:
     trace = _gs5_request_trace()
     trace["runtime"] = {"fallback_400_allowed": False}
@@ -1282,3 +1433,17 @@ def test_request_trace_projection_script_writes_artifact(tmp_path: Path) -> None
     assert payload["artifact_type"] == "current_shell_self_use_golden_set_trace_artifact"
     assert payload["cases"][0]["case_id"] == "GS5"
     assert built["cases"][0]["case_id"] == "GS5"
+
+
+def test_request_trace_projection_marks_external_assertions_as_non_acceptance_evidence() -> None:
+    trace = _gs5_request_trace()
+    case_trace = build_golden_case_trace_from_request_trace(
+        "GS5",
+        trace,
+        case_assertions={"runtime": {"workflow_effect": "ask_followup"}},
+    )
+    grade = grade_golden_case_trace("GS5", case_trace)
+
+    assert case_trace["generalization"]["external_assertion_override_used"] is True
+    assert grade["status"] == "blocked"
+    assert "generalization.external_assertion_override_used" in grade["blockers"]

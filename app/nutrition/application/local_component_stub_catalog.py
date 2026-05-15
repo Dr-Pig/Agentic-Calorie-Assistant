@@ -170,6 +170,8 @@ def _canonical_component_name(item: object) -> str:
         .replace("（", "")
         .replace("）", "")
     )
+    if _BLACK_TEA in compact:
+        return _BLACK_TEA
     if _TEPPAN_NOODLE in compact and any(marker in compact for marker in ("一半", "半份")):
         return _TEPPAN_NOODLE_HALF
     return _ALIASES.get(text, text)

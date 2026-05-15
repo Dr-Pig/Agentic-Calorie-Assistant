@@ -4,7 +4,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.composition.commit_boundary_preflight import run_commit_boundary_preflight
+from app.composition.commit_boundary_preflight import (
+    NAMED_FOOD_KCAL_CONFLICT_REQUIRES_CONFIRMATION,
+    run_commit_boundary_preflight,
+)
 from app.intake.application.current_turn_context_assembler import build_current_turn_context_v1
 from app.intake.application.final_action_mutation_classifier import classify_final_action_mutation
 from app.shared.contracts.intake_results import EstimatePayload
@@ -157,6 +160,40 @@ def test_commit_boundary_preflight_blocks_manager_authorized_shadow_stub_commit(
     assert decision["can_write_canonical"] is False
     assert decision["source"] == "commit_evidence_policy"
     assert "shadow_stub_estimate" in decision["blockers"]
+
+
+def test_commit_boundary_preflight_blocks_named_food_kcal_conflict_commit() -> None:
+    payload = _payload(estimated_kcal=700)
+
+    result = run_commit_boundary_preflight(
+        payload=payload,
+        manager_final_action="commit",
+        active_body_plan_present=True,
+        manager_semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "workflow_effect": "commit",
+            "final_action_candidate": "commit",
+            "mutation_intent_candidate": "canonical_write",
+            "source": "named_food_user_kcal_conflict",
+            "user_provided_kcal": 250,
+        },
+    )
+
+    decision = payload.trace_contract["canonical_write_decision"]
+    assert result.blocked is True
+    assert result.failure_family == NAMED_FOOD_KCAL_CONFLICT_REQUIRES_CONFIRMATION
+    assert result.projected_commit_intent == "no_mutation"
+    assert decision["can_write_canonical"] is False
+    assert decision["source"] == "commit_evidence_policy"
+    assert "named_food_user_kcal_conflict_requires_confirmation" in decision["blockers"]
+    assert payload.trace_contract["named_food_user_kcal_conflict_guard"]["raw_user_input_used"] is False
+    assert (
+        payload.trace_contract["named_food_user_kcal_conflict_guard"][
+            "deterministic_food_classification_used"
+        ]
+        is False
+    )
 
 
 def test_manager_semantic_decision_can_supersede_pre_manager_answer_only_guard() -> None:
@@ -457,6 +494,84 @@ class _RepairingProvider:
         )
 
 
+class _KcalConflictRepairProvider:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    def readiness(self) -> dict[str, object]:
+        return {"configured": True}
+
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        self.calls.append(dict(kwargs))
+        if len(self.calls) == 1:
+            return (
+                {
+                    "manager_action": "final",
+                    "intent": "log_meal",
+                    "intent_type": "log_meal",
+                    "final_action": "commit",
+                    "workflow_effect": "commit",
+                    "target_attachment": {"mode": "new_meal"},
+                    "exactness": "low",
+                    "confidence": "low",
+                    "evidence_posture": "present",
+                    "repair_ack": False,
+                    "answer_contract": {"reply_text": "logged 700 kcal"},
+                    "uncertainty_posture": "rough_estimate_with_conflict",
+                    "evidence_honesty_posture": "tool_estimated",
+                    "semantic_decision": {
+                        "semantic_authority": "manager_llm",
+                        "current_turn_intent": "log_meal",
+                        "target_attachment": {"mode": "new_workflow"},
+                        "workflow_effect": "commit",
+                        "final_action_candidate": "commit",
+                        "estimation_posture": "named_food_user_kcal_conflict",
+                        "followup_posture": "refinement_optional",
+                        "mutation_intent_candidate": "canonical_write",
+                        "uncertainty_posture": "rough_estimate_with_conflict",
+                        "source": "named_food_user_kcal_conflict",
+                        "user_provided_kcal": 250,
+                    },
+                },
+                {"source": "fake"},
+            )
+        return (
+            {
+                "manager_action": "final",
+                "intent": "log_meal",
+                "intent_type": "log_meal",
+                "final_action": "ask_followup",
+                "workflow_effect": "ask_followup",
+                "target_attachment": {"mode": "new_meal"},
+                "exactness": "unknown",
+                "confidence": "low",
+                "evidence_posture": "present",
+                "repair_ack": True,
+                "answer_contract": {
+                    "reply_text": "250 kcal looks lower than the evidence-backed estimate. Please confirm.",
+                    "followup_question": "Was 250 kcal from a special portion/source, or should I use the estimated range?",
+                },
+                "uncertainty_posture": "user_kcal_conflict",
+                "evidence_honesty_posture": "needs_user_confirmation",
+                "semantic_decision": {
+                    "semantic_authority": "manager_llm",
+                    "current_turn_intent": "log_meal",
+                    "target_attachment": {"mode": "new_workflow"},
+                    "workflow_effect": "ask_followup",
+                    "final_action_candidate": "ask_followup",
+                    "estimation_posture": "user_kcal_plausibility_check",
+                    "followup_posture": "blocking_confirmation",
+                    "mutation_intent_candidate": "no_mutation",
+                    "uncertainty_posture": "user_kcal_conflict",
+                    "source": "named_food_user_kcal_conflict",
+                    "user_provided_kcal": 250,
+                    "followup_question": "Was 250 kcal from a special portion/source, or should I use the estimated range?",
+                },
+            },
+            {"source": "fake"},
+        )
+
+
 class _FirstPassAskProvider:
     def __init__(self) -> None:
         self.calls: list[dict[str, object]] = []
@@ -711,6 +826,109 @@ async def test_process_intake_execution_turn_repairs_shadow_stub_commit_to_manag
     assert persisted
     assert getattr(payload, "estimated_kcal", None) == 0
     assert payload.trace_contract["manager_ask_followup_draft_contract"]["raw_text_semantic_inference"] is False
+
+
+@pytest.mark.asyncio
+async def test_process_intake_execution_turn_repairs_named_food_kcal_conflict_to_followup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.composition import intake_execution_orchestrator as module
+
+    provider = _KcalConflictRepairProvider()
+    resolved_state = _resolved_state()
+    resolved_state.current_budget_view = SimpleNamespace(
+        budget_kcal=1312,
+        consumed_kcal=0,
+        remaining_kcal=1312,
+    )
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="I ate a bowl of beef noodles, 250 kcal",
+        resolved_state=resolved_state,
+    )
+    nutrition_artifact = SimpleNamespace(payload=_payload(estimated_kcal=700))
+    persisted: list[object] = []
+
+    async def _fake_execute_manager_tool_calls(**kwargs: object) -> list[dict[str, object]]:
+        kwargs["tool_state"]["nutrition_artifact"] = nutrition_artifact
+        kwargs["tool_state"]["budget_summary"] = {
+            "budget_kcal": 1312,
+            "consumed_kcal_before": 0,
+            "predicted_consumed_kcal_after": 700,
+            "predicted_remaining_kcal_after": 612,
+            "overshoot_detected": False,
+            "overshoot_kcal": 0,
+        }
+        return [{"tool_name": "estimate_nutrition", "failure_family": None}]
+
+    monkeypatch.setattr(module, "execute_manager_tool_calls", _fake_execute_manager_tool_calls)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", lambda *args, **kwargs: persisted.append((args, kwargs)))
+    monkeypatch.setattr(
+        module,
+        "build_intake_execution_response",
+        lambda *_, **kwargs: {
+            "manager_result": kwargs["manager_result"],
+            "persistence_result": kwargs["persistence_result"],
+            "phase_a_trace": kwargs["phase_a_trace"],
+            "nutrition_payload": getattr(kwargs["nutrition_artifact"], "payload", None),
+            "state_mutation_summary": kwargs["state_mutation_summary"],
+        },
+    )
+    entry_manager_decision = SimpleNamespace(
+        workflow_effect="route_to_intake",
+        intent_type="log_meal",
+        target_attachment={},
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {},
+            "workflow_effect": "route_to_intake",
+            "final_action_candidate": "commit",
+            "estimation_posture": "user_kcal_plausibility_check",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "canonical_write",
+            "uncertainty_posture": "low",
+            "source": "named_food_user_kcal_conflict",
+            "user_provided_kcal": 250,
+            "base_dish": "beef noodles",
+            "listed_items": ["one bowl of beef noodles"],
+            "retrieval_goal": "generic_anchor_lookup",
+        },
+    )
+
+    result = await module.process_intake_execution_turn(
+        None,
+        user_external_id="user-1",
+        raw_user_input="I ate a bowl of beef noodles, 250 kcal",
+        local_date="2026-04-29",
+        allow_search=False,
+        provider=provider,
+        state_before=resolved_state,
+        manager_decision=entry_manager_decision,
+        request_id="req-kcal-conflict-repair",
+        stage_timings=[],
+        current_turn_context=current_turn_context,
+        phase_a_trace={},
+    )
+
+    manager_result = result["manager_result"]
+    payload = result["nutrition_payload"]
+    preflight = result["phase_a_trace"]["phase_a_commit_boundary_preflight"]
+    guard_feedback = provider.calls[1]["user_payload"]["guard_feedback"]
+    assert len(provider.calls) == 2
+    assert guard_feedback["failure_family"] == NAMED_FOOD_KCAL_CONFLICT_REQUIRES_CONFIRMATION
+    assert guard_feedback["phase_a_commit_boundary_preflight"]["blocked"] is True
+    assert manager_result.final_action == "ask_followup"
+    assert manager_result.workflow_effect == "ask_followup"
+    assert manager_result.repair_round_used is True
+    assert preflight["blocked"] is False
+    assert preflight["projected_commit_intent"] == "draft"
+    assert persisted
+    assert getattr(payload, "estimated_kcal", None) == 0
+    assert payload.trace_contract["manager_ask_followup_draft_contract"]["raw_text_semantic_inference"] is False
+    assert result["state_mutation_summary"]["canonical_commit"] is False
 
 
 @pytest.mark.asyncio

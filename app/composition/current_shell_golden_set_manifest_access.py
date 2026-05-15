@@ -12,11 +12,19 @@ FAKE_PASS_GENERALIZATION_FLAGS = (
     "case_id_or_fixture_label_routing_used",
     "raw_user_input_semantic_oracle_used",
     "runner_inferred_workflow_effect",
+    "external_assertion_override_used",
 )
 
 
 def golden_set_cases(manifest: dict[str, Any]) -> list[dict[str, Any]]:
     cases = [_case for _case in list(manifest.get("cases") or []) if isinstance(_case, dict)]
+    holdout_extension = manifest.get("holdout_extension")
+    if isinstance(holdout_extension, dict):
+        cases.extend(
+            _case
+            for _case in list(holdout_extension.get("cases") or [])
+            if isinstance(_case, dict)
+        )
     websearch_extension = manifest.get("websearch_extension")
     if isinstance(websearch_extension, dict):
         cases.extend(

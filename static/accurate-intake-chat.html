@@ -497,8 +497,8 @@
     }
     function setComposerBusy(isBusy) {
       el("composer").setAttribute("aria-busy", isBusy ? "true" : "false");
-      el("send-button").disabled = isBusy;
-      el("send-button").textContent = isBusy ? "Sending" : "送出";
+      el("send-button").disabled = false;
+      el("send-button").textContent = "送出";
     }
     function fitComposerInput() {
       const input = el("message-input");
@@ -570,6 +570,19 @@
       writeText("chat-context-pins", summary.pins);
       writeText("chat-context-targets", summary.targets);
       renderTargetCandidates(summary.targetNames);
+    }
+    function hasOpenTurn(messages) {
+      return messages.some((message) => {
+        const status = message.runtime_turn_status;
+        return status === "in_progress" || status === "queued";
+      });
+    }
+    function latestOpenTurnRequestId(messages) {
+      const open = [...messages].reverse().find((message) => {
+        const status = message.runtime_turn_status;
+        return status === "in_progress" || status === "queued";
+      });
+      return open ? open.trace_id : null;
     }
     function localDebugHeaders(url) {
       const globalToken = typeof window.LOCAL_DEBUG_API_TOKEN === "string" ? window.LOCAL_DEBUG_API_TOKEN.trim() : "";
@@ -652,11 +665,8 @@
         const role = message.role === "user" ? "user" : "bot";
         appendMessage(role, message.content || "", "chat_history.sqlite_message_buffer", message);
       }
-      const pending = [...messages].reverse().find((message) => (
-        message.role !== "user" && message.runtime_turn_status === "in_progress"
-      ));
-      pendingRequestId = pending ? pending.trace_id : null;
-      setComposerBusy(Boolean(pendingRequestId));
+      pendingRequestId = latestOpenTurnRequestId(messages);
+      setComposerBusy(hasOpenTurn(messages));
     }
     async function loadHistory() {
       setStatus("loading");
@@ -673,9 +683,7 @@
       const text = input.value.trim();
       if (!text) return;
       if (pendingRequestId) {
-        setStatus(`waiting for ${pendingRequestId}; you can keep drafting here and send after it finishes`);
-        input.focus();
-        return;
+        setStatus(`processing ${pendingRequestId}; can keep sending; new messages are queued`);
       }
       setComposerBusy(true);
       appendMessage("user", text, "current_user_input");
@@ -691,7 +699,7 @@
         pendingRequestId = payload.request_id || null;
         pending.dataset.renderSource = "chat_turn.accepted";
         pending.textContent = payload.coach_message || PENDING_MESSAGE;
-        setStatus(`processing ${pendingRequestId || "turn"}`);
+        setStatus(`${payload.status === "queued" ? "queued" : "processing"} ${pendingRequestId || "turn"}`);
         await loadHistory();
         await waitForTurnCompletion(pendingRequestId);
       } catch (error) {
@@ -711,7 +719,8 @@
         const payload = await requestJson(`${endpoints.chatHistory}?${query.toString()}`);
         const messages = Array.isArray(payload.messages) ? payload.messages : [];
         const stillPending = messages.some((message) => (
-          message.trace_id === requestId && message.runtime_turn_status === "in_progress"
+          message.trace_id === requestId &&
+          (message.runtime_turn_status === "in_progress" || message.runtime_turn_status === "queued")
         ));
         renderHistory(payload);
         renderSessionAndContext(payload);

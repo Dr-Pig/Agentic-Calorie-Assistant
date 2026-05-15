@@ -4,6 +4,7 @@ import secrets
 from threading import Event, Thread
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from pathlib import Path
@@ -11,7 +12,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.composition import intake_chat_turn_routes, intake_routes
-from app.composition.inflight_chat_turn import PENDING_ASSISTANT_MESSAGE
+from app.composition.inflight_chat_turn import PENDING_ASSISTANT_MESSAGE, QUEUED_ASSISTANT_MESSAGE
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_db, get_or_create_user
 from app.models import Base
@@ -271,6 +272,131 @@ def test_async_chat_turn_accepts_and_persists_inflight_before_background_work(
         assert messages[0]["trace_id"] == accepted["request_id"]
         assert messages[1]["trace_id"] == accepted["request_id"]
         assert messages[1]["runtime_turn_status"] == "in_progress"
+    finally:
+        client.close()
+        db.close()
+
+
+def test_async_chat_turn_records_failed_background_completion(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    debug_token = secrets.token_urlsafe(24)
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", debug_token)
+    db_path = tmp_path / "async-chat-turn-failed.sqlite3"
+    engine = create_engine(f"sqlite:///{db_path.as_posix()}", connect_args={"check_same_thread": False})
+    testing_session = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+    Base.metadata.create_all(bind=engine)
+    seed_session = testing_session()
+    user_external_id = "api-async-chat-failed-user"
+    local_date = "2026-05-02"
+    try:
+        _seed_body_plan(seed_session, user_external_id=user_external_id, local_date=local_date)
+    finally:
+        seed_session.close()
+    request_session = testing_session()
+    client, _provider = _client(request_session, monkeypatch)
+    monkeypatch.setattr(intake_chat_turn_routes, "SessionLocal", testing_session)
+
+    async def failed_estimate(request, raw_request, db):
+        return JSONResponse(
+            status_code=500,
+            content={
+                "request_id": request.request_id,
+                "error": "provider_timeout",
+                "coach_message": "抱歉，這次沒有處理成功，請再送一次。",
+            },
+        )
+
+    monkeypatch.setattr(intake_routes, "estimate", failed_estimate)
+
+    try:
+        response = client.post(
+            "/accurate-intake/chat-turn",
+            json={
+                "text": "我今天量 84 公斤",
+                "allow_search": False,
+                "user_id": user_external_id,
+                "local_date": local_date,
+            },
+        )
+
+        assert response.status_code == 202
+        history = client.get(
+            "/accurate-intake/chat-history",
+            params={"user_id": user_external_id, "local_date": local_date},
+            headers={"X-Local-Debug-Token": debug_token},
+        )
+        assert history.status_code == 200
+        messages = history.json()["messages"]
+        assert len(messages) == 2
+        assert messages[1]["content"] != PENDING_ASSISTANT_MESSAGE
+        assert messages[1]["runtime_turn_status"] == "completed"
+    finally:
+        client.close()
+        request_session.close()
+
+
+def test_async_chat_turn_queues_second_turn_while_prior_turn_is_in_progress(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    debug_token = secrets.token_urlsafe(24)
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", debug_token)
+    db = _session(tmp_path / "async-chat-turn-queued.sqlite3")
+    user_external_id = "api-async-chat-queued-user"
+    local_date = "2026-05-02"
+    _seed_body_plan(db, user_external_id=user_external_id, local_date=local_date)
+    client, _provider = _client(db, monkeypatch)
+
+    async def noop_background(*_args, **_kwargs) -> None:
+        return None
+
+    monkeypatch.setattr(intake_chat_turn_routes, "_complete_chat_turn_background", noop_background)
+    monkeypatch.setattr(intake_chat_turn_routes, "_complete_queued_chat_turn_background", noop_background)
+
+    try:
+        first = client.post(
+            "/accurate-intake/chat-turn",
+            json={
+                "text": "早餐吃鐵板麵套餐",
+                "allow_search": False,
+                "user_id": user_external_id,
+                "local_date": local_date,
+            },
+        )
+        second = client.post(
+            "/accurate-intake/chat-turn",
+            json={
+                "text": "有鐵板麵、荷包蛋和紅茶",
+                "allow_search": False,
+                "user_id": user_external_id,
+                "local_date": local_date,
+            },
+        )
+
+        assert first.status_code == 202
+        assert second.status_code == 202
+        assert first.json()["status"] == "accepted"
+        assert second.json()["status"] == "queued"
+        assert second.json()["queued_after_request_id"] == first.json()["request_id"]
+        assert second.json()["coach_message"] == QUEUED_ASSISTANT_MESSAGE
+
+        history = client.get(
+            "/accurate-intake/chat-history",
+            params={"user_id": user_external_id, "local_date": local_date},
+            headers={"X-Local-Debug-Token": debug_token},
+        )
+        assert history.status_code == 200
+        messages = history.json()["messages"]
+        assert [(message["role"], message["content"]) for message in messages] == [
+            ("user", "早餐吃鐵板麵套餐"),
+            ("assistant", PENDING_ASSISTANT_MESSAGE),
+            ("user", "有鐵板麵、荷包蛋和紅茶"),
+            ("assistant", QUEUED_ASSISTANT_MESSAGE),
+        ]
+        assert messages[1]["runtime_turn_status"] == "in_progress"
+        assert messages[3]["runtime_turn_status"] == "queued"
     finally:
         client.close()
         db.close()

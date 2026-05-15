@@ -69,6 +69,18 @@ def test_grader_passes_a_valid_websearch_extension_candidate_result() -> None:
     assert grade["case_id"] == "GSW1"
 
 
+def test_grader_accepts_websearch_candidate_ask_followup_without_mutation() -> None:
+    result = _base_result("GSW1")
+    result["runtime"]["workflow_effect"] = "ask_followup"
+    result["runtime"]["mutation_allowed"] = False
+    result["runtime"]["runtime_mutation_allowed"] = False
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "pass"
+    assert grade["blockers"] == []
+
+
 def test_grader_blocks_websearch_candidate_truth_promotion() -> None:
     result = _base_result("GSW1")
     result["runtime"]["websearch_snippet_as_truth_allowed"] = True
@@ -190,6 +202,23 @@ def test_grader_accepts_structured_previous_teppan_meal_attachment() -> None:
     assert grade["blockers"] == []
 
 
+def test_grader_accepts_tool_result_previous_meal_attachment() -> None:
+    result = _base_result("GS11")
+    result["runtime"]["workflow_effect"] = "correction_applied"
+    result["runtime"]["canonical_commit_status"] = "committed"
+    result["runtime"]["final_action"] = "correction_applied"
+    result["runtime"]["target_attachment"] = {
+        "meal_thread_id": 1,
+        "operation": "update_meal_components",
+        "target_resolution_source": "tool_result",
+    }
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "pass"
+    assert grade["blockers"] == []
+
+
 def test_grader_accepts_structured_whole_meal_removal_attachment() -> None:
     result = _base_result("GS12")
     result["runtime"]["workflow_effect"] = "correction_applied"
@@ -280,3 +309,26 @@ def test_grader_blocks_exact_utterance_or_keyword_shortcut_pass() -> None:
     assert grade["status"] == "blocked"
     assert "generalization.exact_utterance_only_pass" in grade["blockers"]
     assert "generalization.keyword_or_fixture_shortcut_used" in grade["blockers"]
+
+
+def test_grader_blocks_browser_ui_case_without_browser_execution() -> None:
+    result = _base_result("GS19")
+    result["ui"]["browser_executed"] = False
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "blocked"
+    assert "ui.browser_executed_not_true_for_browser_case" in grade["blockers"]
+
+
+def test_grader_blocks_gs17_feedback_link_without_real_feedback_record() -> None:
+    result = _base_result("GS17")
+    result["ui"]["browser_executed"] = True
+    result["dogfood_trace"]["feedback_linkage_source"] = "trace_id_linkable_only"
+    result["dogfood_trace"].pop("feedback_record_id", None)
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "blocked"
+    assert "dogfood_trace.feedback_record_id_missing" in grade["blockers"]
+    assert "dogfood_trace.feedback_linkage_source_not_feedback_record" in grade["blockers"]

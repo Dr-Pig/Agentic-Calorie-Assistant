@@ -674,6 +674,44 @@ async def test_run_intake_manager_uses_same_static_prompt_with_intake_scope_poli
 
 
 @pytest.mark.asyncio
+async def test_run_intake_manager_body_scope_policy_names_record_observation_not_commit() -> None:
+    provider = FakeLoopProvider(
+        [
+            {
+                "manager_action": "final",
+                "intent": "body_observation",
+                "intent_type": "body_observation",
+                "final_action": "answer_only",
+                "workflow_effect": "record_weight",
+                "target_attachment": {"mode": "body_observation_recorded"},
+                "exactness": "exact",
+                "confidence": "high",
+                "evidence_posture": "body_observation_recorded",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "ok"},
+            },
+        ]
+    )
+
+    await manager_service.run_intake_manager(
+        provider=provider,
+        raw_user_input="I weigh 84 kg today",
+        resolved_state=SimpleNamespace(onboarding_ready=True),
+        available_tools=("body.record_observation",),
+    )
+
+    policy = provider.calls[0]["user_payload"]["manager_scope_policy"]
+    assert policy["before_successful_body_record_tool_result"] == {
+        "manager_action": "call_tools",
+        "intent_type": "body_observation",
+        "required_tool": "body.record_observation",
+        "final_action": "record_observation",
+        "workflow_effect": "record_weight",
+        "forbidden_final_actions": ["commit"],
+    }
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("available_tools", "expected_scope"),
     [

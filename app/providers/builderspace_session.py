@@ -15,7 +15,9 @@ from .builderspace_attempts import (
     remaining_retry_budget,
     run_structured_attempt,
 )
+from .builderspace_attempt_failure import record_attempt_failure
 from .builderspace_contract_repair import contract_repair_message
+from .builderspace_decision_transport_fallback import should_fallback_decision_transport_parse_error
 from .builderspace_parsing import BuilderSpaceParseError, extract_finish_reason, extract_json_object, extract_text_content
 from .builderspace_prompt_cache import apply_prompt_cache_key
 from .builderspace_trace import build_success_trace, new_transport_attempt
@@ -164,10 +166,18 @@ async def complete_builderspace_with_trace(
                                 decision_transport_request = None
                             else:
                                 raise
-                        except BuilderSpaceParseError:
-                            decision_transport_meta["decision_transport_accepted"] = True
+                        except BuilderSpaceParseError as exc:
                             decision_transport_meta["decision_transport_contract_breach"] = True
-                            raise
+                            if should_fallback_decision_transport_parse_error(exc, constraints):
+                                decision_transport_meta["decision_transport_accepted"] = False
+                                decision_transport_meta["decision_transport_fallback"] = "json_schema"
+                                decision_transport_meta["decision_transport_fallback_reason"] = (
+                                    "tool_call_transport_contract_breach"
+                                )
+                                decision_transport_request = None
+                            else:
+                                decision_transport_meta["decision_transport_accepted"] = True
+                                raise
                     request_payload, parsed, response, data, effective_response_format_type = await run_structured_attempt(
                         client=client,
                         base_url=base_url,
@@ -223,7 +233,7 @@ async def complete_builderspace_with_trace(
                     )
                 except Exception as exc:
                     last_error = exc
-                    _record_attempt_failure(attempt_trace, exc=exc, response=response)
+                    record_attempt_failure(attempt_trace, exc=exc, response=response)
                     transport_attempts.append(attempt_trace)
                     if _should_retry_transport_error(exc) and attempt_index < transport_retry_count + 1:
                         await asyncio.sleep(transport_retry_backoff_seconds * attempt_index)
@@ -246,25 +256,6 @@ async def complete_builderspace_with_trace(
             fallback_reason=fallback_reason,
             effective_response_format_type=effective_response_format_type,
         ) from exc
-
-
-def _record_attempt_failure(
-    attempt_trace: dict[str, Any],
-    *,
-    exc: Exception,
-    response: httpx.Response | Any | None,
-) -> None:
-    attempt_trace["status"] = "error"
-    attempt_trace["ended_at_utc"] = _utc_now_iso()
-    _finish_attempt_timer(attempt_trace)
-    attempt_trace["error_type"] = type(exc).__name__
-    attempt_trace["error"] = str(exc)
-    if isinstance(exc, httpx.HTTPStatusError):
-        attempt_trace["http_status"] = exc.response.status_code
-        attempt_trace["response_body_excerpt"] = (exc.response.text or "")[:1200]
-        attempt_trace["response_body_truncated"] = len(exc.response.text or "") > 1200
-    elif response is not None:
-        attempt_trace["http_status"] = getattr(response, "status_code", None)
 
 
 def _mark_attempt_completed(attempt_trace: dict[str, Any], *, status: str) -> None:

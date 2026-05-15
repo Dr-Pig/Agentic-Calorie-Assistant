@@ -5,7 +5,9 @@ import pytest
 
 import app.providers.builderspace_adapter as builderspace_adapter_module
 from app.providers.builderspace_adapter import BuilderSpaceAdapter, BuilderSpaceResponseError
+from app.providers.builderspace_contract_repair import contract_repair_message
 from app.providers.builderspace_prompt_cache import build_prompt_cache_key
+from app.providers.builderspace_runtime_contract import manager_loop_decision_transport_schema
 from app.runtime.agent.manager_branch_contract import (
     B1_COMMON_COMMERCIAL_DRINK_CASE_FAMILY,
     B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
@@ -88,6 +90,44 @@ class _RecordingAsyncClientWithFailures:
         if isinstance(outcome, Exception):
             raise outcome
         return outcome
+
+
+def test_contract_repair_message_maps_body_observation_commit_to_record_observation() -> None:
+    message = contract_repair_message(
+        {
+            "error": "founder live manager contract final_action invalid: 'commit'",
+            "observed_value": {
+                "intent_type": "body_observation",
+                "semantic_decision": {"current_turn_intent": "body_observation"},
+            },
+        }
+    )
+
+    assert "body_observation" in message
+    assert "final_action='record_observation'" in message
+    assert "commit is intake-only" in message
+
+
+def test_contract_repair_message_maps_listed_lookup_to_manager_owned_listed_items() -> None:
+    message = contract_repair_message(
+        {
+            "error": (
+                "founder live manager contract listed_item_lookup requires "
+                "semantic_decision.listed_items from the Manager-owned semantic decision"
+            ),
+            "observed_value": {
+                "intent_type": "log_meal",
+                "semantic_decision": {
+                    "current_turn_intent": "log_meal",
+                    "retrieval_goal": "listed_item_lookup",
+                },
+            },
+        }
+    )
+
+    assert "retrieval_goal='listed_item_lookup'" in message
+    assert "semantic_decision.listed_items" in message
+    assert "Manager" in message
 
 
 def _schema_key_count(value: object, key: str) -> int:
@@ -195,7 +235,10 @@ def _founder_live_payload(**overrides: object) -> dict[str, object]:
             "uncertainty_posture": "bounded",
             "source": "live_manager_structured_output",
         },
-        "answer_contract": {"reply_text": "Estimated and logged."},
+        "answer_contract": {
+            "reply_text": "Estimated and logged.",
+            "followup_question": "What size and sugar level was it?",
+        },
     }
     payload.update(overrides)
     return payload
@@ -752,6 +795,7 @@ def test_builderspace_response_schema_forced_composition_unknown_is_tool_call_co
 
     assert schema is not None
     assert schema["properties"]["manager_action"]["enum"] == ["call_tools"]
+    assert "enum" not in schema["properties"]["final_action"]
     assert schema["properties"]["tool_calls"]["minItems"] == 1
     assert schema["properties"]["tool_calls"]["items"]["properties"]["name"]["enum"] == [
         "lookup_generic_food",
@@ -765,6 +809,7 @@ def test_builderspace_response_schema_forced_composition_unknown_is_tool_call_co
         "answer_contract",
         "tool_calls",
     ]
+    assert "final_action" not in schema["required"]
 
 
 def test_builderspace_response_format_uses_json_schema_for_b1_pass2_contract(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -918,6 +963,7 @@ def test_founder_live_manager_contract_schema_uses_consumer_backed_required_fiel
         "answer_query",
         "log_meal",
         "correct_meal",
+        "body_observation",
     ]
     assert schema["x-field-consumers"]["workflow_effect"] == "transition_guard_and_mutation_boundary"
     assert schema["x-field-consumers"]["answer_contract"] == "renderer_boundary"
@@ -1002,12 +1048,179 @@ def test_founder_live_body_observation_scope_schema_keeps_body_tool_calls(
     assert schema["properties"]["tool_calls"]["items"]["properties"]["name"]["enum"] == [
         "body.record_observation",
     ]
+    assert not any(
+        item.get("if", {}).get("properties", {}).get("intent_type", {}).get("const") == "body_observation"
+        for item in schema["allOf"]
+    )
     call_tools_rule = next(
         item
         for item in schema["allOf"]
         if item["if"]["properties"]["manager_action"]["const"] == "call_tools"
     )
     assert call_tools_rule["then"]["properties"]["final_action"]["enum"] == ["record_observation"]
+
+
+def test_founder_live_body_observation_repair_schema_requires_body_tool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        "manager_contract_profile_id": "founder_live_contract",
+        "manager_contract_schema_name": "founder_live_manager_contract",
+        "manager_contract_schema_version": "v1",
+        "manager_contract_transport_policy": "synthetic_tool_transport",
+        "manager_loop_scope": "body_observation",
+        "available_tools": ["body.record_observation"],
+        "guard_feedback_failure_family": "body_observation_missing_successful_tool_result",
+        "guard_feedback_repair_request": True,
+    }
+
+    schema = adapter._response_schema_for_stage("intake_manager_round", constraints=constraints)
+
+    assert schema["properties"]["manager_action"]["enum"] == ["call_tools"]
+    assert schema["properties"]["final_action"]["enum"] == ["record_observation"]
+    assert schema["properties"]["tool_calls"]["minItems"] == 1
+    assert schema["properties"]["tool_calls"]["items"]["properties"]["name"]["enum"] == [
+        "body.record_observation"
+    ]
+    assert schema["x-repair-contract"] == {
+        "failure_family": "body_observation_missing_successful_tool_result",
+        "required_tool": "body.record_observation",
+    }
+
+
+def test_founder_live_body_observation_decision_transport_keeps_body_final_action_without_repair() -> None:
+    schema = manager_loop_decision_transport_schema(
+        {
+            **_founder_live_constraints(),
+            "manager_loop_scope": "body_observation",
+            "available_tools": ["body.record_observation"],
+        }
+    )
+
+    assert schema["properties"]["intent_type"]["enum"] == ["body_observation", "manager_unavailable"]
+    assert schema["properties"]["manager_action"]["enum"] == ["call_tools", "final"]
+    assert schema["properties"]["tool_calls"]["items"]["properties"]["name"]["enum"] == [
+        "body.record_observation"
+    ]
+    assert schema["properties"]["final_action"]["enum"] == [
+        "record_observation",
+        "answer_only",
+        "no_commit",
+        "manager_unavailable",
+    ]
+
+
+def test_founder_live_body_observation_repair_decision_transport_keeps_body_final_action() -> None:
+    schema = manager_loop_decision_transport_schema(
+        {
+            **_founder_live_constraints(),
+            "manager_loop_scope": "body_observation",
+            "available_tools": ["body.record_observation"],
+            "guard_feedback_failure_family": "body_observation_missing_successful_tool_result",
+            "guard_feedback_repair_request": True,
+        }
+    )
+
+    assert schema["properties"]["manager_action"]["enum"] == ["call_tools"]
+    assert schema["properties"]["tool_calls"]["items"]["properties"]["name"]["enum"] == [
+        "body.record_observation"
+    ]
+    assert schema["properties"]["final_action"]["enum"] == ["record_observation"]
+
+
+def test_founder_live_intake_scope_requires_body_observation_handoff_shape(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        "manager_contract_profile_id": "founder_live_contract",
+        "manager_contract_schema_name": "founder_live_manager_contract",
+        "manager_contract_schema_version": "v1",
+        "manager_contract_transport_policy": "synthetic_tool_transport",
+        "manager_loop_scope": "intake_execution",
+        "available_tools": ["resolve_correction_target", "estimate_nutrition"],
+    }
+    schema = adapter._response_schema_for_stage("intake_manager_round", constraints=constraints)
+    body_handoff_rule = next(
+        item
+        for item in schema["allOf"]
+        if item.get("if", {}).get("properties", {}).get("intent_type", {}).get("const") == "body_observation"
+    )
+    assert body_handoff_rule["then"]["properties"]["final_action"]["enum"] == ["no_commit"]
+    assert body_handoff_rule["then"]["properties"]["workflow_effect"]["enum"] == [
+        "route_to_body_observation"
+    ]
+    assert body_handoff_rule["then"]["properties"]["tool_calls"]["maxItems"] == 0
+
+    payload = _founder_live_payload(
+        manager_action="final",
+        intent_type="body_observation",
+        final_action="commit",
+        workflow_effect="commit",
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "body_observation",
+            "target_attachment": {},
+            "workflow_effect": "commit",
+            "final_action_candidate": "commit",
+            "estimation_posture": "none",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "body_observation_write",
+            "uncertainty_posture": "none",
+            "source": "live_manager_structured_output",
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="body_observation handoff"):
+        adapter._validate_manager_payload("intake_manager_round", payload, constraints=constraints)
+
+    payload["final_action"] = "no_commit"
+    payload["workflow_effect"] = "route_to_body_observation"
+    payload["semantic_decision"]["workflow_effect"] = "route_to_body_observation"
+    payload["semantic_decision"]["final_action_candidate"] = "no_commit"
+
+    adapter._validate_manager_payload("intake_manager_round", payload, constraints=constraints)
+
+
+def test_founder_live_contract_rejects_listed_item_lookup_without_manager_owned_items(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        "manager_contract_profile_id": "founder_live_contract",
+        "manager_contract_schema_name": "founder_live_manager_contract",
+        "manager_contract_schema_version": "v1",
+        "manager_contract_transport_policy": "synthetic_tool_transport",
+        "manager_loop_scope": "turn_entry_or_read_only",
+        "available_tools": [],
+    }
+    payload = _founder_live_payload(
+        manager_action="final",
+        intent_type="log_meal",
+        final_action="no_commit",
+        workflow_effect="route_to_intake",
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {},
+            "workflow_effect": "route_to_intake",
+            "final_action_candidate": "commit",
+            "estimation_posture": "pending_tool_call",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "canonical_write",
+            "uncertainty_posture": "bounded",
+            "source": "live_manager_structured_output",
+            "retrieval_goal": "listed_item_lookup",
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="listed_item_lookup requires semantic_decision.listed_items"):
+        adapter._validate_manager_payload("intake_manager_round", payload, constraints=constraints)
+
+    payload["semantic_decision"]["listed_items"] = ["鐵板麵", "荷包蛋", "豬肉片"]
+
+    adapter._validate_manager_payload("intake_manager_round", payload, constraints=constraints)
 
 
 def test_founder_live_decision_transport_tool_schema_is_stable_across_manager_scopes(
@@ -1208,12 +1421,11 @@ def test_founder_live_commit_without_evidence_repair_schema_requires_tool_call(
 
     assert schema is not None
     assert schema["properties"]["manager_action"]["enum"] == ["call_tools"]
+    assert schema["properties"]["final_action"]["enum"] == ["commit", "correction_applied", "overshoot_note"]
     assert "tool_calls" in schema["required"]
-    assert "minItems" not in schema["properties"]["tool_calls"]
+    assert schema["properties"]["tool_calls"]["minItems"] == 1
     assert schema["properties"]["tool_calls"]["items"]["properties"]["name"]["enum"] == [
-        "resolve_correction_target",
-        "estimate_nutrition",
-        "compare_against_budget",
+        "estimate_nutrition"
     ]
     assert schema["x-repair-contract"] == {
         "failure_family": "commit_without_evidence",
@@ -1254,7 +1466,10 @@ def test_founder_live_manager_contract_payload_accepts_trace_repair_ack_outside_
             "uncertainty_posture": "bounded",
             "source": "live_manager_structured_output",
         },
-        "answer_contract": {"reply_text": "Estimated and logged."},
+        "answer_contract": {
+            "reply_text": "Estimated and logged.",
+            "followup_question": "What size and sugar level was it?",
+        },
     }
 
     adapter._validate_manager_payload("intake_manager_round", payload, constraints=constraints)
@@ -1309,10 +1524,22 @@ def test_founder_live_manager_contract_payload_accepts_trace_repair_ack_outside_
     missing_followup_question = dict(payload)
     missing_followup_question["semantic_decision"] = dict(payload["semantic_decision"])
     missing_followup_question["semantic_decision"]["followup_posture"] = "refinement_not_commit_gate"
+    missing_followup_question["answer_contract"] = {"reply_text": "Estimated and logged."}
     with pytest.raises(RuntimeError, match="followup question missing"):
         adapter._validate_manager_payload(
             "intake_manager_round",
             missing_followup_question,
+            constraints=constraints,
+        )
+
+    missing_optional_followup_question = dict(payload)
+    missing_optional_followup_question["semantic_decision"] = dict(payload["semantic_decision"])
+    missing_optional_followup_question["semantic_decision"]["followup_posture"] = "refinement_optional"
+    missing_optional_followup_question["answer_contract"] = {"reply_text": "Estimated and logged."}
+    with pytest.raises(RuntimeError, match="followup question missing"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            missing_optional_followup_question,
             constraints=constraints,
         )
 
@@ -2034,12 +2261,9 @@ def test_founder_live_contract_policy_names_existing_query_only_and_followup_inv
         "answer_only",
         "ask_followup_for_replacement_confirmation",
     ]
-    assert policy["followup_question_rule"]["fallback_postures_when_no_question"] == [
-        "none",
-        "refinement_optional",
-        "closed",
-    ]
+    assert policy["followup_question_rule"]["fallback_postures_when_no_question"] == ["none", "closed"]
     assert "precision_refinement" not in policy["followup_question_required_postures"]
+    assert "refinement_optional" in policy["followup_question_required_postures"]
     assert "refinement_not_commit_gate" in policy["followup_question_required_postures"]
     description = founder_live_manager_tool_description()
     assert "query-only" in description
@@ -2620,6 +2844,69 @@ async def test_complete_with_trace_b1_common_commercial_meal_tool_call_transport
     assert trace["decision_transport_fallback_reason"] is None
     assert trace["failure_family"] == "tool_call_transport_contract_breach"
     assert trace["failing_component"] == "builderspace_adapter.extract_tool_call_decision"
+
+
+@pytest.mark.asyncio
+async def test_complete_with_trace_founder_live_falls_back_when_synthetic_tool_call_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    posted_payloads: list[dict[str, object]] = []
+    first = _FakeResponse(
+        payload=_json_envelope("I will return JSON but not as the synthetic tool call."),
+        text="first",
+    )
+    body_payload = _founder_live_payload(
+        manager_action="call_tools",
+        intent="body_observation",
+        intent_type="body_observation",
+        tool_calls=[
+            {
+                "name": "body.record_observation",
+                "arguments": {"observation_type": "weight", "value": 84, "unit": "kg"},
+            }
+        ],
+        workflow_effect="record_weight",
+        target_attachment={"mode": "body_observation_recorded"},
+        final_action="record_observation",
+        exactness="exact",
+        confidence="high",
+        evidence_posture="body_observation_pending_tool",
+        semantic_decision={
+            "current_turn_intent": "body_observation",
+            "workflow_effect": "record_weight",
+            "final_action_candidate": "record_observation",
+            "mutation_intent_candidate": "body_observation_write",
+        },
+        answer_contract={"reply_text": "I will record today's weight."},
+    )
+    second = _FakeResponse(payload=_json_envelope(json.dumps(body_payload)), text="second")
+    monkeypatch.setenv("AI_BUILDER_TOKEN", "test-token")
+    monkeypatch.setenv("AI_BUILDER_BASE_URL", "https://example.test/backend/v1")
+    monkeypatch.setattr(
+        builderspace_adapter_module.httpx,
+        "AsyncClient",
+        lambda **kwargs: _RecordingAsyncClient(responses=[first, second], recorder=posted_payloads, **kwargs),
+    )
+    adapter = BuilderSpaceAdapter(manager_model_override="deepseek")
+
+    parsed, trace = await adapter.complete_with_trace(
+        system_prompt="Return structured manager payload.",
+        user_payload={
+            "constraints": {
+                **_founder_live_constraints(),
+                "manager_loop_scope": "body_observation",
+                "available_tools": ["body.record_observation"],
+            }
+        },
+        stage="intake_manager_round",
+    )
+
+    assert parsed["final_action"] == "record_observation"
+    assert len(posted_payloads) == 2
+    assert "tools" in posted_payloads[0]["json"]
+    assert posted_payloads[1]["json"]["response_format"]["type"] == "json_schema"
+    assert trace["decision_transport_fallback"] == "json_schema"
+    assert trace["decision_transport_fallback_reason"] == "tool_call_transport_contract_breach"
 
 
 @pytest.mark.asyncio

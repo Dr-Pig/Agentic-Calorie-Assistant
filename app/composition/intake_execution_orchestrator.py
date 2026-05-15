@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.composition.intake_execution_response import build_intake_execution_response
 from app.composition.intake_entry_handoff import execute_entry_handoff_seed
+from app.composition.intake_execution_manager_result_payload import manager_result_payload
 from app.composition.intake_commit_guard_repair import commit_boundary_guard_repair_outcome
 from app.composition.manager_context_runtime import build_runtime_manager_context_packet_v1
 from app.composition.remove_item_target_evidence import (
@@ -28,6 +29,7 @@ from app.composition.intake_manager_tool_batch import (
 from app.composition.intake_execution_tool_outputs import build_refreshed_intake_tool_outputs
 from app.composition.intake_manager_target_validation import validate_final_manager_target_attachment
 from app.composition.manager_ask_followup_draft import build_manager_ask_followup_draft_artifact
+from app.composition.pending_followup_attach_guard import pending_followup_attach_repair_outcome
 from app.composition.state_resolver import resolve_intake_state
 from app.composition.commit_boundary_preflight import run_commit_boundary_preflight
 from app.composition.user_provided_kcal_evidence import build_user_provided_kcal_evidence_seed
@@ -58,14 +60,6 @@ def _now_ms() -> int:
 
 def _append_stage_timing(stage_timings: list[dict[str, Any]], stage: str, duration_ms: int) -> None:
     stage_timings.append({"stage": stage, "duration_ms": duration_ms})
-
-def _manager_result_payload(manager_result: Any) -> dict[str, Any]:
-    return {
-        "final_action": str(getattr(manager_result, "final_action", "") or ""),
-        "target_attachment": dict(getattr(manager_result, "target_attachment", {}) or {}),
-        "answer_contract": dict(getattr(manager_result, "answer_contract", {}) or {}),
-        "semantic_decision": dict(getattr(manager_result, "semantic_decision", {}) or {}),
-    }
 
 async def process_intake_execution_turn(
     db: Session,
@@ -251,6 +245,12 @@ async def process_intake_execution_turn(
                 "failure_family": transition_preflight.failure_family,
                 "phase_a_transition_guard_preflight": preflight_trace,
             }
+        pending_attach_repair = pending_followup_attach_repair_outcome(
+            manager_payload=manager_payload,
+            correction_target=dict(tool_state.get("correction_target") or {}),
+        )
+        if pending_attach_repair is not None:
+            return {**pending_attach_repair, "phase_a_transition_guard_preflight": preflight_trace}
         artifact = tool_state.get("nutrition_artifact")
         payload = getattr(artifact, "payload", None) if artifact is not None else None
         if final_action in {"commit", "correction_applied", "overshoot_note"} and payload is None:
@@ -335,7 +335,7 @@ async def process_intake_execution_turn(
     budget_summary = tool_state.get("budget_summary")
     payload = getattr(nutrition_artifact, "payload", None) if nutrition_artifact is not None else None
     if payload is None and remove_item_target_evidence_ready(
-        manager_payload=_manager_result_payload(manager_result),
+        manager_payload=manager_result_payload(manager_result),
         correction_target=dict(tool_state.get("correction_target") or {}),
     ):
         nutrition_artifact = build_remove_item_target_evidence_artifact(
