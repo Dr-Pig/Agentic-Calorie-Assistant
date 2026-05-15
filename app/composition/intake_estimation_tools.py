@@ -24,7 +24,12 @@ from app.nutrition.application.fooddb_retrieval_estimate_artifacts import (
 from app.nutrition.application.manager_listed_component_anchor_artifact import (
     build_manager_listed_component_anchor_artifact,
 )
+from app.nutrition.application.listed_component_web_evidence import run_listed_component_web_evidence
 from app.nutrition.application.retrieval_semantic_decision import B2ManagerSemanticDecision
+from app.nutrition.application.turn_web_evidence_artifacts import (
+    build_component_turn_web_evidence_artifact,
+    build_exact_turn_web_evidence_artifact,
+)
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
 from app.nutrition.infrastructure.small_anchor_store_loader import load_small_anchor_seed_records
@@ -104,6 +109,48 @@ async def estimate_nutrition_tool(
         allow_search=allow_search,
         contextualized_query=contextualized_query,
     )
+    if canary_outcome.result is not None:
+        artifact = build_exact_turn_web_evidence_artifact(
+            db,
+            user_external_id=user_external_id,
+            raw_user_input=raw_user_input,
+            local_date=local_date or datetime.now().date().isoformat(),
+            lane_result=canary_outcome.result,
+            web_trace=canary_outcome.trace,
+        )
+        normalize_live_payload(artifact.payload, raw_user_input=raw_user_input)
+        _attach_web_runtime_trace(artifact.payload, canary_outcome.trace)
+        return artifact
+
+    component_web_outcome = await run_listed_component_web_evidence(
+        raw_user_input=raw_user_input,
+        manager_decision=manager_semantic_decision,
+        search_port=search_port,
+        extract_port=extract_port,
+        allow_search=allow_search,
+    )
+    if (
+        component_web_outcome.results
+        and component_web_outcome.trace.get("all_listed_components_have_sources") is True
+        and component_web_outcome.trace.get("turn_web_evidence_packet_present") is True
+    ):
+        artifact = build_component_turn_web_evidence_artifact(
+            db,
+            user_external_id=user_external_id,
+            raw_user_input=raw_user_input,
+            local_date=local_date or datetime.now().date().isoformat(),
+            lane_results=component_web_outcome.results,
+            web_trace=component_web_outcome.trace,
+        )
+        normalize_live_payload(artifact.payload, raw_user_input=raw_user_input)
+        _attach_web_runtime_trace(artifact.payload, component_web_outcome.trace)
+        return artifact
+
+    fallback_web_trace = (
+        component_web_outcome.trace
+        if component_web_outcome.trace.get("attempted") is True
+        else canary_outcome.trace
+    )
     if canary_outcome.trace.get("attempted") is not True:
         component_anchor_artifact = build_manager_listed_component_anchor_artifact(
             db,
@@ -114,7 +161,7 @@ async def estimate_nutrition_tool(
         )
         if component_anchor_artifact is not None:
             normalize_live_payload(component_anchor_artifact.payload, raw_user_input=raw_user_input)
-            _attach_web_runtime_trace(component_anchor_artifact.payload, canary_outcome.trace)
+            _attach_web_runtime_trace(component_anchor_artifact.payload, fallback_web_trace)
             return component_anchor_artifact
         fooddb_artifact = _approved_fooddb_retrieval_artifact(
             db,
@@ -125,7 +172,7 @@ async def estimate_nutrition_tool(
         )
         if fooddb_artifact is not None:
             normalize_live_payload(fooddb_artifact.payload, raw_user_input=raw_user_input)
-            _attach_web_runtime_trace(fooddb_artifact.payload, canary_outcome.trace)
+            _attach_web_runtime_trace(fooddb_artifact.payload, fallback_web_trace)
             return fooddb_artifact
 
     artifact = build_evidence_unavailable_artifact(
@@ -145,7 +192,7 @@ async def estimate_nutrition_tool(
                     pending_state.is_open = False
     _fill_missing_trace_dates(artifact.payload)
     normalize_live_payload(artifact.payload, raw_user_input=raw_user_input)
-    _attach_web_runtime_trace(artifact.payload, canary_outcome.trace)
+    _attach_web_runtime_trace(artifact.payload, fallback_web_trace)
     return artifact
 
 
@@ -223,24 +270,12 @@ def _manager_owned_listed_components(
 def _default_web_runtime_trace() -> dict[str, Any]:
     return {
         "lane_id": WEB_CANARY_LANE_ID,
-        "attempted": False,
-        "skip_reason": None,
-        "failure_reason": None,
-        "search_query": None,
-        "selected_search_packet_id": None,
-        "accepted_extract_packet_id": None,
-        "selected_url": None,
-        "search_attempt_count": 0,
-        "extract_attempt_count": 0,
-        "search_latency_ms": 0,
-        "extract_latency_ms": 0,
-        "total_latency_ms": 0,
-        "cost": None,
-        "packetized_candidate_present": False,
-        "manager_pass_2_saw_search_packet": False,
-        "extract_attempted": False,
-        "retrieval_goal": None,
-        "exact_db_miss_confirmed": False,
+        "attempted": False, "skip_reason": None, "failure_reason": None, "search_query": None,
+        "selected_search_packet_id": None, "accepted_extract_packet_id": None, "selected_url": None,
+        "search_attempt_count": 0, "extract_attempt_count": 0, "search_latency_ms": 0, "extract_latency_ms": 0,
+        "total_latency_ms": 0, "cost": None, "packetized_candidate_present": False,
+        "manager_pass_2_saw_search_packet": False, "extract_attempted": False,
+        "retrieval_goal": None, "exact_db_miss_confirmed": False,
     }
 
 

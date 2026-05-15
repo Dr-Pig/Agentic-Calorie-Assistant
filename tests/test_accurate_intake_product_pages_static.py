@@ -170,7 +170,7 @@ def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() ->
     assert "Conversation history not loaded." in html
     assert "<summary>Conversation settings</summary>" in html
     assert "grid-template-columns: 1fr;" in html
-    assert 'body: JSON.stringify({ text, user_id: userId(), local_date: selectedDate(), allow_search: false })' in html
+    assert 'body: JSON.stringify({ text, user_id: userId(), local_date: selectedDate(), allow_search: allowSearch() })' in html
     assert 'chatHistory: "/accurate-intake/chat-history"' in html
     assert 'estimate: "/estimate"' in html
     assert "history:" not in html
@@ -251,7 +251,11 @@ def test_chat_composer_supports_enter_send_and_shift_enter_multiline() -> None:
     assert "requestSubmit()" in html
     assert "function setComposerBusy(isBusy)" in html
     assert 'el("composer").setAttribute("aria-busy", isBusy ? "true" : "false");' in html
-    assert 'el("send-button").disabled = isBusy;' in html
+    assert 'el("send-button").disabled = false;' in html
+    assert "function hasOpenTurn(messages)" in html
+    assert "status === \"queued\"" in html
+    assert "can keep sending; new messages are queued" in html
+    assert "waiting for" not in html
     assert 'el("message-input").disabled = isBusy;' not in html
     assert "function fitComposerInput()" in html
     assert 'el("message-input").addEventListener("input", fitComposerInput);' in html

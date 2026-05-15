@@ -674,6 +674,44 @@ async def test_run_intake_manager_uses_same_static_prompt_with_intake_scope_poli
 
 
 @pytest.mark.asyncio
+async def test_run_intake_manager_body_scope_policy_names_record_observation_not_commit() -> None:
+    provider = FakeLoopProvider(
+        [
+            {
+                "manager_action": "final",
+                "intent": "body_observation",
+                "intent_type": "body_observation",
+                "final_action": "answer_only",
+                "workflow_effect": "record_weight",
+                "target_attachment": {"mode": "body_observation_recorded"},
+                "exactness": "exact",
+                "confidence": "high",
+                "evidence_posture": "body_observation_recorded",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "ok"},
+            },
+        ]
+    )
+
+    await manager_service.run_intake_manager(
+        provider=provider,
+        raw_user_input="I weigh 84 kg today",
+        resolved_state=SimpleNamespace(onboarding_ready=True),
+        available_tools=("body.record_observation",),
+    )
+
+    policy = provider.calls[0]["user_payload"]["manager_scope_policy"]
+    assert policy["before_successful_body_record_tool_result"] == {
+        "manager_action": "call_tools",
+        "intent_type": "body_observation",
+        "required_tool": "body.record_observation",
+        "final_action": "record_observation",
+        "workflow_effect": "record_weight",
+        "forbidden_final_actions": ["commit"],
+    }
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("available_tools", "expected_scope"),
     [
@@ -1084,7 +1122,17 @@ async def test_run_intake_manager_sends_compact_tool_results_to_provider_only() 
                 "trace_contract": {
                     "canonical_write_decision": {"can_write_canonical": True},
                     "db_hit_type": "generic",
-                    "web_runtime_trace": {"debug_blob": "x" * 10_000},
+                    "web_runtime_trace": {
+                        "attempted": True,
+                        "retrieval_goal": "exact_brand_lookup",
+                        "source_admissibility_status": "rejected",
+                        "wrong_context_source_rejected": True,
+                        "selected_extract_present": False,
+                        "turn_web_evidence_packet_present": False,
+                        "turn_web_evidence_may_support_commit": False,
+                        "failure_reason": "wrong_context_source_rejected",
+                        "debug_blob": "x" * 10_000,
+                    },
                     "raw_candidates": ["not prompt input"] * 50,
                 },
             }
@@ -1127,8 +1175,17 @@ async def test_run_intake_manager_sends_compact_tool_results_to_provider_only() 
     assert prompt_nutrition["trace_contract"] == {
         "db_hit_type": "generic",
         "canonical_write_decision": {"can_write_canonical": True},
+        "web_runtime_trace": {
+            "attempted": True,
+            "retrieval_goal": "exact_brand_lookup",
+            "source_admissibility_status": "rejected",
+            "wrong_context_source_rejected": True,
+            "selected_extract_present": False,
+            "turn_web_evidence_packet_present": False,
+            "turn_web_evidence_may_support_commit": False,
+            "failure_reason": "wrong_context_source_rejected",
+        },
     }
-    assert "web_runtime_trace" not in str(prompt_tool_result)
     assert "raw_candidates" not in str(prompt_tool_result)
     assert "debug_blob" not in str(prompt_tool_result)
     assert result.tool_results[0]["evidence"]["nutrition_payload"]["trace_contract"]["web_runtime_trace"]["debug_blob"]

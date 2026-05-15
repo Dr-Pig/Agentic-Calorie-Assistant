@@ -19,6 +19,15 @@ def _component_text(component_estimates: list[Any]) -> str:
 def _generic_range_basis_text(nutrition_payload: Any) -> str:
     trace_contract = dict(getattr(nutrition_payload, "trace_contract", {}) or {})
     approved_trace = dict(trace_contract.get("approved_fooddb_evidence_trace") or {})
+    web_trace = dict(trace_contract.get("web_runtime_trace") or {})
+    manager_retrieval_goal = str(
+        web_trace.get("retrieval_goal") or trace_contract.get("retrieval_goal") or ""
+    )
+    if (
+        approved_trace.get("runtime_truth_allowed") is True
+        and manager_retrieval_goal == "generic_anchor_lookup"
+    ):
+        return "\u4f9d\u5e38\u898b\u4efd\u91cf\u4f30\u7b97\uff0c\u5be6\u969b\u6703\u56e0\u4efd\u91cf\u8207\u505a\u6cd5\u6709\u8aa4\u5dee\u3002"
     if approved_trace.get("source_lane") != "generic_common_serving":
         return ""
     kcal_range = (

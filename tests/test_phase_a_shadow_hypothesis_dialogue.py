@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.intake.application.boundary_output_honesty import SAFE_NO_COMMIT_REPLY
 from app.intake.application.shadow_hypothesis_dialogue import (
     apply_shadow_hypothesis_dialogue_cue,
 )
@@ -30,15 +31,20 @@ def _trace(
     }
 
 
-def test_dialogue_cue_adds_lightweight_tentative_understanding_for_medium_uncertainty() -> None:
+def test_dialogue_cue_keeps_shadow_target_internal_for_medium_uncertainty() -> None:
     result = apply_shadow_hypothesis_dialogue_cue(
-        assistant_message="I could not safely complete that turn, so nothing was committed.",
+        assistant_message=SAFE_NO_COMMIT_REPLY,
         phase_a_trace=_trace(),
     )
 
-    assert result.assistant_message.startswith("I’m treating this as a tentative reference")
-    assert "not a saved change" in result.assistant_message
-    assert result.phase_a_trace["shadow_hypothesis_dialogue"]["applied"] is True
+    assert result.assistant_message == SAFE_NO_COMMIT_REPLY
+    assert "meal thread" not in result.assistant_message
+    assert "not a saved change" not in result.assistant_message
+    assert result.phase_a_trace["shadow_hypothesis_dialogue"]["applied"] is False
+    assert (
+        result.phase_a_trace["shadow_hypothesis_dialogue"]["skip_reason"]
+        == "user_visible_cue_disabled"
+    )
     assert result.phase_a_trace["shadow_hypothesis_dialogue"]["candidate_target_object_id"] == "77"
 
 
@@ -153,6 +159,7 @@ async def test_intake_execution_response_applies_shadow_dialogue_cue_without_sta
         phase_a_trace=_trace(),
     )
 
-    assert result["assistant_message"].startswith("I’m treating this as a tentative reference")
+    assert result["assistant_message"] == "Base reply."
+    assert "meal thread" not in result["assistant_message"]
     assert result["state_delta"] == state_delta
     assert result["sidecar"]["state_mutation_summary"]["canonical_commit"] is False

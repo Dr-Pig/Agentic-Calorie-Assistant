@@ -13,6 +13,10 @@ from app.composition.current_shell_golden_set_manifest_access import (
     fake_pass_generalization_blockers,
     golden_case_by_id,
 )
+from app.composition.current_shell_golden_set_ui_feedback_grader import (
+    browser_entrypoint_blockers,
+    dogfood_trace_blockers,
+)
 
 
 GOLDEN_SET_MANIFEST_PATH = Path("docs/quality/current_shell_self_use_golden_set_manifest.yaml")
@@ -39,11 +43,12 @@ def grade_golden_case_result(
 
     blockers.extend(_fixture_decision_blockers(result, golden_manifest))
     blockers.extend(_trace_layer_blockers(result, case, golden_manifest))
+    blockers.extend(browser_entrypoint_blockers(result, case))
     blockers.extend(_expected_mapping_blockers("runtime", result.get("runtime"), case.get("expected_runtime")))
     blockers.extend(_expected_mapping_blockers("ui", result.get("ui"), case.get("ui_assertions")))
     blockers.extend(_response_blockers(result))
     blockers.extend(_latency_blockers(result, case))
-    blockers.extend(_dogfood_trace_blockers(result, case))
+    blockers.extend(dogfood_trace_blockers(result, case))
     blockers.extend(_generalization_blockers(result))
 
     return _grade_result(case_id=case_id, blockers=blockers, warnings=warnings)
@@ -149,6 +154,17 @@ def _expected_item_matches(
     if (
         prefix == "runtime"
         and key == "workflow_effect"
+        and expected_item in {
+            "answer_or_ask_followup_no_mutation",
+            "ask_followup_or_answer_insufficient_evidence",
+            "answer_or_ask_followup_no_mutation_until_approved_packet",
+        }
+        and actual_item in {"ask_followup", "answer_only", "answer_query"}
+    ):
+        return actual.get("runtime_mutation_allowed") is False or actual.get("mutation_allowed") is False
+    if (
+        prefix == "runtime"
+        and key == "workflow_effect"
         and expected_item == "correction"
         and actual_item in {"correction", "correction_write", "correction_applied", "canonical_write"}
     ):
@@ -232,6 +248,7 @@ def _matches_previous_meal_attachment(actual_item: Any) -> bool:
         "active_meal_view",
         "recent_committed_meal",
         "latest_active_meal",
+        "tool_result",
         "tool_result_validated",
         "manager_target_proposal_validated",
     }
@@ -280,22 +297,6 @@ def _latency_blockers(result: dict[str, Any], case: dict[str, Any]) -> list[str]
         max_field = f"max_{field}"
         if field in latency and max_field in budget and int(latency[field]) > int(budget[max_field]):
             blockers.append(f"latency.{field}_exceeds_budget:{latency[field]}>{budget[max_field]}")
-    return blockers
-
-
-def _dogfood_trace_blockers(result: dict[str, Any], case: dict[str, Any]) -> list[str]:
-    trace = dict(result.get("dogfood_trace") or {})
-    expected = dict(case.get("dogfood_trace") or {})
-    blockers: list[str] = []
-    if expected.get("trace_id_required") is True and not str(trace.get("trace_id") or "").strip():
-        blockers.append("dogfood_trace.trace_id_missing")
-    if expected.get("feedback_links_to_trace") is True and trace.get("feedback_links_to_trace") is not True:
-        blockers.append("dogfood_trace.feedback_links_to_trace_not_true")
-    if (
-        expected.get("correlates_ui_runtime_read_model_response") is True
-        and trace.get("correlates_ui_runtime_read_model_response") is not True
-    ):
-        blockers.append("dogfood_trace.correlates_ui_runtime_read_model_response_not_true")
     return blockers
 
 

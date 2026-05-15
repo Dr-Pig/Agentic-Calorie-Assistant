@@ -151,7 +151,13 @@ def body_observation_guard(
             success_result = item
             break
     if success_result is None:
-        return {"ok": False, "failure_family": "body_observation_missing_successful_tool_result"}
+        return {
+            "ok": False,
+            "failure_family": "body_observation_missing_successful_tool_result",
+            "repair_request": True,
+            "required_tool": "body.record_observation",
+            "deterministic_semantic_authority": False,
+        }
     success_mutation = (
         success_result.get("mutation_result")
         if isinstance(success_result.get("mutation_result"), dict)

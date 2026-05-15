@@ -88,24 +88,41 @@ Cases are defined in the manifest so runners can consume the same truth that hum
 
 Each case is also a representative of a broader failure family. Passing the literal input text is not enough when trace evidence shows keyword routing, fixture-owned semantics, or case-specific prompt patching.
 
-## WebSearch Golden Extension
+## Holdout Browser Variants
 
-WebSearch is part of the Current Shell evidence path but is not a runtime truth owner for kcal, macro, source exactness, commit posture, or ledger mutation. The core GS1-GS19 matrix does not by itself prove that the user entrypoint can handle a FoodDB miss, exact-item lookup, wrong-brand result, or macro-bearing official source through WebSearch. The WebSearch extension cases therefore run as required Golden Set extension coverage before self-use closeout.
+Core GS1-GS19 pass is necessary but not sufficient for self-use closeout. The manifest also defines a small holdout extension that must run through the same browser entrypoint before closeout. Holdouts use different natural wording for the same product capabilities instead of new semantics:
+
+- clear component logging
+- generic common-food estimation with uncertainty basis
+- patterned combo clarification without pre-Manager estimability shortcuts
+- estimate-basis inquiry with no mutation
+- correction with version/ledger recompute
+- remaining-budget read-only query
+
+Holdout cases are not allowed to change product truth, fixture ownership, or Manager boundaries. They are an anti-overfit check: if a holdout fails, the fix must target the underlying capability family and trace owner, not the literal wording.
+
+## WebSearch Stage 2 Addendum
+
+WebSearch is not part of the core GS1-GS19 closeout gate. The current WebSearch extension rows are draft alignment seeds only until they are recalibrated against `Whole Product Stage 2 Food Evidence And Reusable Meal Calibration Draft` and implemented through the real Manager/WebSearch path.
 
 Manager decides whether a turn needs external search. Deterministic code must not route to WebSearch from raw user text, brand keywords, food names, case IDs, or fixture labels before the Manager pass. It may validate the Manager-requested search plan, execute an allowed retrieval adapter, filter source eligibility, and reject or downgrade candidate packets after the tool returns.
 
-WebSearch candidate evidence can support answer wording, clarification, or a later review workflow. It cannot directly become FoodDB truth, canonical intake truth, macro truth, source exactness, or ledger mutation unless an approved packet-ready evidence path has promoted it through the FoodDB contract. Raw snippets, search result titles, and extracted page text are not canonical nutrition truth.
+`SearchCandidatePacket` is candidate evidence only. A selected extract plus deterministic admissibility may produce a same-turn `TurnWebEvidencePacket`; that packet may support Manager synthesis and normal mutation guards for that turn, but it is still not permanent FoodDB truth. Raw snippets, search result titles, and extracted page text are not canonical nutrition truth.
 
 Wrong-brand or near-match WebSearch candidates must not be promoted. They are mismatch evidence for clarification, refusal to commit, or review-only candidate capture.
 
-The extension must cover:
+Before WebSearch is reactivated as a blocking Golden Set extension, it must cover the Stage 2 evidence families:
 
-- an exact-item FoodDB miss where Manager chooses WebSearch and receives candidate evidence only
+- an exact FoodDB hit where Manager should not search
+- an exact-item FoodDB miss where Manager chooses WebSearch and admissible selected extract can become turn-scoped evidence
+- a web composition case where composition can support estimate or follow-up without fake exact kcal
+- a wrong-context, wrong-brand, sibling, frozen, ecommerce, or weak-source result that must be rejected or downgraded
+- a branded multi-item combo that uses component-level evidence rather than a generic combo black box
 - a wrong-brand or near-match case where candidates must not be promoted
 - a generic/common food where Manager should prefer FoodDB/generic anchors and should not search the web by default
 - an exact macro item where protein, carbs, and fat are visible only from official or approved evidence
 
-Every WebSearch extension pass must prove the real Manager decision path, requested search/evidence tools, compact packets, final response basis, no mutation, no snippet-as-truth, and no frontend nutrition math. A sidecar WebSearch packet or status gate is insufficient by itself; the extension validates the user-visible Current Shell path.
+Every WebSearch extension pass must prove the real Manager decision path, requested search/evidence tools, compact packets, final response basis, no raw candidate-as-truth, no snippet-as-truth, and no frontend nutrition math. A sidecar WebSearch packet or status gate is insufficient by itself; the extension must validate the user-visible Current Shell path. Until this recalibration lands, GS1-GS19 plus holdout browser variants define the Current Shell core closeout scope.
 
 ## Response Quality
 

@@ -299,6 +299,7 @@ def test_entry_handoff_preserves_manager_owned_whole_meal_removal_without_nutrit
                 "meal_thread_id": 3,
                 "meal_version_id": 4,
                 "operation": "remove_meal",
+                "target_resolution_source": "named_slot_match",
             },
         },
     )
@@ -309,6 +310,7 @@ def test_entry_handoff_preserves_manager_owned_whole_meal_removal_without_nutrit
             "arguments": {
                 "meal_thread_id": 3,
                 "operation": "remove_meal",
+                "target_resolution_source": "named_slot_match",
                 "target_proposal_source": "entry_manager_handoff",
             },
         }

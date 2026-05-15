@@ -41,9 +41,13 @@ def _trace_chain_complete(trace: dict[str, Any]) -> bool:
 def _runtime_turn_status(trace: dict[str, Any]) -> str:
     context_snapshot = trace.get("context_snapshot") if isinstance(trace.get("context_snapshot"), dict) else {}
     phase_a_trace = context_snapshot.get("phase_a_trace") if isinstance(context_snapshot.get("phase_a_trace"), dict) else {}
+    if phase_a_trace.get("runtime_turn_status") == "queued":
+        return "queued"
     if phase_a_trace.get("runtime_turn_status") == "in_progress":
         return "in_progress"
     final_mapping = trace.get("final_mapping") if isinstance(trace.get("final_mapping"), dict) else {}
+    if final_mapping.get("final_action") == "queued":
+        return "queued"
     if final_mapping.get("final_action") == "pending":
         return "in_progress"
     return "completed" if trace else "not_available"

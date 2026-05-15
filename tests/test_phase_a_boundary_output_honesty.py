@@ -7,6 +7,7 @@ import pytest
 from app.composition.current_budget_answer import RemainingBudgetAnswerContract
 from app.composition.general_chat_service import GeneralChatPassResult
 from app.intake.application.boundary_output_honesty import (
+    SAFE_NO_COMMIT_REPLY,
     enforce_budget_output_honesty,
     enforce_intake_output_honesty,
 )
@@ -55,11 +56,45 @@ def test_intake_output_honesty_normalizes_blocked_commit_structured_surfaces() -
     assert result.state_delta["new_meal_version_created"] is False
     assert result.state_delta["old_version_superseded"] is False
     assert result.sidecar["state_mutation_summary"]["canonical_commit"] is False
-    assert result.assistant_message == "I could not safely complete that turn, so nothing was committed."
+    assert result.assistant_message == SAFE_NO_COMMIT_REPLY
     trace = result.phase_a_trace["phase_a_output_honesty"]
     assert trace["checked"] is True
     assert trace["normalized"] is True
     assert "structured_state_delta_no_commit" in trace["reasons"]
+    assert trace["text_check_used"] is True
+
+
+def test_intake_output_honesty_removes_visible_zh_commit_claim_without_mutation() -> None:
+    result = enforce_intake_output_honesty(
+        assistant_message="紅茶約 120 kcal，已加到鐵板麵這餐。糖度或杯型是怎樣？",
+        state_delta={
+            "meal_logged": False,
+            "canonical_commit": False,
+            "ledger_updated": False,
+            "draft_saved": True,
+            "new_meal_version_created": False,
+            "old_version_superseded": False,
+        },
+        sidecar={
+            "state_mutation_summary": {
+                "meal_logged": False,
+                "canonical_commit": False,
+                "ledger_updated": False,
+                "draft_saved": True,
+                "new_meal_version_created": False,
+                "old_version_superseded": False,
+            }
+        },
+        phase_a_trace={},
+        manager_final_action="ask_followup",
+        persistence_result=None,
+    )
+
+    assert result.assistant_message == SAFE_NO_COMMIT_REPLY
+    assert "已加到" not in result.assistant_message
+    assert result.state_delta["canonical_commit"] is False
+    trace = result.phase_a_trace["phase_a_output_honesty"]
+    assert "reply_false_commit_claim_removed" in trace["reasons"]
     assert trace["text_check_used"] is True
 
 
@@ -185,7 +220,7 @@ def test_intake_execution_response_applies_output_honesty_to_structured_surfaces
         },
     )
 
-    assert result["assistant_message"] == "I could not safely complete that turn, so nothing was committed."
+    assert result["assistant_message"] == SAFE_NO_COMMIT_REPLY
     assert result["state_delta"]["canonical_commit"] is False
     assert result["state_delta"]["ledger_updated"] is False
     assert result["sidecar"]["state_mutation_summary"]["meal_logged"] is False

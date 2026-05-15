@@ -41,6 +41,14 @@ def manager_scope_policy_payload(manager_loop_scope: str, available_tools: tuple
             "policy_id": "manager_scope_policy.body_observation.v1",
             "manager_loop_scope": manager_loop_scope,
             "available_tools": list(available_tools),
+            "before_successful_body_record_tool_result": {
+                "manager_action": "call_tools",
+                "intent_type": "body_observation",
+                "required_tool": "body.record_observation",
+                "final_action": "record_observation",
+                "workflow_effect": "record_weight",
+                "forbidden_final_actions": ["commit"],
+            },
             "after_successful_body_record_tool_result": {
                 "manager_action": "final",
                 "intent_type": "body_observation",

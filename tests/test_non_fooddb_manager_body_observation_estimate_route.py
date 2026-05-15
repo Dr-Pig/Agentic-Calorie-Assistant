@@ -12,6 +12,7 @@ from sqlalchemy.pool import StaticPool
 from app.body.application import build_active_body_plan_view
 from app.body.application.body_observation_service import get_latest_weight_observation
 from app.composition import intake_routes
+from app.composition.body_observation_manager_tool_runtime import body_observation_guard
 from app.intake.application import chat_intents as intake_chat_intents
 import app.intake.application as intake_application
 from app.composition.onboarding_service import (
@@ -270,3 +271,23 @@ def test_estimate_route_hands_body_observation_from_entry_manager_without_router
     assert after_plan.body_plan_id == before_plan.body_plan_id
     assert after_plan.daily_budget_kcal == before_plan.daily_budget_kcal
     assert after_plan.recommended_target_kcal == before_plan.recommended_target_kcal
+
+
+def test_body_observation_guard_requests_bounded_repair_when_tool_result_missing() -> None:
+    outcome = body_observation_guard(
+        manager_payload={
+            "intent_type": "body_observation",
+            "workflow_effect": "record_weight",
+            "semantic_decision": {
+                "current_turn_intent": "body_observation",
+                "mutation_intent_candidate": "body_observation_write",
+            },
+        },
+        tool_results=[],
+        resolved_state=object(),
+    )
+
+    assert outcome["ok"] is False
+    assert outcome["failure_family"] == "body_observation_missing_successful_tool_result"
+    assert outcome["repair_request"] is True
+    assert outcome["required_tool"] == "body.record_observation"

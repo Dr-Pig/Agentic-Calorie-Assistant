@@ -3,40 +3,30 @@ from __future__ import annotations
 from typing import Any
 
 from app.composition.current_shell_target_ambiguity_projection import attach_target_ambiguity_validation
-from app.composition.current_shell_remaining_query_projection import (
-    attach_remaining_query_runtime,
-    attach_remaining_query_ui,
-)
+from app.composition.current_shell_remaining_query_projection import attach_remaining_query_runtime, attach_remaining_query_ui
 
 from app.composition.current_shell_golden_set_answer_query_projection import (
     attach_answer_query_no_mutation_outcome,
     state_delta_has_no_meal_change,
 )
-from app.composition.current_shell_body_observation_projection import (
-    attach_body_observation_runtime_projection,
-    attach_body_observation_ui_projection,
-    body_observation_recorded,
-)
-from app.composition.current_shell_golden_set_kcal_conflict_projection import (
-    attach_implausible_kcal_conflict_outcome,
-)
-from app.composition.current_shell_golden_set_correction_projection import (
-    attach_removed_version_projection,
-)
+from app.composition.current_shell_body_observation_projection import attach_body_observation_runtime_projection, attach_body_observation_ui_projection, body_observation_recorded
+from app.composition.current_shell_golden_set_kcal_conflict_projection import attach_implausible_kcal_conflict_outcome
+from app.composition.current_shell_golden_set_latency_projection import manager_provider_round_count
+from app.composition.current_shell_golden_set_meal_basis_projection import meal_level_basis_visible
+from app.composition.current_shell_golden_set_correction_projection import attach_removed_version_projection
 from app.composition.current_shell_golden_set_nutrition_projection import (
     approved_nutrition_evidence_present as _approved_nutrition_evidence_present,
     component_basis_present,
+    exact_fooddb_evidence_present,
     first_nutrition_trace_contract,
     generic_range_evidence_present,
     macro_visible,
     nutrition_packet_present,
+    visible_exact_fooddb_basis_present,
     visible_range_or_basis_present,
 )
-from app.composition.current_shell_golden_set_version_projection import (
-    ledger_delta_trace_present,
-    old_version_not_counted,
-    old_version_superseded,
-)
+from app.composition.current_shell_golden_set_version_projection import ledger_delta_trace_present, old_version_not_counted, old_version_superseded
+from app.composition.current_shell_golden_set_websearch_projection import attach_websearch_runtime_projection, attach_websearch_ui_projection
 
 
 def runtime_from_request_trace(
@@ -58,6 +48,8 @@ def runtime_from_request_trace(
     mutation_allowed = _mutation_allowed_from_trace(phase_c_trace, state_delta)
     if "mutation_allowed" not in runtime and mutation_allowed is not None:
         runtime["mutation_allowed"] = mutation_allowed
+    if "runtime_mutation_allowed" not in runtime and mutation_allowed is not None:
+        runtime["runtime_mutation_allowed"] = mutation_allowed
     final_action = manager_final.get("final_action") or manager_decision.get("final_action")
     if final_action is not None:
         runtime.setdefault("final_action", final_action)
@@ -119,8 +111,18 @@ def runtime_from_request_trace(
         if generic_range_evidence_present(nutrition_trace):
             runtime.setdefault("uncertainty_basis_required", True)
             runtime.setdefault("fake_exactness_allowed", False)
+            runtime.setdefault("use_generic_or_fooddb_anchor_first", True)
+            runtime.setdefault("fooddb_anchor_bypass_allowed", False)
+        if exact_fooddb_evidence_present(nutrition_trace):
+            runtime.setdefault("exact_fooddb_packet_used", True)
+            runtime.setdefault("generic_fallback_allowed", False)
+            runtime.setdefault("websearch_tool_call_expected", False)
+            runtime.setdefault("websearch_snippet_as_truth_allowed", False)
+            runtime.setdefault("permanent_fooddb_promotion_allowed", False)
+            runtime.setdefault("pre_manager_websearch_routing_allowed", False)
         if _manager_owned_optional_drink_refinement(manager_final, nutrition_trace):
             runtime.setdefault("optional_tea_refinement_allowed", True)
+        attach_websearch_runtime_projection(runtime, nutrition_trace)
     if "fallback_400_allowed" not in runtime and nutrition_packet_present(request_trace, manager_final):
         runtime["fallback_400_allowed"] = False
     if "pre_manager_estimability_shortcut_allowed" not in runtime:
@@ -161,11 +163,11 @@ def ui_from_request_trace(request_trace: dict[str, Any], state_delta: dict[str, 
     if "pending_question_visible" not in ui and "draft_saved" in state_delta:
         ui["pending_question_visible"] = bool(state_delta.get("draft_saved"))
     if "meal_level_basis_visible" not in ui:
-        basis_visible = _meal_level_basis_visible(request_trace)
+        basis_visible = meal_level_basis_visible(request_trace)
         if basis_visible is not None:
             ui["meal_level_basis_visible"] = basis_visible
     if "meal_components_visible" not in ui:
-        components_visible = _meal_level_basis_visible(request_trace)
+        components_visible = meal_level_basis_visible(request_trace)
         if components_visible is not None:
             ui["meal_components_visible"] = components_visible
     if "macro_visible" not in ui:
@@ -173,9 +175,16 @@ def ui_from_request_trace(request_trace: dict[str, Any], state_delta: dict[str, 
         if visible_macro is not None:
             ui["macro_visible"] = visible_macro
     if "range_or_basis_visible" not in ui and generic_range_evidence_present(
-        first_nutrition_trace_contract(request_trace, {})
+        first_nutrition_trace_contract(request_trace, _dict(request_trace.get("manager_final_decision")))
     ):
         ui["range_or_basis_visible"] = visible_range_or_basis_present(request_trace)
+    nutrition_trace = first_nutrition_trace_contract(
+        request_trace,
+        _dict(request_trace.get("manager_final_decision")),
+    )
+    if "exact_fooddb_basis_visible" not in ui and exact_fooddb_evidence_present(nutrition_trace):
+        ui["exact_fooddb_basis_visible"] = visible_exact_fooddb_basis_present(request_trace)
+    attach_websearch_ui_projection(ui, request_trace)
     if "old_version_not_counted" not in ui:
         not_counted = old_version_not_counted(request_trace, state_delta)
         if not_counted is not None:
@@ -196,8 +205,12 @@ def latency_from_request_trace(request_trace: dict[str, Any], react_trace: dict[
         latency["total_latency_ms"] = latency_tracking.get("total_duration_ms")
     if "tool_calls" not in latency and react_trace.get("tool_call_count") is not None:
         latency["tool_calls"] = react_trace.get("tool_call_count")
-    if "llm_calls" not in latency and react_trace.get("manager_pass_count") is not None:
-        latency["llm_calls"] = react_trace.get("manager_pass_count")
+    if "llm_calls" not in latency:
+        provider_round_count = manager_provider_round_count(react_trace)
+        if provider_round_count is not None:
+            latency["llm_calls"] = provider_round_count
+        elif react_trace.get("manager_pass_count") is not None:
+            latency["llm_calls"] = react_trace.get("manager_pass_count")
     if "stage_timings" not in latency and latency_tracking.get("stage_timings") is not None:
         latency["stage_timings"] = latency_tracking.get("stage_timings")
     if "latency_attribution" not in latency and latency_tracking.get("latency_attribution") is not None:
@@ -288,14 +301,6 @@ def _manager_owned_optional_drink_refinement(
     return any("茶" in item for item in targets)
 
 
-def _meal_level_basis_visible(request_trace: dict[str, Any]) -> bool | None:
-    basis = _dict(request_trace.get("renderer_input_basis"))
-    state_after = _dict(basis.get("state_after")) or _dict(request_trace.get("state_after"))
-    active_meal = _dict(state_after.get("active_meal"))
-    candidates = _list(active_meal.get("item_candidates"))
-    if candidates:
-        return True
-    return None
 def _pre_manager_guard_feedback_present(request_trace: dict[str, Any]) -> bool | None:
     react_trace = _dict(request_trace.get("react_trace"))
     manager_pass_1 = _dict(react_trace.get("manager_pass_1"))
@@ -306,6 +311,3 @@ def _pre_manager_guard_feedback_present(request_trace: dict[str, Any]) -> bool |
 
 def _dict(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
-
-def _list(value: Any) -> list[Any]:
-    return list(value) if isinstance(value, list) else []

@@ -17,6 +17,7 @@ FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES = [
     "answer_query",
     "log_meal",
     "correct_meal",
+    "body_observation",
 ]
 FOUNDER_LIVE_MANAGER_ENTRY_ALLOWED_INTENT_TYPES = [
     *FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES,
@@ -60,6 +61,7 @@ FOUNDER_LIVE_MANAGER_RESPONSE_ONLY_FINAL_ACTIONS = [
     "complete_onboarding",
 ]
 FOUNDER_LIVE_MANAGER_FOLLOWUP_QUESTION_REQUIRED_POSTURES = {
+    "refinement_optional",
     "refinement_not_commit_gate",
     "size_clarification",
 }

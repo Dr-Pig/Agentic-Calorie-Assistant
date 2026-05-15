@@ -5,6 +5,8 @@ from .context_normalizer import lookup_key
 _BRAND_FAMILIES: tuple[tuple[str, ...], ...] = (
     ("starbucks", "\u661f\u5df4\u514b"),
     ("milksha", "\u8ff7\u5ba2\u590f"),
+    ("matsuya", "\u677e\u5c4b"),
+    ("mcdonalds", "\u9ea5\u7576\u52de", "mcdonald", "mcdonald's"),
 )
 
 

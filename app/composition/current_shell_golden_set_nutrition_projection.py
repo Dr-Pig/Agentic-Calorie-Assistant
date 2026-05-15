@@ -12,6 +12,10 @@ def approved_nutrition_evidence_present(request_trace: dict[str, Any], manager_f
             return True
         if trace_contract.get("db_hit_type") == "approved_fooddb_packet":
             return True
+        if exact_fooddb_evidence_present(trace_contract):
+            return True
+        if turn_web_evidence_present(trace_contract):
+            return True
         user_kcal = _dict(trace_contract.get("approved_user_provided_kcal_trace"))
         if user_kcal.get("runtime_truth_allowed") is True:
             return True
@@ -19,15 +23,21 @@ def approved_nutrition_evidence_present(request_trace: dict[str, Any], manager_f
 
 
 def first_nutrition_trace_contract(request_trace: dict[str, Any], manager_final: dict[str, Any]) -> dict[str, Any]:
+    best_trace: dict[str, Any] = {}
+    best_rank = -1
     for payload in nutrition_payloads(request_trace, manager_final):
         trace_contract = _dict(payload.get("trace_contract"))
-        if trace_contract:
-            return trace_contract
-    return {}
+        rank = _trace_contract_rank(trace_contract)
+        if rank > best_rank:
+            best_trace = trace_contract
+            best_rank = rank
+    return best_trace
 
 
 def generic_range_evidence_present(trace_contract: dict[str, Any]) -> bool:
     approved = _dict(trace_contract.get("approved_fooddb_evidence_trace"))
+    if _approved_generic_anchor_evidence(trace_contract, approved):
+        return True
     if approved.get("source_lane") != "generic_common_serving":
         return False
     if approved.get("runtime_truth_allowed") is not True:
@@ -41,6 +51,10 @@ def visible_range_or_basis_present(request_trace: dict[str, Any]) -> bool:
     if not text:
         return False
     if "常見份量" in text or "參考範圍" in text:
+        return True
+    if "依常見份量估算" in text or "實際會因份量" in text:
+        return True
+    if "估算" in text and "份量" in text and "做法" in text:
         return True
     return bool(re.search(r"\d+\s*-\s*\d+\s*kcal", text, flags=re.IGNORECASE))
 
@@ -59,6 +73,7 @@ def component_basis_present(request_trace: dict[str, Any]) -> bool | None:
     for payload in nutrition_payloads(request_trace, {}):
         trace_contract = _dict(payload.get("trace_contract"))
         approved = _dict(trace_contract.get("approved_fooddb_evidence_trace"))
+        web_trace = _dict(trace_contract.get("web_runtime_trace"))
         commit_candidate = _dict(trace_contract.get("commit_request_candidate"))
         components = (
             _list(payload.get("components"))
@@ -66,9 +81,42 @@ def component_basis_present(request_trace: dict[str, Any]) -> bool | None:
             or _list(commit_candidate.get("items"))
             or _list(commit_candidate.get("components"))
         )
+        if web_trace.get("component_level_evidence_present") is True and components:
+            return True
         if approved.get("source_lane") == "listed_component" and components:
             return True
     return None
+
+
+def exact_fooddb_evidence_present(trace_contract: dict[str, Any]) -> bool:
+    grounding = _dict(trace_contract.get("grounding_summary"))
+    approved = _dict(trace_contract.get("approved_fooddb_evidence_trace"))
+    return (
+        trace_contract.get("db_hit_type") == "exact_truth"
+        or grounding.get("exact_truth_present") is True
+        or approved.get("source_lane") in {"exact_item", "exact_brand_item"}
+    )
+
+
+def turn_web_evidence_present(trace_contract: dict[str, Any]) -> bool:
+    web_trace = _dict(trace_contract.get("web_runtime_trace"))
+    return (
+        web_trace.get("source_admissibility_status") == "accepted"
+        and web_trace.get("turn_web_evidence_packet_present") is True
+        and web_trace.get("turn_web_evidence_may_support_commit") is True
+    )
+
+
+def visible_exact_fooddb_basis_present(request_trace: dict[str, Any]) -> bool:
+    text = _visible_response_text(request_trace).lower()
+    if not text:
+        return False
+    return (
+        "kcal" in text
+        or "卡" in text
+        or "熱量" in text
+        or "cal" in text
+    )
 
 
 def nutrition_packet_present(request_trace: dict[str, Any], manager_final: dict[str, Any]) -> bool:
@@ -110,3 +158,46 @@ def _dict(value: Any) -> dict[str, Any]:
 
 def _list(value: Any) -> list[Any]:
     return list(value) if isinstance(value, list) else []
+
+
+def _approved_generic_anchor_evidence(
+    trace_contract: dict[str, Any],
+    approved_trace: dict[str, Any],
+) -> bool:
+    if approved_trace.get("runtime_truth_allowed") is not True:
+        return False
+    web_trace = _dict(trace_contract.get("web_runtime_trace"))
+    retrieval_goal = str(
+        web_trace.get("retrieval_goal") or trace_contract.get("retrieval_goal") or ""
+    )
+    return retrieval_goal == "generic_anchor_lookup"
+
+
+def _trace_contract_rank(trace_contract: dict[str, Any]) -> int:
+    if not trace_contract:
+        return -1
+    rank = 1
+    web_trace = _dict(trace_contract.get("web_runtime_trace"))
+    if web_trace:
+        rank += 20
+        if (
+            web_trace.get("attempted") is True
+            or int(web_trace.get("search_attempt_count") or trace_contract.get("search_attempt_count") or 0) > 0
+            or web_trace.get("packetized_candidate_present") is True
+            or web_trace.get("failure_reason") is not None
+        ):
+            rank += 80
+    approved = _dict(trace_contract.get("approved_fooddb_evidence_trace"))
+    if (
+        approved.get("runtime_truth_allowed") is True
+        or trace_contract.get("db_hit_type") == "approved_fooddb_packet"
+        or exact_fooddb_evidence_present(trace_contract)
+        or turn_web_evidence_present(trace_contract)
+    ):
+        rank += 70
+    user_kcal = _dict(trace_contract.get("approved_user_provided_kcal_trace"))
+    if user_kcal.get("runtime_truth_allowed") is True:
+        rank += 70
+    if trace_contract.get("commit_request_candidate"):
+        rank += 10
+    return rank

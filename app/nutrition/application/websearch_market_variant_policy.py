@@ -9,8 +9,6 @@ MARKET_REGION_TOKENS = (
     "jp",
     "singapore",
     "sg",
-    "taiwan",
-    "tw",
 )
 
 

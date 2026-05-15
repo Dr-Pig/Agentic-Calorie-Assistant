@@ -20,3 +20,9 @@ def test_nutrition_manager_policy_hints_expose_approved_case_law_without_runtime
     assert "call the nutrition evidence tool" in listed_followup["manager_behavior"]
     assert "do not repeat the same composition clarification" in listed_followup["manager_behavior"]
     assert listed_followup["runtime_authority"] == "validate_evidence_packet_and_final_mapping_only"
+    assert "brand_combo_with_explicit_components" in rules
+    brand_combo = rules["brand_combo_with_explicit_components"]
+    assert "combo plus concrete items" in brand_combo["applies_to"]
+    assert "put the main item and named side/drink items in listed_items" in brand_combo["manager_behavior"]
+    assert "listed_item_lookup" in brand_combo["manager_behavior"]
+    assert brand_combo["runtime_authority"] == "validate_evidence_packet_and_final_mapping_only"

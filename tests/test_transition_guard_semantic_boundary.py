@@ -124,6 +124,130 @@ def test_manager_target_validator_rejects_entry_handoff_default_when_thread_cand
     assert "meal_thread_id" not in validation
 
 
+def test_manager_target_validator_rejects_named_slot_without_unique_display_basis() -> None:
+    resolved = validate_manager_target_proposal(
+        correction_target={
+            "meal_thread_id": 22,
+            "meal_version_id": 33,
+            "target_resolution_source": "active_meal_view",
+            "thread_candidates": [
+                {"meal_thread_id": 11, "meal_version_id": 12, "meal_title": "breakfast teppan set"},
+                {"meal_thread_id": 22, "meal_version_id": 33, "meal_title": "breakfast rice ball"},
+            ],
+        },
+        proposal={
+            "meal_thread_id": 22,
+            "operation": "remove_meal",
+            "target_resolution_source": "named_slot_match",
+            "target_proposal_source": "entry_manager_handoff",
+        },
+    )
+
+    validation = resolved["manager_target_proposal_validation"]
+    assert validation["status"] == "rejected"
+    assert validation["failure_family"] == "manager_thread_target_proposal_ambiguous"
+    assert validation["deterministic_target_choice_allowed"] is False
+
+
+def test_manager_target_validator_accepts_explicit_named_slot_handoff_thread_id() -> None:
+    resolved = validate_manager_target_proposal(
+        correction_target={
+            "meal_thread_id": 22,
+            "meal_version_id": 33,
+            "target_resolution_source": "active_meal_view",
+            "thread_candidates": [
+                {"meal_thread_id": 11, "meal_version_id": 12, "meal_title": "breakfast teppan set"},
+                {"meal_thread_id": 22, "meal_version_id": 33, "meal_title": "lunch chicken rice"},
+            ],
+        },
+        proposal={
+            "meal_thread_id": 11,
+            "operation": "remove_meal",
+            "target_resolution_source": "named_slot_match",
+            "target_proposal_source": "entry_manager_handoff",
+            "target_display_name": "breakfast teppan set",
+        },
+    )
+
+    assert resolved["meal_thread_id"] == 11
+    assert resolved["meal_version_id"] == 12
+    assert resolved["operation"] == "remove_meal"
+    assert resolved["target_resolution_source"] == "manager_target_proposal_validated"
+    assert resolved["manager_target_proposal_validation"]["status"] == "accepted"
+
+
+def test_manager_target_validator_accepts_non_default_entry_handoff_thread_id() -> None:
+    resolved = validate_manager_target_proposal(
+        correction_target={
+            "meal_thread_id": 22,
+            "meal_version_id": 33,
+            "target_resolution_source": "pending_followup_state",
+            "thread_candidates": [
+                {"meal_thread_id": 11, "meal_version_id": 12, "meal_title": "breakfast teppan set"},
+                {"meal_thread_id": 22, "meal_version_id": 33, "meal_title": "lunch chicken rice"},
+            ],
+        },
+        proposal={
+            "meal_thread_id": 11,
+            "operation": "remove_meal",
+            "target_proposal_source": "entry_manager_handoff",
+        },
+    )
+
+    assert resolved["meal_thread_id"] == 11
+    assert resolved["meal_version_id"] == 12
+    assert resolved["operation"] == "remove_meal"
+    assert resolved["manager_target_proposal_validation"]["status"] == "accepted"
+
+
+def test_manager_target_validator_accepts_unique_manager_target_display_name() -> None:
+    resolved = validate_manager_target_proposal(
+        correction_target={
+            "meal_thread_id": 22,
+            "meal_version_id": 33,
+            "target_resolution_source": "pending_followup_state",
+            "thread_candidates": [
+                {"meal_thread_id": 11, "meal_version_id": 12, "meal_title": "早餐店鐵板麵套餐"},
+                {"meal_thread_id": 22, "meal_version_id": 33, "meal_title": "午餐雞肉飯"},
+            ],
+        },
+        proposal={
+            "target_display_name": "早餐",
+            "operation": "remove_meal",
+            "target_proposal_source": "manager_structured_output",
+        },
+    )
+
+    assert resolved["meal_thread_id"] == 11
+    assert resolved["meal_version_id"] == 12
+    assert resolved["operation"] == "remove_meal"
+    assert resolved["manager_target_proposal_validation"]["status"] == "accepted"
+
+
+def test_manager_target_validator_rejects_ambiguous_manager_target_display_name() -> None:
+    resolved = validate_manager_target_proposal(
+        correction_target={
+            "meal_thread_id": 22,
+            "meal_version_id": 33,
+            "target_resolution_source": "pending_followup_state",
+            "thread_candidates": [
+                {"meal_thread_id": 11, "meal_version_id": 12, "meal_title": "早餐店鐵板麵套餐"},
+                {"meal_thread_id": 22, "meal_version_id": 33, "meal_title": "早餐飯糰"},
+            ],
+        },
+        proposal={
+            "target_display_name": "早餐",
+            "operation": "remove_meal",
+            "target_proposal_source": "manager_structured_output",
+        },
+    )
+
+    validation = resolved["manager_target_proposal_validation"]
+    assert validation["status"] == "rejected"
+    assert validation["failure_family"] == "manager_thread_target_proposal_ambiguous"
+    assert validation["deterministic_target_choice_allowed"] is False
+
+
 def test_manager_target_validator_rejects_whole_meal_removal_without_manager_selected_thread_id() -> None:
     resolved = validate_manager_target_proposal(
         correction_target={

@@ -32,8 +32,10 @@ def dogfood_trace_from_request_trace(request_trace: dict[str, Any]) -> dict[str,
         trace.setdefault("feedback_linkage", feedback)
         if feedback.get("feedback_links_to_trace") is not None:
             trace.setdefault("feedback_links_to_trace", bool(feedback.get("feedback_links_to_trace")))
+            trace.setdefault("feedback_linkage_source", "request_trace_feedback_linkage")
     elif resolved_trace_id:
         trace.setdefault("feedback_links_to_trace", True)
+        trace.setdefault("feedback_linkage_source", "trace_id_linkable_only")
     return trace
 
 

@@ -12,7 +12,7 @@ _AUTHORITATIVE_SEMANTIC_SOURCES = {"manager_llm", "deterministic_fake_provider"}
 _MUTATION_INTENT_BY_EFFECT = {
     "canonical_write": {"canonical_write"},
     "correction_persistence": {"correction_write"},
-    "ledger_mutation": {"ledger_read"},
+    "ledger_mutation": {"ledger_read", "canonical_write"},
     "draft_pending_persistence": {"draft_write"},
 }
 FINAL_ACTION_EFFECT_CLASSES: dict[str, str] = {

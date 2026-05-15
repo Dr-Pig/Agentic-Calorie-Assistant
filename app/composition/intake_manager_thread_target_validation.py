@@ -23,6 +23,22 @@ def validate_manager_thread_target_proposal(
     operation = structured_correction_operation(proposal)
     proposed_thread_id = proposal.get("meal_thread_id") or proposal.get("target_object_id")
     matched_thread = _matched_thread(correction_target, proposed_thread_id)
+    if matched_thread is None and proposed_thread_id is None:
+        display_match = _matched_thread_by_display_name(correction_target, proposal)
+        if isinstance(display_match, dict) and display_match.get("status") == "ambiguous":
+            return {
+                **dict(correction_target),
+                "manager_target_proposal_validation": {
+                    "status": "rejected",
+                    "failure_family": "manager_thread_target_proposal_ambiguous",
+                    "truth_owner": "deterministic_target_validator",
+                    "proposal_source": str(proposal.get("target_proposal_source") or "manager_structured_output"),
+                    "target_candidate_count": display_match.get("target_candidate_count"),
+                    "target_candidates_supplied": True,
+                    "deterministic_target_choice_allowed": False,
+                },
+            }
+        matched_thread = display_match
     if matched_thread is not None:
         return {
             **dict(correction_target),
@@ -58,4 +74,23 @@ def _matched_thread(
     for candidate in thread_target_candidates(correction_target):
         if str(candidate.get("meal_thread_id")) == str(proposed_thread_id):
             return candidate
+    return None
+
+
+def _matched_thread_by_display_name(
+    correction_target: dict[str, Any],
+    proposal: dict[str, Any],
+) -> dict[str, Any] | None:
+    display_name = str(proposal.get("target_display_name") or "").strip().casefold()
+    if not display_name:
+        return None
+    matches = [
+        candidate
+        for candidate in thread_target_candidates(correction_target)
+        if display_name in str(candidate.get("meal_title") or "").casefold()
+    ]
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        return {"status": "ambiguous", "target_candidate_count": len(matches)}
     return None

@@ -51,7 +51,7 @@ PAGE_SPECS = {
             "payload.message_count",
             "user_id: userId()",
             "local_date: selectedDate()",
-            "allow_search: false",
+            "allow_search: allowSearch()",
         ),
     },
     "today": {
