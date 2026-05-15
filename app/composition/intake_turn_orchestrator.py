@@ -1,47 +1,38 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 from sqlalchemy.orm import Session
 
 from app.composition.current_budget_answer import build_remaining_budget_answer_contract
+from app.composition.body_observation_entry_handoff import (
+    execute_body_observation_entry_handoff,
+    manager_requests_body_observation_handoff,
+)
 from app.composition.intake_execution_orchestrator import process_intake_execution_turn
 from app.composition.inflight_chat_turn import record_inflight_intake_chat_turn
+from app.composition.intake_turn_onboarding import (
+    IntakeOnboardingPayload,
+    complete_onboarding_intake_turn,
+)
 from app.composition.intake_turn_response_recorder import build_record_and_return_intake_turn_response
 from app.composition.manager_context_runtime import build_runtime_manager_context_packet_v1
 from app.composition.manual_daily_target_chat import apply_manual_daily_target_from_chat, manual_daily_target_trace_payload
 from app.composition.non_fooddb_read_only_turn import NON_FOODDB_READ_ONLY_MANAGER_TOOLS, build_non_fooddb_read_tool_executor, finalize_non_fooddb_read_only_manager_intent
-from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.composition.state_resolver import resolve_intake_state
 from app.database import get_or_create_user
 from app.intake.application.intake_trace_tools import append_trace_event_tool
-from app.intake.application.intake_turn_support import intake_turn_latency_tracking, intake_turn_trace_summary, initial_intake_turn_state_mutation_summary, normalized_activity_level, resolve_local_date
+from app.intake.application.intake_turn_support import intake_turn_latency_tracking, intake_turn_trace_summary, initial_intake_turn_state_mutation_summary, resolve_local_date
 from app.intake.application.phase_a_runtime_context import prepare_phase_a_runtime_context
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
 from app.runtime.agent.manager import IntakeManagerResult
-from app.runtime.application.execution_guard import validate_onboarding_seed
 from app.runtime.application.manager_service import run_intake_manager
 from app.runtime.application.reply_renderer import render_intake_reply
 from app.runtime.application.request_trace_artifacts import build_trace_refs, write_intake_turn_trace_artifact
 from app.runtime.application.sidecar_service import build_deterministic_sidecar
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
-
-@dataclass(frozen=True)
-class IntakeOnboardingPayload:
-    sex: str
-    age_years: int
-    height_cm: float
-    current_weight_kg: float
-    goal_type: str
-    weekly_target_rate_kg: float
-    timezone: str = "UTC"
-    target_weight_kg: float | None = None
-    activity_level: str | None = None
-    daily_lifestyle: str | None = None
-    weekly_exercise_days_band: str | None = None
 
 
 def _record_timing(stage_timings: list[dict[str, Any]], stage: str, duration_ms: int) -> None:
@@ -164,44 +155,14 @@ async def execute_intake_turn(
         remaining_budget = read_only_result["remaining_budget"]
         assistant_message_override = read_only_result["assistant_message_override"]
     if manager_decision.intent_type == "complete_onboarding":
-        if onboarding_payload is None:
-            raise ValueError("Structured onboarding payload is required for complete_onboarding.")
-        user = get_or_create_user(db, user_external_id)
-        onboarding_result = bootstrap_body_plan_for_date(
+        onboarding_result = complete_onboarding_intake_turn(
             db,
-            user=user,
-            inputs=OnboardingBootstrapInput(
-                sex=onboarding_payload.sex,
-                age_years=onboarding_payload.age_years,
-                height_cm=onboarding_payload.height_cm,
-                current_weight_kg=onboarding_payload.current_weight_kg,
-                activity_level=normalized_activity_level(onboarding_payload.activity_level),
-                daily_lifestyle=onboarding_payload.daily_lifestyle,
-                weekly_exercise_days_band=onboarding_payload.weekly_exercise_days_band,
-                goal_type=onboarding_payload.goal_type,
-                weekly_target_rate_kg=onboarding_payload.weekly_target_rate_kg,
-                target_weight_kg=onboarding_payload.target_weight_kg,
-                local_date=resolved_local_date,
-                timezone=onboarding_payload.timezone,
-            ),
-        )
-        guard = validate_onboarding_seed(
-            recommended_target_kcal=onboarding_result.target_result.recommended_target_kcal,
-            safety_floor_kcal=onboarding_result.target_result.safety_floor_kcal,
-        )
-        if not guard.ok:
-            raise ValueError(f"Intake onboarding guard failed: {', '.join(guard.violations)}")
-        state_mutation_summary["body_plan_seeded"] = True
-        append_trace_event_tool(
+            user_external_id=user_external_id,
+            onboarding_payload=onboarding_payload,
+            local_date=resolved_local_date,
             request_id=request_id,
-            stage="v2_onboarding_seed",
-            status="ok",
-            summary={
-                "daily_budget_kcal": onboarding_result.target_result.recommended_target_kcal,
-                "estimated_tdee_kcal": onboarding_result.target_result.estimated_tdee_kcal,
-                "safety_floor_kcal": onboarding_result.target_result.safety_floor_kcal,
-            },
         )
+        state_mutation_summary["body_plan_seeded"] = True
     elif read_only_result is not None:
         pass
     elif manager_decision.intent_type == "set_manual_daily_target":
@@ -256,6 +217,22 @@ async def execute_intake_turn(
                 "reason": "manager_provider_unavailable",
                 "state_mutation": "none",
             },
+        )
+    elif manager_requests_body_observation_handoff(manager_decision):
+        return await execute_body_observation_entry_handoff(
+            db,
+            request_id=request_id,
+            user_external_id=user_external_id,
+            raw_user_input=raw_user_input or "",
+            local_date=resolved_local_date,
+            allow_search=allow_search,
+            manager_provider=manager_provider,
+            state_before=state_before,
+            current_turn_context=current_turn_context,
+            manager_context_pack=manager_context_pack,
+            manager_context_packet_v1=manager_context_packet_v1,
+            phase_a_trace=phase_a_trace,
+            entry_manager_decision=manager_decision,
         )
     elif manager_decision.intent_type in {"log_meal", "correct_meal"}:
         if not raw_user_input or not raw_user_input.strip():

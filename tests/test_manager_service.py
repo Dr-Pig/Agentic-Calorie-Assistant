@@ -213,6 +213,59 @@ def test_compact_tool_results_preserves_latest_weight_read_model_evidence() -> N
     assert "observed_at" not in str(compact)
 
 
+def test_compact_tool_results_preserves_body_observation_mutation_result() -> None:
+    compact = compact_tool_results_prompt_payload(
+        [
+            {
+                "tool_name": "body.record_observation",
+                "evidence": {
+                    "recorded_body_observation": {
+                        "observation_id": 8,
+                        "observation_type": "weight",
+                        "value": 84.0,
+                        "unit": "kg",
+                        "local_date": "2026-05-14",
+                        "observed_at": "2026-05-14T08:00:00",
+                        "debug_blob": "x" * 1000,
+                    }
+                },
+                "mutation_result": {
+                    "status": "recorded",
+                    "body_observation_recorded": True,
+                    "body_plan_mutated": False,
+                    "ledger_mutated": False,
+                    "debug_blob": "x" * 1000,
+                },
+                "provenance": {
+                    "canonical_tool_name": "body.record_observation",
+                    "truth_owner": "body_domain",
+                    "tool_kind": "mutation_bearing",
+                    "mutation_authority": False,
+                },
+                "confidence": "available",
+                "failure_family": None,
+            }
+        ]
+    )
+
+    result = compact[0]
+    assert result["evidence"]["recorded_body_observation"] == {
+        "observation_id": 8,
+        "observation_type": "weight",
+        "value": 84.0,
+        "unit": "kg",
+        "local_date": "2026-05-14",
+    }
+    assert result["mutation_result"] == {
+        "status": "recorded",
+        "body_observation_recorded": True,
+        "body_plan_mutated": False,
+        "ledger_mutated": False,
+    }
+    assert "debug_blob" not in str(compact)
+    assert "observed_at" not in str(compact)
+
+
 class FakeLoopProvider:
     def __init__(self, responses: list[dict[str, object]]) -> None:
         self.responses = list(responses)
@@ -520,6 +573,14 @@ async def test_run_intake_manager_injects_entry_scope_route_policy() -> None:
             },
             "final_action": "no_commit",
             "workflow_effect": "route_to_intake",
+        },
+        "if_body_observation_needed": {
+            "manager_action": "final",
+            "tool_calls": [],
+            "intent_type": "body_observation",
+            "final_action": "no_commit",
+            "workflow_effect": "route_to_body_observation",
+            "body_observation_tool_scope": "body_observation",
         },
         "context_packet_read_only_flags": "context_evidence_only_not_current_turn_mutation_intent",
         "deterministic_boundary": "runtime_validates_tool_scope_only_no_raw_text_semantic_routing",

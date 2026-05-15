@@ -12,6 +12,11 @@ from app.composition.current_shell_golden_set_answer_query_projection import (
     attach_answer_query_no_mutation_outcome,
     state_delta_has_no_meal_change,
 )
+from app.composition.current_shell_body_observation_projection import (
+    attach_body_observation_runtime_projection,
+    attach_body_observation_ui_projection,
+    body_observation_recorded,
+)
 from app.composition.current_shell_golden_set_kcal_conflict_projection import (
     attach_implausible_kcal_conflict_outcome,
 )
@@ -57,6 +62,11 @@ def runtime_from_request_trace(
     if final_action is not None:
         runtime.setdefault("final_action", final_action)
     _attach_manager_semantics(runtime, manager_final, manager_decision)
+    attach_body_observation_runtime_projection(
+        runtime,
+        request_trace=request_trace,
+        state_delta=state_delta,
+    )
     phase_c_mutation = _dict(phase_c_trace.get("mutation_outcome"))
     if phase_c_mutation:
         runtime.setdefault("canonical_commit_status", phase_c_mutation.get("canonical_commit_status"))
@@ -173,6 +183,7 @@ def ui_from_request_trace(request_trace: dict[str, Any], state_delta: dict[str, 
             ui.setdefault("removed_item_not_counted", not_counted)
     if "existing_meal_unchanged" not in ui and state_delta_has_no_meal_change(state_delta):
         ui["existing_meal_unchanged"] = True
+    attach_body_observation_ui_projection(ui, request_trace=request_trace, state_delta=state_delta)
     attach_remaining_query_ui(ui, request_trace=request_trace)
     return ui
 
@@ -244,6 +255,8 @@ def _mutation_allowed_from_trace(
     phase_c_trace: dict[str, Any],
     state_delta: dict[str, Any],
 ) -> bool | None:
+    if body_observation_recorded({}, state_delta):
+        return True
     if "canonical_commit" in state_delta:
         return bool(state_delta.get("canonical_commit"))
     commit_status = str(_dict(phase_c_trace.get("mutation_outcome")).get("canonical_commit_status") or "")

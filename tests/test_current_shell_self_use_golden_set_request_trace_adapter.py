@@ -360,6 +360,72 @@ def test_request_trace_adapter_projects_no_plan_degraded_remaining_query() -> No
     assert grade["status"] == "pass"
 
 
+def test_request_trace_adapter_projects_body_observation_write_from_tool_result_only() -> None:
+    trace = _gs5_request_trace()
+    trace["request"] = {"text": "raw text must not decide body observation semantics"}
+    trace["state_delta"] = {
+        "meal_logged": False,
+        "canonical_commit": False,
+        "draft_saved": False,
+        "new_meal_version_created": False,
+        "old_version_superseded": False,
+        "ledger_updated": False,
+        "body_observation_recorded": True,
+    }
+    trace["manager_decision"] = {
+        "intent_type": "body_observation",
+        "workflow_effect": "record_weight",
+        "final_action": "answer_only",
+        "answer_contract": {"reply_text": "Recorded today's weight."},
+        "tool_results": [
+            {
+                "tool_name": "body.record_observation",
+                "evidence": {
+                    "recorded_body_observation": {
+                        "observation_type": "weight",
+                        "value": 84.0,
+                        "unit": "kg",
+                        "local_date": "2026-05-14",
+                    }
+                },
+                "mutation_result": {
+                    "status": "recorded",
+                    "body_observation_recorded": True,
+                    "body_plan_mutated": False,
+                    "ledger_mutated": False,
+                },
+                "provenance": {"canonical_tool_name": "body.record_observation"},
+            }
+        ],
+    }
+    trace["manager_final_decision"] = trace["manager_decision"]
+    trace["runtime"] = {}
+    trace["phase_c_trace"] = {}
+    trace["tool_outputs"] = {
+        "persistence_result": trace["manager_decision"]["tool_results"][0],
+    }
+    trace["state_after"] = {
+        "active_body_plan_view": {
+            "body_plan_id": 1,
+            "plan_status": "active",
+            "profile_status": "ready",
+        },
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS16", trace)
+    grade = grade_golden_case_trace("GS16", case_trace)
+
+    assert case_trace["runtime"]["mutation_allowed"] is True
+    assert case_trace["runtime"]["body_plan_rewrite_allowed"] is False
+    assert case_trace["runtime"]["manager_tdee_math_allowed"] is False
+    assert case_trace["ui"]["latest_weight_visible"] is True
+    assert case_trace["ui"]["weight_history_date_scoped"] is True
+    assert case_trace["ui"]["body_plan_date_scoped"] is False
+    assert case_trace["ui"]["body_form_prefilled_from_saved_truth"] is True
+    assert case_trace["ui"]["frontend_tdee_math_allowed"] is False
+    assert grade["status"] == "pass"
+
+
 def test_request_trace_adapter_projects_manager_owned_blocking_basket_outcome() -> None:
     trace = _gs5_request_trace()
     trace.pop("runtime", None)

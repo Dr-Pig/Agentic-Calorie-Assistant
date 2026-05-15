@@ -36,6 +36,21 @@ def safe_failure_payload() -> dict[str, Any]:
 
 
 def manager_scope_policy_payload(manager_loop_scope: str, available_tools: tuple[str, ...]) -> dict[str, Any]:
+    if manager_loop_scope == "body_observation":
+        return {
+            "policy_id": "manager_scope_policy.body_observation.v1",
+            "manager_loop_scope": manager_loop_scope,
+            "available_tools": list(available_tools),
+            "after_successful_body_record_tool_result": {
+                "manager_action": "final",
+                "intent_type": "body_observation",
+                "final_action": "answer_only",
+                "workflow_effect": "record_weight",
+                "do_not_call_body_record_observation_again": True,
+            },
+            "forbidden_effects": ["body_plan_mutation", "ledger_mutation", "tdee_math"],
+            "deterministic_boundary": "runtime_validates_tool_scope_only_no_raw_text_semantic_routing",
+        }
     if manager_loop_scope != "turn_entry_or_read_only":
         return {
             "policy_id": f"manager_scope_policy.{manager_loop_scope}.v1",
@@ -57,6 +72,14 @@ def manager_scope_policy_payload(manager_loop_scope: str, available_tools: tuple
             },
             "final_action": "no_commit",
             "workflow_effect": "route_to_intake",
+        },
+        "if_body_observation_needed": {
+            "manager_action": "final",
+            "tool_calls": [],
+            "intent_type": "body_observation",
+            "final_action": "no_commit",
+            "workflow_effect": "route_to_body_observation",
+            "body_observation_tool_scope": "body_observation",
         },
         "context_packet_read_only_flags": "context_evidence_only_not_current_turn_mutation_intent",
         "deterministic_boundary": "runtime_validates_tool_scope_only_no_raw_text_semantic_routing",

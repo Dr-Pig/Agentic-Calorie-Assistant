@@ -64,6 +64,35 @@ def test_result_from_payload_consumes_explicit_semantic_decision_without_rewriti
     assert result.semantic_decision["workflow_effect"] == "answer_only"
 
 
+def test_result_from_payload_preserves_body_observation_semantic_decision() -> None:
+    result = result_from_payload(
+        {
+            "intent": "body observation recorded",
+            "intent_type": "body_observation",
+            "workflow_effect": "record_weight",
+            "final_action": "answer_only",
+            "semantic_decision": {
+                "semantic_authority": "manager_llm",
+                "current_turn_intent": "body_observation",
+                "target_attachment": {},
+                "workflow_effect": "record_weight",
+                "final_action_candidate": "answer_only",
+                "estimation_posture": "none",
+                "followup_posture": "closed",
+                "mutation_intent_candidate": "body_observation_write",
+                "uncertainty_posture": "none",
+                "source": "tool_result",
+            },
+        },
+        manager_rounds=[],
+        tool_results=[],
+    )
+
+    assert result.semantic_decision["semantic_authority"] == "manager_llm"
+    assert result.semantic_decision["current_turn_intent"] == "body_observation"
+    assert result.semantic_decision["mutation_intent_candidate"] == "body_observation_write"
+
+
 def test_result_from_payload_derives_missing_final_action_from_manager_semantic_candidate() -> None:
     result = result_from_payload(
         {

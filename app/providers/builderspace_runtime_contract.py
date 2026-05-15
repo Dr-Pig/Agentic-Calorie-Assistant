@@ -10,16 +10,18 @@ from .builderspace_final_mapping_schema import apply_evidence_present_final_mapp
 from .builderspace_schema_compaction import compact_decision_transport_schema
 from .builderspace_target_attachment_schema import apply_target_attachment_schema_guidance
 from ..runtime.agent.founder_live_manager_contract import (
-    FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS,
-    FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES,
-    FOUNDER_LIVE_MANAGER_CALL_TOOLS_FINAL_ACTIONS,
     FOUNDER_LIVE_MANAGER_FIELD_CONSUMERS,
     FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS,
-    FOUNDER_LIVE_MANAGER_REPAIR_ALLOWED_TOOL_NAMES,
     FOUNDER_LIVE_MANAGER_REPAIR_REQUIRED_TOOL_BY_FAMILY,
     founder_live_manager_repair_failure_family,
     is_founder_live_manager_contract,
     validate_founder_live_manager_contract_consistency,
+)
+from ..runtime.agent.founder_live_manager_allowed_values import (
+    founder_live_manager_allowed_final_actions_for_constraints,
+    founder_live_manager_allowed_intent_types_for_constraints,
+    founder_live_manager_call_tools_final_actions_for_constraints,
+    founder_live_manager_tool_names_for_constraints,
 )
 from ..runtime.agent.manager_branch_shapes import manager_semantic_decision_schema
 from ..runtime.contracts.trace import MANAGER_LOOP_STAGE
@@ -211,10 +213,10 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
     if is_founder_live_manager_contract(constraints):
         repair_failure_family = founder_live_manager_repair_failure_family(constraints)
         required_repair_tool = FOUNDER_LIVE_MANAGER_REPAIR_REQUIRED_TOOL_BY_FAMILY.get(repair_failure_family)
-        allowed_final_actions = list(FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS)
+        allowed_final_actions = founder_live_manager_allowed_final_actions_for_constraints(constraints)
         base_schema["properties"]["intent_type"] = {
             "type": "string",
-            "enum": list(FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES),
+            "enum": founder_live_manager_allowed_intent_types_for_constraints(constraints),
         }
         base_schema["properties"]["final_action"] = {
             "type": "string",
@@ -226,7 +228,7 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
             "items": {
                 "type": "object",
                 "properties": {
-                    "name": {"type": "string", "enum": list(FOUNDER_LIVE_MANAGER_REPAIR_ALLOWED_TOOL_NAMES)},
+                    "name": {"type": "string", "enum": founder_live_manager_tool_names_for_constraints(constraints)},
                     "arguments": {"type": "object"},
                 },
                 "required": ["name"],
@@ -244,7 +246,7 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
                         "properties": {
                             "final_action": {
                                 "type": "string",
-                                "enum": list(FOUNDER_LIVE_MANAGER_CALL_TOOLS_FINAL_ACTIONS),
+                                "enum": founder_live_manager_call_tools_final_actions_for_constraints(constraints),
                             },
                             "tool_calls": {"type": "array", "minItems": 1},
                         }
