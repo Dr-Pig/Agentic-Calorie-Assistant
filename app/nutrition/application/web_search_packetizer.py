@@ -312,9 +312,3 @@ def _score(value: object) -> float | None:
     if isinstance(value, (int, float)):
         return float(value)
     return None
-
-
-__all__ = [
-    "build_web_search_candidate_packet",
-    "build_web_search_candidate_packets",
-]

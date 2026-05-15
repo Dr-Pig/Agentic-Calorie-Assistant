@@ -316,6 +316,3 @@ def build_context_live_diagnostic_review_pack_artifact(
             },
         }
     )
-
-
-__all__ = ["REQUIRED_INPUTS", "build_context_live_diagnostic_review_pack_artifact"]
