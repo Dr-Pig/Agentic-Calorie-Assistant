@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.composition.accurate_intake_pl_ce_ui_context_alignment_pack import (  # noqa: E402
+from app.composition.current_shell_ui_context_alignment_pack import (  # noqa: E402
     REQUIRED_INPUTS,
     build_pl_ce_ui_context_alignment_pack_artifact,
 )

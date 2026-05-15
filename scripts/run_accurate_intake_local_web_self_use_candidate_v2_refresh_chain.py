@@ -72,13 +72,13 @@ from app.composition.current_shell_browser_activation_evidence_gate import (  # 
 from app.composition.current_shell_product_pages_self_use_flow_gate import (  # noqa: E402
     build_current_shell_product_pages_self_use_flow_gate_artifact,
 )
-from app.composition.accurate_intake_pl_ce_context_coverage_matrix import (  # noqa: E402
+from app.composition.current_shell_context_coverage_matrix import (  # noqa: E402
     build_pl_ce_context_coverage_matrix_artifact,
 )
 from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (  # noqa: E402
     build_pl_ce_local_mvp_candidate_bundle_artifact,
 )
-from app.composition.accurate_intake_pl_ce_ui_context_alignment_pack import (  # noqa: E402
+from app.composition.current_shell_ui_context_alignment_pack import (  # noqa: E402
     build_pl_ce_ui_context_alignment_pack_artifact,
 )
 from app.composition.accurate_intake_product_pages_renderer_source_map import (  # noqa: E402
