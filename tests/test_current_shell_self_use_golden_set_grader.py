@@ -8,7 +8,8 @@ from app.composition.current_shell_golden_set_grader import (
 
 def _base_result(case_id: str) -> dict:
     manifest = load_golden_set_manifest()
-    case = next(entry for entry in manifest["cases"] if entry["case_id"] == case_id)
+    manifest_cases = list(manifest["cases"]) + list(manifest["websearch_extension"]["cases"])
+    case = next(entry for entry in manifest_cases if entry["case_id"] == case_id)
     return {
         "case_id": case_id,
         "fixture_decisions": {
@@ -56,6 +57,90 @@ def test_grader_passes_a_valid_gs5_no_anchor_followup_result() -> None:
     assert grade["status"] == "pass"
     assert grade["blockers"] == []
     assert grade["case_id"] == "GS5"
+
+
+def test_grader_passes_a_valid_websearch_extension_candidate_result() -> None:
+    result = _base_result("GSW1")
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "pass"
+    assert grade["blockers"] == []
+    assert grade["case_id"] == "GSW1"
+
+
+def test_grader_blocks_websearch_candidate_truth_promotion() -> None:
+    result = _base_result("GSW1")
+    result["runtime"]["websearch_snippet_as_truth_allowed"] = True
+    result["runtime"]["runtime_mutation_allowed"] = True
+    result["runtime"]["websearch_candidate_to_commit_allowed"] = True
+    result["ui"]["today_consumed_updates"] = True
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "blocked"
+    assert (
+        "runtime.websearch_snippet_as_truth_allowed_expected:False_actual:True"
+        in grade["blockers"]
+    )
+    assert "runtime.runtime_mutation_allowed_expected:False_actual:True" in grade["blockers"]
+    assert "runtime.websearch_candidate_to_commit_allowed_expected:False_actual:True" in grade["blockers"]
+    assert "ui.today_consumed_updates_expected:False_actual:True" in grade["blockers"]
+
+
+def test_grader_blocks_websearch_keyword_router_fake_pass() -> None:
+    result = _base_result("GSW1")
+    result["runtime"]["pre_manager_websearch_routing_allowed"] = True
+    result["generalization"]["pre_manager_websearch_routing_used"] = True
+    result["generalization"]["case_id_or_fixture_label_routing_used"] = True
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "blocked"
+    assert "runtime.pre_manager_websearch_routing_allowed_expected:False_actual:True" in grade["blockers"]
+    assert "generalization.pre_manager_websearch_routing_used" in grade["blockers"]
+    assert "generalization.case_id_or_fixture_label_routing_used" in grade["blockers"]
+
+
+def test_grader_blocks_wrong_brand_exact_or_macro_promotion() -> None:
+    result = _base_result("GSW2")
+    result["runtime"]["wrong_brand_promotion_allowed"] = True
+    result["runtime"]["exact_promotion_allowed"] = True
+    result["runtime"]["macro_truth_allowed"] = True
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "blocked"
+    assert "runtime.wrong_brand_promotion_allowed_expected:False_actual:True" in grade["blockers"]
+    assert "runtime.exact_promotion_allowed_expected:False_actual:True" in grade["blockers"]
+    assert "runtime.macro_truth_allowed_expected:False_actual:True" in grade["blockers"]
+
+
+def test_grader_blocks_websearch_when_fooddb_anchor_exists() -> None:
+    result = _base_result("GSW3")
+    result["runtime"]["websearch_tool_call_expected"] = True
+    result["runtime"]["fooddb_anchor_bypass_allowed"] = True
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "blocked"
+    assert "runtime.websearch_tool_call_expected_expected:False_actual:True" in grade["blockers"]
+    assert "runtime.fooddb_anchor_bypass_allowed_expected:False_actual:True" in grade["blockers"]
+
+
+def test_grader_blocks_candidate_only_macro_visibility() -> None:
+    result = _base_result("GSW4")
+    result["runtime"]["websearch_candidate_to_macro_truth_allowed"] = True
+    result["ui"]["macro_hidden_when_candidate_only"] = False
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "blocked"
+    assert (
+        "runtime.websearch_candidate_to_macro_truth_allowed_expected:False_actual:True"
+        in grade["blockers"]
+    )
+    assert "ui.macro_hidden_when_candidate_only_expected:True_actual:False" in grade["blockers"]
 
 
 def test_grader_treats_canonical_write_commit_as_gs1_commit_effect() -> None:

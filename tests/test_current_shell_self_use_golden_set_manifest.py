@@ -118,6 +118,53 @@ def test_golden_set_cases_cover_locked_self_use_matrix() -> None:
     assert gs19["dogfood_trace"]["correlates_ui_runtime_read_model_response"] is True
 
 
+def test_golden_set_declares_websearch_extension_cases() -> None:
+    manifest = _load_manifest()
+
+    extension = manifest["websearch_extension"]
+    assert extension["case_count"] == 4
+    assert extension["status"] == "required_before_self_use_closeout"
+    assert extension["source_truth_role"] == "candidate_evidence_only_until_approved_packet"
+    assert extension["manager_decides_search_need"] is True
+    assert extension["deterministic_search_routing_allowed"] is False
+    assert extension["no_snippet_as_truth"] is True
+    assert extension["no_runtime_mutation_from_candidate"] is True
+
+    cases = {case["case_id"]: case for case in extension["cases"]}
+    assert list(cases) == ["GSW1", "GSW2", "GSW3", "GSW4"]
+
+    gsw1 = cases["GSW1"]
+    assert gsw1["script"][0]["utterance_zh_tw"] == "我喝了一杯迷客夏珍珠紅茶拿鐵，FoodDB 沒有的話幫我查一下"
+    assert gsw1["seed_state"]["fooddb_packets"] == "milksha_black_tea_latte_exact_missing"
+    assert gsw1["seed_state"]["websearch_candidate_sources"] == "recorded_candidate_packet"
+    assert gsw1["expected_runtime"]["workflow_effect"] == "answer_or_ask_followup_no_mutation"
+    assert gsw1["expected_runtime"]["websearch_tool_call_expected"] is True
+    assert gsw1["expected_runtime"]["websearch_snippet_as_truth_allowed"] is False
+    assert gsw1["expected_runtime"]["runtime_mutation_allowed"] is False
+    assert gsw1["expected_runtime"]["pre_manager_websearch_routing_allowed"] is False
+    assert gsw1["expected_runtime"]["websearch_candidate_to_commit_allowed"] is False
+
+    gsw2 = cases["GSW2"]
+    assert gsw2["script"][0]["utterance_zh_tw"] == "目標是迷客夏珍珠紅茶拿鐵；搜尋結果只有不同品牌的同類飲料"
+    assert gsw2["expected_runtime"]["wrong_brand_promotion_allowed"] is False
+    assert gsw2["expected_runtime"]["exact_promotion_allowed"] is False
+    assert gsw2["expected_runtime"]["macro_truth_allowed"] is False
+    assert gsw2["expected_runtime"]["runtime_mutation_allowed"] is False
+
+    gsw3 = cases["GSW3"]
+    assert gsw3["script"][0]["utterance_zh_tw"] == "午餐吃了一碗雞肉飯"
+    assert gsw3["seed_state"]["fooddb_packets"] == "generic_chicken_rice_available"
+    assert gsw3["expected_runtime"]["websearch_tool_call_expected"] is False
+    assert gsw3["expected_runtime"]["use_generic_or_fooddb_anchor_first"] is True
+    assert gsw3["expected_runtime"]["fooddb_anchor_bypass_allowed"] is False
+
+    gsw4 = cases["GSW4"]
+    assert gsw4["script"][0]["utterance_zh_tw"] == "我喝了一瓶義美全脂鮮乳 400ml，幫我記一下"
+    assert gsw4["expected_runtime"]["macro_visible_only_from_official_or_approved_evidence"] is True
+    assert gsw4["expected_runtime"]["websearch_candidate_to_macro_truth_allowed"] is False
+    assert gsw4["ui_assertions"]["macro_hidden_when_candidate_only"] is True
+
+
 def test_each_golden_case_has_trace_budget_judge_and_ui_contract_fields() -> None:
     manifest = _load_manifest()
     required_trace_layers = set(manifest["trace_layers"]["blocking"]) | set(
@@ -125,6 +172,17 @@ def test_each_golden_case_has_trace_budget_judge_and_ui_contract_fields() -> Non
     )
 
     for case in manifest["cases"]:
+        assert case["script"], case["case_id"]
+        assert case["seed_state"], case["case_id"]
+        assert set(case["required_trace_layers"]).issubset(required_trace_layers), case["case_id"]
+        assert case["expected_runtime"], case["case_id"]
+        assert case["ui_assertions"], case["case_id"]
+        assert case["response_rubric"], case["case_id"]
+        assert case["latency_call_budget"]["timeout_is_product_target"] is False, case["case_id"]
+        assert "max_llm_calls" in case["latency_call_budget"], case["case_id"]
+        assert case["dogfood_trace"]["trace_id_required"] is True, case["case_id"]
+
+    for case in manifest["websearch_extension"]["cases"]:
         assert case["script"], case["case_id"]
         assert case["seed_state"], case["case_id"]
         assert set(case["required_trace_layers"]).issubset(required_trace_layers), case["case_id"]
@@ -151,6 +209,10 @@ def test_golden_set_spec_records_hard_boundaries_and_fooddb_posture() -> None:
         "Feedback is captured through inline entry points",
         "Structured trace is the primary review surface",
         "Patterned combo anchors are posture-driven",
+        "WebSearch Golden Extension",
+        "WebSearch is part of the Current Shell evidence path",
+        "Manager decides whether a turn needs external search",
+        "Wrong-brand or near-match WebSearch candidates must not be promoted",
         "Grokfast is the primary self-use live gate",
         "Kimi remains a non-blocking cross-model diagnostic",
     ]

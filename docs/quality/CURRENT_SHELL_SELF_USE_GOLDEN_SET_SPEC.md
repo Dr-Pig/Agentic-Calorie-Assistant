@@ -88,6 +88,25 @@ Cases are defined in the manifest so runners can consume the same truth that hum
 
 Each case is also a representative of a broader failure family. Passing the literal input text is not enough when trace evidence shows keyword routing, fixture-owned semantics, or case-specific prompt patching.
 
+## WebSearch Golden Extension
+
+WebSearch is part of the Current Shell evidence path but is not a runtime truth owner for kcal, macro, source exactness, commit posture, or ledger mutation. The core GS1-GS19 matrix does not by itself prove that the user entrypoint can handle a FoodDB miss, exact-item lookup, wrong-brand result, or macro-bearing official source through WebSearch. The WebSearch extension cases therefore run as required Golden Set extension coverage before self-use closeout.
+
+Manager decides whether a turn needs external search. Deterministic code must not route to WebSearch from raw user text, brand keywords, food names, case IDs, or fixture labels before the Manager pass. It may validate the Manager-requested search plan, execute an allowed retrieval adapter, filter source eligibility, and reject or downgrade candidate packets after the tool returns.
+
+WebSearch candidate evidence can support answer wording, clarification, or a later review workflow. It cannot directly become FoodDB truth, canonical intake truth, macro truth, source exactness, or ledger mutation unless an approved packet-ready evidence path has promoted it through the FoodDB contract. Raw snippets, search result titles, and extracted page text are not canonical nutrition truth.
+
+Wrong-brand or near-match WebSearch candidates must not be promoted. They are mismatch evidence for clarification, refusal to commit, or review-only candidate capture.
+
+The extension must cover:
+
+- an exact-item FoodDB miss where Manager chooses WebSearch and receives candidate evidence only
+- a wrong-brand or near-match case where candidates must not be promoted
+- a generic/common food where Manager should prefer FoodDB/generic anchors and should not search the web by default
+- an exact macro item where protein, carbs, and fat are visible only from official or approved evidence
+
+Every WebSearch extension pass must prove the real Manager decision path, requested search/evidence tools, compact packets, final response basis, no mutation, no snippet-as-truth, and no frontend nutrition math. A sidecar WebSearch packet or status gate is insufficient by itself; the extension validates the user-visible Current Shell path.
+
 ## Response Quality
 
 Path correctness is not judged by another model. Trace, read model, mutation result, and UI state decide path correctness.

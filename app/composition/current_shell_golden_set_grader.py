@@ -9,6 +9,10 @@ from app.composition.current_shell_golden_set_correction_matchers import (
     matches_remove_meal_workflow,
     matches_unique_recent_or_named_slot_attachment,
 )
+from app.composition.current_shell_golden_set_manifest_access import (
+    fake_pass_generalization_blockers,
+    golden_case_by_id,
+)
 
 
 GOLDEN_SET_MANIFEST_PATH = Path("docs/quality/current_shell_self_use_golden_set_manifest.yaml")
@@ -26,7 +30,7 @@ def grade_golden_case_result(
 ) -> dict[str, Any]:
     golden_manifest = manifest or load_golden_set_manifest()
     case_id = str(result.get("case_id") or "")
-    case = _case_by_id(golden_manifest, case_id)
+    case = golden_case_by_id(golden_manifest, case_id)
     blockers: list[str] = []
     warnings: list[str] = []
 
@@ -43,13 +47,6 @@ def grade_golden_case_result(
     blockers.extend(_generalization_blockers(result))
 
     return _grade_result(case_id=case_id, blockers=blockers, warnings=warnings)
-
-
-def _case_by_id(manifest: dict[str, Any], case_id: str) -> dict[str, Any]:
-    for case in list(manifest.get("cases") or []):
-        if isinstance(case, dict) and case.get("case_id") == case_id:
-            return dict(case)
-    return {}
 
 
 def _grade_result(*, case_id: str, blockers: list[str], warnings: list[str]) -> dict[str, Any]:
@@ -303,12 +300,7 @@ def _dogfood_trace_blockers(result: dict[str, Any], case: dict[str, Any]) -> lis
 
 
 def _generalization_blockers(result: dict[str, Any]) -> list[str]:
-    generalization = dict(result.get("generalization") or {})
-    blockers: list[str] = []
-    for forbidden_flag in ("exact_utterance_only_pass", "keyword_or_fixture_shortcut_used"):
-        if generalization.get(forbidden_flag) is True:
-            blockers.append(f"generalization.{forbidden_flag}")
-    return blockers
+    return fake_pass_generalization_blockers(dict(result.get("generalization") or {}))
 
 
 __all__ = [

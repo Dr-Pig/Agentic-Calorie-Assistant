@@ -119,7 +119,8 @@ def build_current_shell_golden_set_e2e_report(
         engine.dispose()
 
     trace_artifact = build_golden_trace_artifact_from_request_traces(case_traces)
-    replay = build_golden_set_replay(manifest=manifest, trace_artifact=trace_artifact)
+    replay_manifest = _manifest_for_selected_cases(manifest, selected_cases)
+    replay = build_golden_set_replay(manifest=replay_manifest, trace_artifact=trace_artifact)
     report = _json_safe(
         {
             "artifact_type": "current_shell_self_use_golden_set_e2e_report",
@@ -605,7 +606,7 @@ def _provider_for_mode(provider_mode: str) -> Any | None:
 
 
 def _select_cases(manifest: dict[str, Any], case_ids: list[str] | None) -> list[dict[str, Any]]:
-    manifest_cases = [_dict(item) for item in _list(manifest.get("cases"))]
+    manifest_cases = _manifest_cases(manifest)
     if not case_ids:
         return manifest_cases
     wanted = {case_id.strip() for case_id in case_ids if case_id.strip()}
@@ -614,6 +615,38 @@ def _select_cases(manifest: dict[str, Any], case_ids: list[str] | None) -> list[
     if missing:
         raise ValueError(f"unknown golden set case id(s): {', '.join(missing)}")
     return selected
+
+
+def _manifest_cases(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    cases = [_dict(item) for item in _list(manifest.get("cases"))]
+    cases.extend(_dict(item) for item in _list(_dict(manifest.get("websearch_extension")).get("cases")))
+    return cases
+
+
+def _manifest_for_selected_cases(
+    manifest: dict[str, Any],
+    selected_cases: list[dict[str, Any]],
+) -> dict[str, Any]:
+    selected_ids = {str(case.get("case_id") or "") for case in selected_cases}
+    core_cases = [
+        _dict(case)
+        for case in _list(manifest.get("cases"))
+        if str(_dict(case).get("case_id") or "") in selected_ids
+    ]
+    extension = _dict(manifest.get("websearch_extension"))
+    extension_cases = [
+        _dict(case)
+        for case in _list(extension.get("cases"))
+        if str(_dict(case).get("case_id") or "") in selected_ids
+    ]
+    replay_manifest = {**manifest, "cases": core_cases, "case_count": len(core_cases)}
+    if extension:
+        replay_manifest["websearch_extension"] = {
+            **extension,
+            "cases": extension_cases,
+            "case_count": len(extension_cases),
+        }
+    return replay_manifest
 
 
 def _script_turns(case: dict[str, Any]) -> list[dict[str, Any]]:
