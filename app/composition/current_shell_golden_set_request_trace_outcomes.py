@@ -72,6 +72,13 @@ def runtime_from_request_trace(
         pre_manager_shortcut = _pre_manager_guard_feedback_present(request_trace)
         if pre_manager_shortcut is not None:
             runtime["pre_manager_estimability_shortcut_allowed"] = pre_manager_shortcut
+    _attach_blocking_composition_clarification_outcome(
+        runtime=runtime,
+        manager_final=manager_final,
+        manager_decision=manager_decision,
+        workflow_effect=workflow_effect,
+        final_action=final_action,
+    )
     _attach_implausible_kcal_conflict_outcome(
         runtime=runtime,
         manager_final=manager_final,
@@ -154,6 +161,31 @@ def dogfood_trace_from_request_trace(request_trace: dict[str, Any]) -> dict[str,
 
 def approved_nutrition_evidence_present(request_trace: dict[str, Any], manager_final: dict[str, Any]) -> bool:
     return _approved_nutrition_evidence_present(request_trace, manager_final)
+
+
+def _attach_blocking_composition_clarification_outcome(
+    *,
+    runtime: dict[str, Any],
+    manager_final: dict[str, Any],
+    manager_decision: dict[str, Any],
+    workflow_effect: Any,
+    final_action: Any,
+) -> None:
+    if str(final_action or workflow_effect or "") != "ask_followup":
+        return
+    semantic_decision = _dict(manager_final.get("semantic_decision")) or _dict(
+        manager_decision.get("semantic_decision")
+    )
+    if str(semantic_decision.get("mutation_intent_candidate") or "") != "no_mutation":
+        return
+    estimation_posture = str(semantic_decision.get("estimation_posture") or "")
+    followup_posture = str(semantic_decision.get("followup_posture") or "")
+    if "composition_unknown" not in estimation_posture and "blocking_composition" not in followup_posture:
+        return
+    if not _followup_question(manager_final):
+        return
+    runtime.setdefault("estimate_allowed", False)
+    runtime.setdefault("one_bundled_question_required", True)
 
 
 def _attach_manager_semantics(
