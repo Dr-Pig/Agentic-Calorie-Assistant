@@ -68,7 +68,7 @@
       "mutation_intent_candidate": "none",
       "ledger_mutation_allowed": false,
       "canonical_rule_refs": [
-        "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md#Phase-C"
+        "docs/specs/L3_1_INTAKE_RUNTIME_CONTRACT_SPEC.md#read-model-and-same-turn-budget"
       ]
     },
     {
@@ -82,7 +82,7 @@
       "mutation_intent_candidate": "none",
       "ledger_mutation_allowed": false,
       "canonical_rule_refs": [
-        "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md#MS14-No-Plan-Fallback"
+        "docs/quality/CURRENT_SHELL_SELF_USE_GOLDEN_SET_SPEC.md#ui-and-dogfood-requirements"
       ]
     },
     {
@@ -114,7 +114,7 @@
       "mutation_intent_candidate": "correction",
       "ledger_mutation_allowed": true,
       "canonical_rule_refs": [
-        "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md#Phase-C"
+        "docs/quality/CURRENT_SHELL_SELF_USE_GOLDEN_SET_SPEC.md#global-invariants"
       ]
     },
     {

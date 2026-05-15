@@ -193,7 +193,6 @@ def run_advanced_product_lab_dogfood_session(
     )
     return artifact
 
-
 __all__ = [
     "SIDECAR_ACTIVATION_CONTRACT",
     "run_advanced_product_lab_dogfood_session",

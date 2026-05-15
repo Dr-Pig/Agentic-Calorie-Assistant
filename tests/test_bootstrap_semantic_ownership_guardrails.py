@@ -12,59 +12,55 @@ def _read(relative: str) -> str:
 
 def test_bootstrap_requires_best_practice_and_semantic_owner_fields() -> None:
     agents = _read("AGENTS.md")
-    bootstrap = _read("docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md")
-    combined = f"{agents}\n{bootstrap}"
+    operating_entry = _read("docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md")
+    golden_set = _read("docs/quality/CURRENT_SHELL_SELF_USE_GOLDEN_SET_SPEC.md")
+    combined = f"{agents}\n{operating_entry}\n{golden_set}"
 
     required_markers = [
         "best_practice_evidence",
         "llm_deterministic_boundary",
         "semantic_owner",
-        "deterministic diagnostic mode means offline, reproducible, and no live provider call",
-        "does not grant deterministic semantic ownership",
-        "fake providers in deterministic diagnostics may simulate LLM / manager structured outputs",
+        "Product truth is higher-order than eval shape",
+        "Deterministic code may validate, reject, downgrade, derive, or request bounded repair",
+        "Fake providers in deterministic diagnostics may simulate LLM/manager structured outputs",
     ]
     for marker in required_markers:
         assert marker in combined
 
-    semantic_fields = [
-        "intent",
-        "workflow_effect",
-        "action_taken",
-        "response_mode_hint",
-        "follow_up_needed",
-        "followup_question",
-        "route_target",
-        "exactness",
-        "resolution_mode",
+    semantic_owner_markers = [
+        "semantic intent",
+        "tool choice",
+        "correction/removal target",
+        "attach target",
+        "final action",
+        "composition sufficiency",
+        "estimability",
+        "follow-up necessity",
     ]
-    for field in semantic_fields:
-        assert f"`{field}`" in combined
+    for marker in semantic_owner_markers:
+        assert marker in combined
 
 
 def test_best_practice_guidance_is_repo_local_not_kiro_steering() -> None:
     agents = _read("AGENTS.md")
-    bootstrap = _read("docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md")
-    combined = f"{agents}\n{bootstrap}"
+    operating_entry = _read("docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md")
+    combined = f"{agents}\n{operating_entry}"
 
     assert not (ROOT / ".kiro").exists()
     assert "current official or primary sources" in combined
     assert "best_practice_evidence" in combined
-    assert "If a high-impact B-2 slice skips current best-practice / official-reference review" in combined
     assert ".kiro/steering/best-practice-search.md" not in combined
 
 
 def test_bootstrap_records_founder_live_strictness_model_inversion_policy() -> None:
-    bootstrap = _read("docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md")
+    runbook = _read("docs/quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md")
     local_memory = _read("docs/agent/EVOMAP_LOCAL_MEMORY.md")
 
-    assert "first-pass strictness must target invariant compliance" in bootstrap
-    assert "not provider-specific trace imitation" in bootstrap
-    assert "single-profile diagnostic stability" in bootstrap
-    assert "model diversity evidence" in bootstrap
-    assert "live full-suite failure unlocks attribution/audit only" in bootstrap
-    assert "live failure alone cannot justify prompt/schema/contract hardening" in bootstrap
-    assert "legal-flow matrix" in bootstrap
-    assert "holdout tests" in bootstrap
+    assert "live full-suite failure unlocks attribution/audit only" in runbook
+    assert "live failure alone cannot justify prompt/schema/contract hardening" in runbook
+    assert "provider/model diversity evidence" in runbook
+    assert "legal-flow matrix" in runbook
+    assert "holdout tests" in runbook
     assert "local-2026-05-01-founder-live-strictness-model-inversion" in local_memory
 
 

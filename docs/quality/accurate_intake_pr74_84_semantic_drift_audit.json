@@ -61,7 +61,7 @@
       "rule_changed": "Multi-item estimates preserve component items as future target candidates.",
       "triggered_by_live_failure": true,
       "canonical_spec_refs": [
-        "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md#Phase-C"
+        "docs/quality/CURRENT_SHELL_SELF_USE_GOLDEN_SET_SPEC.md#global-invariants"
       ],
       "manager_owned_fields_affected": [
         "target_attachment"
@@ -80,7 +80,7 @@
       "rule_changed": "Manager correction target attachment must be validated by deterministic uniqueness/writeability guard.",
       "triggered_by_live_failure": false,
       "canonical_spec_refs": [
-        "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md#High-impact-semantic-owner-hard-gate"
+        "docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md#hard-operating-rules"
       ],
       "manager_owned_fields_affected": [
         "target_attachment"

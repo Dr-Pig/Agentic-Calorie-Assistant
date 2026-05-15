@@ -6,12 +6,12 @@ from app.nutrition.application.exact_item_lookup_port import (
     ExactItemLookupPort,
     default_exact_item_lookup_port,
 )
-from app.nutrition.application.retrieval_intent import build_raw_text_retrieval_hint
 from .exact_item_candidate_support import (
     augment_exact_candidate,
     exact_identity_gate,
     fallback_exact_candidates,
 )
+from .exact_item_query_candidates import candidate_search_queries
 
 
 def resolve_exact_item(
@@ -22,7 +22,7 @@ def resolve_exact_item(
     limit: int = 5,
     lookup_port: ExactItemLookupPort | None = None,
 ) -> list[dict[str, Any]]:
-    search_queries = _candidate_search_queries(query, active_brand_context=active_brand_context)
+    search_queries = candidate_search_queries(query, active_brand_context=active_brand_context)
     exact_lookup = lookup_port or default_exact_item_lookup_port()
     for search_query in search_queries:
         raw_candidates = exact_lookup.resolve_exact_item_fts(search_query, limit=max(limit * 2, 6))
@@ -44,31 +44,6 @@ def resolve_exact_item(
         if exact_candidates:
             return exact_candidates
     return fallback_exact_candidates(search_query=search_queries[0], required_slots=required_slots, limit=limit)
-
-
-def _candidate_search_queries(query: str, *, active_brand_context: str | None) -> list[str]:
-    raw_query = str(query or "").strip()
-    values: list[str] = []
-
-    def _append(text: str | None) -> None:
-        cleaned = str(text or "").strip()
-        if cleaned and cleaned not in values:
-            values.append(cleaned)
-
-    if active_brand_context and active_brand_context not in raw_query:
-        _append(f"{active_brand_context} {raw_query}")
-    _append(raw_query)
-
-    hint = build_raw_text_retrieval_hint(raw_query)
-    _append(hint.base_dish)
-    for alias in hint.aliases:
-        _append(alias)
-    if hint.brand_hint and hint.base_dish:
-        _append(f"{hint.brand_hint}{hint.base_dish}")
-        if hint.size_hint:
-            _append(f"{hint.brand_hint}{hint.base_dish}{hint.size_hint}")
-    return values or [raw_query]
-
 
 def build_exact_item_lane_packet(
     query: str,

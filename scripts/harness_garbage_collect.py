@@ -33,6 +33,21 @@ RETIRED_PATH_PATTERNS = (
     "artifacts/docs-snapshots/",
 )
 
+RETIRED_ACTIVE_DOC_PATHS = (
+    "docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md",
+    "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md",
+    "docs/specs/V2_WAVE_1_DEEP_CAPABILITY_SPEC.md",
+    "docs/specs/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md",
+    "docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md",
+    "docs/quality/V2_BENCHMARK_REGRESSION_MANIFEST.md",
+    "docs/quality/V2_FAILURE_TAXONOMY.md",
+    "docs/quality/V2_FOUNDATION_DOCS_EXECUTION_PATCH.md",
+    "docs/quality/V2_FOUNDER_REALISM_CASES.md",
+    "docs/quality/V2_GRADING_RUBRIC.md",
+    "docs/quality/V2_WAVE_1_CAPABILITY_MICRO_SUITES.md",
+    "docs/quality/V2_WAVE_1_MICRO_SUITE_CASES.md",
+)
+
 HISTORICAL_REFERENCE_ALLOWLIST = {
     "scripts/harness_garbage_collect.py",
 }
@@ -255,6 +270,7 @@ def external_tool_residue_check() -> list[Finding]:
         ".github/workflows/cd.yml",
         "docs/index.md",
         "docs/V2_DOC_INDEX.md",
+        *RETIRED_ACTIVE_DOC_PATHS,
     )
     for relative in forbidden_paths:
         if (REPO_ROOT / relative).exists():

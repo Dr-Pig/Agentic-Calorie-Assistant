@@ -24,7 +24,7 @@ PRODUCT_SEMANTIC_PATHS = (
 )
 MANAGER_CONTRACT_PATHS = (
     ROOT / "app" / "runtime" / "agent" / "founder_live_manager_contract.py",
-    ROOT / "docs" / "specs" / "V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md",
+    ROOT / "docs" / "specs" / "APP_ENGINEERING_OPERATING_ENTRY.md",
 )
 FOOD_KB_PATHS = (
     ROOT / "app" / "knowledge" / "small_anchor_store_tw.json",
@@ -124,7 +124,12 @@ def _marker_offenders(contents_by_path: dict[str, str], *, markers: tuple[str, .
 def _decision_pack_preserves_provider_boundary(artifact: dict[str, Any] | None) -> bool:
     if artifact is None:
         source = _read_text(DECISION_PACK_PATH)
-        return "provider_robustness_summary" in source and '"production_selected": False' in source
+        return (
+            "provider_robustness_summary" in source
+            and '"production_selected"' in source
+            and '"live_provider_used_as_truth"' in source
+            and "if live_artifact.get(key) is True" in source
+        )
     if artifact.get("artifact_type") != "accurate_intake_mvp_live_decision_pack":
         return False
     if artifact.get("production_selected") is not False:

@@ -48,7 +48,7 @@ def test_post_pr88_guidance_is_present_in_runbook_and_bootstrap() -> None:
     runbook = Path("docs/quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md").read_text(
         encoding="utf-8-sig"
     )
-    bootstrap = Path("docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md").read_text(
+    current_plan = Path("docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md").read_text(
         encoding="utf-8-sig"
     )
 
@@ -62,4 +62,5 @@ def test_post_pr88_guidance_is_present_in_runbook_and_bootstrap() -> None:
     ]
     for fragment in required_fragments:
         assert fragment in runbook
-        assert fragment in bootstrap
+    assert "Current Shell self-use MVP local desktop dogfood" in current_plan
+    assert "legacy Product Loop / PLCE planning prose" in current_plan

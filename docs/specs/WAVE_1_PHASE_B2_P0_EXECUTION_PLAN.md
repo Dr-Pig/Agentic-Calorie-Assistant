@@ -284,7 +284,7 @@ Do not jump directly to blind vector similarity without the existing packet and 
 
 - final mapping layer
 - mutation or renderer-related tests
-- [docs/specs/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md)
+- [docs/_spec_snapshots/legacy_v2_wave_pack_20260515/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md](../_spec_snapshots/legacy_v2_wave_pack_20260515/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md) as historical reference only
 
 **Outcome:**
 

@@ -1,6 +1,10 @@
 from __future__ import annotations
 from typing import Any
 from pydantic import BaseModel, Field, model_validator
+from .phase_a_history import (
+    ConversationAtomicBlock, HistoryExpansionPolicy, HistoryExpansionRequest, HistoryExpansionResult,
+    HistoryMealCandidate, TranscriptSnippet,
+)
 from .phase_a_types import (
     AttachmentDisposition, AttachmentTargetType, AtomicBlockType, BudgetAnswerMode, ClarificationMode,
     CommitBoundaryIntent, ContextAvailability, HistoryExpansionReason, HistoryExpansionScope, InteractionSource,
@@ -137,50 +141,6 @@ class PhaseABoundaryProjection(BaseModel):
     owner_alignment: OwnerAlignment = "not_applicable"
     consistency_flags: list[str] = Field(default_factory=list)
     legacy_projection: dict[str, Any] = Field(default_factory=dict)
-
-
-class HistoryExpansionPolicy(BaseModel):
-    max_calls: int = 1
-    max_results: int = 5
-    max_atomic_blocks: int = 5
-    max_transcript_snippets: int = 2
-
-
-class HistoryExpansionRequest(BaseModel):
-    reason: HistoryExpansionReason
-    scope: HistoryExpansionScope
-    max_results: int = 5
-    max_atomic_blocks: int = 5
-    max_transcript_snippets: int = 2
-
-
-class HistoryMealCandidate(BaseModel):
-    meal_thread_id: str
-    meal_version_id: str | None = None
-    label: str = ""
-    occurred_at: str | None = None
-    reason: str = ""
-
-
-class ConversationAtomicBlock(BaseModel):
-    block_type: AtomicBlockType
-    object_ref: dict[str, Any] = Field(default_factory=dict)
-    summary: str
-    timestamp: str | None = None
-    raw_ref: str | None = None
-
-
-class TranscriptSnippet(BaseModel):
-    snippet_id: str
-    content: str
-    role: TranscriptSnippetRole = "support_only"
-    timestamp: str | None = None
-
-
-class HistoryExpansionResult(BaseModel):
-    meal_candidates: list[HistoryMealCandidate] = Field(default_factory=list)
-    atomic_blocks: list[ConversationAtomicBlock] = Field(default_factory=list)
-    transcript_snippets: list[TranscriptSnippet] = Field(default_factory=list)
 
 
 class ShadowHypothesis(BaseModel):

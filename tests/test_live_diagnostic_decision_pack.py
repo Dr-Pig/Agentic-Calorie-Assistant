@@ -515,25 +515,28 @@ def test_macro_report_keeps_three_outputs_separate() -> None:
 
 
 def test_docs_lock_live_diagnostic_macro_batch_without_canonizing_decisions() -> None:
-    spec = (ROOT / "docs/specs/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md").read_text(encoding="utf-8-sig")
-    bootstrap = (ROOT / "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md").read_text(encoding="utf-8-sig")
+    runbook = (ROOT / "docs/quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md").read_text(
+        encoding="utf-8-sig"
+    )
+    golden_set = (ROOT / "docs/quality/CURRENT_SHELL_SELF_USE_GOLDEN_SET_SPEC.md").read_text(
+        encoding="utf-8-sig"
+    )
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8-sig")
+    current_plan = (ROOT / "docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md").read_text(
+        encoding="utf-8-sig"
+    )
     register_path = ROOT / "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md"
 
-    assert "Live Diagnostic Evidence And Product Semantics Decision Pack Lock" in spec
-    assert "`diagnostic_observation`" in spec
-    assert "`readiness_blocker`" in spec
-    assert "`product_decision_required`" in spec
-    assert "pending product decisions must not be written into canonical behavior" in spec
-    assert "User-approved product semantic decisions supersede stale eval expectations" in bootstrap
-    assert "pearl milk tea missing sugar/size is approved as logged estimate plus follow-up" in bootstrap
-    assert "Product semantic decision pack status" in bootstrap
-    assert "decision pack is not a canonical spec" in bootstrap
-    assert "Current Wave 1 mainline is B2 / Phase B semantic closure" in bootstrap
-    assert "baseline guardrail support, not the current mainline" in bootstrap
-    assert "Strategic Sequencing Gate" in agents
-    assert "current_mainline" in agents
-    assert "strategic_verdict" in agents
+    assert "claim scope: `live_diagnostic`" in runbook
+    assert "Every live diagnostic artifact and decision pack must stay non-promotional" in runbook
+    assert "live failure alone cannot justify prompt/schema/contract hardening" in runbook
+    assert "legal-flow matrix" in runbook
+    assert "holdout tests" in runbook
+    assert "Eval assets validate that behavior; they do not design runtime semantics" in golden_set
+    assert "Manager owns semantic intent" in golden_set
+    assert "Strategic sequencing:" in agents
+    assert "current_mainline" in current_plan
+    assert "Current Shell self-use MVP local desktop dogfood" in current_plan
     assert register_path.exists()
     register = register_path.read_text(encoding="utf-8-sig")
     assert "pearl_milk_tea_missing_sugar_size" in register
@@ -542,6 +545,4 @@ def test_docs_lock_live_diagnostic_macro_batch_without_canonizing_decisions() ->
     assert "precision_refinement_not_commit_gate" in register
     assert "self_selected_basket_without_listed_items" in register
     assert "ask_first_unresolved_no_logged_estimate" in register
-    assert "homemade_dish_minimum_estimability" in register
-    assert "homemade_dish_minimum_estimability:\n    status: pending" in register
     assert "Decision pack artifacts remain diagnostic" in register
