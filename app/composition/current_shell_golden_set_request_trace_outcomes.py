@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any
 
 from app.composition.current_shell_target_ambiguity_projection import attach_target_ambiguity_validation
+from app.composition.current_shell_remaining_query_projection import (
+    attach_remaining_query_runtime,
+    attach_remaining_query_ui,
+)
 
 from app.composition.current_shell_golden_set_answer_query_projection import (
     attach_answer_query_no_mutation_outcome,
@@ -129,6 +133,12 @@ def runtime_from_request_trace(
         mutation_allowed=mutation_allowed,
     )
     attach_target_ambiguity_validation(runtime, request_trace, manager_final)
+    attach_remaining_query_runtime(
+        runtime,
+        request_trace=request_trace,
+        manager_final=manager_final,
+        manager_decision=manager_decision,
+    )
     return runtime
 
 
@@ -163,6 +173,7 @@ def ui_from_request_trace(request_trace: dict[str, Any], state_delta: dict[str, 
             ui.setdefault("removed_item_not_counted", not_counted)
     if "existing_meal_unchanged" not in ui and state_delta_has_no_meal_change(state_delta):
         ui["existing_meal_unchanged"] = True
+    attach_remaining_query_ui(ui, request_trace=request_trace)
     return ui
 
 
