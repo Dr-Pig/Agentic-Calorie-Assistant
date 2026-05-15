@@ -155,14 +155,12 @@ CDK_BROWSER_SAME_TRUTH_NON_CLAIMS = {
     "private_self_use_approved": False,
 }
 DEFAULT_TODAY_MEAL_FEEDBACK_TEXT = "Today meal feedback"
-DEFAULT_FEEDBACK_TRACE_ID = "trace-browser-feedback"
-DEFAULT_FEEDBACK_MESSAGE_ID = "assistant-browser-feedback"
 EXPECTED_FEEDBACK_RECORD_VALUES = {
     "category": "nutrition_estimate",
     "feedback_text": DEFAULT_TODAY_MEAL_FEEDBACK_TEXT,
     "page": "today_diary",
-    "trace_id": DEFAULT_FEEDBACK_TRACE_ID,
-    "message_id": DEFAULT_FEEDBACK_MESSAGE_ID,
+    "trace_id": "present",
+    "message_id": "present",
     "source_page": "today_diary",
     "do_not_commit": True,
     "manager_context_injection_allowed": False,
@@ -503,8 +501,8 @@ def _feedback_record_values(record: dict[str, Any] | None) -> dict[str, Any]:
         "category": record.get("category"),
         "feedback_text": record.get("feedback_text"),
         "page": linked_context.get("page"),
-        "trace_id": linked_context.get("trace_id"),
-        "message_id": linked_context.get("message_id"),
+        "trace_id": "present" if linked_context.get("trace_id") else "missing",
+        "message_id": "present" if linked_context.get("message_id") else "missing",
         "source_page": _object_dict(record.get("ui_event")).get("source_page"),
         "do_not_commit": record.get("do_not_commit"),
         "manager_context_injection_allowed": record.get("manager_context_injection_allowed"),
@@ -1997,14 +1995,6 @@ def _run_feedback_capture_sequence(
         timeout=timeout_ms,
     )
     result["feedback_page_loaded"] = True
-    feedback.evaluate(
-        """() => {
-          const details = document.querySelector("#advanced-context-fields");
-          if (details) details.open = true;
-        }"""
-    )
-    feedback.fill("#trace-id", DEFAULT_FEEDBACK_TRACE_ID)
-    feedback.fill("#message-id", DEFAULT_FEEDBACK_MESSAGE_ID)
     feedback.select_option("#category", "nutrition_estimate")
     feedback.select_option("#severity", "medium")
     feedback.fill("#feedback-text", DEFAULT_TODAY_MEAL_FEEDBACK_TEXT)
@@ -2165,13 +2155,6 @@ def _run_protected_pages_cookie_only_sequence(
         )
         page.wait_for_selector(surface_selector, timeout=timeout_ms)
         if page_name == "feedback":
-            page.evaluate(
-                """() => {
-                  const details = document.querySelector("#advanced-context-fields");
-                  if (details) details.open = true;
-                }"""
-            )
-            page.fill("#trace-id", DEFAULT_FEEDBACK_TRACE_ID)
             page.select_option("#category", "bug")
             page.select_option("#severity", "low")
             page.fill("#feedback-text", "Cookie-only protected API smoke.")

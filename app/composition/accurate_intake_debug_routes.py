@@ -9,8 +9,12 @@ from fastapi.responses import HTMLResponse
 
 from app.body.application.active_body_plan_read_model import build_active_body_plan_view
 from app.budget.interface.today_surface import resolve_today_local_date
+from app.composition.accurate_intake_chat_history_read_model import build_accurate_intake_chat_history_payload
 from app.composition.accurate_intake_debug_read_model import build_accurate_intake_debug_read_model
 from app.composition.current_budget_read_model import build_current_budget_view
+from app.composition.dogfood_feedback_auto_context import (
+    build_feedback_auto_context_from_backend,
+)
 from app.composition.dogfood_feedback_capture import build_feedback_record_from_route_payload
 from app.composition.dogfood_review_queue import (
     append_desktop_feedback_record,
@@ -27,7 +31,7 @@ from app.runtime.interface.local_debug_auth import (
     set_local_debug_session_cookie,
     validate_local_debug_token,
 )
-from app.shared.infra.models import MessageBuffer, User
+from app.shared.infra.models import User
 
 router = APIRouter()
 router.include_router(local_data_hygiene_router)
@@ -101,144 +105,6 @@ def build_accurate_intake_debug_payload(
     }
 
 
-def _runtime_turn_trace(message: MessageBuffer) -> dict[str, Any]:
-    trace_json = message.trace_json if isinstance(message.trace_json, dict) else {}
-    runtime_turn_trace = trace_json.get("runtime_turn_trace")
-    return dict(runtime_turn_trace) if isinstance(runtime_turn_trace, dict) else {}
-
-
-def _message_local_date(message: MessageBuffer) -> str | None:
-    trace = _runtime_turn_trace(message)
-    value = trace.get("local_date")
-    return str(value) if value else None
-
-
-def _trace_chain_complete(trace: dict[str, Any]) -> bool:
-    chain = trace.get("trace_chain")
-    if not isinstance(chain, dict):
-        return False
-    required = (
-        "manager_decision_present",
-        "evidence_packet_present",
-        "evidence_requirement_satisfied",
-        "final_mapping_present",
-        "state_before_present",
-        "state_after_present",
-    )
-    chat_linkage = trace.get("chat_linkage") if isinstance(trace.get("chat_linkage"), dict) else {}
-    return (
-        all(chain.get(key) is True for key in required)
-        and chat_linkage.get("user_message_id") is not None
-        and chat_linkage.get("assistant_message_id") is not None
-    )
-
-
-def _runtime_turn_status(trace: dict[str, Any]) -> str:
-    context_snapshot = trace.get("context_snapshot") if isinstance(trace.get("context_snapshot"), dict) else {}
-    phase_a_trace = context_snapshot.get("phase_a_trace") if isinstance(context_snapshot.get("phase_a_trace"), dict) else {}
-    if phase_a_trace.get("runtime_turn_status") == "in_progress":
-        return "in_progress"
-    final_mapping = trace.get("final_mapping") if isinstance(trace.get("final_mapping"), dict) else {}
-    if final_mapping.get("final_action") == "pending":
-        return "in_progress"
-    return "completed" if trace else "not_available"
-
-
-def _dict_or_empty(value: Any) -> dict[str, Any]:
-    return dict(value) if isinstance(value, dict) else {}
-
-
-def _manager_context_summary(trace: dict[str, Any]) -> dict[str, Any]:
-    packet = _dict_or_empty(trace.get("manager_context_packet_v1"))
-    hard_pins = _dict_or_empty(packet.get("hard_pins"))
-    target_candidates = _dict_or_empty(packet.get("target_candidates"))
-    correction_targets = target_candidates.get("for_correction_or_removal")
-    if not isinstance(correction_targets, list):
-        correction_targets = []
-    target_candidate_names = [
-        str(candidate.get("display_name") or candidate.get("canonical_name") or candidate.get("target_object_id"))
-        for candidate in correction_targets
-        if isinstance(candidate, dict)
-        and str(candidate.get("display_name") or candidate.get("canonical_name") or candidate.get("target_object_id") or "").strip()
-    ]
-    pending_pin_keys = ("pending_followup", "pending_draft")
-    return {
-        "context_policy_version": trace.get("context_policy_version"),
-        "loaded_context_summary": _dict_or_empty(trace.get("loaded_context_summary")),
-        "omitted_context_summary": _dict_or_empty(trace.get("omitted_context_summary")),
-        "pending_pins_present": any(bool(_dict_or_empty(hard_pins.get(key))) for key in pending_pin_keys),
-        "target_candidates_present": bool(correction_targets),
-        "target_candidate_count": len(correction_targets),
-        "target_candidate_names": target_candidate_names,
-    }
-
-
-def _chat_history_message(message: MessageBuffer) -> dict[str, Any]:
-    trace = _runtime_turn_trace(message)
-    assistant_response = trace.get("assistant_response") if isinstance(trace.get("assistant_response"), dict) else {}
-    context_snapshot = trace.get("context_snapshot") if isinstance(trace.get("context_snapshot"), dict) else {}
-    manager_context = _manager_context_summary(trace)
-    pending_followup_linkage_present = isinstance(trace.get("pending_followup_linkage"), dict)
-    if pending_followup_linkage_present:
-        manager_context["pending_pins_present"] = True
-    return {
-        "message_id": message.id,
-        "role": message.role,
-        "content": message.content,
-        "created_at": message.created_at.isoformat() if message.created_at else None,
-        "trace_id": message.trace_id,
-        "linked_meal_log_id": message.linked_meal_log_id,
-        "local_date": _message_local_date(message),
-        "source": "sqlite_message_buffer",
-        "read_only": True,
-        "mutation_authority": False,
-        "runtime_turn_trace_present": bool(trace),
-        "runtime_turn_status": _runtime_turn_status(trace),
-        "context_snapshot_present": bool(context_snapshot),
-        "trace_chain_complete": _trace_chain_complete(trace),
-        "pending_followup_linkage_present": pending_followup_linkage_present,
-        "structured_followup_question": assistant_response.get("structured_followup_question"),
-        **manager_context,
-    }
-
-
-def build_accurate_intake_chat_history_payload(
-    db: Any,
-    *,
-    user_external_id: str,
-    local_date: str | None,
-) -> dict[str, Any]:
-    resolved_local_date = resolve_today_local_date(local_date)
-    user = db.query(User).filter(User.user_id == user_external_id).first()
-    messages: list[dict[str, Any]] = []
-    if user is not None:
-        rows = (
-            db.query(MessageBuffer)
-            .filter(MessageBuffer.user_id == user.id)
-            .order_by(MessageBuffer.created_at.asc(), MessageBuffer.id.asc())
-            .all()
-        )
-        messages = [
-            _chat_history_message(message)
-            for message in rows
-            if _message_local_date(message) == resolved_local_date
-        ]
-    return {
-        "surface_id": "accurate_intake_chat_history_v1",
-        "read_only": True,
-        "source": "sqlite_message_buffer",
-        "frontend_semantic_owner": False,
-        "scope": "current_session_current_day",
-        "long_term_memory_used": False,
-        "proactive_or_rescue_used": False,
-        "user_external_id": user_external_id,
-        "user_id": user.id if user is not None else None,
-        "local_date": resolved_local_date,
-        "message_count": len(messages),
-        "messages": messages,
-    }
-
-
 @router.post("/accurate-intake/local-debug-session", status_code=204)
 async def accurate_intake_local_debug_session(
     request: Request,
@@ -294,14 +160,22 @@ async def accurate_intake_debug_surface(
 @router.post("/accurate-intake/feedback")
 async def accurate_intake_feedback(
     payload: dict[str, Any] = Body(...),
+    db: Any = Depends(get_db),
     _local_debug_access: None = Depends(require_local_debug_access),
 ) -> dict[str, Any]:
     started_at = perf_counter()
     try:
+        auto_context = build_feedback_auto_context_from_backend(
+            db=db,
+            payload=payload,
+            chat_history_builder=build_accurate_intake_chat_history_payload,
+            debug_payload_builder=build_accurate_intake_debug_payload,
+        )
         record = build_feedback_record_from_route_payload(
             payload,
             submitted_endpoint="/accurate-intake/feedback",
             duration_ms=round((perf_counter() - started_at) * 1000),
+            auto_context=auto_context,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

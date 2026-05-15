@@ -436,8 +436,6 @@ def _run_desktop_loop_sequence(
             "message_id": DEFAULT_FEEDBACK_MESSAGE_ID,
         },
     )
-    page.fill("#trace-id", DEFAULT_FEEDBACK_TRACE_ID)
-    page.fill("#message-id", DEFAULT_FEEDBACK_MESSAGE_ID)
     page.select_option("#category", "product_feedback")
     page.select_option("#severity", "low")
     page.fill("#feedback-text", DEFAULT_FEEDBACK_TEXT)

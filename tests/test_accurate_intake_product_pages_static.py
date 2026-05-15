@@ -414,10 +414,14 @@ def test_feedback_page_is_local_only_trace_linked_capture_without_frontend_seman
     assert 'data-manager-context-injection="false"' in html
     assert 'data-fooddb-truth-update-allowed="false"' in html
     assert 'data-canonical-eval-promotion-allowed="false"' in html
-    assert "不用填 ID" in html
-    assert "系統會自動帶入目前頁面、日期、最近一則訊息與餐點線索" in html
-    assert '<details id="advanced-context-fields"' in html
-    assert "進階：自動帶入的上下文" in html
+    assert "\u76f4\u63a5\u5beb\u4f60\u525b\u525b\u9047\u5230\u7684\u554f\u984c" in html
+    assert "\u4f60\u4e0d\u9700\u8981\u586b\u4efb\u4f55\u5167\u90e8 ID" in html
+    assert 'class="hidden-context-fields"' in html
+    assert 'id="trace-context"' in html
+    assert 'id="recent-context-preview"' in html
+    assert "Trace ID" not in html
+    assert "Request ID" not in html
+    assert "Message ID" not in html
     assert 'data-nav-target="chat"' in html
     assert 'data-nav-target="today"' in html
     assert 'data-nav-target="body"' in html
@@ -435,7 +439,7 @@ def test_feedback_page_is_local_only_trace_linked_capture_without_frontend_seman
     assert 'value="product_feedback"' in html
     assert '"X-Local-Debug-Token": token' in html
     assert "window.LOCAL_DEBUG_API_TOKEN" in html
-    assert "trace_id: el(\"trace-id\").value.trim() || null" in html
+    assert 'trace_id: el("trace-id").value.trim() || null' in html
     assert 'id="meal-id"' in html
     assert 'id="meal-title-context"' in html
     assert 'el("meal-id").value = params.get("meal_id") || "";' in html
@@ -448,7 +452,7 @@ def test_feedback_page_is_local_only_trace_linked_capture_without_frontend_seman
     assert 'page: sourcePage()' in html
     assert 'source_page: sourcePage()' in html
     assert 'feedback_route: window.location.pathname' in html
-    assert "feedback_text: el(\"feedback-text\").value.trim()" in html
+    assert 'feedback_text: el("feedback-text").value.trim()' in html
 
     forbidden = [
         "final_action",
@@ -465,7 +469,6 @@ def test_feedback_page_is_local_only_trace_linked_capture_without_frontend_seman
     ]
     for fragment in forbidden:
         assert fragment not in html
-
 
 def test_review_page_recovers_missing_local_session_without_truth_promotion() -> None:
     html = _html(REVIEW)
