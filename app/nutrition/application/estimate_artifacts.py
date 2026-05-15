@@ -1,25 +1,19 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.composition.request_runtime_context import RequestRuntimeContext, load_request_runtime_context
+from app.composition.request_runtime_context import load_request_runtime_context
+from app.nutrition.application.estimate_artifact_types import EstimatedNutritionArtifact
 from app.nutrition.application.fooddb_macro_contract import (
     APPROVED_PACKET_READY_SCHEMA_VERSION,
     APPROVED_PACKET_READY_SOURCE_QUALITY,
     MACRO_CONTRACT,
 )
+from app.nutrition.application.user_provided_kcal_artifacts import build_user_provided_kcal_artifact  # noqa: F401
 from ...shared.contracts.common import EstimateRequest
 from ...shared.contracts.intake import ComponentEstimate, EstimatePayload
-
-
-@dataclass(frozen=True)
-class EstimatedNutritionArtifact:
-    request: EstimateRequest
-    runtime_context: RequestRuntimeContext
-    payload: EstimatePayload
 
 
 def build_evidence_unavailable_artifact(

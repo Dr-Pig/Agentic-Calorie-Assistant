@@ -48,9 +48,11 @@ class FinalResponseResult(BaseModel):
 
 class ComponentEstimate(BaseModel):
     name: str
-    source: Literal["llm", "retrieval", "lookup"] = "llm"
-    evidence_role: Literal["exact_truth", "ingredient_anchor", "meal_pattern_prior", "retailer_fallback", "unknown"] = "unknown"
-    estimate_basis: Literal["exact", "anchored", "heuristic_only", "llm_only"] = "llm_only"
+    source: Literal["llm", "retrieval", "lookup", "user"] = "llm"
+    evidence_role: Literal[
+        "exact_truth", "ingredient_anchor", "meal_pattern_prior", "retailer_fallback", "user_provided", "unknown"
+    ] = "unknown"
+    estimate_basis: Literal["exact", "anchored", "heuristic_only", "llm_only", "user_provided"] = "llm_only"
     confidence_tier: Literal["high", "medium", "low"] = "low"
     quantity_hint: str | None = None
     reason: str = ""
@@ -114,7 +116,9 @@ class EstimatePayload(BaseModel):
     retry_triggered: bool = False
     retry_reason: str | None = None
     best_answer_source: str | None = None
-    best_estimate_mode: Literal["exact_item", "anchored_component", "heuristic_fallback", "llm_only"] | None = None
+    best_estimate_mode: Literal[
+        "exact_item", "anchored_component", "heuristic_fallback", "llm_only", "user_provided"
+    ] | None = None
     estimate_confidence_tier: Literal["high", "medium", "low"] | None = None
     retrieved_evidence_summary: list[dict[str, Any]] = Field(default_factory=list)
     failure_family: Literal[

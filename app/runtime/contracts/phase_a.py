@@ -1,9 +1,6 @@
 from __future__ import annotations
-
 from typing import Any
-
 from pydantic import BaseModel, Field, model_validator
-
 from .phase_a_types import (
     AttachmentDisposition, AttachmentTargetType, AtomicBlockType, BudgetAnswerMode, ClarificationMode,
     CommitBoundaryIntent, ContextAvailability, HistoryExpansionReason, HistoryExpansionScope, InteractionSource,
@@ -88,6 +85,7 @@ class ManagerSemanticDecision(BaseModel):
     mutation_intent_candidate: ManagerMutationIntentCandidate = "unknown"
     uncertainty_posture: str = "unknown"
     source: str = ""
+    user_provided_kcal: int | None = Field(default=None, ge=1, le=10000)
     semantic_owner: str = "manager"
     deterministic_role: str = "validate_gate_trace_only"
 
@@ -197,7 +195,6 @@ class ShadowHypothesis(BaseModel):
     invalidation_reasons: list[str] = Field(default_factory=list)
     mutation_authority: bool = False
 
-
 __all__ = [
     "AttachmentDecision", "AtomicBlockType", "BudgetAnswerMode", "ClarificationDecision", "ClarificationMode",
     "CommitBoundaryDecision", "CommitBoundaryIntent", "ContextInjectionPolicy", "ContextAvailability",
@@ -205,6 +202,5 @@ __all__ = [
     "HistoryExpansionPolicy", "HistoryExpansionReason", "HistoryExpansionRequest", "HistoryExpansionResult",
     "HistoryExpansionScope", "HistoryMealCandidate", "InteractionEvent", "ManagerContextPack",
     "ManagerMutationIntentCandidate", "ManagerSemanticAuthority", "ManagerSemanticDecision", "ManagerSemanticIntent",
-    "OwnerAlignment", "PhaseABoundaryProjection", "PredictedMealStatus", "ShadowHypothesis", "ShadowVisibilityPosture",
-    "SurfaceMode", "TranscriptSnippet", "TransitionGuardResult",
+    "OwnerAlignment", "PhaseABoundaryProjection", "PredictedMealStatus", "ShadowHypothesis", "ShadowVisibilityPosture", "SurfaceMode", "TranscriptSnippet", "TransitionGuardResult",
 ]

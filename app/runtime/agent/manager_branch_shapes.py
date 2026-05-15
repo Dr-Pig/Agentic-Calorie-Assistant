@@ -82,6 +82,13 @@ def manager_semantic_decision_schema() -> dict[str, Any]:
                     "because portions are rough."
                 ),
             },
+            "user_provided_kcal": {
+                "anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "null"}],
+                "description": (
+                    "Manager-owned numeric kcal explicitly supplied by the user for this meal log. "
+                    "Runtime may validate this structured field but must not extract it from raw text."
+                ),
+            },
             "source": {"type": "string"},
             "semantic_owner": {"type": "string"},
             "deterministic_role": {"type": "string"},

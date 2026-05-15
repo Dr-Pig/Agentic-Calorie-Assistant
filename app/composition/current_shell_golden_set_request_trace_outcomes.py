@@ -43,6 +43,17 @@ def runtime_from_request_trace(
     component_basis = _component_basis_present(request_trace)
     if "component_basis_required" not in runtime and component_basis is not None:
         runtime["component_basis_required"] = component_basis
+    nutrition_trace = _first_nutrition_trace_contract(request_trace, manager_final)
+    if nutrition_trace:
+        for field in ("source_basis", "macro_visibility_status", "optional_refinement_allowed"):
+            if (
+                field == "macro_visibility_status"
+                and runtime.get(field) == "hidden"
+                and nutrition_trace.get(field) is not None
+            ):
+                runtime[field] = nutrition_trace.get(field)
+            elif field not in runtime and nutrition_trace.get(field) is not None:
+                runtime[field] = nutrition_trace.get(field)
     if "fallback_400_allowed" not in runtime and _nutrition_packet_present(request_trace, manager_final):
         runtime["fallback_400_allowed"] = False
     if "pre_manager_estimability_shortcut_allowed" not in runtime:
@@ -64,6 +75,10 @@ def ui_from_request_trace(request_trace: dict[str, Any], state_delta: dict[str, 
         basis_visible = _meal_level_basis_visible(request_trace)
         if basis_visible is not None:
             ui["meal_level_basis_visible"] = basis_visible
+    if "macro_visible" not in ui:
+        macro_visible = _macro_visible(request_trace)
+        if macro_visible is not None:
+            ui["macro_visible"] = macro_visible
     return ui
 
 
@@ -158,7 +173,28 @@ def approved_nutrition_evidence_present(request_trace: dict[str, Any], manager_f
             return True
         if trace_contract.get("db_hit_type") == "approved_fooddb_packet":
             return True
+        user_kcal = _dict(trace_contract.get("approved_user_provided_kcal_trace"))
+        if user_kcal.get("runtime_truth_allowed") is True:
+            return True
     return False
+
+
+def _first_nutrition_trace_contract(request_trace: dict[str, Any], manager_final: dict[str, Any]) -> dict[str, Any]:
+    for payload in _nutrition_payloads(request_trace, manager_final):
+        trace_contract = _dict(payload.get("trace_contract"))
+        if trace_contract:
+            return trace_contract
+    return {}
+
+
+def _macro_visible(request_trace: dict[str, Any]) -> bool | None:
+    for payload in _nutrition_payloads(request_trace, {}):
+        trace_contract = _dict(payload.get("trace_contract"))
+        if trace_contract.get("macro_visibility_status") == "visible":
+            return True
+        if trace_contract.get("macro_visibility_status") in {"hidden", "hidden_missing_source", "not_available"}:
+            return False
+    return None
 
 
 def _component_basis_present(request_trace: dict[str, Any]) -> bool | None:
