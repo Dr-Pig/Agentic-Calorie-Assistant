@@ -9,7 +9,7 @@ from app.runtime.agent.manager_system_prompt import (
 
 
 def test_self_selected_basket_blocking_clarify_policy_is_explicit_static_prompt_guidance() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v23"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v24"
     assert "Self-selected basket examples include" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "滷味" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "鹽酥雞" in SINGLE_MANAGER_SYSTEM_PROMPT
@@ -71,6 +71,13 @@ def test_explicit_listed_components_are_not_blocking_combo_prompt_guidance() -> 
     assert "not a composition-unknown basket" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
+def test_pending_followup_commit_requires_manager_owned_target_attachment() -> None:
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v24"
+    assert "target_resolution_source='pending_followup_state'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "operation='attach_to_pending_followup'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "Do not return target_attachment={}" in SINGLE_MANAGER_SYSTEM_PROMPT
+
+
 def test_explicit_listed_components_are_not_blocking_combo_tool_guidance() -> None:
     description = founder_live_manager_tool_description()
 
@@ -101,3 +108,24 @@ def test_explicit_listed_components_schema_guidance_keeps_manager_as_list_owner(
     assert "raw-text deterministic parser" in listed_items_description
     assert "explicit listed components" in retrieval_goal_description
     assert "listed_item_lookup" in retrieval_goal_description
+
+
+def test_pending_followup_target_attachment_schema_guidance_keeps_manager_as_attach_owner() -> None:
+    schema = manager_loop_schema(
+        {
+            "manager_contract_profile_id": "founder_live_contract",
+            "manager_loop_scope": "intake_execution",
+            "manager_contract_evidence_state": {
+                "nutrition_evidence_present": True,
+            },
+        }
+    )
+
+    top_level_description = schema["properties"]["target_attachment"]["description"]
+    semantic_description = schema["properties"]["semantic_decision"]["properties"]["target_attachment"][
+        "description"
+    ]
+    assert "pending_followup_state" in top_level_description
+    assert "attach_to_pending_followup" in top_level_description
+    assert "Manager-owned attach decision" in semantic_description
+    assert "must not be empty" in semantic_description

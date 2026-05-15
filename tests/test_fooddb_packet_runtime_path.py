@@ -175,7 +175,7 @@ def test_route_blocks_bare_basket_fooddb_packet_from_canonical_commit(monkeypatc
         db.close()
 
 
-def test_route_blocks_partial_listed_basket_fooddb_packet_from_subset_commit(monkeypatch, tmp_path: Path) -> None:
+def test_route_blocks_raw_text_listed_basket_without_manager_owned_components(monkeypatch, tmp_path: Path) -> None:
     db = _route_session(tmp_path / "fooddb-partial-listed-runtime.sqlite3")
     user_external_id = "fooddb-partial-listed-runtime"
     local_date = "2026-05-09"
@@ -203,8 +203,8 @@ def test_route_blocks_partial_listed_basket_fooddb_packet_from_subset_commit(mon
 
         macro = route_payload["sidecar"]["macro"]
         trace = macro["approved_fooddb_evidence_trace"]
-        assert trace["source_lane"] == "listed_component"
-        assert trace["retrieval_boundary"] == "listed_basket_component_recall"
+        assert trace["source_lane"] == "basket_family_alias_modifier"
+        assert trace["retrieval_boundary"] == "bare_basket_ask_followup_no_estimate"
         assert trace["runtime_truth_allowed"] is False
         assert trace["fooddb_truth_updated"] is False
 

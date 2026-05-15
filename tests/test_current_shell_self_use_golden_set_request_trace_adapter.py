@@ -507,6 +507,93 @@ def test_request_trace_adapter_projects_component_basis_from_compact_packets() -
     assert case_trace["response"].get("invented_nutrition_fact") is not True
 
 
+def test_request_trace_adapter_projects_gs7_pending_listed_component_commit() -> None:
+    trace = _gs5_request_trace()
+    trace["runtime"] = {"fallback_400_allowed": False}
+    trace["manager_final_decision"] = {
+        "workflow_effect": "canonical_write",
+        "final_action": "commit",
+        "answer_contract": {"reply_text": "已記錄這份自助餐，約 710 kcal。"},
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "workflow_effect": "canonical_write",
+            "final_action_candidate": "commit",
+            "target_attachment": {
+                "operation": "attach_to_pending_followup",
+                "target_resolution_source": "pending_followup_state",
+            },
+            "listed_items": ["rice", "chicken", "greens", "egg"],
+            "retrieval_goal": "listed_item_lookup",
+        },
+    }
+    trace["tool_outputs"] = {
+        "tool_results": [
+            {
+                "tool_name": "estimate_nutrition",
+                "evidence": {
+                    "nutrition_payload": {
+                        "meal_title": "rice + chicken + greens + egg",
+                        "estimated_kcal": 710,
+                        "component_breakdown": [
+                            {"name": "rice", "estimated_kcal": 180},
+                            {"name": "chicken", "estimated_kcal": 320},
+                            {"name": "greens", "estimated_kcal": 120},
+                            {"name": "egg", "estimated_kcal": 90},
+                        ],
+                        "trace_contract": {
+                            "db_hit_type": "approved_fooddb_packet",
+                            "shadow_stub": False,
+                            "approved_fooddb_evidence_trace": {
+                                "source_lane": "listed_component",
+                                "runtime_truth_allowed": True,
+                                "retrieval_boundary": "listed_basket_component_recall",
+                                "evidence_ids": [
+                                    "listed_component_white_rice_half_bowl",
+                                    "listed_component_chicken_leg_one",
+                                    "listed_component_greens_two_servings",
+                                    "listed_component_braised_egg_one",
+                                ],
+                            },
+                            "commit_request_candidate": {
+                                "components": [
+                                    {"name": "rice", "estimated_kcal": 180},
+                                    {"name": "chicken", "estimated_kcal": 320},
+                                    {"name": "greens", "estimated_kcal": 120},
+                                    {"name": "egg", "estimated_kcal": 90},
+                                ]
+                            },
+                        },
+                    }
+                },
+            }
+        ]
+    }
+    trace["phase_c_trace"]["mutation_outcome"]["canonical_commit_status"] = "committed"  # type: ignore[index]
+    trace["phase_c_trace"]["mutation_outcome"]["ledger_mutation_status"] = "updated"  # type: ignore[index]
+    trace["state_delta"]["canonical_commit"] = True  # type: ignore[index]
+    trace["state_delta"]["ledger_updated"] = True  # type: ignore[index]
+    trace["renderer_input_basis"] = {
+        "state_after": {
+            "active_meal": {
+                "item_candidates": [
+                    {"canonical_name": "rice"},
+                    {"canonical_name": "chicken"},
+                    {"canonical_name": "greens"},
+                    {"canonical_name": "egg"},
+                ]
+            }
+        }
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS7", trace)
+    grade = grade_golden_case_trace("GS7", case_trace)
+
+    assert case_trace["runtime"]["component_estimate_required"] is True
+    assert case_trace["ui"]["meal_components_visible"] is True
+    assert grade["status"] == "pass"
+
+
 def test_request_trace_adapter_projects_meal_level_basis_from_state_after() -> None:
     trace = _gs5_request_trace()
     trace["state_after"] = {

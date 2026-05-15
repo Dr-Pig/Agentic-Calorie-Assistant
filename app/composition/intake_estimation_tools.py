@@ -166,6 +166,7 @@ def _approved_fooddb_retrieval_artifact(
         retrieval_query,
         retrieval_records=retrieval_records,
         limit=8,
+        listed_components=_manager_owned_listed_components(manager_semantic_decision),
     )
     return build_fooddb_retrieval_artifact(
         db,
@@ -186,6 +187,16 @@ def _manager_owned_retrieval_query(
     if base_dish and retrieval_goal in {"generic_anchor_lookup", "listed_item_lookup"}:
         return base_dish
     return None
+
+
+def _manager_owned_listed_components(
+    manager_semantic_decision: B2ManagerSemanticDecision | None,
+) -> list[str] | None:
+    if manager_semantic_decision is None:
+        return None
+    if str(getattr(manager_semantic_decision, "retrieval_goal", "") or "").strip() != "listed_item_lookup":
+        return None
+    return list(getattr(manager_semantic_decision, "listed_items", None) or []) or None
 
 
 def _default_web_runtime_trace() -> dict[str, Any]:

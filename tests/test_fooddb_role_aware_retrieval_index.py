@@ -19,7 +19,7 @@ def _packet_ready_artifact() -> dict:
 def test_packet_ready_artifact_builds_role_aware_retrieval_records() -> None:
     records = build_runtime_retrieval_records_from_packet_ready_artifact(_packet_ready_artifact())
 
-    assert len(records) == 75
+    assert len(records) >= 1000
     lane_counts = {
         "exact_item_card": 0,
         "generic_common_serving": 0,
@@ -29,9 +29,9 @@ def test_packet_ready_artifact_builds_role_aware_retrieval_records() -> None:
         lane_counts[record.source_lane] += 1
 
     assert lane_counts == {
-        "exact_item_card": 7,
-        "generic_common_serving": 34,
-        "listed_component": 34,
+        "exact_item_card": 250,
+        "generic_common_serving": 401,
+        "listed_component": 354,
     }
 
 
@@ -59,7 +59,11 @@ def test_role_aware_retrieval_preserves_generic_and_listed_boundaries() -> None:
     assert drink["accepted_candidates"][0]["source_lane"] == "generic_common_serving"
     assert drink["accepted_candidates"][0]["macro_visibility_status"] == "hidden_missing_source"
 
-    basket = retrieve_fooddb_candidates("\u6ef7\u5473 \u8c46\u5e72 \u6d77\u5e36", retrieval_records=records)
+    basket = retrieve_fooddb_candidates(
+        "\u6ef7\u5473 \u8c46\u5e72 \u6d77\u5e36",
+        retrieval_records=records,
+        listed_components=["\u8c46\u5e72", "\u6d77\u5e36"],
+    )
     assert basket["retrieval_boundary"] == "listed_basket_component_recall"
     assert [item["source_lane"] for item in basket["accepted_candidates"]] == [
         "listed_component",

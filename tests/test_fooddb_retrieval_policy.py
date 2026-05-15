@@ -69,6 +69,7 @@ def test_retrieval_policy_preserves_bare_and_listed_basket_boundary() -> None:
     listed = retrieve_fooddb_candidates(
         "滷味有豆干、海帶、貢丸",
         retrieval_records=records,
+        listed_components=["豆干", "海帶", "貢丸"],
     )
 
     assert bare["retrieval_boundary"] == "bare_basket_ask_followup_no_estimate"
@@ -94,11 +95,11 @@ def test_retrieval_policy_artifact_is_report_only_and_manager_packet_is_compact(
     assert artifact["runtime_truth_changed"] is False
     assert artifact["manager_context_changed"] is False
     assert artifact["packetizer_format_changed"] is False
-    assert artifact["summary"]["runtime_anchor_indexed_count"] == 68
+    assert artifact["summary"]["runtime_anchor_indexed_count"] == 88
     assert artifact["summary"]["source_lane_counts"] == {
         "exact_item_card": 0,
-        "generic_common_serving": 34,
-        "listed_component": 34,
+        "generic_common_serving": 44,
+        "listed_component": 44,
         "basket_family_semantic_only": 4,
     }
     assert artifact["manager_retrieval_catalog"]["raw_source_rows_included"] is False
@@ -211,6 +212,50 @@ def test_retrieval_policy_recalls_chicken_rice_as_generic_common_serving() -> No
     assert trace["kcal_range"] == [450, 700]
 
 
+def test_retrieval_policy_does_not_parse_listed_basket_components_from_raw_text() -> None:
+    records = build_runtime_retrieval_records_from_small_anchor_payload(
+        {"anchors": load_small_anchor_seed_records()}
+    )
+    result = retrieve_fooddb_candidates(
+        "\u6211\u5403\u6ef7\u5473 \u767d\u98ef\u534a\u7897 \u96de\u817f\u4e00\u652f \u9752\u83dc\u5169\u6a23 \u6ef7\u86cb\u4e00\u9846",
+        retrieval_records=records,
+    )
+
+    assert result["retrieval_boundary"] == "bare_basket_ask_followup_no_estimate"
+    assert result["accepted_candidates"] == []
+
+
+def test_retrieval_policy_recalls_manager_owned_listed_basket_components() -> None:
+    records = build_runtime_retrieval_records_from_small_anchor_payload(
+        {"anchors": load_small_anchor_seed_records()}
+    )
+    result = retrieve_fooddb_candidates(
+        "raw text should not decide listed components",
+        retrieval_records=records,
+        listed_components=[
+            "\u767d\u98ef\u534a\u7897",
+            "\u96de\u817f\u4e00\u652f",
+            "\u9752\u83dc\u5169\u6a23",
+            "\u6ef7\u86cb\u4e00\u9846",
+        ],
+        limit=8,
+    )
+
+    assert result["retrieval_boundary"] == "listed_basket_component_recall"
+    assert [item["anchor_id"] for item in result["accepted_candidates"]] == [
+        "listed_component_braised_egg_one",
+        "listed_component_chicken_leg_one",
+        "listed_component_greens_two_servings",
+        "listed_component_white_rice_half_bowl",
+    ]
+    assert result["rejected_candidates"] == []
+    assert all(item["runtime_truth_allowed"] is True for item in result["accepted_candidates"])
+    assert all(
+        item["requires_manager_disambiguation"] is False
+        for item in result["accepted_candidates"]
+    )
+
+
 def test_retrieval_policy_fuzzy_matches_alias_expansion_keys_without_vector_truth() -> None:
     records = build_runtime_retrieval_records_from_small_anchor_payload(_small_anchor_payload())
     result = retrieve_fooddb_candidates(
@@ -222,7 +267,7 @@ def test_retrieval_policy_fuzzy_matches_alias_expansion_keys_without_vector_trut
     assert result["truth_selection_forbidden"] is True
     candidate = result["accepted_candidates"][0]
     assert candidate["anchor_id"] == "custom_drink_boba_milk_tea"
-    assert candidate["match_path"] == "fuzzy_alias_expansion"
+    assert candidate["match_path"] == "alias_expansion_contained_in_query"
     assert candidate["confidence"] == "medium_high"
     assert candidate["requires_manager_disambiguation"] is True
 

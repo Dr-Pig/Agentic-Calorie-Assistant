@@ -52,6 +52,8 @@ def runtime_from_request_trace(
     component_basis = component_basis_present(request_trace)
     if "component_basis_required" not in runtime and component_basis is not None:
         runtime["component_basis_required"] = component_basis
+    if "component_estimate_required" not in runtime and component_basis is not None:
+        runtime["component_estimate_required"] = component_basis
     nutrition_trace = first_nutrition_trace_contract(request_trace, manager_final)
     if nutrition_trace:
         for field in ("source_basis", "macro_visibility_status", "optional_refinement_allowed"):
@@ -102,6 +104,10 @@ def ui_from_request_trace(request_trace: dict[str, Any], state_delta: dict[str, 
         basis_visible = _meal_level_basis_visible(request_trace)
         if basis_visible is not None:
             ui["meal_level_basis_visible"] = basis_visible
+    if "meal_components_visible" not in ui:
+        components_visible = _meal_level_basis_visible(request_trace)
+        if components_visible is not None:
+            ui["meal_components_visible"] = components_visible
     if "macro_visible" not in ui:
         visible_macro = macro_visible(request_trace)
         if visible_macro is not None:

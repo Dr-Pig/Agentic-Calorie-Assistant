@@ -1,0 +1,180 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_component_white_rice_half_bowl",
+      "canonical_name": "白飯半碗",
+      "aliases": ["白飯半碗", "飯半碗", "半碗白飯", "half bowl white rice"],
+      "dish_type": "listed_component",
+      "composition_posture": "listed_item_component",
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "half_bowl",
+        "portion_quantity": 1,
+        "label": "half bowl cooked white rice",
+        "derived_from": ["self_use_common_serving_batch_policy"]
+      },
+      "kcal_point": 180,
+      "kcal_range": [140, 230],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_white_rice_half_bowl",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "common_serving",
+          "kcal_point": 180,
+          "kcal_range": [140, 230]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "self_use_component_anchor_seed",
+        "source_file": "app/knowledge/small_anchor_store_tw_batch_039_self_use_basket_components.json",
+        "source_url": null,
+        "record_id": "listed_component_white_rice_half_bowl"
+      },
+      "approval_metadata": {
+        "approval_mode": "self_use_component_batch_approved",
+        "approval_scope": "current_shell_v1_listed_components",
+        "policy_version": "fooddb_self_use_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_component_chicken_leg_one",
+      "canonical_name": "雞腿一支",
+      "aliases": ["雞腿一支", "雞腿", "一支雞腿", "one chicken leg"],
+      "dish_type": "listed_component",
+      "composition_posture": "listed_item_component",
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "label": "one prepared chicken leg",
+        "derived_from": ["self_use_common_serving_batch_policy"]
+      },
+      "kcal_point": 320,
+      "kcal_range": [230, 430],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_chicken_leg_one",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "common_serving",
+          "kcal_point": 320,
+          "kcal_range": [230, 430]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "self_use_component_anchor_seed",
+        "source_file": "app/knowledge/small_anchor_store_tw_batch_039_self_use_basket_components.json",
+        "source_url": null,
+        "record_id": "listed_component_chicken_leg_one"
+      },
+      "approval_metadata": {
+        "approval_mode": "self_use_component_batch_approved",
+        "approval_scope": "current_shell_v1_listed_components",
+        "policy_version": "fooddb_self_use_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_component_greens_two_servings",
+      "canonical_name": "青菜兩樣",
+      "aliases": ["青菜兩樣", "青菜", "兩樣青菜", "two vegetable sides"],
+      "dish_type": "listed_component",
+      "composition_posture": "listed_item_component",
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "side",
+        "portion_quantity": 2,
+        "label": "two cooked vegetable sides",
+        "derived_from": ["self_use_common_serving_batch_policy"]
+      },
+      "kcal_point": 120,
+      "kcal_range": [70, 190],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_greens_two_servings",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "common_serving",
+          "kcal_point": 120,
+          "kcal_range": [70, 190]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "self_use_component_anchor_seed",
+        "source_file": "app/knowledge/small_anchor_store_tw_batch_039_self_use_basket_components.json",
+        "source_url": null,
+        "record_id": "listed_component_greens_two_servings"
+      },
+      "approval_metadata": {
+        "approval_mode": "self_use_component_batch_approved",
+        "approval_scope": "current_shell_v1_listed_components",
+        "policy_version": "fooddb_self_use_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_component_braised_egg_one",
+      "canonical_name": "滷蛋一顆",
+      "aliases": ["滷蛋一顆", "滷蛋", "一顆滷蛋", "one braised egg"],
+      "dish_type": "listed_component",
+      "composition_posture": "listed_item_component",
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "egg",
+        "portion_quantity": 1,
+        "label": "one braised egg",
+        "derived_from": ["self_use_common_serving_batch_policy"]
+      },
+      "kcal_point": 90,
+      "kcal_range": [70, 120],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_braised_egg_one",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "common_serving",
+          "kcal_point": 90,
+          "kcal_range": [70, 120]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "self_use_component_anchor_seed",
+        "source_file": "app/knowledge/small_anchor_store_tw_batch_039_self_use_basket_components.json",
+        "source_url": null,
+        "record_id": "listed_component_braised_egg_one"
+      },
+      "approval_metadata": {
+        "approval_mode": "self_use_component_batch_approved",
+        "approval_scope": "current_shell_v1_listed_components",
+        "policy_version": "fooddb_self_use_component_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "runtime_usage_boundary": "listed_component_only"
+    }
+  ]
+}

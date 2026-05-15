@@ -19,6 +19,7 @@ class FoodDBPacketSmokeCase:
     expected_behavior: str
     case_family: str
     retrieval_query_text: str | None = None
+    listed_components: tuple[str, ...] = ()
 
 
 FOODDB_PACKET_SMOKE_CASES: tuple[FoodDBPacketSmokeCase, ...] = (
@@ -45,6 +46,7 @@ FOODDB_PACKET_SMOKE_CASES: tuple[FoodDBPacketSmokeCase, ...] = (
         raw_input="\u6ef7\u5473\u6709\u8c46\u5e72\u3001\u6d77\u5e36\u3001\u8ca2\u4e38",
         expected_behavior="estimate_listed_components_only",
         case_family="listed_ingredient_basket",
+        listed_components=("\u8c46\u5e72", "\u6d77\u5e36", "\u8ca2\u4e38"),
     ),
     FoodDBPacketSmokeCase(
         case_id="chicken_bento_less_rice",
@@ -111,7 +113,10 @@ def _case_result(
     retrieval_records: tuple[IndexedFoodRecord, ...],
 ) -> dict[str, Any]:
     retrieval_query_text = case.retrieval_query_text or case.raw_input
-    retrieval_result = retrieve_fooddb_candidates(retrieval_query_text, retrieval_records=retrieval_records, limit=8)
+    retrieval_result = retrieve_fooddb_candidates(
+        retrieval_query_text, retrieval_records=retrieval_records, limit=8,
+        listed_components=list(case.listed_components) or None,
+    )
     packet = _manager_evidence_packet(case=case, retrieval_result=retrieval_result, retrieval_query_text=retrieval_query_text)
     return {
         "case_id": case.case_id,

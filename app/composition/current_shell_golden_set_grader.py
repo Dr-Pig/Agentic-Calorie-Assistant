@@ -144,7 +144,21 @@ def _expected_item_matches(
             actual.get("final_action") == "commit"
             and actual.get("canonical_commit_status") == "committed"
         )
+    if (
+        prefix == "runtime"
+        and key == "target_attachment"
+        and expected_item == "pending_followup"
+    ):
+        return _matches_pending_followup_attachment(actual_item)
     return False
+
+
+def _matches_pending_followup_attachment(actual_item: Any) -> bool:
+    if not isinstance(actual_item, dict):
+        return False
+    operation = str(actual_item.get("operation") or actual_item.get("mode") or "").strip()
+    source = str(actual_item.get("target_resolution_source") or "").strip()
+    return operation in {"attach_to_pending_followup", "draft_followup"} or source == "pending_followup_state"
 
 
 def _display(value: Any) -> str:

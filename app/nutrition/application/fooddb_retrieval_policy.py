@@ -16,7 +16,6 @@ from .fooddb_retrieval_query import (
     BASKET_TERMS,
     _bare_basket_match,
     _candidate_query_terms,
-    _listed_basket_components,
     _normalized_query,
 )
 from .fooddb_retrieval_records import (
@@ -30,12 +29,13 @@ def retrieve_fooddb_candidates(
     *,
     retrieval_records: tuple[IndexedFoodRecord, ...],
     limit: int = 5,
+    listed_components: list[str] | None = None,
 ) -> dict[str, Any]:
     normalized = _normalized_query(query)
     candidate_terms = _candidate_query_terms(normalized)
     normalized = {**normalized, "candidate_terms": candidate_terms}
     semantic_basket = _bare_basket_match(normalized["lookup_key"], retrieval_records)
-    listed_components = _listed_basket_components(normalized["normalized_text"])
+    listed_components = _listed_components_from_manager(listed_components)
 
     if semantic_basket and not listed_components:
         return _result(
@@ -136,7 +136,7 @@ def build_fooddb_retrieval_policy_artifact(
                 "exact_alias_lookup",
                 "alias_expansion_lookup",
                 "fuzzy_lexical_lookup",
-                "basket_family_component_parse",
+                "manager_owned_listed_component_lookup",
                 "deterministic_candidate_ranking",
                 "manager_disambiguation_later",
             ],
@@ -224,6 +224,12 @@ def _dedupe_candidates_by_anchor(candidates: list[dict[str, Any]]) -> list[dict[
         seen.add(anchor_id)
         deduped.append(candidate)
     return deduped
+
+
+def _listed_components_from_manager(listed_components: list[str] | None) -> list[str]:
+    if not isinstance(listed_components, list):
+        return []
+    return [component for item in listed_components if (component := str(item or "").strip())]
 
 
 def _now() -> str:
