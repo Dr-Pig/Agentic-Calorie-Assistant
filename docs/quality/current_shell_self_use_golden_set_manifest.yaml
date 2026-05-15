@@ -223,12 +223,17 @@ holdout_extension:
       dogfood_trace: {trace_id_required: true, feedback_links_to_trace: true}
 websearch_extension:
   case_count: 4
-  status: required_before_self_use_closeout
-  source_truth_role: candidate_evidence_only_until_approved_packet
+  status: paused_pending_stage2_calibration
+  core_closeout_blocking: false
+  draft_source: Whole Product Stage 2 Food Evidence And Reusable Meal Calibration Draft
+  source_truth_role: search_candidate_only_until_selected_extract_admissibility_creates_turn_web_evidence
   manager_decides_search_need: true
   deterministic_search_routing_allowed: false
   no_snippet_as_truth: true
-  no_runtime_mutation_from_candidate: true
+  raw_candidate_to_runtime_mutation_allowed: false
+  turn_web_evidence_may_support_same_turn_after_admissibility: true
+  permanent_fooddb_promotion_allowed: false
+  recalibration_required_before_blocking_gate: true
   cases:
     - case_id: GSW1
       title: Exact item FoodDB miss uses WebSearch as candidate evidence only
