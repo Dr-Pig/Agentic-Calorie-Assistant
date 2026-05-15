@@ -221,6 +221,63 @@ def test_request_trace_adapter_projects_target_ambiguity_from_validator_trace_on
     assert case_trace["runtime"]["deterministic_target_choice_allowed"] is False
 
 
+def test_request_trace_adapter_projects_remaining_query_from_budget_read_model_only() -> None:
+    trace = _gs5_request_trace()
+    trace["request"] = {
+        "user_id": "local-self-use-001",
+        "local_date": "2026-05-14",
+        "text": "我今天熱量還剩多少卡",
+    }
+    trace["state_delta"] = {
+        "meal_logged": False,
+        "canonical_commit": False,
+        "draft_saved": False,
+        "new_meal_version_created": False,
+        "old_version_superseded": False,
+        "ledger_updated": False,
+    }
+    trace["tool_outputs"] = {
+        "remaining_budget": {
+            "status": "ready",
+            "daily_target_kcal": 1600,
+            "consumed_kcal": 420,
+            "remaining_kcal": 1180,
+        }
+    }
+    trace["state_after"] = {
+        "current_budget_view": {
+            "budget_kcal": 1600,
+            "consumed_kcal": 420,
+            "remaining_kcal": 1180,
+            "source": "current_budget_view",
+        }
+    }
+    trace["manager_final_decision"] = {
+        "workflow_effect": "answer_only",
+        "final_action": "answer_remaining_budget",
+        "answer_contract": {
+            "reply_text": "今天還剩 1180 卡。",
+            "answer_basis": {"budget_summary": "remaining from read model"},
+        },
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "answer_remaining_budget",
+            "target_attachment": {},
+            "workflow_effect": "answer_only",
+            "final_action_candidate": "answer_remaining_budget",
+            "mutation_intent_candidate": "no_mutation",
+            "source": "budget_read_model",
+        },
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS14", trace)
+
+    assert case_trace["runtime"]["remaining_source"] == "budget_read_model"
+    assert case_trace["runtime"]["rescue_plan_allowed"] is False
+    assert case_trace["ui"]["chat_today_same_truth_required"] is True
+    assert case_trace["ui"]["frontend_remaining_math_allowed"] is False
+
+
 def test_request_trace_adapter_projects_manager_owned_blocking_basket_outcome() -> None:
     trace = _gs5_request_trace()
     trace.pop("runtime", None)
