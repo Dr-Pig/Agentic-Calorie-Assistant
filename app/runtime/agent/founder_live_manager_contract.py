@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.runtime.agent import founder_live_manager_composition_refinement_policy as refinement_policy
+from app.runtime.agent.nutrition_evidence_state import nutrition_evidence_present
 from app.shared.contracts.correction_operation import structured_correction_operation, structured_payload_requests_remove_item
 
 FOUNDER_LIVE_MANAGER_CONTRACT_PROFILE_ID = "founder_live_contract"
@@ -173,6 +174,8 @@ FOUNDER_LIVE_MANAGER_EVIDENCE_INSTRUCTION = (
     "If evidence_posture is requires_tool, evidence_missing, or evidence_pending, or if "
     "semantic_decision.estimation_posture is pending_tool_call or tool_pending, the current response must be "
     "manager_action='call_tools' with estimate_nutrition, not manager_action='final'. "
+    "If nutrition_evidence_present=true because tool_results include user_provided_kcal_evidence, finalize the "
+    "kcal-only commit without estimate_nutrition and without macro or composition claims. "
     "Exception: if your semantic decision is composition-unknown "
     "ask_followup/no_mutation, return manager_action='final' with final_action='ask_followup' and no tool_calls; "
     "set tool_calls=[] for composition-unknown ask_followup and do not estimate; manager_action='call_tools' "
@@ -352,7 +355,7 @@ def founder_live_manager_contract_constraints(
         "manager_contract_dynamic_payload_mode": "runtime_state_and_refs_only",
         "manager_contract_evidence_state": {
             "tool_result_names": tool_result_names,
-            "nutrition_evidence_present": _nutrition_evidence_present(tool_results),
+            "nutrition_evidence_present": nutrition_evidence_present(tool_results),
             "target_evidence_present": target_evidence["target_evidence_present"],
             "target_evidence_source": target_evidence["target_evidence_source"],
             "target_evidence_operation": target_evidence["target_evidence_operation"],
@@ -369,7 +372,7 @@ def founder_live_manager_tool_description() -> str:
         "answer_contract.answer_basis from manager_context_packet_v1 when available; answer those basis questions in user-facing language without exposing LLM/llm_only/internal enum labels or unsupported macro gram claims; "
         "correct_meal uses intent_type='correct_meal' with correction_applied/correction_write. Do not use ask_followup, "
         "no_commit, or answer_only as substitutes for evidence-required commit/correction_applied/overshoot_note; "
-        "call estimate_nutrition first. If you set evidence_posture to requires_tool or evidence_missing, use "
+        "call estimate_nutrition first unless user_provided_kcal_evidence is already present. If you set evidence_posture to requires_tool or evidence_missing, use "
         "manager_action call_tools with estimate_nutrition; the invalid evidence-required candidate pattern is "
         "manager_action final while final_action_candidate still points at commit/correction/overshoot. If target_evidence_present is true with target_evidence_operation "
         "remove_item, finalize correction_applied and do not call resolve_correction_target again; do not "
@@ -392,20 +395,6 @@ def _tool_result_names(tool_results: list[dict[str, Any]] | None) -> list[str]:
         if name:
             names.append(name)
     return names
-
-def _nutrition_evidence_present(tool_results: list[dict[str, Any]] | None) -> bool:
-    for item in tool_results or []:
-        if not isinstance(item, dict):
-            continue
-        name = str(item.get("tool_name") or item.get("name") or "").strip()
-        if name != "estimate_nutrition":
-            continue
-        if item.get("failure_family"):
-            continue
-        evidence = item.get("evidence")
-        if isinstance(evidence, dict) and isinstance(evidence.get("nutrition_payload"), dict):
-            return True
-    return False
 
 def _target_evidence_state(tool_results: list[dict[str, Any]] | None) -> dict[str, Any]:
     for item in tool_results or []:

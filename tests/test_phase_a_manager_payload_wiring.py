@@ -908,6 +908,7 @@ async def test_execute_intake_turn_passes_current_turn_context_to_manager(monkey
         captured.update(kwargs)
         return SimpleNamespace(
             intent_type="answer_remaining_budget",
+            final_action="answer_only",
             workflow_effect="none",
             response_summary="budget",
             pending_followup=None,
@@ -934,6 +935,12 @@ async def test_execute_intake_turn_passes_current_turn_context_to_manager(monkey
     monkeypatch.setattr(module, "build_trace_refs", lambda **_: {})
     monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
     monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "record_inflight_intake_chat_turn", lambda *_, **__: {})
+    monkeypatch.setattr(
+        module,
+        "build_record_and_return_intake_turn_response",
+        lambda *_, **kwargs: {"assistant_message": kwargs["assistant_message"]},
+    )
 
     result = await module.execute_intake_turn(
         None,
@@ -1481,6 +1488,7 @@ async def test_execute_intake_turn_does_not_pre_manager_enrich_history_without_m
         captured.update(kwargs)
         return SimpleNamespace(
             intent_type="answer_remaining_budget",
+            final_action="answer_only",
             workflow_effect="none",
             response_summary="budget",
             pending_followup=None,
@@ -1507,6 +1515,12 @@ async def test_execute_intake_turn_does_not_pre_manager_enrich_history_without_m
     monkeypatch.setattr(module, "build_deterministic_sidecar", lambda **_: {})
     monkeypatch.setattr(module, "write_intake_turn_trace_artifact", lambda **_: None)
     monkeypatch.setattr(module, "build_trace_refs", lambda **_: {})
+    monkeypatch.setattr(module, "record_inflight_intake_chat_turn", lambda *_, **__: {})
+    monkeypatch.setattr(
+        module,
+        "build_record_and_return_intake_turn_response",
+        lambda *_, **kwargs: {"assistant_message": kwargs["assistant_message"]},
+    )
 
     result = await module.execute_intake_turn(
         None,

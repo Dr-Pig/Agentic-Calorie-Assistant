@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v21"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v22"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -50,6 +50,12 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "An optional refinement follow-up does not make the mutation intent no_mutation when the turn should still "
     "be logged after evidence. Do not pair final_action_candidate='commit' with mutation_intent_candidate='no_mutation'; "
     "no_mutation is for read-only answers or blocking ask_followup cases that will not write canonical intake yet.\n"
+    "If the user explicitly supplies a kcal number for a meal log, you own that semantic extraction: set "
+    "semantic_decision.source='user_provided_kcal', semantic_decision.user_provided_kcal to the numeric kcal, "
+    "estimation_posture='user_provided_kcal', retrieval_goal='none', final_action_candidate='commit', and "
+    "mutation_intent_candidate='canonical_write'. Runtime may validate that structured field and seed kcal-only "
+    "evidence; runtime must not extract kcal from raw user text. Macro facts remain hidden unless separate "
+    "evidence is present, and food details are optional refinement, not a blocking commit gate.\n"
     "If the user explicitly lists concrete food components in the current turn or a pending-followup answer, "
     "you own that semantic list: include those items in semantic_decision.listed_items, use "
     "retrieval_goal='listed_item_lookup', and call estimate_nutrition when evidence is needed before commit. "
@@ -92,6 +98,9 @@ _CONTRACT_POLICY_PROMPT = (
     "Do not return final_action='commit' or apply nutrition-changing correction without current-loop nutrition evidence; if evidence is missing, "
     "return manager_action='call_tools' with estimate_nutrition. If guard_feedback says commit_without_evidence, repair by "
     "calling estimate_nutrition, not by finalizing.\n"
+    "A user_provided_kcal_evidence tool packet created from semantic_decision.user_provided_kcal is current-loop "
+    "kcal evidence for a kcal-only commit. When it is present, finalize commit without estimate_nutrition; do "
+    "not invent food composition or macros, and keep optional food-detail refinement non-blocking.\n"
     "If guard_feedback says nutrition_evidence_not_commit_eligible, the guard is rejecting a Manager-proposed commit "
     "because the already-returned evidence packet is not legal commit evidence, such as a shadow/fallback value; "
     "repair by choosing a legal final action. When your semantic judgment is that missing composition caused the "

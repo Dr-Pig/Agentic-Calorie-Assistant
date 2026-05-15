@@ -11,9 +11,11 @@ from .common import CommitVersionReason, MealStatus
 class MealItemPayload(BaseModel):
     name: str
     quantity_hint: str | None = None
-    source: Literal["llm", "retrieval", "lookup"] = "llm"
-    evidence_role: Literal["exact_truth", "ingredient_anchor", "meal_pattern_prior", "retailer_fallback", "unknown"] = "unknown"
-    estimate_basis: Literal["exact", "anchored", "heuristic_only", "llm_only"] = "llm_only"
+    source: Literal["llm", "retrieval", "lookup", "user"] = "llm"
+    evidence_role: Literal[
+        "exact_truth", "ingredient_anchor", "meal_pattern_prior", "retailer_fallback", "user_provided", "unknown"
+    ] = "unknown"
+    estimate_basis: Literal["exact", "anchored", "heuristic_only", "llm_only", "user_provided"] = "llm_only"
     confidence_tier: Literal["high", "medium", "low"] = "low"
     estimated_kcal: int = 0
     protein_g: int = 0

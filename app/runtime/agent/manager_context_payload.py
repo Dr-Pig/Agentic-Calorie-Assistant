@@ -152,7 +152,7 @@ def manager_context_packet_v1_prompt_payload(
 
 
 def _post_tool_context_reference_allowed(tool_results: list[dict[str, Any]] | tuple[dict[str, Any], ...] | None) -> bool:
-    evidence_tools = {"estimate_nutrition", "resolve_correction_target", "compare_against_budget"}
+    evidence_tools = {"estimate_nutrition", "user_provided_kcal_evidence", "resolve_correction_target", "compare_against_budget"}
     for item in tool_results or []:
         if not isinstance(item, dict):
             continue

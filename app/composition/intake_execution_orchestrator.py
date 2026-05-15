@@ -12,7 +12,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.composition.intake_execution_response import build_intake_execution_response, finalized_budget_summary
+from app.composition.intake_execution_response import build_intake_execution_response
 from app.composition.intake_entry_handoff import execute_entry_handoff_seed
 from app.composition.intake_commit_guard_repair import commit_boundary_guard_repair_outcome
 from app.composition.manager_context_runtime import build_runtime_manager_context_packet_v1
@@ -24,12 +24,13 @@ from app.composition.intake_manager_tool_batch import (
     apply_final_action_to_payload,
     attach_correction_target_ref_to_payload,
     execute_manager_tool_calls,
-    nutrition_tool_output,
 )
+from app.composition.intake_execution_tool_outputs import build_refreshed_intake_tool_outputs
 from app.composition.intake_manager_target_validation import validate_final_manager_target_attachment
 from app.composition.manager_ask_followup_draft import build_manager_ask_followup_draft_artifact
 from app.composition.state_resolver import resolve_intake_state
 from app.composition.commit_boundary_preflight import run_commit_boundary_preflight
+from app.composition.user_provided_kcal_evidence import build_user_provided_kcal_evidence_seed
 from app.intake.application.context_injection_policy import build_manager_context_pack
 from app.intake.application.final_action_mutation_classifier import (
     PERSISTENCE_EFFECT_ACTIONS,
@@ -50,17 +51,13 @@ from app.nutrition.application.web_search_port import WebSearchPort
 from app.runtime.application.manager_service import run_intake_manager
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 
-
 _MANAGER_LOOP_GUARD_PERSISTENCE_ACTIONS = PERSISTENCE_EFFECT_ACTIONS - frozenset({"ask_followup"})
-
 
 def _now_ms() -> int:
     return int(time.time() * 1000)
 
-
 def _append_stage_timing(stage_timings: list[dict[str, Any]], stage: str, duration_ms: int) -> None:
     stage_timings.append({"stage": stage, "duration_ms": duration_ms})
-
 
 def _manager_result_payload(manager_result: Any) -> dict[str, Any]:
     return {
@@ -69,7 +66,6 @@ def _manager_result_payload(manager_result: Any) -> dict[str, Any]:
         "answer_contract": dict(getattr(manager_result, "answer_contract", {}) or {}),
         "semantic_decision": dict(getattr(manager_result, "semantic_decision", {}) or {}),
     }
-
 
 async def process_intake_execution_turn(
     db: Session,
@@ -130,6 +126,18 @@ async def process_intake_execution_turn(
         "nutrition_artifact": None,
         "budget_summary": None,
     }
+    user_kcal_seed = build_user_provided_kcal_evidence_seed(
+        db,
+        user_external_id=user_external_id,
+        raw_user_input=raw_user_input,
+        local_date=local_date,
+        state_before=state_before,
+        correction_target=tool_state["correction_target"],
+        manager_decision=manager_decision,
+    )
+    if user_kcal_seed.nutrition_artifact is not None:
+        tool_state["nutrition_artifact"] = user_kcal_seed.nutrition_artifact
+        tool_state["budget_summary"] = user_kcal_seed.budget_summary
 
     def record_timing(stage: str, duration_ms: int) -> None:
         _append_stage_timing(stage_timings, stage, duration_ms)
@@ -298,7 +306,7 @@ async def process_intake_execution_turn(
         tool_executor=tool_executor,
         manager_context_refresher=manager_context_refresher,
         guard_checker=guard_checker,
-        initial_tool_results=entry_handoff_seed["tool_results"],
+        initial_tool_results=[*user_kcal_seed.tool_results, *entry_handoff_seed["tool_results"]],
         initial_manager_rounds=entry_handoff_seed["manager_rounds"],
         constraints={
             "request_id": request_id,
@@ -381,7 +389,9 @@ async def process_intake_execution_turn(
     if manager_triggered_history_trace is not None:
         phase_a_trace["manager_triggered_history_expansion"] = manager_triggered_history_trace
     commit_boundary_trace_payload = commit_boundary_preflight.trace_payload()
-    guard_blocked_commit_preflight = dict(manager_result.guard_outcome.get("phase_a_commit_boundary_preflight") or {})
+    guard_blocked_commit_preflight = dict(
+        dict(getattr(manager_result, "guard_outcome", {}) or {}).get("phase_a_commit_boundary_preflight") or {}
+    )
     if manager_result.request_failure_family and guard_blocked_commit_preflight.get("blocked") is True:
         commit_boundary_trace_payload = guard_blocked_commit_preflight
     phase_a_trace["phase_a_commit_boundary_preflight"] = commit_boundary_trace_payload
@@ -420,28 +430,18 @@ async def process_intake_execution_turn(
     stage_start = _now_ms()
     state_after = resolve_intake_state(db, user_external_id=user_external_id, local_date=local_date, exclude_trace_id=request_id)
     record_timing("state_after_resolution", _now_ms() - stage_start)
-    refreshed_tool_results = [dict(item) for item in manager_result.tool_results]
-    if nutrition_artifact is not None:
-        refreshed_nutrition_output = nutrition_tool_output(
-            raw_user_input=raw_user_input,
-            nutrition_artifact=nutrition_artifact,
-            correction_target=tool_state["correction_target"],
-            budget_summary=budget_summary,
-        )
-        for index, item in enumerate(refreshed_tool_results):
-            if str(item.get("tool_name") or "").strip() == "estimate_nutrition":
-                refreshed_tool_results[index] = refreshed_nutrition_output
-                break
-    tool_outputs = {"tool_results": refreshed_tool_results}
-    if budget_summary is not None and (
-        state_mutation_summary.get("canonical_commit") or commit_boundary_preflight.blocked or guard_blocked_for_side_effects
-    ):
-        budget_summary = finalized_budget_summary(
-            budget_summary=budget_summary,
-            state_before=state_before,
-            state_after=state_after,
-        )
-        tool_outputs["budget_summary"] = budget_summary
+    tool_outputs, budget_summary = build_refreshed_intake_tool_outputs(
+        raw_user_input=raw_user_input,
+        nutrition_artifact=nutrition_artifact,
+        correction_target=tool_state["correction_target"],
+        budget_summary=budget_summary,
+        manager_tool_results=manager_result.tool_results,
+        state_mutation_summary=state_mutation_summary,
+        commit_boundary_blocked=commit_boundary_preflight.blocked,
+        guard_blocked_for_side_effects=guard_blocked_for_side_effects,
+        state_before=state_before,
+        state_after=state_after,
+    )
 
     return build_intake_execution_response(
         db,

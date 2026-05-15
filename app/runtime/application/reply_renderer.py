@@ -25,6 +25,22 @@ def _remaining_text(remaining_budget: Any | None) -> str:
     return f"今天還剩約 {remaining_kcal} kcal。"
 
 
+def _user_provided_kcal_reply(*, nutrition_payload: Any, remaining_budget: Any | None) -> str:
+    trace_contract = dict(getattr(nutrition_payload, "trace_contract", {}) or {})
+    kcal = int(trace_contract.get("user_provided_kcal") or getattr(nutrition_payload, "estimated_kcal", 0) or 0)
+    parts = [
+        f"已記錄 {kcal} kcal。",
+        "三大營養素資料不足；如果你想補食物內容，我可以再幫你更新。",
+    ]
+    if remaining_budget is not None and remaining_budget.status == "ready":
+        remaining_kcal = int(remaining_budget.remaining_kcal or 0)
+        if remaining_kcal < 0:
+            parts.append(f"今天已超過目標 {abs(remaining_kcal)} kcal。")
+        else:
+            parts.append(f"今天還剩約 {remaining_kcal} kcal。")
+    return "".join(parts)
+
+
 def render_intake_reply(
     *,
     intent_type: str,
@@ -64,6 +80,11 @@ def render_intake_reply(
     if intent_type in {"log_meal", "correct_meal"} and nutrition_payload is not None:
         if manager_final_action == "no_commit":
             return "這次我沒有記錄到日記裡。你可以再補一句餐點內容，我再幫你估。"
+        if dict(getattr(nutrition_payload, "trace_contract", {}) or {}).get("source_basis") == "user_provided_kcal":
+            return _user_provided_kcal_reply(
+                nutrition_payload=nutrition_payload,
+                remaining_budget=remaining_budget,
+            )
         component_estimates = list(getattr(nutrition_payload, "component_estimates", []) or [])
         if component_estimates:
             item_parts = _component_text(component_estimates)

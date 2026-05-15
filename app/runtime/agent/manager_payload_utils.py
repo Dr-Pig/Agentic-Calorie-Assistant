@@ -73,6 +73,7 @@ _NUTRITION_PAYLOAD_PROMPT_FIELDS = (
 )
 _TRACE_CONTRACT_PROMPT_FIELDS = (
     "route_family",
+    "source_basis", "user_provided_kcal",
     "shadow_stub",
     "db_hit_type",
     "match_confidence",
@@ -82,9 +83,8 @@ _TRACE_CONTRACT_PROMPT_FIELDS = (
     "missing_slots",
     "blocking_slots",
     "canonical_write_decision",
-    "macro_display_authorized",
-    "macro_visibility_status",
-    "macro_guard_reason",
+    "approved_user_provided_kcal_trace", "macro_display_authorized",
+    "macro_visibility_status", "macro_guard_reason", "optional_refinement_allowed",
     "grounding_summary",
     "why_not_exact",
     "search_attempt_count",

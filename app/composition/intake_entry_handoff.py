@@ -99,6 +99,8 @@ def _nutrition_evidence_handoff_tool_calls(
     estimation_posture = str(semantic_decision.get("estimation_posture") or "")
     if estimation_posture in _COMPOSITION_UNKNOWN_ESTIMATION_POSTURES:
         return []
+    if _manager_owned_user_provided_kcal(semantic_decision) is not None:
+        return []
     arguments = {
         "manager_semantic_decision": {
             key: value
@@ -118,6 +120,18 @@ def _nutrition_evidence_handoff_tool_calls(
         "deterministic_role": "execute_manager_owned_evidence_requirement_only",
     }
     return [{"name": "estimate_nutrition", "arguments": arguments}]
+
+
+def _manager_owned_user_provided_kcal(semantic_decision: dict[str, Any]) -> int | None:
+    if str(semantic_decision.get("source") or "") != "user_provided_kcal":
+        return None
+    value = semantic_decision.get("user_provided_kcal")
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    kcal = int(value)
+    if kcal != value or kcal <= 0 or kcal > 10000:
+        return None
+    return kcal
 
 
 def _handoff_retrieval_goal(semantic_decision: dict[str, Any]) -> str:
