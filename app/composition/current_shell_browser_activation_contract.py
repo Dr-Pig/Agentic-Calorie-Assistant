@@ -15,7 +15,7 @@ REQUIRED_INPUTS = (
     "product_pages_visual_qa",
     "product_pages_body_noplan_degraded_smoke",
     "body_observation_same_truth_gate",
-    "fixture_full_product_loop_e2e",
+    "current_shell_fixture_e2e",
     "product_pages_self_use_flow_gate",
 )
 
@@ -30,7 +30,7 @@ EXPECTED_STATUSES = {
     "product_pages_visual_qa": "pass",
     "product_pages_body_noplan_degraded_smoke": "pass",
     "body_observation_same_truth_gate": "body_observation_same_truth_gate_ready_for_human_review",
-    "fixture_full_product_loop_e2e": "fixture_product_loop_e2e_diagnostic_pass",
+    "current_shell_fixture_e2e": "current_shell_fixture_e2e_diagnostic_pass",
     "product_pages_self_use_flow_gate": "product_pages_self_use_flow_ready_for_human_review",
 }
 
@@ -40,7 +40,7 @@ EXPECTED_ARTIFACT_TYPES = {
     ),
     "product_pages_visual_qa": "accurate_intake_product_pages_visual_qa",
     "product_pages_self_use_flow_gate": CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE,
-    "fixture_full_product_loop_e2e": "accurate_intake_fixture_full_product_loop_e2e",
+    "current_shell_fixture_e2e": "accurate_intake_current_shell_fixture_e2e",
 }
 
 EXPECTED_SMOKE_IDS = {
@@ -101,7 +101,7 @@ ROUTE_BACKED_MACRO_REQUIRED_NON_CLAIMS = (
     "private_self_use_approved",
 )
 
-REQUIRED_PRODUCT_LOOP_STEPS = (
+REQUIRED_CURRENT_SHELL_STEPS = (
     "target_update",
     "food_log",
     "listed_basket_commit",
@@ -238,7 +238,7 @@ REQUIRED_TRUE_FLAGS = {
     "body_observation_same_truth_gate": (
         "browser_executed",
     ),
-    "fixture_full_product_loop_e2e": ("fixture_evidence_used",),
+    "current_shell_fixture_e2e": ("fixture_evidence_used",),
     "product_pages_self_use_flow_gate": (
         "all_required_browser_artifacts_executed",
         "browser_executed_required",

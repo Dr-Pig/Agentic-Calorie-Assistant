@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from app.composition.accurate_intake_fixture_full_product_loop_e2e import (
-    build_fixture_full_product_loop_e2e_artifact,
+from app.composition.current_shell_fixture_e2e import (
+    build_current_shell_fixture_e2e_artifact,
 )
-from scripts import run_accurate_intake_fixture_full_product_loop_e2e as module
+from scripts import run_current_shell_fixture_e2e as module
 
 
 def _one_day_wall() -> dict[str, object]:
@@ -107,8 +107,8 @@ def _fake_provider_smoke() -> dict[str, object]:
     }
 
 
-def test_fixture_full_product_loop_e2e_records_complete_fixture_product_chain() -> None:
-    artifact = build_fixture_full_product_loop_e2e_artifact(
+def test_current_shell_fixture_e2e_records_complete_fixture_product_chain() -> None:
+    artifact = build_current_shell_fixture_e2e_artifact(
         one_day_wall=_one_day_wall(),
         reopen_continuity=_reopen_continuity(),
         browser_realistic=_browser_realistic(),
@@ -116,9 +116,9 @@ def test_fixture_full_product_loop_e2e_records_complete_fixture_product_chain() 
         fake_provider_context_smoke=_fake_provider_smoke(),
     )
 
-    assert artifact["artifact_type"] == "accurate_intake_fixture_full_product_loop_e2e"
-    assert artifact["status"] == "fixture_product_loop_e2e_diagnostic_pass"
-    assert artifact["completed_product_loop_steps"] == [
+    assert artifact["artifact_type"] == "accurate_intake_current_shell_fixture_e2e"
+    assert artifact["status"] == "current_shell_fixture_e2e_diagnostic_pass"
+    assert artifact["completed_current_shell_steps"] == [
         "target_update",
         "food_log",
         "listed_basket_commit",
@@ -140,10 +140,10 @@ def test_fixture_full_product_loop_e2e_records_complete_fixture_product_chain() 
     assert artifact["private_self_use_approved"] is False
 
 
-def test_fixture_full_product_loop_e2e_blocks_when_browser_is_optional_missing() -> None:
+def test_current_shell_fixture_e2e_blocks_when_browser_is_optional_missing() -> None:
     browser = {**_browser_realistic(), "status": "blocked", "browser_executed": False}
 
-    artifact = build_fixture_full_product_loop_e2e_artifact(
+    artifact = build_current_shell_fixture_e2e_artifact(
         one_day_wall=_one_day_wall(),
         reopen_continuity=_reopen_continuity(),
         browser_realistic=browser,
@@ -157,7 +157,7 @@ def test_fixture_full_product_loop_e2e_blocks_when_browser_is_optional_missing()
     assert artifact["dogfood_pass"] is False
 
 
-def test_fixture_full_product_loop_e2e_rejects_real_fooddb_or_readiness_overclaims() -> None:
+def test_current_shell_fixture_e2e_rejects_real_fooddb_or_readiness_overclaims() -> None:
     browser = {
         **_browser_realistic(),
         "real_fooddb_pass_claimed": True,
@@ -165,7 +165,7 @@ def test_fixture_full_product_loop_e2e_rejects_real_fooddb_or_readiness_overclai
         "private_self_use_approved": True,
     }
 
-    artifact = build_fixture_full_product_loop_e2e_artifact(
+    artifact = build_current_shell_fixture_e2e_artifact(
         one_day_wall=_one_day_wall(),
         reopen_continuity=_reopen_continuity(),
         browser_realistic=browser,
@@ -179,7 +179,7 @@ def test_fixture_full_product_loop_e2e_rejects_real_fooddb_or_readiness_overclai
     assert "browser_realistic.private_self_use_approved" in artifact["blockers"]
 
 
-def test_fixture_full_product_loop_e2e_rejects_stale_context_replay_coverage() -> None:
+def test_current_shell_fixture_e2e_rejects_stale_context_replay_coverage() -> None:
     context_replay = {
         **_context_replay(),
         "scenario_count": 7,
@@ -191,7 +191,7 @@ def test_fixture_full_product_loop_e2e_rejects_stale_context_replay_coverage() -
         },
     }
 
-    artifact = build_fixture_full_product_loop_e2e_artifact(
+    artifact = build_current_shell_fixture_e2e_artifact(
         one_day_wall=_one_day_wall(),
         reopen_continuity=_reopen_continuity(),
         browser_realistic=_browser_realistic(),
@@ -206,7 +206,7 @@ def test_fixture_full_product_loop_e2e_rejects_stale_context_replay_coverage() -
     assert "context_replay_outside_current_day_omitted_missing" in artifact["blockers"]
 
 
-def test_fixture_full_product_loop_e2e_cli_writes_artifact(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_current_shell_fixture_e2e_cli_writes_artifact(monkeypatch, tmp_path: Path, capsys) -> None:
     monkeypatch.setattr(module, "build_one_day_self_use_scenario_wall_report", lambda **_: _one_day_wall())
     monkeypatch.setattr(module, "build_one_day_self_use_reopen_report", lambda **_: _reopen_continuity())
     monkeypatch.setattr(module, "build_browser_realistic_web_dogfood_v2_report", lambda **_: _browser_realistic())
@@ -220,11 +220,11 @@ def test_fixture_full_product_loop_e2e_cli_writes_artifact(monkeypatch, tmp_path
 
     assert exit_code == 0
     assert artifact == printed
-    assert artifact["status"] == "fixture_product_loop_e2e_diagnostic_pass"
+    assert artifact["status"] == "current_shell_fixture_e2e_diagnostic_pass"
 
 
-def test_fixture_full_product_loop_e2e_stays_out_of_fooddb_websearch_and_live_boundaries() -> None:
-    source = Path("scripts/run_accurate_intake_fixture_full_product_loop_e2e.py").read_text(encoding="utf-8")
+def test_current_shell_fixture_e2e_stays_out_of_fooddb_websearch_and_live_boundaries() -> None:
+    source = Path("scripts/run_current_shell_fixture_e2e.py").read_text(encoding="utf-8")
 
     for fragment in (
         "NutritionEvidenceStorePort",

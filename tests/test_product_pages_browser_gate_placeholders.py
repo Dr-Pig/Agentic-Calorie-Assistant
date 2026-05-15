@@ -73,8 +73,9 @@ def test_build_placeholders_writes_blocked_upstream_status(tmp_path: Path, monke
     )
 
     activation_manifest = json.loads(
-        (root / "artifacts/accurate_intake_pl_ce_activation_review_manifest_ci.json").read_text(
-            encoding="utf-8"
-        )
+        (
+            root
+            / "artifacts/accurate_intake_current_shell_compatibility_activation_review_manifest_ci.json"
+        ).read_text(encoding="utf-8")
     )
     assert activation_manifest["status"] == "blocked_upstream"

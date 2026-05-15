@@ -53,10 +53,10 @@ DEFAULT_TARGET_CANDIDATE_UI_SMOKE_PATH = (
 )
 
 
-def _fixture_product_loop_e2e() -> dict[str, object]:
+def _current_shell_fixture_e2e() -> dict[str, object]:
     return {
-        "artifact_type": "accurate_intake_fixture_full_product_loop_e2e",
-        "status": "fixture_product_loop_e2e_diagnostic_pass",
+        "artifact_type": "accurate_intake_current_shell_fixture_e2e",
+        "status": "current_shell_fixture_e2e_diagnostic_pass",
         "fixture_evidence_used": True,
         "fooddb_evidence_used": False,
         "websearch_evidence_used": False,
@@ -168,7 +168,7 @@ def build_review_eval_candidate_pipeline_report(
         }
     )
     return build_review_eval_candidate_pipeline_artifact(
-        product_loop_e2e=_fixture_product_loop_e2e(),
+        current_shell_fixture_e2e=_current_shell_fixture_e2e(),
         ui_same_truth_contract=build_ui_same_truth_render_contract(
             shell_path.read_text(encoding="utf-8")
         ),

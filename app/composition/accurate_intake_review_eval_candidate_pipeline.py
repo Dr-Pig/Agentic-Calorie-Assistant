@@ -5,7 +5,7 @@ import json
 from typing import Any
 
 EXPECTED_STATUSES = {
-    "product_loop_e2e": "fixture_product_loop_e2e_diagnostic_pass",
+    "current_shell_fixture_e2e": "current_shell_fixture_e2e_diagnostic_pass",
     "ui_same_truth_contract": "pass",
     "context_quality_pack": "context_quality_diagnostic_pass",
     "contextual_interaction_matrix": "pass",
@@ -36,7 +36,7 @@ FORBIDDEN_TRUE_CLAIMS = (
 )
 
 SUGGESTED_TAXONOMY = {
-    "product_loop_e2e": "evidence_gap",
+    "current_shell_fixture_e2e": "evidence_gap",
     "ui_same_truth_contract": "frontend_display_bug",
     "context_quality_pack": "manager_context_gap",
     "contextual_interaction_matrix": "context_conditioned_intent_gap",
@@ -86,7 +86,7 @@ def _review_candidate(artifact_id: str, payload: dict[str, Any]) -> dict[str, An
 
 def build_review_eval_candidate_pipeline_artifact(
     *,
-    product_loop_e2e: dict[str, Any],
+    current_shell_fixture_e2e: dict[str, Any],
     ui_same_truth_contract: dict[str, Any],
     context_quality_pack: dict[str, Any],
     contextual_interaction_matrix: dict[str, Any],
@@ -95,7 +95,7 @@ def build_review_eval_candidate_pipeline_artifact(
     fake_provider_tool_loop_smoke: dict[str, Any],
 ) -> dict[str, Any]:
     inputs = {
-        "product_loop_e2e": _object_dict(product_loop_e2e),
+        "current_shell_fixture_e2e": _object_dict(current_shell_fixture_e2e),
         "ui_same_truth_contract": _object_dict(ui_same_truth_contract),
         "context_quality_pack": _object_dict(context_quality_pack),
         "contextual_interaction_matrix": _object_dict(contextual_interaction_matrix),

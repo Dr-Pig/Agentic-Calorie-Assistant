@@ -19,7 +19,7 @@ This document records the contract boundary for turning the local desktop shell 
 
 The next implementation work still returns to the existing Current Shell closeout blockers:
 
-- `fixture_full_product_loop_e2e`
+- `current_shell_fixture_e2e`
 - `current_shell_compatibility_local_mvp_candidate_bundle`
 
 This contract exists only to keep those closeout slices aligned with the user's intended desktop dogfood loop: Chat / Today / Body / Feedback / Review Queue, local persistence, trace-backed feedback, and bounded FoodDB macro evidence.
@@ -122,7 +122,7 @@ Allowed before full closeout:
 - schema and packet contract alignment for `protein_g`, `carbs_g`, `fat_g`, `macro_basis`, `macro_confidence`, `macro_source_strength`, and `macro_visibility_status`
 - small exact-item macro-present seed
 - small macro-missing seed where macro fields may be null
-- optional listed-component seed if needed for `fixture_full_product_loop_e2e`
+- optional listed-component seed if needed for `current_shell_fixture_e2e`
 - review-only FoodDB gap capture from dogfood feedback
 
 Forbidden before full closeout:
@@ -155,7 +155,7 @@ The `return-to-mainline gate` is intentionally narrow.
 
 After this contract lands, the next mainline slice must return to the existing closeout chain:
 
-1. wire `fixture_full_product_loop_e2e`
+1. wire `current_shell_fixture_e2e`
 2. wire or generate `current_shell_compatibility_local_mvp_candidate_bundle`
 3. only then implement desktop feedback capture, local export, and dogfood review UI
 

@@ -10,9 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.composition.accurate_intake_pl_ce_product_pages_self_use_flow_gate import (  # noqa: E402
+from app.composition.current_shell_product_pages_self_use_flow_gate import (  # noqa: E402
     REQUIRED_INPUTS,
-    build_pl_ce_product_pages_self_use_flow_gate_artifact,
+    build_current_shell_product_pages_self_use_flow_gate_artifact,
 )
 from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
@@ -50,9 +50,9 @@ DEFAULT_ARTIFACT_PATHS = {
     / "artifacts"
     / "accurate_intake_product_pages_context_target_browser_closure.json",
     "product_pages_visual_qa": ROOT / "artifacts" / "accurate_intake_product_pages_visual_qa.json",
-    "fixture_full_product_loop_e2e": ROOT
+    "current_shell_fixture_e2e": ROOT
     / "artifacts"
-    / "accurate_intake_fixture_full_product_loop_e2e.json",
+    / "accurate_intake_current_shell_fixture_e2e.json",
 }
 
 
@@ -135,7 +135,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
-    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(
+    artifact = build_current_shell_product_pages_self_use_flow_gate_artifact(
         build_input_artifacts(path_overrides=path_overrides)
     )
     write_json_artifact(Path(args.output), artifact)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate import (
+from app.composition.current_shell_browser_activation_evidence_gate import (
     BROWSER_ARTIFACTS,
     EXPECTED_STATUSES as BROWSER_GATE_EXPECTED_STATUSES,
     REQUIRED_INPUTS as BROWSER_GATE_REQUIRED_INPUTS,

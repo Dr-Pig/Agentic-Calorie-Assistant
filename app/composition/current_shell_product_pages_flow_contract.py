@@ -1,0 +1,201 @@
+from __future__ import annotations
+
+from app.composition import current_shell_body_observation_gate_contract as body_obs
+from app.composition.current_shell_browser_activation_contract import (
+    REQUIRED_TRUE_FLAGS as BROWSER_ACTIVATION_REQUIRED_TRUE_FLAGS,
+)
+
+REQUIRED_INPUTS = (
+    "ui_same_truth_contract",
+    "today_macro_runtime_mirror_gate",
+    "product_pages_renderer_source_map",
+    "product_pages_renderer_source_closure_gate",
+    "product_pages_browser_smoke",
+    "product_pages_seven_day_diary_smoke",
+    "product_pages_body_noplan_degraded_smoke",
+    body_obs.BODY_OBSERVATION_SAME_TRUTH_GATE_ID,
+    "product_pages_short_term_context_smoke",
+    "product_pages_target_candidate_ui_smoke",
+    "product_pages_context_target_browser_closure",
+    "product_pages_visual_qa",
+    "current_shell_fixture_e2e",
+)
+
+EXPECTED_STATUSES = {
+    "ui_same_truth_contract": "pass",
+    "today_macro_runtime_mirror_gate": "today_macro_runtime_mirror_gate_ready_for_browser",
+    "product_pages_renderer_source_map": "product_pages_renderer_source_map_ready_for_human_review",
+    "product_pages_renderer_source_closure_gate": "product_pages_renderer_source_closure_ready_for_browser",
+    "product_pages_browser_smoke": "pass",
+    "product_pages_seven_day_diary_smoke": "pass",
+    "product_pages_body_noplan_degraded_smoke": "pass",
+    body_obs.BODY_OBSERVATION_SAME_TRUTH_GATE_ID: body_obs.BODY_OBSERVATION_SAME_TRUTH_READY_STATUS,
+    "product_pages_short_term_context_smoke": "pass",
+    "product_pages_target_candidate_ui_smoke": "pass",
+    "product_pages_context_target_browser_closure": "context_target_browser_closure_ready_for_self_use_flow_gate",
+    "product_pages_visual_qa": "pass",
+    "current_shell_fixture_e2e": "current_shell_fixture_e2e_diagnostic_pass",
+}
+
+EXPECTED_ARTIFACT_TYPES = {
+    "ui_same_truth_contract": "accurate_intake_ui_same_truth_render_contract",
+    "today_macro_runtime_mirror_gate": "accurate_intake_today_macro_runtime_mirror_gate",
+    "product_pages_renderer_source_map": "accurate_intake_product_pages_renderer_source_map",
+    "product_pages_renderer_source_closure_gate": "accurate_intake_product_pages_renderer_source_closure_gate",
+    "product_pages_context_target_browser_closure": "accurate_intake_product_pages_context_target_browser_closure",
+    "product_pages_visual_qa": "accurate_intake_product_pages_visual_qa",
+    "current_shell_fixture_e2e": "accurate_intake_current_shell_fixture_e2e",
+}
+
+EXPECTED_PASS_TYPES = {
+    "today_macro_runtime_mirror_gate": "runtime_backed",
+    "product_pages_renderer_source_closure_gate": "contract",
+    "product_pages_context_target_browser_closure": "browser_executed",
+}
+EXPECTED_SMOKE_IDS = {
+    "product_pages_browser_smoke": "accurate_intake_product_pages_browser_smoke_v1",
+    "product_pages_seven_day_diary_smoke": "accurate_intake_product_pages_seven_day_diary_smoke_v1",
+    "product_pages_body_noplan_degraded_smoke": "accurate_intake_product_pages_body_noplan_degraded_smoke_v1",
+    "product_pages_short_term_context_smoke": "accurate_intake_product_pages_short_term_context_smoke_v1",
+    "product_pages_target_candidate_ui_smoke": "accurate_intake_product_pages_target_candidate_ui_smoke_v1",
+}
+
+BROWSER_INPUTS = (
+    "product_pages_browser_smoke",
+    "product_pages_seven_day_diary_smoke",
+    "product_pages_body_noplan_degraded_smoke",
+    "product_pages_short_term_context_smoke",
+    "product_pages_target_candidate_ui_smoke",
+    "product_pages_context_target_browser_closure",
+    "product_pages_visual_qa",
+)
+
+REQUIRED_CURRENT_SHELL_STEPS = (
+    "target_update",
+    "food_log",
+    "listed_basket_commit",
+    "correction",
+    "removal",
+    "remaining_query",
+    "reload_continuity",
+    "browser_render_same_truth",
+    "context_replay",
+    "fake_provider_context_smoke",
+)
+
+FORBIDDEN_TRUTHY_FLAGS = (
+    "ready_for_live_diagnostic_decision",
+    "ready_for_fdb_integration",
+    "live_llm_invoked",
+    "live_provider_called",
+    "web_tavily_used",
+    "web_tavily_invoked",
+    "websearch_evidence_used",
+    "fooddb_evidence_used",
+    "fooddb_truth_updated",
+    "real_fooddb_pass_claimed",
+    "dogfood_pass",
+    "web_readiness_claimed",
+    "product_readiness_claimed",
+    "private_self_use_approved",
+    "production_db_used",
+    "manager_context_packet_schema_changed",
+    "runtime_truth_changed",
+    "mutation_changed",
+    "mutation_authority",
+    "frontend_semantic_owner",
+    "frontend_selected_target",
+    "frontend_selects_target",
+    "frontend_macro_math_used",
+    "assistant_text_macro_parsed",
+    "deterministic_semantic_inference_used",
+    "deterministic_selected_target",
+    "raw_text_intent_router_used",
+    "forbidden_storage_used",
+)
+
+REQUIRED_TRUE_FLAGS = {
+    "ui_same_truth_contract": ("frontend_render_only",),
+    "today_macro_runtime_mirror_gate": (
+        "macro_visible_case_checked",
+        "macro_guarded_case_checked",
+        "backend_macro_fields_required",
+        "show_macro_false_suppresses_macro",
+    ),
+    "product_pages_renderer_source_map": ("render_only_boundary_ok",),
+    "product_pages_renderer_source_closure_gate": ("route_table_checked",),
+    "product_pages_browser_smoke": BROWSER_ACTIVATION_REQUIRED_TRUE_FLAGS["product_pages_browser_smoke"],
+    "product_pages_seven_day_diary_smoke": (
+        "browser_executed",
+        "seven_day_window_checked",
+        "per_day_diary_isolated",
+        "per_day_budget_values_checked",
+        "today_date_strip_checked",
+        "today_nav_date_preserved",
+        "today_chat_link_date_preserved",
+        "desktop_no_overflow",
+        "mobile_no_overflow",
+    ),
+    "product_pages_body_noplan_degraded_smoke": (
+        "browser_executed",
+        "body_page_loaded",
+        "today_page_loaded",
+        "no_plan_body_status_rendered",
+        "body_targets_hidden_for_no_plan",
+        "body_budget_degraded_rendered",
+        "today_no_plan_budget_rendered",
+        "no_bootstrap_or_mutation_post",
+        "product_pages_no_debug_trace",
+    ),
+    "product_pages_short_term_context_smoke": (
+        "browser_executed",
+        "browser_reload_checked",
+        "fixture_manager_used",
+        "pending_followup_created",
+        "pending_followup_reloaded",
+        "context_policy_version_present",
+        "loaded_context_summary_present",
+        "omitted_context_summary_present",
+        "pending_pins_present_after_followup",
+        "chat_history_context_fields_reloaded",
+        "chat_cjk_roundtrip_rendered",
+        "assistant_followup_bubble_rendered",
+        "assistant_commit_bubble_rendered",
+        "today_same_day_meal_rendered",
+        "today_summary_rendered",
+        "product_pages_no_debug_trace",
+    ),
+    "product_pages_target_candidate_ui_smoke": (
+        "browser_executed",
+        "browser_reload_checked",
+        "chat_page_loaded",
+        "chat_history_reloaded",
+        "target_candidate_surface_checked",
+        "target_candidate_list_read_only",
+        "context_strip_read_only",
+        "product_pages_no_debug_trace",
+    ),
+    "product_pages_context_target_browser_closure": (
+        "browser_executed",
+        "context_engineering_present",
+        "session_state_injected",
+        "pending_meal_or_correction_context_present",
+        "target_candidate_list_read_only",
+        "context_strip_read_only",
+    ),
+    "product_pages_visual_qa": (
+        "browser_executed",
+        "desktop_screenshots_captured",
+        "mobile_screenshots_captured",
+        "chat_surface_verified",
+        "today_surface_verified",
+        "body_surface_verified",
+        "three_distinct_pages_verified",
+        "desktop_no_overflow",
+        "mobile_no_overflow",
+        "visible_trace_debug_terms_absent",
+    ),
+    "current_shell_fixture_e2e": (
+        "fixture_evidence_used",
+    ),
+}

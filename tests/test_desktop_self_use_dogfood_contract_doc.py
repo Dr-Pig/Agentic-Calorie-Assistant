@@ -29,7 +29,7 @@ def test_desktop_self_use_dogfood_contract_locks_scope_and_non_claims() -> None:
         "broad FoodDB expansion is out of scope",
         "macro fields may be null",
         "return-to-mainline gate",
-        "fixture_full_product_loop_e2e",
+        "current_shell_fixture_e2e",
         "current_shell_compatibility_local_mvp_candidate_bundle",
     ]
     for fragment in required_fragments:

@@ -32,8 +32,8 @@ def _required_payloads() -> dict[str, dict[str, object]]:
             "real_fooddb_pass_claimed": False,
             "dogfood_pass": False,
         },
-        "fixture_full_product_loop_e2e": {
-            "status": "fixture_product_loop_e2e_diagnostic_pass",
+        "current_shell_fixture_e2e": {
+            "status": "current_shell_fixture_e2e_diagnostic_pass",
             "fixture_evidence_used": True,
             "fooddb_evidence_used": False,
             "websearch_evidence_used": False,

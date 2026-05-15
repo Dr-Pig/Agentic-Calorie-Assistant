@@ -38,9 +38,9 @@ def _evidence(**overrides: dict) -> dict:
             "real_fooddb_pass_claimed": False,
             "dogfood_pass": False,
         },
-        "fixture_full_product_loop_e2e": {
-            "artifact_type": "accurate_intake_fixture_full_product_loop_e2e",
-            "status": "fixture_product_loop_e2e_diagnostic_pass",
+        "current_shell_fixture_e2e": {
+            "artifact_type": "accurate_intake_current_shell_fixture_e2e",
+            "status": "current_shell_fixture_e2e_diagnostic_pass",
             "fixture_evidence_used": True,
             "fooddb_evidence_used": False,
             "websearch_evidence_used": False,
@@ -283,7 +283,7 @@ def test_pl_ce_local_review_pack_blocks_unsafe_local_operator_hygiene_flags() ->
 def test_pl_ce_local_review_pack_blocks_missing_or_overclaimed_evidence_closure_artifacts() -> None:
     pack = build_current_shell_compatibility_local_review_decision_pack(
         _evidence(
-            fixture_full_product_loop_e2e={},
+            current_shell_fixture_e2e={},
             fixture_evidence_packet_emulator={
                 "status": "fixture_packet_emulator_ready",
                 "fixture_packet_truth": True,
@@ -300,7 +300,7 @@ def test_pl_ce_local_review_pack_blocks_missing_or_overclaimed_evidence_closure_
     )
 
     assert pack["status"] == "blocked"
-    assert "fixture_full_product_loop_e2e" in pack["missing_evidence"]
+    assert "current_shell_fixture_e2e" in pack["missing_evidence"]
     assert "fixture_evidence_packet_emulator_fixture_packet_truth" in pack["blockers"]
     assert "fake_provider_tool_loop_smoke_live_llm_invoked" in pack["blockers"]
     assert "review_eval_candidate_pipeline_canonical_eval_promoted" in pack["blockers"]

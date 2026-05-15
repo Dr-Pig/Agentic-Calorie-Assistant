@@ -57,14 +57,14 @@ def _target_candidate_ui_smoke() -> dict[str, object]:
     }
 
 
-def _fixture_full_product_loop_e2e() -> dict[str, object]:
+def _current_shell_fixture_e2e() -> dict[str, object]:
     return {
         "artifact_schema_version": "1.0",
-        "artifact_type": "accurate_intake_fixture_full_product_loop_e2e",
-        "status": "fixture_product_loop_e2e_diagnostic_pass",
+        "artifact_type": "accurate_intake_current_shell_fixture_e2e",
+        "status": "current_shell_fixture_e2e_diagnostic_pass",
         "browser_executed": True,
         "fixture_evidence_used": True,
-        "completed_product_loop_steps": [
+        "completed_current_shell_steps": [
             "food_log",
             "listed_basket_commit",
             "correction",
@@ -95,7 +95,7 @@ def test_clarify_commit_correction_same_truth_gate_accepts_rt7_green_browser_tru
         product_pages_browser_smoke=_product_pages_browser_smoke(),
         short_term_context_smoke=_short_term_context_smoke(),
         target_candidate_ui_smoke=_target_candidate_ui_smoke(),
-        fixture_full_product_loop_e2e=_fixture_full_product_loop_e2e(),
+        current_shell_fixture_e2e=_current_shell_fixture_e2e(),
         manager_runtime_gate_ledger=_rt7_green_ledger(),
     )
 
@@ -117,7 +117,7 @@ def test_clarify_commit_correction_same_truth_gate_blocks_when_rt7_not_green() -
         product_pages_browser_smoke=_product_pages_browser_smoke(),
         short_term_context_smoke=_short_term_context_smoke(),
         target_candidate_ui_smoke=_target_candidate_ui_smoke(),
-        fixture_full_product_loop_e2e=_fixture_full_product_loop_e2e(),
+        current_shell_fixture_e2e=_current_shell_fixture_e2e(),
         manager_runtime_gate_ledger={
             "gates": [
                 {
@@ -135,8 +135,8 @@ def test_clarify_commit_correction_same_truth_gate_blocks_when_rt7_not_green() -
 def test_clarify_commit_correction_same_truth_gate_blocks_when_candidate_or_fixture_evidence_missing() -> None:
     target_candidate_ui_smoke = _target_candidate_ui_smoke()
     target_candidate_ui_smoke["target_candidate_surface_checked"] = False
-    fixture_full_product_loop_e2e = _fixture_full_product_loop_e2e()
-    fixture_full_product_loop_e2e["completed_product_loop_steps"] = [
+    current_shell_fixture_e2e = _current_shell_fixture_e2e()
+    current_shell_fixture_e2e["completed_current_shell_steps"] = [
         "food_log",
         "listed_basket_commit",
         "correction",
@@ -146,14 +146,14 @@ def test_clarify_commit_correction_same_truth_gate_blocks_when_candidate_or_fixt
         product_pages_browser_smoke=_product_pages_browser_smoke(),
         short_term_context_smoke=_short_term_context_smoke(),
         target_candidate_ui_smoke=target_candidate_ui_smoke,
-        fixture_full_product_loop_e2e=fixture_full_product_loop_e2e,
+        current_shell_fixture_e2e=current_shell_fixture_e2e,
         manager_runtime_gate_ledger=_rt7_green_ledger(),
     )
 
     assert artifact["status"] == "blocked"
     assert "target_candidate_ui_smoke.target_candidate_surface_checked_not_true" in artifact["blockers"]
-    assert "fixture_full_product_loop_e2e.completed_step_missing:removal" in artifact["blockers"]
-    assert "fixture_full_product_loop_e2e.completed_step_missing:reload_continuity" in artifact["blockers"]
+    assert "current_shell_fixture_e2e.completed_step_missing:removal" in artifact["blockers"]
+    assert "current_shell_fixture_e2e.completed_step_missing:reload_continuity" in artifact["blockers"]
 
 
 def test_clarify_commit_correction_same_truth_gate_cli_writes_artifact(tmp_path: Path) -> None:
@@ -179,7 +179,7 @@ def test_clarify_commit_correction_same_truth_gate_cli_writes_artifact(tmp_path:
         encoding="utf-8",
     )
     fixture_path.write_text(
-        json.dumps(_fixture_full_product_loop_e2e(), ensure_ascii=False),
+        json.dumps(_current_shell_fixture_e2e(), ensure_ascii=False),
         encoding="utf-8",
     )
     ledger_path.write_text(json.dumps(_rt7_green_ledger(), ensure_ascii=False), encoding="utf-8")
@@ -192,7 +192,7 @@ def test_clarify_commit_correction_same_truth_gate_cli_writes_artifact(tmp_path:
             str(short_term_context_path),
             "--product-pages-target-candidate-ui-smoke-json",
             str(target_candidate_ui_path),
-            "--fixture-full-product-loop-e2e-json",
+            "--current-shell-fixture-e2e-json",
             str(fixture_path),
             "--manager-runtime-gate-ledger-json",
             str(ledger_path),

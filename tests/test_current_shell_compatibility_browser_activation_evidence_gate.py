@@ -15,8 +15,8 @@ from app.composition.current_shell_fooddb_triad_same_truth_contract import (
 from app.composition.accurate_intake_current_shell_claim_boundary import (
     build_current_shell_appshell_claim_boundary,
 )
-from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate import (
-    build_pl_ce_browser_activation_evidence_gate_artifact,
+from app.composition.current_shell_browser_activation_evidence_gate import (
+    build_current_shell_browser_activation_evidence_gate_artifact,
 )
 
 
@@ -286,10 +286,10 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "upstream_gate_green": True,
             },
         },
-        "fixture_full_product_loop_e2e": {
-            "artifact_type": "accurate_intake_fixture_full_product_loop_e2e",
-            "status": "fixture_product_loop_e2e_diagnostic_pass",
-            "completed_product_loop_steps": [
+        "current_shell_fixture_e2e": {
+            "artifact_type": "accurate_intake_current_shell_fixture_e2e",
+            "status": "current_shell_fixture_e2e_diagnostic_pass",
+            "completed_current_shell_steps": [
                 "target_update",
                 "food_log",
                 "listed_basket_commit",
@@ -347,14 +347,14 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "body_noplan_degraded_checked": True,
                 "body_observation_same_truth_checked": True,
                 "strongest_consumed_pass_type": "browser_executed",
-                "fixture_product_loop_steps_checked": 10,
+                "current_shell_steps_checked": 10,
             },
         },
     }
 
 
 def test_browser_activation_gate_requires_real_browser_evidence_without_readiness_claims() -> None:
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(_valid_inputs())
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(_valid_inputs())
     claim_boundary = build_current_shell_appshell_claim_boundary()
 
     assert artifact["artifact_type"] == CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE
@@ -371,14 +371,14 @@ def test_browser_activation_gate_requires_real_browser_evidence_without_readines
     assert artifact["all_required_browser_artifacts_executed"] is True
     assert artifact["summary"]["browser_artifact_count"] == 7
     assert artifact["summary"]["requires_target_candidate_ui"] is True
-    assert artifact["summary"]["requires_fixture_full_product_loop_e2e"] is True
+    assert artifact["summary"]["requires_current_shell_fixture_e2e"] is True
     assert artifact["summary"]["requires_body_noplan_degraded_browser"] is True
     assert artifact["summary"]["requires_body_observation_same_truth_gate"] is True
     assert artifact["summary"]["requires_product_pages_self_use_flow_gate"] is True
     assert artifact["summary"]["self_use_flow_gate_checked"] is True
     assert artifact["summary"]["body_observation_same_truth_checked"] is True
     assert artifact["summary"]["self_use_flow_gate_strongest_pass_type"] == "browser_executed"
-    assert artifact["summary"]["fixture_product_loop_step_count"] == 10
+    assert artifact["summary"]["current_shell_fixture_step_count"] == 10
     assert "ready_for_live_diagnostic_decision" not in artifact
     assert "ready_for_fdb_integration" not in artifact
     assert artifact["live_llm_invoked"] is False
@@ -398,14 +398,14 @@ def test_browser_activation_gate_accepts_legacy_local_mvp_bundle_identity() -> N
     local_mvp["artifact_type"] = "accurate_intake_pl_ce_local_mvp_candidate_bundle"
     local_mvp["status"] = "pl_ce_local_mvp_candidate_ready_for_human_review"
 
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(inputs)
 
     assert artifact["status"] == "browser_activation_evidence_ready_for_human_review"
     assert artifact["blockers"] == []
 
 
 def test_browser_activation_gate_reports_contract_only_boundary_when_upstream_runtime_claims_are_pending() -> None:
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(_valid_inputs())
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(_valid_inputs())
     boundary = artifact["appshell_claim_boundary"]
 
     assert artifact["pass_type"] == "contract"
@@ -422,7 +422,7 @@ def test_browser_activation_gate_blocks_missing_or_blocked_browser_execution() -
     inputs["product_pages_browser_smoke"]["browser_executed"] = False
     inputs["product_pages_browser_smoke"]["status"] = "blocked"
 
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "product_pages_browser_smoke.unexpected_status:blocked" in artifact["blockers"]
@@ -436,7 +436,7 @@ def test_browser_activation_gate_blocks_swapped_identity_and_unknown_mvp_candida
     inputs["product_pages_seven_day_diary_smoke"]["smoke_id"] = "accurate_intake_product_pages_browser_smoke_v1"
     inputs["current_shell_compatibility_local_mvp_candidate_bundle"]["artifact_type"] = "wrong"
 
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "product_pages_seven_day_diary_smoke.unexpected_smoke_id:accurate_intake_product_pages_browser_smoke_v1" in artifact["blockers"]
@@ -447,7 +447,7 @@ def test_browser_activation_gate_blocks_missing_selected_date_diary_evidence() -
     inputs = _valid_inputs()
     inputs["product_pages_seven_day_diary_smoke"]["selected_dates_checked"] = False
 
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert (
@@ -464,7 +464,7 @@ def test_browser_activation_gate_blocks_frontend_semantics_live_or_fooddb_claims
     inputs["product_pages_seven_day_diary_smoke"]["manager_provider_call_count"] = 1
     inputs["product_pages_target_candidate_ui_smoke"]["frontend_selected_target"] = True
 
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "product_pages_short_term_context_smoke.deterministic_semantic_inference_used" in artifact["blockers"]
@@ -480,19 +480,19 @@ def test_browser_activation_gate_blocks_missing_target_candidate_or_fixture_loop
     inputs["product_pages_target_candidate_ui_smoke"]["target_candidate_count_rendered"] = 1
     inputs["product_pages_target_candidate_ui_smoke"]["target_candidate_names_rendered"] = ["luwei"]
     inputs["product_pages_target_candidate_ui_smoke"]["manager_provider_call_count"] = 1
-    inputs["fixture_full_product_loop_e2e"]["completed_product_loop_steps"] = ["target_update"]
-    inputs["fixture_full_product_loop_e2e"]["fixture_evidence_used"] = False
+    inputs["current_shell_fixture_e2e"]["completed_current_shell_steps"] = ["target_update"]
+    inputs["current_shell_fixture_e2e"]["fixture_evidence_used"] = False
 
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "product_pages_target_candidate_ui_smoke.target_candidate_surface_checked_not_true" in artifact["blockers"]
     assert "product_pages_target_candidate_ui_smoke.target_candidate_count_too_low" in artifact["blockers"]
     assert "product_pages_target_candidate_ui_smoke.target_candidate_missing:milk tea" in artifact["blockers"]
     assert "product_pages_target_candidate_ui_smoke.manager_provider_called" in artifact["blockers"]
-    assert "fixture_full_product_loop_e2e.fixture_evidence_used_not_true" in artifact["blockers"]
-    assert "fixture_full_product_loop_e2e.completed_step_missing:food_log" in artifact["blockers"]
-    assert "fixture_full_product_loop_e2e.completed_step_missing:fake_provider_context_smoke" in artifact["blockers"]
+    assert "current_shell_fixture_e2e.fixture_evidence_used_not_true" in artifact["blockers"]
+    assert "current_shell_fixture_e2e.completed_step_missing:food_log" in artifact["blockers"]
+    assert "current_shell_fixture_e2e.completed_step_missing:fake_provider_context_smoke" in artifact["blockers"]
 
 
 def test_browser_activation_gate_blocks_missing_self_use_flow_or_body_noplan_evidence() -> None:
@@ -515,7 +515,7 @@ def test_browser_activation_gate_blocks_missing_self_use_flow_or_body_noplan_evi
         "body_observation_same_truth_checked"
     ] = False
 
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "product_pages_self_use_flow_gate.unexpected_status:blocked" in artifact["blockers"]
@@ -553,7 +553,7 @@ def test_browser_activation_gate_blocks_stale_body_read_model_values() -> None:
         "weight_history": "",
     }
 
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "product_pages_browser_smoke.body_read_model_value_mismatch:daily_target" in artifact["blockers"]
@@ -570,7 +570,7 @@ def test_browser_activation_gate_requires_product_pages_macro_browser_evidence()
     inputs["product_pages_browser_smoke"].pop("macro_present_exact_item_browser_checked", None)
     inputs["product_pages_browser_smoke"].pop("macro_missing_exact_item_browser_checked", None)
 
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "product_pages_browser_smoke.macro_present_exact_item_browser_checked_not_true" in artifact["blockers"]
@@ -592,7 +592,7 @@ def test_browser_activation_gate_requires_route_backed_macro_budget_truth() -> N
         "route_backed_macro_budget_truth_checked"
     ] = False
 
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "product_pages_browser_smoke.route_backed_macro_browser_checked_not_true" in artifact["blockers"]
@@ -620,7 +620,7 @@ def test_browser_activation_gate_requires_fooddb_triad_same_truth() -> None:
         "fooddb_triad_same_truth_checked"
     ] = False
 
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert (
@@ -645,7 +645,7 @@ def test_browser_activation_gate_accepts_browser_smoke_local_date_weight_history
         "2026-05-06 | 70.4 kg"
     )
 
-    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+    artifact = build_current_shell_browser_activation_evidence_gate_artifact(inputs)
 
     assert artifact["status"] == "browser_activation_evidence_ready_for_human_review"
     assert "product_pages_browser_smoke.body_read_model_value_mismatch:weight_history" not in artifact["blockers"]
@@ -691,9 +691,9 @@ def test_browser_activation_gate_cli_rejects_unknown_artifact_group(tmp_path: Pa
 
 def test_browser_activation_gate_source_stays_out_of_fooddb_websearch_live_boundaries() -> None:
     source_paths = [
-        Path("app/composition/accurate_intake_pl_ce_browser_activation_evidence_gate.py"),
+        Path("app/composition/current_shell_browser_activation_evidence_gate.py"),
         Path("scripts/build_current_shell_compatibility_browser_activation_evidence_gate.py"),
-        Path("scripts/build_accurate_intake_pl_ce_browser_activation_evidence_gate.py"),
+        Path("scripts/build_current_shell_browser_activation_evidence_gate.py"),
     ]
     forbidden = [
         "NutritionEvidenceStorePort",
@@ -720,10 +720,10 @@ def test_ci_keeps_browser_activation_evidence_gate_out_of_required_merge_path() 
 
     assert "product-pages-browser-e2e" in workflow
     assert "tests/test_current_shell_compatibility_browser_activation_evidence_gate.py" in workflow
-    assert "tests/test_accurate_intake_pl_ce_browser_activation_evidence_gate.py" not in workflow
+    assert "tests/test_current_shell_browser_activation_evidence_gate.py" not in workflow
     assert "run_accurate_intake_product_pages_short_term_context_smoke.py --require-browser-execution" in workflow
     assert "run_accurate_intake_product_pages_target_candidate_ui_smoke.py --require-browser-execution" in workflow
-    assert "run_accurate_intake_fixture_full_product_loop_e2e.py --require-browser-execution" not in workflow
-    assert "build_accurate_intake_pl_ce_browser_activation_evidence_gate.py" not in workflow
+    assert "run_current_shell_fixture_e2e.py --require-browser-execution" not in workflow
+    assert "build_current_shell_browser_activation_evidence_gate.py" not in workflow
     assert "build_current_shell_compatibility_browser_activation_evidence_gate.py" not in workflow
     assert "accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json" not in workflow

@@ -58,10 +58,10 @@ def _context_quality() -> dict[str, object]:
     )
 
 
-def _product_loop_e2e() -> dict[str, object]:
+def _current_shell_fixture_e2e() -> dict[str, object]:
     return {
-        "artifact_type": "accurate_intake_fixture_full_product_loop_e2e",
-        "status": "fixture_product_loop_e2e_diagnostic_pass",
+        "artifact_type": "accurate_intake_current_shell_fixture_e2e",
+        "status": "current_shell_fixture_e2e_diagnostic_pass",
         "fixture_evidence_used": True,
         "fooddb_evidence_used": False,
         "websearch_evidence_used": False,
@@ -120,7 +120,7 @@ def _session_carryover() -> dict[str, object]:
 def test_review_eval_candidate_pipeline_converts_diagnostics_to_review_candidates_only() -> None:
     fixture_packets = build_fixture_evidence_packet_emulator_artifact()
     artifact = build_review_eval_candidate_pipeline_artifact(
-        product_loop_e2e=_product_loop_e2e(),
+        current_shell_fixture_e2e=_current_shell_fixture_e2e(),
         ui_same_truth_contract=_ui_contract(),
         context_quality_pack=_context_quality(),
         contextual_interaction_matrix=_contextual_interaction_matrix(),
@@ -155,11 +155,11 @@ def test_review_eval_candidate_pipeline_converts_diagnostics_to_review_candidate
 
 def test_review_eval_candidate_pipeline_rejects_readiness_or_truth_overclaims() -> None:
     fixture_packets = build_fixture_evidence_packet_emulator_artifact()
-    product_loop = {**_product_loop_e2e(), "dogfood_pass": True}
+    product_loop = {**_current_shell_fixture_e2e(), "dogfood_pass": True}
     context_quality = {**_context_quality(), "private_self_use_approved": True}
 
     artifact = build_review_eval_candidate_pipeline_artifact(
-        product_loop_e2e=product_loop,
+        current_shell_fixture_e2e=product_loop,
         ui_same_truth_contract=_ui_contract(),
         context_quality_pack=context_quality,
         contextual_interaction_matrix=_contextual_interaction_matrix(),
@@ -172,7 +172,7 @@ def test_review_eval_candidate_pipeline_rejects_readiness_or_truth_overclaims() 
     )
 
     assert artifact["status"] == "fail"
-    assert "product_loop_e2e.dogfood_pass" in artifact["blockers"]
+    assert "current_shell_fixture_e2e.dogfood_pass" in artifact["blockers"]
     assert "context_quality_pack.private_self_use_approved" in artifact["blockers"]
 
 
@@ -185,7 +185,7 @@ def test_review_eval_candidate_pipeline_rejects_context_semantic_overclaims() ->
     session_carryover = {**_session_carryover(), "frontend_semantic_owner": True}
 
     artifact = build_review_eval_candidate_pipeline_artifact(
-        product_loop_e2e=_product_loop_e2e(),
+        current_shell_fixture_e2e=_current_shell_fixture_e2e(),
         ui_same_truth_contract=_ui_contract(),
         context_quality_pack=_context_quality(),
         contextual_interaction_matrix=context_matrix,

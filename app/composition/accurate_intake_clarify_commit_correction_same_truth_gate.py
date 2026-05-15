@@ -57,7 +57,7 @@ def build_clarify_commit_correction_same_truth_gate_artifact(
     product_pages_browser_smoke: dict[str, Any],
     short_term_context_smoke: dict[str, Any],
     target_candidate_ui_smoke: dict[str, Any],
-    fixture_full_product_loop_e2e: dict[str, Any],
+    current_shell_fixture_e2e: dict[str, Any],
     manager_runtime_gate_ledger: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     blockers: list[str] = []
@@ -84,10 +84,10 @@ def build_clarify_commit_correction_same_truth_gate_artifact(
         blockers.append(
             f"target_candidate_ui_smoke.unexpected_status:{target_candidate_ui_smoke.get('status')}"
         )
-    if _status(fixture_full_product_loop_e2e) != "fixture_product_loop_e2e_diagnostic_pass":
+    if _status(current_shell_fixture_e2e) != "current_shell_fixture_e2e_diagnostic_pass":
         blockers.append(
-            "fixture_full_product_loop_e2e.unexpected_status:"
-            f"{fixture_full_product_loop_e2e.get('status')}"
+            "current_shell_fixture_e2e.unexpected_status:"
+            f"{current_shell_fixture_e2e.get('status')}"
         )
 
     for field in REQUIRED_BROWSER_SMOKE_FLAGS:
@@ -108,21 +108,21 @@ def build_clarify_commit_correction_same_truth_gate_artifact(
             blockers.append(f"target_candidate_ui_smoke.target_candidate_missing:{required_name}")
 
     completed_steps = {
-        str(step) for step in list(fixture_full_product_loop_e2e.get("completed_product_loop_steps") or [])
+        str(step) for step in list(current_shell_fixture_e2e.get("completed_current_shell_steps") or [])
     }
     for required_step in REQUIRED_FIXTURE_STEPS:
         if required_step not in completed_steps:
-            blockers.append(f"fixture_full_product_loop_e2e.completed_step_missing:{required_step}")
-    if fixture_full_product_loop_e2e.get("browser_executed") is not True:
-        blockers.append("fixture_full_product_loop_e2e.browser_executed_not_true")
-    if fixture_full_product_loop_e2e.get("fixture_evidence_used") is not True:
-        blockers.append("fixture_full_product_loop_e2e.fixture_evidence_used_not_true")
+            blockers.append(f"current_shell_fixture_e2e.completed_step_missing:{required_step}")
+    if current_shell_fixture_e2e.get("browser_executed") is not True:
+        blockers.append("current_shell_fixture_e2e.browser_executed_not_true")
+    if current_shell_fixture_e2e.get("fixture_evidence_used") is not True:
+        blockers.append("current_shell_fixture_e2e.fixture_evidence_used_not_true")
 
     for payload_name, payload in (
         ("product_pages_browser_smoke", product_pages_browser_smoke),
         ("short_term_context_smoke", short_term_context_smoke),
         ("target_candidate_ui_smoke", target_candidate_ui_smoke),
-        ("fixture_full_product_loop_e2e", fixture_full_product_loop_e2e),
+        ("current_shell_fixture_e2e", current_shell_fixture_e2e),
     ):
         for forbidden_flag in (
             "frontend_semantic_owner",
@@ -165,7 +165,7 @@ def build_clarify_commit_correction_same_truth_gate_artifact(
                 "product_pages_browser_smoke_status": product_pages_browser_smoke.get("status"),
                 "short_term_context_smoke_status": short_term_context_smoke.get("status"),
                 "target_candidate_ui_smoke_status": target_candidate_ui_smoke.get("status"),
-                "fixture_full_product_loop_e2e_status": fixture_full_product_loop_e2e.get("status"),
+                "current_shell_fixture_e2e_status": current_shell_fixture_e2e.get("status"),
             },
             "summary": {
                 "required_short_term_context_flag_count": len(REQUIRED_SHORT_TERM_CONTEXT_FLAGS),
@@ -199,8 +199,8 @@ def build_clarify_commit_correction_same_truth_gate_artifact(
                 "target_candidate_names_rendered": list(
                     target_candidate_ui_smoke.get("target_candidate_names_rendered") or []
                 ),
-                "completed_product_loop_steps": list(
-                    fixture_full_product_loop_e2e.get("completed_product_loop_steps") or []
+                "completed_current_shell_steps": list(
+                    current_shell_fixture_e2e.get("completed_current_shell_steps") or []
                 ),
             },
             "blockers": blockers,
