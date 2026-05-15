@@ -82,7 +82,9 @@ def manager_semantic_decision_schema() -> dict[str, Any]:
                     "Use when the user explicitly lists concrete components; leave empty when composition is "
                     "unknown. Active drink size/sugar/ice/topping refinements are modifiers for the selected "
                     "drink, not listed basket components; keep listed_items empty for that posture. Runtime "
-                    "must not fill this with a raw-text deterministic parser."
+                    "must not fill this with a raw-text deterministic parser. If semantic_decision.listed_items "
+                    "has non-empty listed_items, the retrieval posture is component/listed-item evidence rather "
+                    "than exact whole-combo lookup."
                 ),
             },
             "retrieval_goal": {
@@ -90,8 +92,9 @@ def manager_semantic_decision_schema() -> dict[str, Any]:
                 "description": (
                     "Manager-owned retrieval intent. Use listed_item_lookup for explicit listed components "
                     "that need nutrition evidence before commit; use generic_anchor_lookup with base_dish plus "
-                    "modifier_hints for selected drink refinements. Do not use generic or ask-first posture "
-                    "solely because portions are rough."
+                    "modifier_hints for selected drink refinements. If semantic_decision.listed_items is non-empty, "
+                    "use listed_item_lookup; never exact_brand_lookup with non-empty listed_items. Do not use "
+                    "generic or ask-first posture solely because portions are rough."
                 ),
             },
             "user_provided_kcal": {

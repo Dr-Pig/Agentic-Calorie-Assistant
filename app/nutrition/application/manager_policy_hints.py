@@ -44,6 +44,19 @@ def nutrition_manager_policy_hints() -> dict[str, Any]:
                 ),
                 "runtime_authority": "validate_evidence_packet_and_final_mapping_only",
             },
+            {
+                "policy_id": "brand_combo_with_explicit_components",
+                "applies_to": (
+                    "a branded or chain combo plus concrete items, sides, or drinks named in the same turn"
+                ),
+                "manager_behavior": (
+                    "Do not ask for the component list again; put the main item and named side/drink items in "
+                    "listed_items, use retrieval_goal='listed_item_lookup', and call the nutrition evidence tool "
+                    "before final commit. Ask only if evidence rejects a component or a required component is "
+                    "still genuinely missing."
+                ),
+                "runtime_authority": "validate_evidence_packet_and_final_mapping_only",
+            },
         ],
     }
 

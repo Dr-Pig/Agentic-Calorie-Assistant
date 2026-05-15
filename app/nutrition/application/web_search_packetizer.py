@@ -8,6 +8,7 @@ from .context_normalizer import lookup_key, lookup_tokens, normalize_text
 from .retrieval_intent import RetrievalIntent
 from .websearch_market_variant_policy import has_unrequested_market_token
 from .web_search_packetizer_policy import (
+    FOOD_IDENTITY_ALIAS_REPLACEMENTS as _FOOD_IDENTITY_ALIAS_REPLACEMENTS,
     SIZE_ALIAS_GROUPS as _SIZE_ALIAS_GROUPS,
     VARIANT_TOKENS as _VARIANT_TOKENS,
 )
@@ -247,6 +248,8 @@ def _sibling_variant_risk(*, match_type: str, brand_match: str) -> dict[str, obj
 
 def _identity_core(text: str, *, brand_hint: str, size_hint: str) -> str:
     cleaned = normalize_text(text)
+    for source, replacement in _FOOD_IDENTITY_ALIAS_REPLACEMENTS:
+        cleaned = cleaned.replace(source, replacement)
     for fragment in (brand_hint, size_hint):
         fragment_text = _text(fragment)
         if fragment_text:

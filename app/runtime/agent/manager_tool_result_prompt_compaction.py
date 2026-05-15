@@ -44,6 +44,18 @@ _TRACE_CONTRACT_PROMPT_FIELDS = (
     "best_estimate_mode",
     "estimate_confidence_tier",
 )
+_WEB_RUNTIME_TRACE_PROMPT_FIELDS = (
+    "attempted",
+    "retrieval_goal",
+    "source_admissibility_status",
+    "wrong_context_source_rejected",
+    "selected_extract_present",
+    "turn_web_evidence_packet_present",
+    "turn_web_evidence_may_support_commit",
+    "component_level_evidence_present",
+    "all_listed_components_have_sources",
+    "failure_reason",
+)
 _CORRECTION_TARGET_PROMPT_FIELDS = (
     "meal_thread_id",
     "meal_item_id",
@@ -139,7 +151,14 @@ def _compact_nutrition_payload_prompt_payload(payload: dict[str, Any]) -> dict[s
     if nutrition_payload_values_must_be_hidden(trace_contract):
         compact["disallowed_fact_policy"] = "nutrition_payload_values_hidden_until_commit_eligible"
     if trace_contract:
-        compact["trace_contract"] = _select_prompt_fields(trace_contract, _TRACE_CONTRACT_PROMPT_FIELDS)
+        compact_trace_contract = _select_prompt_fields(trace_contract, _TRACE_CONTRACT_PROMPT_FIELDS)
+        web_runtime_trace = _select_prompt_fields(
+            _object_mapping(trace_contract.get("web_runtime_trace")),
+            _WEB_RUNTIME_TRACE_PROMPT_FIELDS,
+        )
+        if web_runtime_trace:
+            compact_trace_contract["web_runtime_trace"] = web_runtime_trace
+        compact["trace_contract"] = compact_trace_contract
     return compact
 
 

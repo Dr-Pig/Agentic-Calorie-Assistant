@@ -1122,7 +1122,17 @@ async def test_run_intake_manager_sends_compact_tool_results_to_provider_only() 
                 "trace_contract": {
                     "canonical_write_decision": {"can_write_canonical": True},
                     "db_hit_type": "generic",
-                    "web_runtime_trace": {"debug_blob": "x" * 10_000},
+                    "web_runtime_trace": {
+                        "attempted": True,
+                        "retrieval_goal": "exact_brand_lookup",
+                        "source_admissibility_status": "rejected",
+                        "wrong_context_source_rejected": True,
+                        "selected_extract_present": False,
+                        "turn_web_evidence_packet_present": False,
+                        "turn_web_evidence_may_support_commit": False,
+                        "failure_reason": "wrong_context_source_rejected",
+                        "debug_blob": "x" * 10_000,
+                    },
                     "raw_candidates": ["not prompt input"] * 50,
                 },
             }
@@ -1165,8 +1175,17 @@ async def test_run_intake_manager_sends_compact_tool_results_to_provider_only() 
     assert prompt_nutrition["trace_contract"] == {
         "db_hit_type": "generic",
         "canonical_write_decision": {"can_write_canonical": True},
+        "web_runtime_trace": {
+            "attempted": True,
+            "retrieval_goal": "exact_brand_lookup",
+            "source_admissibility_status": "rejected",
+            "wrong_context_source_rejected": True,
+            "selected_extract_present": False,
+            "turn_web_evidence_packet_present": False,
+            "turn_web_evidence_may_support_commit": False,
+            "failure_reason": "wrong_context_source_rejected",
+        },
     }
-    assert "web_runtime_trace" not in str(prompt_tool_result)
     assert "raw_candidates" not in str(prompt_tool_result)
     assert "debug_blob" not in str(prompt_tool_result)
     assert result.tool_results[0]["evidence"]["nutrition_payload"]["trace_contract"]["web_runtime_trace"]["debug_blob"]

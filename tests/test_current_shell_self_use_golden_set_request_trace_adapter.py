@@ -188,53 +188,158 @@ def test_request_trace_adapter_counts_live_provider_rounds_not_synthetic_handoff
     assert case_trace["latency"]["llm_calls"] == 2
 
 
-def test_request_trace_adapter_projects_websearch_candidate_boundary_from_tool_trace() -> None:
+def test_request_trace_adapter_projects_turn_web_evidence_boundary_from_tool_trace() -> None:
     trace = _gs5_request_trace()
     trace["renderer_output"] = {
-        "assistant_message": (
-            "外部資料目前只是候選來源，還不能當作官方記錄；"
-            "三大營養素資料不足，請確認是否要用粗估。"
-        )
+        "assistant_message": "已記錄這餐 720 kcal，依這次的 Web evidence packet。"
     }
     payload = trace["tool_outputs"]["tool_results"][0]["evidence"]["nutrition_payload"]  # type: ignore[index]
     payload["trace_contract"]["web_runtime_trace"] = {  # type: ignore[index]
         "attempted": True,
         "search_attempt_count": 1,
         "packetized_candidate_present": True,
+        "selected_extract_present": True,
+        "source_admissibility_status": "accepted",
+        "turn_web_evidence_packet_present": True,
+        "turn_web_evidence_may_support_commit": True,
         "semantic_authority_source": "live_manager_structured_output",
         "retrieval_goal": "exact_brand_lookup",
     }
     payload["trace_contract"]["search_attempt_count"] = 1  # type: ignore[index]
 
-    case_trace = build_golden_case_trace_from_request_trace("GSW1", trace)
+    case_trace = build_golden_case_trace_from_request_trace("GSW2", trace)
 
     runtime = case_trace["runtime"]
     assert runtime["websearch_tool_call_expected"] is True
     assert runtime["websearch_candidate_only"] is True
+    assert runtime["search_candidate_packet_truth_allowed"] is False
+    assert runtime["selected_extract_required"] is True
+    assert runtime["source_admissibility_required"] is True
+    assert runtime["turn_web_evidence_packet_allowed"] is True
+    assert runtime["turn_web_evidence_may_support_commit"] is True
+    assert runtime["permanent_fooddb_promotion_allowed"] is False
     assert runtime["websearch_snippet_as_truth_allowed"] is False
-    assert runtime["fooddb_truth_promotion_allowed"] is False
     assert runtime["pre_manager_websearch_routing_allowed"] is False
-    assert runtime["websearch_candidate_to_commit_allowed"] is False
-    assert case_trace["ui"]["candidate_source_label_visible"] is True
-    assert case_trace["ui"]["macro_source_status_visible"] is True
+    assert case_trace["response"]["invented_nutrition_fact"] is False
+
+
+def test_request_trace_adapter_accepts_exact_fooddb_truth_without_invented_fact_flag() -> None:
+    trace = _gs5_request_trace()
+    trace["renderer_output"] = {"assistant_message": "已記錄：松屋特盛牛丼，約 1200 kcal。"}
+    trace["state_delta"]["meal_logged"] = True  # type: ignore[index]
+    trace["state_delta"]["canonical_commit"] = True  # type: ignore[index]
+    trace["state_delta"]["ledger_updated"] = True  # type: ignore[index]
+    payload = trace["tool_outputs"]["tool_results"][0]["evidence"]["nutrition_payload"]  # type: ignore[index]
+    payload["estimated_kcal"] = 1200
+    payload["trace_contract"].update(  # type: ignore[index]
+        {
+            "db_hit_type": "exact_truth",
+            "grounding_summary": {"exact_truth_present": True},
+            "canonical_write_decision": {"can_write_canonical": True},
+        }
+    )
+
+    case_trace = build_golden_case_trace_from_request_trace("GSW1", trace)
+
+    assert case_trace["response"]["invented_nutrition_fact"] is False
+    assert case_trace["runtime"]["exact_fooddb_packet_used"] is True
+    assert case_trace["runtime"]["websearch_tool_call_expected"] is False
+    assert case_trace["ui"]["exact_fooddb_basis_visible"] is True
+
+
+def test_request_trace_adapter_projects_rejected_web_extract_without_selected_extract() -> None:
+    trace = _gs5_request_trace()
+    trace["renderer_output"] = {
+        "assistant_message": "查到的是冷凍包裝資料，不適合當店內用餐依據；請補充鍋物內容。"
+    }
+    payload = trace["tool_outputs"]["tool_results"][0]["evidence"]["nutrition_payload"]  # type: ignore[index]
+    payload["trace_contract"]["web_runtime_trace"] = {  # type: ignore[index]
+        "attempted": True,
+        "search_attempt_count": 1,
+        "packetized_candidate_present": True,
+        "source_admissibility_status": "rejected",
+        "wrong_context_source_rejected": True,
+        "selected_extract_present": False,
+        "turn_web_evidence_packet_present": False,
+        "semantic_authority_source": "live_manager_structured_output",
+        "retrieval_goal": "exact_brand_lookup",
+    }
+    payload["trace_contract"]["search_attempt_count"] = 1  # type: ignore[index]
+
+    case_trace = build_golden_case_trace_from_request_trace("GSW3", trace)
+
+    assert case_trace["runtime"]["wrong_context_source_rejected"] is True
+    assert case_trace["runtime"]["selected_extract_required"] is False
+    assert case_trace["runtime"]["turn_web_evidence_packet_allowed"] is False
+    assert case_trace["runtime"]["runtime_mutation_allowed"] is False
+    assert case_trace["ui"]["mismatch_warning_visible"] is True
+
+
+def test_request_trace_adapter_projects_component_web_evidence_basis_visibility() -> None:
+    trace = _gs5_request_trace()
+    trace["renderer_output"] = {
+        "assistant_message": "已依大麥克、中薯、中杯可樂三個組件來源記錄，約 1090 kcal。"
+    }
+    trace["state_delta"]["meal_logged"] = True  # type: ignore[index]
+    trace["state_delta"]["canonical_commit"] = True  # type: ignore[index]
+    trace["state_delta"]["ledger_updated"] = True  # type: ignore[index]
+    payload = trace["tool_outputs"]["tool_results"][0]["evidence"]["nutrition_payload"]  # type: ignore[index]
+    payload["estimated_kcal"] = 1090
+    payload["component_estimates"] = [
+        {"name": "大麥克", "kcal_point": 560},
+        {"name": "中薯", "kcal_point": 320},
+        {"name": "中杯可樂", "kcal_point": 210},
+    ]
+    payload["trace_contract"].update(  # type: ignore[index]
+        {
+            "db_hit_type": "approved_fooddb_packet",
+            "canonical_write_decision": {"can_write_canonical": True},
+            "web_runtime_trace": {
+                "attempted": True,
+                "search_attempt_count": 3,
+                "packetized_candidate_present": True,
+                "selected_extract_present": True,
+                "source_admissibility_status": "accepted",
+                "turn_web_evidence_packet_present": True,
+                "turn_web_evidence_may_support_commit": True,
+                "component_level_evidence_present": True,
+                "all_listed_components_have_sources": True,
+                "semantic_authority_source": "live_manager_structured_output",
+                "retrieval_goal": "listed_item_lookup",
+            },
+            "search_attempt_count": 3,
+        }
+    )
+
+    case_trace = build_golden_case_trace_from_request_trace("GSW4", trace)
+
+    assert case_trace["runtime"]["component_level_evidence_required"] is True
+    assert case_trace["runtime"]["each_component_source_required"] is True
+    assert case_trace["runtime"]["turn_web_evidence_packet_allowed"] is True
+    assert case_trace["ui"]["component_basis_visible"] is True
+    assert case_trace["ui"]["turn_web_evidence_source_visible"] is True
 
 
 def test_request_trace_adapter_prefers_manager_final_web_trace_over_draft_tool_trace() -> None:
     trace = _gs5_request_trace()
     trace["renderer_output"] = {
-        "assistant_message": "目前只有候選參考資料，還不能當作確切紀錄；三大營養素資料不足。"
+        "assistant_message": "?? Manager ???????????????????"
     }
     trace["manager_final_decision"]["tool_results"] = [  # type: ignore[index]
         {
             "tool_name": "estimate_nutrition",
             "evidence": {
                 "nutrition_payload": {
-                    "estimated_kcal": 0,
+                    "estimated_kcal": 720,
                     "trace_contract": {
                         "web_runtime_trace": {
                             "attempted": True,
                             "search_attempt_count": 1,
                             "packetized_candidate_present": True,
+                            "selected_extract_present": True,
+                            "source_admissibility_status": "accepted",
+                            "turn_web_evidence_packet_present": True,
+                            "turn_web_evidence_may_support_commit": True,
                             "semantic_authority_source": "live_manager_structured_output",
                             "retrieval_goal": "exact_brand_lookup",
                         },
@@ -245,13 +350,13 @@ def test_request_trace_adapter_prefers_manager_final_web_trace_over_draft_tool_t
         }
     ]
 
-    case_trace = build_golden_case_trace_from_request_trace("GSW1", trace)
+    case_trace = build_golden_case_trace_from_request_trace("GSW2", trace)
 
     assert case_trace["runtime"]["websearch_tool_call_expected"] is True
-    assert case_trace["runtime"]["websearch_candidate_only"] is True
-    assert case_trace["runtime"]["runtime_mutation_allowed"] is False
-    assert case_trace["ui"]["candidate_source_label_visible"] is True
-    assert case_trace["ui"]["macro_source_status_visible"] is True
+    assert case_trace["runtime"]["selected_extract_required"] is True
+    assert case_trace["runtime"]["source_admissibility_required"] is True
+    assert case_trace["runtime"]["turn_web_evidence_packet_allowed"] is True
+    assert case_trace["runtime"]["turn_web_evidence_may_support_commit"] is True
 
 
 def test_request_trace_adapter_does_not_infer_from_raw_request_text() -> None:

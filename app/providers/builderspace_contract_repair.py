@@ -32,6 +32,12 @@ def _scoped_repair_hint(parse_attempt: dict[str, Any]) -> str:
             "the Manager, identified in semantic_decision.listed_items. Do not ask the user for component "
             "names that were already explicitly supplied; rough portions can remain optional refinement. "
         )
+    if "non-empty semantic_decision.listed_items requires retrieval_goal='listed_item_lookup'" in error:
+        return (
+            "You already identified concrete component items in semantic_decision.listed_items; keep those "
+            "Manager-owned listed items, do not discard listed items, and set "
+            "retrieval_goal='listed_item_lookup'. "
+        )
     if str(observed.get("intent_type") or "") != "body_observation" and semantic_intent != "body_observation":
         return ""
     if "final_action invalid" not in error and "call_tools cannot use" not in error:

@@ -134,7 +134,7 @@ class _RecordedGoldenWebExtractPort:
 
 
 def _recorded_websearch_ports_for_case(case_id: str) -> tuple[Any | None, Any | None]:
-    if case_id not in {"GSW1", "GSW2", "GSW4"}:
+    if case_id not in {"GSW2", "GSW3", "GSW4"}:
         return None, None
     return (
         _RecordedGoldenWebSearchPort(case_id=case_id),
@@ -143,108 +143,162 @@ def _recorded_websearch_ports_for_case(case_id: str) -> tuple[Any | None, Any | 
 
 
 def _recorded_websearch_hits(case_id: str) -> list[dict[str, Any]]:
-    if case_id == "GSW1":
-        return [
-            {
-                "title": "迷客夏珍珠紅茶拿鐵",
-                "url": "https://milksha.example/menu/pearl-black-tea-latte",
-                "snippet": "迷客夏珍珠紅茶拿鐵，飲品熱量資料需以核准來源為準。",
-                "score": 0.94,
-                "officialness": "official",
-                "source_class": "brand_menu_page",
-                "source_quality_label": "high",
-                "brand_detected": "迷客夏",
-                "serving_basis": "per_cup",
-                "nutrition_fields_present": ["kcal"],
-                "license_status": "public_menu_page",
-                "robots_status": "allowed",
-                "identity_confidence": "high",
-                "applicability_confidence": "medium",
-                "raw_ref": "recorded/websearch/gsw1#0",
-            }
-        ]
     if case_id == "GSW2":
         return [
             {
-                "title": "其他品牌珍珠紅茶拿鐵",
-                "url": "https://other-tea.example/menu/pearl-black-tea-latte",
-                "snippet": "不同品牌的珍珠紅茶拿鐵，只能作為弱參考。",
-                "score": 0.88,
+                "title": "松屋 牛燒肉定食 Matsuya gyu yakiniku teishoku nutrition",
+                "url": "https://matsuya.example/menu/gyu-yakiniku-teishoku",
+                "snippet": "Official menu page lists serving calories for 松屋 牛燒肉定食 / gyu yakiniku teishoku.",
+                "score": 0.95,
                 "officialness": "official",
                 "source_class": "brand_menu_page",
                 "source_quality_label": "high",
-                "brand_detected": "其他品牌",
-                "serving_basis": "per_cup",
+                "brand_detected": "Matsuya",
+                "serving_basis": "per_set",
                 "nutrition_fields_present": ["kcal"],
                 "license_status": "public_menu_page",
                 "robots_status": "allowed",
                 "identity_confidence": "high",
-                "applicability_confidence": "low",
+                "applicability_confidence": "high",
                 "raw_ref": "recorded/websearch/gsw2#0",
+            }
+        ]
+    if case_id == "GSW3":
+        return [
+            {
+                "title": "Peeled chili chicken hot pot frozen retail pack",
+                "url": "https://shop.example/frozen-peeled-chili-chicken-hotpot",
+                "snippet": "Retail frozen pack nutrition for a packaged product, not in-store hot pot.",
+                "score": 0.86,
+                "officialness": "unknown",
+                "source_class": "ecommerce_or_frozen_package",
+                "source_quality_label": "low",
+                "brand_detected": "retail pack",
+                "serving_basis": "per_package",
+                "nutrition_fields_present": ["kcal"],
+                "license_status": "unknown",
+                "robots_status": "allowed",
+                "identity_confidence": "medium",
+                "applicability_confidence": "low",
+                "raw_ref": "recorded/websearch/gsw3#0",
             }
         ]
     if case_id == "GSW4":
         return [
             {
-                "title": "義美全脂鮮乳 400ml 營養資料",
-                "url": "https://third-party.example/imei-whole-milk-400ml",
-                "snippet": "第三方頁面列出義美全脂鮮乳熱量與三大營養素，未核准為 runtime truth。",
-                "score": 0.82,
-                "officialness": "unknown",
-                "source_class": "third_party_blog_or_scrape",
-                "source_quality_label": "low",
-                "brand_detected": "義美",
-                "serving_basis": "per_bottle",
-                "nutrition_fields_present": ["kcal", "protein_g", "carbs_g", "fat_g"],
-                "license_status": "unknown",
+                "title": "麥當勞 大麥克 McDonalds Big Mac nutrition",
+                "url": "https://mcdonalds.example/menu/big-mac",
+                "snippet": "Official component page for 麥當勞 大麥克 / Big Mac.",
+                "score": 0.96,
+                "officialness": "official",
+                "source_class": "brand_menu_component_page",
+                "source_quality_label": "high",
+                "brand_detected": "McDonalds",
+                "serving_basis": "per_item",
+                "nutrition_fields_present": ["kcal"],
+                "license_status": "public_menu_page",
                 "robots_status": "allowed",
                 "identity_confidence": "high",
-                "applicability_confidence": "medium",
-                "raw_ref": "recorded/websearch/gsw4#0",
-            }
+                "applicability_confidence": "high",
+                "raw_ref": "recorded/websearch/gsw4#big-mac",
+            },
+            {
+                "title": "麥當勞 中薯 McDonalds medium fries nutrition",
+                "url": "https://mcdonalds.example/menu/medium-fries",
+                "snippet": "Official component page for 麥當勞 中薯 / medium fries.",
+                "score": 0.94,
+                "officialness": "official",
+                "source_class": "brand_menu_component_page",
+                "source_quality_label": "high",
+                "brand_detected": "McDonalds",
+                "serving_basis": "per_item",
+                "nutrition_fields_present": ["kcal"],
+                "license_status": "public_menu_page",
+                "robots_status": "allowed",
+                "identity_confidence": "high",
+                "applicability_confidence": "high",
+                "raw_ref": "recorded/websearch/gsw4#fries",
+            },
+            {
+                "title": "麥當勞 中杯可樂 McDonalds medium coke nutrition",
+                "url": "https://mcdonalds.example/menu/medium-coke",
+                "snippet": "Official component page for 麥當勞 中杯可樂 / medium Coke.",
+                "score": 0.94,
+                "officialness": "official",
+                "source_class": "brand_menu_component_page",
+                "source_quality_label": "high",
+                "brand_detected": "McDonalds",
+                "serving_basis": "per_item",
+                "nutrition_fields_present": ["kcal"],
+                "license_status": "public_menu_page",
+                "robots_status": "allowed",
+                "identity_confidence": "high",
+                "applicability_confidence": "high",
+                "raw_ref": "recorded/websearch/gsw4#coke",
+            },
         ]
     return []
 
 
 def _recorded_web_extract_rows(case_id: str) -> list[dict[str, Any]]:
-    if case_id == "GSW1":
-        return [
-            {
-                "url": "https://milksha.example/menu/pearl-black-tea-latte",
-                "title": "迷客夏珍珠紅茶拿鐵",
-                "source_type": "official",
-                "officialness": "official",
-                "serving_basis": "per_cup",
-                "brand_detected": "迷客夏",
-                "raw_content": "迷客夏珍珠紅茶拿鐵 每杯 520 kcal",
-                "raw_ref": "recorded/webextract/gsw1#0",
-            }
-        ]
     if case_id == "GSW2":
         return [
             {
-                "url": "https://other-tea.example/menu/pearl-black-tea-latte",
-                "title": "其他品牌珍珠紅茶拿鐵",
+                "url": "https://matsuya.example/menu/gyu-yakiniku-teishoku",
+                "title": "松屋 牛燒肉定食 Matsuya gyu yakiniku teishoku nutrition",
                 "source_type": "official",
                 "officialness": "official",
-                "serving_basis": "per_cup",
-                "brand_detected": "其他品牌",
-                "raw_content": "其他品牌珍珠紅茶拿鐵 每杯 510 kcal",
+                "serving_basis": "per_set",
+                "brand_detected": "Matsuya",
+                "raw_content": "松屋 牛燒肉定食 / Gyu yakiniku teishoku 720 kcal per set.",
                 "raw_ref": "recorded/webextract/gsw2#0",
+            }
+        ]
+    if case_id == "GSW3":
+        return [
+            {
+                "url": "https://shop.example/frozen-peeled-chili-chicken-hotpot",
+                "title": "Peeled chili chicken hot pot frozen retail pack",
+                "source_type": "third_party_ecommerce",
+                "officialness": "unknown",
+                "serving_basis": "per_package",
+                "brand_detected": "retail pack",
+                "raw_content": "Frozen package nutrition; not applicable to in-store meal.",
+                "raw_ref": "recorded/webextract/gsw3#0",
             }
         ]
     if case_id == "GSW4":
         return [
             {
-                "url": "https://third-party.example/imei-whole-milk-400ml",
-                "title": "義美全脂鮮乳 400ml 營養資料",
-                "source_type": "third_party",
-                "officialness": "unknown",
-                "serving_basis": "per_bottle",
-                "brand_detected": "義美",
-                "raw_content": "400ml 260 kcal 蛋白質 13g 碳水 20g 脂肪 14g",
-                "raw_ref": "recorded/webextract/gsw4#0",
-            }
+                "url": "https://mcdonalds.example/menu/big-mac",
+                "title": "麥當勞 大麥克 McDonalds Big Mac nutrition",
+                "source_type": "official",
+                "officialness": "official",
+                "serving_basis": "per_item",
+                "brand_detected": "McDonalds",
+                "raw_content": "麥當勞 大麥克 / Big Mac 560 kcal.",
+                "raw_ref": "recorded/webextract/gsw4#big-mac",
+            },
+            {
+                "url": "https://mcdonalds.example/menu/medium-fries",
+                "title": "麥當勞 中薯 McDonalds medium fries nutrition",
+                "source_type": "official",
+                "officialness": "official",
+                "serving_basis": "per_item",
+                "brand_detected": "McDonalds",
+                "raw_content": "麥當勞 中薯 / Medium fries 320 kcal.",
+                "raw_ref": "recorded/webextract/gsw4#fries",
+            },
+            {
+                "url": "https://mcdonalds.example/menu/medium-coke",
+                "title": "麥當勞 中杯可樂 McDonalds medium Coke nutrition",
+                "source_type": "official",
+                "officialness": "official",
+                "serving_basis": "per_item",
+                "brand_detected": "McDonalds",
+                "raw_content": "麥當勞 中杯可樂 / Medium Coke 210 kcal.",
+                "raw_ref": "recorded/webextract/gsw4#coke",
+            },
         ]
     return []
 
@@ -367,6 +421,7 @@ def _run_case(
             case=case,
             user_external_id=user_external_id,
             local_date=local_date,
+            allow_search=allow_search,
         )
     if case_id == "GS17":
         return _run_feedback_case(
@@ -996,13 +1051,17 @@ def _run_browser_chat_case(
     case: dict[str, Any],
     user_external_id: str,
     local_date: str,
+    allow_search: bool,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     case_id = str(case.get("case_id") or "")
     token = _local_debug_token()
+    recorded_search_port, recorded_extract_port = _recorded_websearch_ports_for_case(case_id)
     app = _build_browser_app(
         SessionLocal,
         provider=provider,
         feedback_dir=DEFAULT_DB_PATH.parent / f"{case_id.lower()}_feedback",
+        search_provider=recorded_search_port if allow_search else None,
+        extract_provider=recorded_extract_port if allow_search else None,
     )
     port = _free_port()
     server, thread = _run_uvicorn_in_thread(app, port=port)
@@ -1017,6 +1076,7 @@ def _run_browser_chat_case(
             local_date=local_date,
             local_debug_token=token,
             timeout_ms=240_000,
+            allow_search=allow_search,
         )
     finally:
         server.should_exit = True
@@ -1083,6 +1143,8 @@ def _build_browser_app(
     *,
     provider: Any | None,
     feedback_dir: Path | None = None,
+    search_provider: Any | None = None,
+    extract_provider: Any | None = None,
 ) -> FastAPI:
     app = FastAPI()
     app.include_router(router)
@@ -1106,8 +1168,9 @@ def _build_browser_app(
     )
     if provider is not None:
         intake_routes.manager_provider = provider
-        intake_routes.search_provider = None
-        intake_routes.extract_provider = None
+    if search_provider is not None or extract_provider is not None:
+        intake_routes.search_provider = search_provider
+        intake_routes.extract_provider = extract_provider
     intake_chat_turn_routes.SessionLocal = SessionLocal
     if feedback_dir is not None:
         accurate_intake_debug_routes.DOGFOOD_FEEDBACK_DIR = feedback_dir
@@ -1373,6 +1436,7 @@ def _run_golden_case_browser_chat_sequence(
     local_date: str,
     local_debug_token: str,
     timeout_ms: int,
+    allow_search: bool,
 ) -> dict[str, Any]:
     case_id = str(case.get("case_id") or "")
     sync_playwright = _load_sync_playwright()
@@ -1391,6 +1455,7 @@ def _run_golden_case_browser_chat_sequence(
             chat_url = (
                 f"{base_url}/static/accurate-intake-chat.html?"
                 f"user_id={user_external_id}&local_date={local_date}"
+                f"&allow_search={'1' if allow_search else '0'}"
             )
             page.goto(chat_url, wait_until="networkidle", timeout=timeout_ms)
             page.wait_for_selector("#message-input", timeout=timeout_ms)

@@ -135,6 +135,7 @@ async def run_exact_brand_web_canary(
             else "selected_extract_policy_blocked"
         )
         trace["rejected_web_candidates_used_as_evidence"] = False
+        _mark_rejected_web_trace(trace)
         trace["total_latency_ms"] = elapsed_ms(start)
         return ExactBrandWebCanaryOutcome(result=None, trace=trace)
 
@@ -184,6 +185,7 @@ async def run_exact_brand_web_canary(
     if accepted_extract_packet is None:
         trace["failure_reason"] = "no_accepted_web_extract_packet"
         trace["rejected_web_candidates_used_as_evidence"] = False
+        _mark_rejected_web_trace(trace)
         return ExactBrandWebCanaryOutcome(result=None, trace=trace)
 
     manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
@@ -196,6 +198,7 @@ async def run_exact_brand_web_canary(
     trace["rejected_web_candidates_used_as_evidence"] = bool(
         rejected_ids.intersection(set(trace["synthesis_evidence_refs"]))
     )
+    _mark_accepted_turn_web_trace(trace)
     result = ExactBrandWebLaneResult(
         intent=intent,
         query=query,
@@ -236,14 +239,47 @@ def _exact_brand_query(intent: RetrievalIntent, *, contextualized_query: str | N
         return str(contextualized_query or "").strip()
     if intent.brand_hint and intent.base_dish:
         size_hint = str(intent.size_hint or "").strip()
-        parts = [intent.brand_hint]
+        brand = str(intent.brand_hint or "").strip()
+        base = str(intent.base_dish or "").strip()
+        query = base if _starts_with_brand(base=base, brand=brand) else f"{brand}{base}"
         if size_hint:
-            parts.append(size_hint)
-        parts.append(intent.base_dish)
-        return "".join(part.strip() for part in parts if str(part).strip())
+            query = f"{query}{size_hint}"
+        return query
     if intent.aliases:
         return str(intent.aliases[0] or "").strip()
     return str(intent.base_dish or "").strip()
+
+
+def _starts_with_brand(*, base: str, brand: str) -> bool:
+    normalized_base = base.strip().casefold()
+    normalized_brand = brand.strip().casefold()
+    return bool(normalized_brand) and normalized_base.startswith(normalized_brand)
+
+
+def _mark_accepted_turn_web_trace(trace: dict[str, object]) -> None:
+    trace["source_admissibility_status"] = "accepted"
+    trace["selected_extract_present"] = True
+    trace["turn_web_evidence_packet_present"] = True
+    trace["turn_web_evidence_may_support_commit"] = True
+    trace["permanent_fooddb_promotion_allowed"] = False
+    trace["fooddb_truth_updated"] = False
+    trace["search_candidate_packet_truth_allowed"] = False
+    truth_boundary = trace.get("truth_boundary")
+    if isinstance(truth_boundary, dict):
+        truth_boundary["accepted_extract_packet_truth_authority"] = True
+        truth_boundary["web_candidate_truth_authority"] = False
+        truth_boundary["runtime_web_diagnostic_enabled"] = True
+
+
+def _mark_rejected_web_trace(trace: dict[str, object]) -> None:
+    trace["source_admissibility_status"] = "rejected"
+    trace["selected_extract_present"] = False
+    trace["turn_web_evidence_packet_present"] = False
+    trace["turn_web_evidence_may_support_commit"] = False
+    trace["permanent_fooddb_promotion_allowed"] = False
+    trace["fooddb_truth_updated"] = False
+    trace["search_candidate_packet_truth_allowed"] = False
+    trace["wrong_context_source_rejected"] = True
 
 
 def _selected_search_packet(

@@ -7,7 +7,7 @@ from app.runtime.agent.manager_user_facing_reply_prompt import USER_FACING_REPLY
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v38"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v41"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -90,11 +90,29 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "retrieval_goal='listed_item_lookup', and call estimate_nutrition when evidence is needed before commit. "
     "When the item list is concrete but quantities are rough, ask for portions as optional refinement; do not "
     "classify that turn as a composition-unknown basket solely because portions are not exact.\n"
+    "For a brand combo with user-listed components, preserve the user-provided component list in "
+    "semantic_decision.listed_items; the listed-items rule has priority over exact brand lookup. Use "
+    "retrieval_goal='listed_item_lookup', and call estimate_nutrition "
+    "before the final write. Do not ask again for the component list the user already supplied; ask only if "
+    "the evidence tool rejects a component source or a required component is genuinely missing.\n"
+    "If semantic_decision.listed_items is non-empty, retrieval_goal must be retrieval_goal='listed_item_lookup'; "
+    "never exact_brand_lookup with non-empty listed_items. This is a structured-output consistency rule: "
+    "the listed_items field means you have already identified concrete components, so use component evidence "
+    "rather than treating the whole combo as one exact product.\n"
+    "When a user gives a branded combo plus concrete items, sides, or drinks in the same turn, put the main item "
+    "and named side/drink items in semantic_decision.listed_items and use retrieval_goal='listed_item_lookup'. "
+    "Do not ask for the same component list again; use the evidence tool for each listed component and only ask "
+    "if a component is missing or rejected.\n"
     "For branded commercial food or drink items, branded packaged items, or user turns that explicitly ask to "
     "check/search because FoodDB may not have the item, you own the retrieval posture: use "
     "retrieval_goal='exact_brand_lookup' with brand_hint/product/size fields when known. WebSearch/external "
     "results are candidate evidence only unless the runtime returns an approved packet; do not claim official "
     "truth, macro truth, or logged status from a web candidate alone.\n"
+    "For a named brand or chain menu set meal, treat the brand/menu identity as the first evidence target: "
+    "include base_dish or product identity, use retrieval_goal='exact_brand_lookup' with brand_hint when known, "
+    "and do not downgrade it to a "
+    "composition-unknown basket before the evidence tool has a chance to find or reject a menu item. If the "
+    "evidence tool rejects or cannot find an admissible source, then ask one natural follow-up.\n"
     "If estimate_nutrition returns optional_refinement_allowed=true for a listed drink component after a "
     "commit-worthy estimate, preserve final_action_candidate='commit' and mutation_intent_candidate='canonical_write', "
     "set followup_posture='refinement_optional', and include answer_contract.followup_question. For sweet tea or "
@@ -147,6 +165,11 @@ _CONTRACT_POLICY_PROMPT = (
     "repair by choosing a legal final action. When your semantic judgment is that missing composition caused the "
     "illegal commit, ask a blocking follow-up with manager_action='final', final_action='ask_followup', "
     "workflow_effect='ask_followup', mutation_intent_candidate='no_mutation', tool_calls=[], and no calorie or macro claim.\n"
+    "If tool_results contain wrong-context or rejected Web evidence, explain that the source was not used before "
+    "asking the next natural follow-up. Do not hide the rejection behind a generic composition question, and do "
+    "not commit or claim source truth from that rejected candidate.\n"
+    "If tool_results.web_runtime_trace.wrong_context_source_rejected=true, the visible reply must say the "
+    "source was not adopted before the follow-up; for zh-TW use wording like '查到的來源不適合這次餐點，所以沒有採用'.\n"
     "If guard_feedback says named_food_user_kcal_conflict_requires_confirmation, your own semantic_decision already "
     "identified a named-food kcal conflict and runtime rejected a silent commit. Repair with "
     "manager_action='final', final_action='ask_followup', workflow_effect='ask_followup', "
@@ -197,6 +220,15 @@ _CONTRACT_POLICY_PROMPT = (
     "because it may belong to a combo or basket family. You own the item-list judgment: set "
     "semantic_decision.listed_items, retrieval_goal='listed_item_lookup', and use estimate_nutrition before a "
     "commit/correction. Runtime must not fill this list with a raw-text deterministic parser.\n"
+    "For a brand combo with user-listed components, preserve those listed components, use "
+    "retrieval_goal='listed_item_lookup' because the listed-items rule has priority over exact brand lookup, "
+    "and do not repeat the same component-list question; if component "
+    "evidence is rejected, explain the source problem and ask only for the missing or rejected component.\n"
+    "If semantic_decision.listed_items is non-empty, retrieval_goal must be retrieval_goal='listed_item_lookup'; "
+    "never exact_brand_lookup with non-empty listed_items.\n"
+    "For a branded combo plus concrete items in the same turn, put the main item and named side/drink items in "
+    "semantic_decision.listed_items before calling estimate_nutrition; do not repeat a component-list question "
+    "for components the user already named.\n"
     "When the current turn answers an open pending follow-up and you commit after evidence, the attach decision is "
     "still yours. Preserve target attachment in both top-level target_attachment and "
     "semantic_decision.target_attachment with operation='attach_to_pending_followup' and "
@@ -236,42 +268,15 @@ _USER_FACING_REPLY_PROMPT = USER_FACING_REPLY_PROMPT
 
 
 _SINGLE_MANAGER_SYSTEM_PROMPT_SECTIONS = (
-    {
-        "section_id": "base_manager_role_and_react_loop",
-        "owner": "ManagerRuntime.SystemContract",
-        "cache_role": "stable_role_and_output_contract",
-        "text": _BASE_MANAGER_SYSTEM_PROMPT,
-    },
-    {
-        "section_id": "product_policy_guidance",
-        "owner": "ManagerRuntime.ProductPolicy",
-        "cache_role": "stable_product_policy",
-        "text": _PRODUCT_POLICY_PROMPT,
-    },
-    {
-        "section_id": "runtime_contract_policy",
-        "owner": "ManagerRuntime.RuntimeContract",
-        "cache_role": "stable_guard_and_tool_policy",
-        "text": _CONTRACT_POLICY_PROMPT,
-    },
-    {
-        "section_id": "scope_boundary_policy",
-        "owner": "ManagerRuntime.ScopePolicy",
-        "cache_role": "stable_scope_policy",
-        "text": _SCOPE_POLICY_PROMPT,
-    },
-    {
-        "section_id": "user_facing_reply_policy",
-        "owner": "ManagerRuntime.ResponsePolicy",
-        "cache_role": "stable_response_policy",
-        "text": _USER_FACING_REPLY_PROMPT,
-    },
+    {"section_id": "base_manager_role_and_react_loop", "owner": "ManagerRuntime.SystemContract", "cache_role": "stable_role_and_output_contract", "text": _BASE_MANAGER_SYSTEM_PROMPT},
+    {"section_id": "product_policy_guidance", "owner": "ManagerRuntime.ProductPolicy", "cache_role": "stable_product_policy", "text": _PRODUCT_POLICY_PROMPT},
+    {"section_id": "runtime_contract_policy", "owner": "ManagerRuntime.RuntimeContract", "cache_role": "stable_guard_and_tool_policy", "text": _CONTRACT_POLICY_PROMPT},
+    {"section_id": "scope_boundary_policy", "owner": "ManagerRuntime.ScopePolicy", "cache_role": "stable_scope_policy", "text": _SCOPE_POLICY_PROMPT},
+    {"section_id": "user_facing_reply_policy", "owner": "ManagerRuntime.ResponsePolicy", "cache_role": "stable_response_policy", "text": _USER_FACING_REPLY_PROMPT},
 )
 
 
-SINGLE_MANAGER_SYSTEM_PROMPT = "".join(
-    str(section["text"]) for section in _SINGLE_MANAGER_SYSTEM_PROMPT_SECTIONS
-)
+SINGLE_MANAGER_SYSTEM_PROMPT = "".join(str(section["text"]) for section in _SINGLE_MANAGER_SYSTEM_PROMPT_SECTIONS)
 SINGLE_MANAGER_ENTRY_SCOPE_SYSTEM_PROMPT = SINGLE_MANAGER_SYSTEM_PROMPT
 
 
@@ -304,13 +309,4 @@ def single_manager_system_prompt_section_contract() -> dict[str, Any]:
     }
 
 
-__all__ = [
-    "SINGLE_MANAGER_ENTRY_SCOPE_SYSTEM_PROMPT",
-    "SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION",
-    "SINGLE_MANAGER_SYSTEM_PROMPT",
-    "SINGLE_MANAGER_SYSTEM_PROMPT_ID",
-    "SINGLE_MANAGER_SYSTEM_PROMPT_VERSION",
-    "single_manager_system_prompt_for_scope",
-    "single_manager_system_prompt_section_contract",
-    "single_manager_system_prompt_section_manifest",
-]
+__all__ = ["SINGLE_MANAGER_ENTRY_SCOPE_SYSTEM_PROMPT", "SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION", "SINGLE_MANAGER_SYSTEM_PROMPT", "SINGLE_MANAGER_SYSTEM_PROMPT_ID", "SINGLE_MANAGER_SYSTEM_PROMPT_VERSION", "single_manager_system_prompt_for_scope", "single_manager_system_prompt_section_contract", "single_manager_system_prompt_section_manifest"]

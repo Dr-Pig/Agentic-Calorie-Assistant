@@ -123,46 +123,57 @@ def test_golden_set_declares_websearch_extension_cases() -> None:
 
     extension = manifest["websearch_extension"]
     assert extension["case_count"] == 4
-    assert extension["status"] == "required_before_self_use_closeout"
-    assert extension["source_truth_role"] == "candidate_evidence_only_until_approved_packet"
+    assert extension["status"] == "paused_pending_stage2_calibration"
+    assert extension["core_closeout_blocking"] is False
+    assert (
+        extension["source_truth_role"]
+        == "search_candidate_only_until_selected_extract_admissibility_creates_turn_web_evidence"
+    )
     assert extension["manager_decides_search_need"] is True
     assert extension["deterministic_search_routing_allowed"] is False
     assert extension["no_snippet_as_truth"] is True
-    assert extension["no_runtime_mutation_from_candidate"] is True
+    assert extension["raw_candidate_to_runtime_mutation_allowed"] is False
+    assert extension["turn_web_evidence_may_support_same_turn_after_admissibility"] is True
+    assert extension["permanent_fooddb_promotion_allowed"] is False
 
     cases = {case["case_id"]: case for case in extension["cases"]}
     assert list(cases) == ["GSW1", "GSW2", "GSW3", "GSW4"]
 
     gsw1 = cases["GSW1"]
-    assert gsw1["script"][0]["utterance_zh_tw"] == "我喝了一杯迷客夏珍珠紅茶拿鐵，FoodDB 沒有的話幫我查一下"
-    assert gsw1["seed_state"]["fooddb_packets"] == "milksha_black_tea_latte_exact_missing"
-    assert gsw1["seed_state"]["websearch_candidate_sources"] == "recorded_candidate_packet"
-    assert gsw1["expected_runtime"]["workflow_effect"] == "answer_or_ask_followup_no_mutation"
-    assert gsw1["expected_runtime"]["websearch_tool_call_expected"] is True
+    assert gsw1["seed_state"]["fooddb_packets"] == "exact_matsuya_tokumori_gyudon_available"
+    assert gsw1["seed_state"]["websearch_candidate_sources"] == "not_needed"
+    assert gsw1["expected_runtime"]["workflow_effect"] == "commit"
+    assert gsw1["expected_runtime"]["websearch_tool_call_expected"] is False
+    assert gsw1["expected_runtime"]["exact_fooddb_packet_used"] is True
     assert gsw1["expected_runtime"]["websearch_snippet_as_truth_allowed"] is False
-    assert gsw1["expected_runtime"]["runtime_mutation_allowed"] is False
+    assert gsw1["expected_runtime"]["runtime_mutation_allowed"] is True
     assert gsw1["expected_runtime"]["pre_manager_websearch_routing_allowed"] is False
-    assert gsw1["expected_runtime"]["websearch_candidate_to_commit_allowed"] is False
 
     gsw2 = cases["GSW2"]
-    assert gsw2["script"][0]["utterance_zh_tw"] == "目標是迷客夏珍珠紅茶拿鐵；搜尋結果只有不同品牌的同類飲料"
-    assert gsw2["expected_runtime"]["wrong_brand_promotion_allowed"] is False
-    assert gsw2["expected_runtime"]["exact_promotion_allowed"] is False
-    assert gsw2["expected_runtime"]["macro_truth_allowed"] is False
-    assert gsw2["expected_runtime"]["runtime_mutation_allowed"] is False
+    assert gsw2["seed_state"]["fooddb_packets"] == "matsuya_gyu_yakiniku_teishoku_exact_missing"
+    assert gsw2["expected_runtime"]["websearch_tool_call_expected"] is True
+    assert gsw2["expected_runtime"]["search_candidate_packet_truth_allowed"] is False
+    assert gsw2["expected_runtime"]["selected_extract_required"] is True
+    assert gsw2["expected_runtime"]["source_admissibility_required"] is True
+    assert gsw2["expected_runtime"]["turn_web_evidence_packet_allowed"] is True
+    assert gsw2["expected_runtime"]["turn_web_evidence_may_support_commit"] is True
+    assert gsw2["expected_runtime"]["permanent_fooddb_promotion_allowed"] is False
+    assert gsw2["expected_runtime"]["runtime_mutation_allowed"] is True
 
     gsw3 = cases["GSW3"]
-    assert gsw3["script"][0]["utterance_zh_tw"] == "午餐吃了一碗雞肉飯"
-    assert gsw3["seed_state"]["fooddb_packets"] == "generic_chicken_rice_available"
-    assert gsw3["expected_runtime"]["websearch_tool_call_expected"] is False
-    assert gsw3["expected_runtime"]["use_generic_or_fooddb_anchor_first"] is True
-    assert gsw3["expected_runtime"]["fooddb_anchor_bypass_allowed"] is False
+    assert gsw3["seed_state"]["websearch_candidate_sources"] == "frozen_package_or_ecommerce_candidate"
+    assert gsw3["expected_runtime"]["websearch_tool_call_expected"] is True
+    assert gsw3["expected_runtime"]["wrong_context_source_rejected"] is True
+    assert gsw3["expected_runtime"]["turn_web_evidence_packet_allowed"] is False
+    assert gsw3["expected_runtime"]["runtime_mutation_allowed"] is False
 
     gsw4 = cases["GSW4"]
-    assert gsw4["script"][0]["utterance_zh_tw"] == "我喝了一瓶義美全脂鮮乳 400ml，幫我記一下"
-    assert gsw4["expected_runtime"]["macro_visible_only_from_official_or_approved_evidence"] is True
-    assert gsw4["expected_runtime"]["websearch_candidate_to_macro_truth_allowed"] is False
-    assert gsw4["ui_assertions"]["macro_hidden_when_candidate_only"] is True
+    assert gsw4["seed_state"]["fooddb_packets"] == "mcdonalds_combo_black_box_missing"
+    assert gsw4["expected_runtime"]["component_level_evidence_required"] is True
+    assert gsw4["expected_runtime"]["generic_combo_black_box_allowed"] is False
+    assert gsw4["expected_runtime"]["each_component_source_required"] is True
+    assert gsw4["expected_runtime"]["turn_web_evidence_packet_allowed"] is True
+    assert gsw4["expected_runtime"]["permanent_fooddb_promotion_allowed"] is False
 
 
 def test_each_golden_case_has_trace_budget_judge_and_ui_contract_fields() -> None:
@@ -209,8 +220,8 @@ def test_golden_set_spec_records_hard_boundaries_and_fooddb_posture() -> None:
         "Feedback is captured through inline entry points",
         "Structured trace is the primary review surface",
         "Patterned combo anchors are posture-driven",
-        "WebSearch Golden Extension",
-        "WebSearch is part of the Current Shell evidence path",
+        "WebSearch Stage 2 Addendum",
+        "WebSearch is not part of the core GS1-GS19 closeout gate",
         "Manager decides whether a turn needs external search",
         "Wrong-brand or near-match WebSearch candidates must not be promoted",
         "Grokfast is the primary self-use live gate",

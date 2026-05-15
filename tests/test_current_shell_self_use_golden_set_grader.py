@@ -59,7 +59,7 @@ def test_grader_passes_a_valid_gs5_no_anchor_followup_result() -> None:
     assert grade["case_id"] == "GS5"
 
 
-def test_grader_passes_a_valid_websearch_extension_candidate_result() -> None:
+def test_grader_passes_a_valid_websearch_no_search_fooddb_hit_result() -> None:
     result = _base_result("GSW1")
 
     grade = grade_golden_case_result(result)
@@ -69,90 +69,78 @@ def test_grader_passes_a_valid_websearch_extension_candidate_result() -> None:
     assert grade["case_id"] == "GSW1"
 
 
-def test_grader_accepts_websearch_candidate_ask_followup_without_mutation() -> None:
+def test_grader_blocks_websearch_when_exact_fooddb_hit_exists() -> None:
     result = _base_result("GSW1")
-    result["runtime"]["workflow_effect"] = "ask_followup"
-    result["runtime"]["mutation_allowed"] = False
-    result["runtime"]["runtime_mutation_allowed"] = False
-
-    grade = grade_golden_case_result(result)
-
-    assert grade["status"] == "pass"
-    assert grade["blockers"] == []
-
-
-def test_grader_blocks_websearch_candidate_truth_promotion() -> None:
-    result = _base_result("GSW1")
-    result["runtime"]["websearch_snippet_as_truth_allowed"] = True
-    result["runtime"]["runtime_mutation_allowed"] = True
-    result["runtime"]["websearch_candidate_to_commit_allowed"] = True
-    result["ui"]["today_consumed_updates"] = True
+    result["runtime"]["websearch_tool_call_expected"] = True
+    result["runtime"]["exact_fooddb_packet_used"] = False
+    result["ui"]["exact_fooddb_basis_visible"] = False
 
     grade = grade_golden_case_result(result)
 
     assert grade["status"] == "blocked"
-    assert (
-        "runtime.websearch_snippet_as_truth_allowed_expected:False_actual:True"
-        in grade["blockers"]
-    )
-    assert "runtime.runtime_mutation_allowed_expected:False_actual:True" in grade["blockers"]
-    assert "runtime.websearch_candidate_to_commit_allowed_expected:False_actual:True" in grade["blockers"]
-    assert "ui.today_consumed_updates_expected:False_actual:True" in grade["blockers"]
+    assert "runtime.websearch_tool_call_expected_expected:False_actual:True" in grade["blockers"]
+    assert "runtime.exact_fooddb_packet_used_expected:True_actual:False" in grade["blockers"]
+    assert "ui.exact_fooddb_basis_visible_expected:True_actual:False" in grade["blockers"]
+
+
+def test_grader_blocks_raw_search_candidate_as_turn_truth() -> None:
+    result = _base_result("GSW2")
+    result["runtime"]["search_candidate_packet_truth_allowed"] = True
+    result["runtime"]["selected_extract_required"] = False
+    result["runtime"]["source_admissibility_required"] = False
+    result["runtime"]["turn_web_evidence_may_support_commit"] = False
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "blocked"
+    assert "runtime.search_candidate_packet_truth_allowed_expected:False_actual:True" in grade["blockers"]
+    assert "runtime.selected_extract_required_expected:True_actual:False" in grade["blockers"]
+    assert "runtime.source_admissibility_required_expected:True_actual:False" in grade["blockers"]
+    assert "runtime.turn_web_evidence_may_support_commit_expected:True_actual:False" in grade["blockers"]
 
 
 def test_grader_blocks_websearch_keyword_router_fake_pass() -> None:
-    result = _base_result("GSW1")
-    result["runtime"]["pre_manager_websearch_routing_allowed"] = True
+    result = _base_result("GSW2")
     result["generalization"]["pre_manager_websearch_routing_used"] = True
     result["generalization"]["case_id_or_fixture_label_routing_used"] = True
 
     grade = grade_golden_case_result(result)
 
     assert grade["status"] == "blocked"
-    assert "runtime.pre_manager_websearch_routing_allowed_expected:False_actual:True" in grade["blockers"]
     assert "generalization.pre_manager_websearch_routing_used" in grade["blockers"]
     assert "generalization.case_id_or_fixture_label_routing_used" in grade["blockers"]
 
 
-def test_grader_blocks_wrong_brand_exact_or_macro_promotion() -> None:
-    result = _base_result("GSW2")
-    result["runtime"]["wrong_brand_promotion_allowed"] = True
-    result["runtime"]["exact_promotion_allowed"] = True
-    result["runtime"]["macro_truth_allowed"] = True
-
-    grade = grade_golden_case_result(result)
-
-    assert grade["status"] == "blocked"
-    assert "runtime.wrong_brand_promotion_allowed_expected:False_actual:True" in grade["blockers"]
-    assert "runtime.exact_promotion_allowed_expected:False_actual:True" in grade["blockers"]
-    assert "runtime.macro_truth_allowed_expected:False_actual:True" in grade["blockers"]
-
-
-def test_grader_blocks_websearch_when_fooddb_anchor_exists() -> None:
+def test_grader_blocks_wrong_context_web_result_commit() -> None:
     result = _base_result("GSW3")
-    result["runtime"]["websearch_tool_call_expected"] = True
-    result["runtime"]["fooddb_anchor_bypass_allowed"] = True
+    result["runtime"]["wrong_context_source_rejected"] = False
+    result["runtime"]["turn_web_evidence_packet_allowed"] = True
+    result["runtime"]["runtime_mutation_allowed"] = True
+    result["ui"]["today_consumed_updates"] = True
 
     grade = grade_golden_case_result(result)
 
     assert grade["status"] == "blocked"
-    assert "runtime.websearch_tool_call_expected_expected:False_actual:True" in grade["blockers"]
-    assert "runtime.fooddb_anchor_bypass_allowed_expected:False_actual:True" in grade["blockers"]
+    assert "runtime.wrong_context_source_rejected_expected:True_actual:False" in grade["blockers"]
+    assert "runtime.turn_web_evidence_packet_allowed_expected:False_actual:True" in grade["blockers"]
+    assert "runtime.runtime_mutation_allowed_expected:False_actual:True" in grade["blockers"]
+    assert "ui.today_consumed_updates_expected:False_actual:True" in grade["blockers"]
 
 
-def test_grader_blocks_candidate_only_macro_visibility() -> None:
+def test_grader_blocks_brand_combo_black_box_without_component_sources() -> None:
     result = _base_result("GSW4")
-    result["runtime"]["websearch_candidate_to_macro_truth_allowed"] = True
-    result["ui"]["macro_hidden_when_candidate_only"] = False
+    result["runtime"]["component_level_evidence_required"] = False
+    result["runtime"]["generic_combo_black_box_allowed"] = True
+    result["runtime"]["each_component_source_required"] = False
+    result["ui"]["component_basis_visible"] = False
 
     grade = grade_golden_case_result(result)
 
     assert grade["status"] == "blocked"
-    assert (
-        "runtime.websearch_candidate_to_macro_truth_allowed_expected:False_actual:True"
-        in grade["blockers"]
-    )
-    assert "ui.macro_hidden_when_candidate_only_expected:True_actual:False" in grade["blockers"]
+    assert "runtime.component_level_evidence_required_expected:True_actual:False" in grade["blockers"]
+    assert "runtime.generic_combo_black_box_allowed_expected:False_actual:True" in grade["blockers"]
+    assert "runtime.each_component_source_required_expected:True_actual:False" in grade["blockers"]
+    assert "ui.component_basis_visible_expected:True_actual:False" in grade["blockers"]
 
 
 def test_grader_treats_canonical_write_commit_as_gs1_commit_effect() -> None:

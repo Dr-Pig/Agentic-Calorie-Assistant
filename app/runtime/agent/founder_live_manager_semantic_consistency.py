@@ -16,6 +16,16 @@ def validate_semantic_field_consistency(payload: dict[str, Any]) -> None:
             "founder live manager contract listed_item_lookup requires "
             "semantic_decision.listed_items from the Manager-owned semantic decision"
         )
+    if (
+        isinstance(listed_items, list)
+        and any(str(item or "").strip() for item in listed_items)
+        and retrieval_goal
+        and retrieval_goal != "listed_item_lookup"
+    ):
+        raise RuntimeError(
+            "founder live manager contract non-empty semantic_decision.listed_items "
+            "requires retrieval_goal='listed_item_lookup'"
+        )
 
 
 def validate_body_observation_scope_handoff(

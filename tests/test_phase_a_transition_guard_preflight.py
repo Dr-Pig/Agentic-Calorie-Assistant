@@ -81,6 +81,28 @@ def test_final_action_effect_policy_is_the_canonical_persistence_owner() -> None
     )
 
 
+def test_overshoot_note_with_manager_canonical_write_is_not_blocked_by_answer_only_preflight() -> None:
+    classification = classify_final_action_mutation(
+        manager_payload={
+            "final_action": "overshoot_note",
+            "semantic_decision": {
+                "semantic_authority": "manager_llm",
+                "current_turn_intent": "log_meal",
+                "final_action_candidate": "overshoot_note",
+                "mutation_intent_candidate": "canonical_write",
+            },
+        },
+        transition_guard_result=_transition_guard("answer_only"),
+        persistence_effect_actions={"overshoot_note"},
+    )
+
+    assert classification.mutation_like is True
+    assert classification.blocked is False
+    assert classification.mutation_effect_class == "ledger_mutation"
+    assert classification.transition_guard_verdict == "pass"
+    assert classification.transition_guard_reason == "manager_semantic_decision_authorized_mutation"
+
+
 def test_single_manager_prompt_names_commit_without_evidence_repair_tool() -> None:
     from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
 
@@ -122,6 +144,72 @@ def test_single_manager_prompt_uses_context_for_correction_and_named_removal() -
     assert "use operation='update_meal_components'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "do not use operation='correct_item'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "do not expose meal_thread_id" in SINGLE_MANAGER_SYSTEM_PROMPT
+
+
+def test_single_manager_prompt_keeps_chain_menu_set_meals_on_manager_owned_exact_lookup() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+    from app.runtime.agent.founder_live_manager_tool_description import (
+        founder_live_manager_tool_description,
+    )
+
+    tool_description = founder_live_manager_tool_description()
+
+    assert "named brand or chain menu set meal" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "include base_dish or product identity" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "retrieval_goal='exact_brand_lookup'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "do not downgrade it to a composition-unknown basket" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "named brand or chain menu set meal" in tool_description
+    assert "exact_brand_lookup" in tool_description
+
+
+def test_single_manager_prompt_keeps_listed_brand_combos_on_component_lookup() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+    from app.runtime.agent.founder_live_manager_tool_description import (
+        founder_live_manager_tool_description,
+    )
+
+    tool_description = founder_live_manager_tool_description()
+
+    assert "brand combo with user-listed components" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "listed-items rule has priority over exact brand lookup" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "listed_item_lookup" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "component list the user already supplied" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "brand combo with user-listed components" in tool_description
+    assert "do not repeat the component-list question" in tool_description
+
+
+def test_single_manager_prompt_forbids_exact_lookup_when_listed_items_are_present() -> None:
+    from app.runtime.agent.manager_branch_shapes import manager_semantic_decision_schema
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+    from app.runtime.agent.founder_live_manager_tool_description import (
+        founder_live_manager_tool_description,
+    )
+
+    tool_description = founder_live_manager_tool_description()
+    listed_items_description = manager_semantic_decision_schema()["properties"]["listed_items"]["description"]
+    retrieval_goal_description = manager_semantic_decision_schema()["properties"]["retrieval_goal"]["description"]
+
+    assert "If semantic_decision.listed_items is non-empty" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "retrieval_goal='listed_item_lookup'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "never exact_brand_lookup with non-empty listed_items" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "If semantic_decision.listed_items is non-empty" in tool_description
+    assert "never exact_brand_lookup with non-empty listed_items" in tool_description
+    assert "non-empty listed_items" in listed_items_description
+    assert "never exact_brand_lookup" in retrieval_goal_description
+    assert "combo plus concrete items" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "put the main item and named side/drink items in semantic_decision.listed_items" in (
+        SINGLE_MANAGER_SYSTEM_PROMPT
+    )
+    assert "combo plus concrete items" in tool_description
+
+
+def test_single_manager_prompt_explains_rejected_web_evidence_before_followup() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+
+    assert "wrong-context or rejected Web evidence" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "explain that the source was not used" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "wrong_context_source_rejected=true" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "source was not adopted" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
 def test_pending_followup_attach_guard_requests_repair_for_unresolved_draft_correction() -> None:

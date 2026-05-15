@@ -28,7 +28,7 @@ def test_golden_set_e2e_runner_can_select_holdout_extension_cases() -> None:
 
 
 def test_golden_set_recorded_websearch_ports_are_tool_data_only() -> None:
-    search_port, extract_port = _recorded_websearch_ports_for_case("GSW1")
+    search_port, extract_port = _recorded_websearch_ports_for_case("GSW2")
 
     assert search_port is not None
     assert extract_port is not None

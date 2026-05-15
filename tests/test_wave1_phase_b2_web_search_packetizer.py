@@ -175,6 +175,33 @@ def test_official_wrong_item_candidate_is_no_match_and_rejected() -> None:
     assert result.rejected_candidates[0]["risk_type"] == "wrong_item"
 
 
+def test_tw_menu_fries_alias_matches_same_component_item() -> None:
+    intent = _intent(
+        base_dish="中薯條",
+        alias="麥當勞 中薯條",
+        brand_hint="麥當勞",
+    )
+    candidate = _candidate(
+        candidate_id="web_search_candidate:mcdonalds_medium_fries_alias",
+        title="麥當勞 中薯 McDonalds medium fries nutrition",
+        url="https://mcdonalds.example/menu/medium-fries",
+        query="麥當勞 中薯條",
+        brand_detected="麥當勞",
+        serving_basis_candidate="per_item",
+        identity_confidence="high",
+        raw_ref="raw/tavily/mcdonalds_medium_fries_alias.json#0",
+    )
+
+    packet = build_web_search_candidate_packet(intent, candidate)
+    rechecked = add_hard_recheck_metadata(packet)
+    result = consume_rechecked_packets((rechecked,))
+
+    assert packet["match_type"] == "exact"
+    assert packet["sibling_variant_risk"] == {"present": False, "reason": None}
+    assert rechecked["supports_exact_claim"] is True
+    assert result.accepted_packets[0]["accepted_usage"] == "exact"
+
+
 def test_official_same_item_name_from_different_brand_is_no_match() -> None:
     intent = _intent(
         base_dish="pearl black tea latte",

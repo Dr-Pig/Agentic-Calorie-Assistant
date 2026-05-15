@@ -56,6 +56,25 @@ def test_official_source_with_license_and_serving_basis_is_extract_candidate_onl
     assert classification["cache_allowed"] is True
 
 
+def test_official_component_menu_page_is_extract_candidate_only() -> None:
+    classification = classify_websearch_source_candidate(
+        {
+            "source_url": "https://brand.example/menu/fries",
+            "source_class": "brand_menu_component_page",
+            "license_status": "public_menu_page",
+            "robots_status": "allowed",
+            "identity_confidence": "high",
+            "serving_basis_candidate": "per_item",
+            "nutrition_fields_present": ["kcal"],
+        }
+    )
+
+    assert classification["candidate_class"] == "exact_candidate_for_extract_review"
+    assert classification["extract_candidate_allowed"] is True
+    assert classification["runtime_truth_allowed"] is False
+    assert classification["packet_ready_truth_allowed"] is False
+
+
 def test_unknown_license_or_robots_blocks_extract_candidate() -> None:
     classification = classify_websearch_source_candidate(
         {

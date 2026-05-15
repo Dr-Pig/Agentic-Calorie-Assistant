@@ -130,6 +130,29 @@ def test_contract_repair_message_maps_listed_lookup_to_manager_owned_listed_item
     assert "Manager" in message
 
 
+def test_contract_repair_message_maps_nonempty_listed_items_to_listed_lookup() -> None:
+    message = contract_repair_message(
+        {
+            "error": (
+                "founder live manager contract non-empty semantic_decision.listed_items "
+                "requires retrieval_goal='listed_item_lookup'"
+            ),
+            "observed_value": {
+                "intent_type": "log_meal",
+                "semantic_decision": {
+                    "current_turn_intent": "log_meal",
+                    "retrieval_goal": "exact_brand_lookup",
+                    "listed_items": ["Big Mac", "medium fries"],
+                },
+            },
+        }
+    )
+
+    assert "semantic_decision.listed_items" in message
+    assert "retrieval_goal='listed_item_lookup'" in message
+    assert "do not discard listed items" in message
+
+
 def _schema_key_count(value: object, key: str) -> int:
     if isinstance(value, dict):
         return sum(1 for item_key in value if item_key == key) + sum(
@@ -1219,6 +1242,47 @@ def test_founder_live_contract_rejects_listed_item_lookup_without_manager_owned_
         adapter._validate_manager_payload("intake_manager_round", payload, constraints=constraints)
 
     payload["semantic_decision"]["listed_items"] = ["鐵板麵", "荷包蛋", "豬肉片"]
+
+    adapter._validate_manager_payload("intake_manager_round", payload, constraints=constraints)
+
+
+def test_founder_live_contract_rejects_nonempty_listed_items_with_exact_lookup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        "manager_contract_profile_id": "founder_live_contract",
+        "manager_contract_schema_name": "founder_live_manager_contract",
+        "manager_contract_schema_version": "v1",
+        "manager_contract_transport_policy": "synthetic_tool_transport",
+        "manager_loop_scope": "turn_entry_or_read_only",
+        "available_tools": [],
+    }
+    payload = _founder_live_payload(
+        manager_action="final",
+        intent_type="log_meal",
+        final_action="no_commit",
+        workflow_effect="route_to_intake",
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {},
+            "workflow_effect": "route_to_intake",
+            "final_action_candidate": "commit",
+            "estimation_posture": "pending_tool_call",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "canonical_write",
+            "uncertainty_posture": "bounded",
+            "source": "live_manager_structured_output",
+            "retrieval_goal": "exact_brand_lookup",
+            "listed_items": ["Big Mac", "medium fries", "medium Coke"],
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="non-empty semantic_decision.listed_items"):
+        adapter._validate_manager_payload("intake_manager_round", payload, constraints=constraints)
+
+    payload["semantic_decision"]["retrieval_goal"] = "listed_item_lookup"
 
     adapter._validate_manager_payload("intake_manager_round", payload, constraints=constraints)
 

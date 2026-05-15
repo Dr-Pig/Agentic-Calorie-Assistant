@@ -28,10 +28,19 @@ _ALLOWED_CONFIDENCE = {"high", "medium", "low", "unknown"}
 _ALLOWED_QUALITY_HINTS = {"high", "medium", "low", "unknown"}
 _BRAND_ALIASES = {
     "starbucks": "星巴克",
+    "matsuya": "松屋",
+    "mcdonalds": "麥當勞",
+    "mcdonald": "麥當勞",
+    "mcdonald's": "麥當勞",
 }
 _KNOWN_BRAND_MARKERS = (
     ("starbucks", "星巴克"),
     ("星巴克", "星巴克"),
+    ("matsuya", "松屋"),
+    ("松屋", "松屋"),
+    ("mcdonalds", "麥當勞"),
+    ("mcdonald", "麥當勞"),
+    ("麥當勞", "麥當勞"),
 )
 
 

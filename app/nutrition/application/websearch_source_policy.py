@@ -7,6 +7,7 @@ from typing import Any, Mapping
 TRUSTED_SOURCE_CLASSES = {
     "official_brand_or_chain_page",
     "brand_menu_page",
+    "brand_menu_component_page",
     "official_nutrition_pdf",
 }
 
