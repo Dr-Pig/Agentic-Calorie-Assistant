@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import json
 import os
 from pathlib import Path
@@ -268,6 +268,20 @@ def _seed_case_state(
                 local_date=local_date,
                 source_request_id=f"{case.get('case_id')}-seed-meal",
             )
+        if seed_state.get("current_day_meals") == "recent_and_named_slot_meals":
+            _seed_recent_and_named_slot_meals(
+                db,
+                user_id=user.id,
+                local_date=local_date,
+                source_request_id=f"{case.get('case_id')}-seed-current-day",
+            )
+        if seed_state.get("current_day_meals") == "two_breakfast_candidates":
+            _seed_two_breakfast_candidate_meals(
+                db,
+                user_id=user.id,
+                local_date=local_date,
+                source_request_id=f"{case.get('case_id')}-seed-current-day",
+            )
         db.commit()
     finally:
         db.close()
@@ -279,11 +293,201 @@ def _seed_committed_teppan_context_meal(
     user_id: int,
     local_date: str,
     source_request_id: str,
+    occurred_at: datetime | None = None,
 ) -> None:
     """Seed read-model state only; never decide the Golden case semantics."""
 
-    created_at = utcnow()
     meal_title = "\u65e9\u9910\u5e97\u9435\u677f\u9eb5\u5957\u9910"
+    _seed_committed_context_meal(
+        db,
+        user_id=user_id,
+        local_date=local_date,
+        source_request_id=source_request_id,
+        meal_title=meal_title,
+        raw_input="\u65e9\u9910\u5e97\u9435\u677f\u9eb5\u5957\u9910\uff0c\u542b\u9435\u677f\u9eb5\u3001\u8377\u5305\u86cb\u3001\u8c6c\u8089\u7247",
+        total_kcal=620,
+        protein_g=24,
+        carb_g=70,
+        fat_g=22,
+        items=[
+            {
+                "name": "\u9435\u677f\u9eb5",
+                "quantity_hint": "1 \u4efd",
+                "source": "fooddb",
+                "evidence_role": "component",
+                "estimate_basis": "fooddb_generic_component",
+                "confidence_tier": "medium",
+                "estimated_kcal": 420,
+                "protein_g": 10,
+                "carb_g": 62,
+                "fat_g": 14,
+                "evidence_ids_json": ["gs-seed-teppan-noodles"],
+            },
+            {
+                "name": "\u8377\u5305\u86cb",
+                "quantity_hint": "1 \u9846",
+                "source": "fooddb",
+                "evidence_role": "component",
+                "estimate_basis": "fooddb_component",
+                "confidence_tier": "high",
+                "estimated_kcal": 90,
+                "protein_g": 6,
+                "carb_g": 1,
+                "fat_g": 7,
+                "evidence_ids_json": ["gs-seed-fried-egg"],
+            },
+            {
+                "name": "\u8c6c\u8089\u7247",
+                "quantity_hint": "\u5c0f\u4efd",
+                "source": "fooddb",
+                "evidence_role": "component",
+                "estimate_basis": "fooddb_component",
+                "confidence_tier": "medium",
+                "estimated_kcal": 110,
+                "protein_g": 8,
+                "carb_g": 7,
+                "fat_g": 1,
+                "evidence_ids_json": ["gs-seed-pork-slices"],
+            },
+        ],
+        occurred_at=occurred_at,
+    )
+
+
+def _seed_recent_and_named_slot_meals(
+    db: Session,
+    *,
+    user_id: int,
+    local_date: str,
+    source_request_id: str,
+) -> None:
+    created_at = utcnow()
+    _seed_committed_teppan_context_meal(
+        db,
+        user_id=user_id,
+        local_date=local_date,
+        source_request_id=f"{source_request_id}-breakfast",
+        occurred_at=created_at - timedelta(hours=4),
+    )
+    _seed_committed_context_meal(
+        db,
+        user_id=user_id,
+        local_date=local_date,
+        source_request_id=f"{source_request_id}-recent",
+        meal_title="\u5348\u9910\u96de\u8089\u98ef",
+        raw_input="\u5348\u9910\u5403\u96de\u8089\u98ef\u548c\u9752\u83dc",
+        total_kcal=560,
+        protein_g=28,
+        carb_g=72,
+        fat_g=14,
+        items=[
+            {
+                "name": "\u96de\u8089\u98ef",
+                "quantity_hint": "1 \u7897",
+                "source": "fooddb",
+                "evidence_role": "component",
+                "estimate_basis": "fooddb_generic_component",
+                "confidence_tier": "medium",
+                "estimated_kcal": 520,
+                "protein_g": 26,
+                "carb_g": 70,
+                "fat_g": 13,
+                "evidence_ids_json": ["gs-seed-chicken-rice"],
+            },
+            {
+                "name": "\u9752\u83dc",
+                "quantity_hint": "\u5c0f\u4efd",
+                "source": "fooddb",
+                "evidence_role": "component",
+                "estimate_basis": "fooddb_component",
+                "confidence_tier": "medium",
+                "estimated_kcal": 40,
+                "protein_g": 2,
+                "carb_g": 2,
+                "fat_g": 1,
+                "evidence_ids_json": ["gs-seed-greens"],
+            },
+        ],
+        occurred_at=created_at - timedelta(hours=1),
+    )
+
+
+def _seed_two_breakfast_candidate_meals(
+    db: Session,
+    *,
+    user_id: int,
+    local_date: str,
+    source_request_id: str,
+) -> None:
+    created_at = utcnow()
+    _seed_committed_teppan_context_meal(
+        db,
+        user_id=user_id,
+        local_date=local_date,
+        source_request_id=f"{source_request_id}-teppan",
+        occurred_at=created_at - timedelta(hours=5),
+    )
+    _seed_committed_context_meal(
+        db,
+        user_id=user_id,
+        local_date=local_date,
+        source_request_id=f"{source_request_id}-riceball",
+        meal_title="\u65e9\u9910\u98ef\u7cf0",
+        raw_input="\u65e9\u9910\u5403\u98ef\u7cf0\u548c\u8c46\u6f3f",
+        total_kcal=430,
+        protein_g=13,
+        carb_g=65,
+        fat_g=12,
+        items=[
+            {
+                "name": "\u98ef\u7cf0",
+                "quantity_hint": "1 \u9846",
+                "source": "fooddb",
+                "evidence_role": "component",
+                "estimate_basis": "fooddb_generic_component",
+                "confidence_tier": "medium",
+                "estimated_kcal": 360,
+                "protein_g": 8,
+                "carb_g": 60,
+                "fat_g": 10,
+                "evidence_ids_json": ["gs-seed-riceball"],
+            },
+            {
+                "name": "\u7121\u7cd6\u8c46\u6f3f",
+                "quantity_hint": "1 \u676f",
+                "source": "fooddb",
+                "evidence_role": "component",
+                "estimate_basis": "fooddb_component",
+                "confidence_tier": "medium",
+                "estimated_kcal": 70,
+                "protein_g": 5,
+                "carb_g": 5,
+                "fat_g": 2,
+                "evidence_ids_json": ["gs-seed-soymilk"],
+            },
+        ],
+        occurred_at=created_at - timedelta(hours=3),
+    )
+
+
+def _seed_committed_context_meal(
+    db: Session,
+    *,
+    user_id: int,
+    local_date: str,
+    source_request_id: str,
+    meal_title: str,
+    raw_input: str,
+    total_kcal: int,
+    protein_g: int,
+    carb_g: int,
+    fat_g: int,
+    items: list[dict[str, Any]],
+    occurred_at: datetime | None = None,
+) -> None:
+    """Seed committed read-model state only; the Manager still owns all case semantics."""
+
+    created_at = occurred_at or utcnow()
     thread = MealThreadRecord(
         user_id=user_id,
         title=meal_title,
@@ -301,15 +505,15 @@ def _seed_committed_teppan_context_meal(
         reason_payload_json={"fixture_state_only": True, "semantic_authority": False},
         resolution_status="completed_meal",
         meal_title=meal_title,
-        raw_input="\u65e9\u9910\u5e97\u9435\u677f\u9eb5\u5957\u9910\uff0c\u542b\u9435\u677f\u9eb5\u3001\u8377\u5305\u86cb\u3001\u8c6c\u8089\u7247",
+        raw_input=raw_input,
         source_request_id=source_request_id,
         manager_intent="seeded_prior_committed_meal",
         local_date=local_date,
         occurred_at=created_at,
-        total_kcal=620,
-        protein_g=24,
-        carb_g=70,
-        fat_g=22,
+        total_kcal=total_kcal,
+        protein_g=protein_g,
+        carb_g=carb_g,
+        fat_g=fat_g,
         created_at=created_at,
     )
     db.add(version)
@@ -318,51 +522,24 @@ def _seed_committed_teppan_context_meal(
     db.add_all(
         [
             thread,
-            MealItemRecord(
-                meal_version_id=version.id,
-                item_index=0,
-                name="\u9435\u677f\u9eb5",
-                quantity_hint="1 \u4efd",
-                source="fooddb",
-                evidence_role="component",
-                estimate_basis="fooddb_generic_component",
-                confidence_tier="medium",
-                estimated_kcal=420,
-                protein_g=10,
-                carb_g=62,
-                fat_g=14,
-                evidence_ids_json=["gs-seed-teppan-noodles"],
-            ),
-            MealItemRecord(
-                meal_version_id=version.id,
-                item_index=1,
-                name="\u8377\u5305\u86cb",
-                quantity_hint="1 \u9846",
-                source="fooddb",
-                evidence_role="component",
-                estimate_basis="fooddb_component",
-                confidence_tier="high",
-                estimated_kcal=90,
-                protein_g=6,
-                carb_g=1,
-                fat_g=7,
-                evidence_ids_json=["gs-seed-fried-egg"],
-            ),
-            MealItemRecord(
-                meal_version_id=version.id,
-                item_index=2,
-                name="\u8c6c\u8089\u7247",
-                quantity_hint="\u5c0f\u4efd",
-                source="fooddb",
-                evidence_role="component",
-                estimate_basis="fooddb_component",
-                confidence_tier="medium",
-                estimated_kcal=110,
-                protein_g=8,
-                carb_g=7,
-                fat_g=1,
-                evidence_ids_json=["gs-seed-pork-slices"],
-            ),
+            *[
+                MealItemRecord(
+                    meal_version_id=version.id,
+                    item_index=index,
+                    name=str(item.get("name") or ""),
+                    quantity_hint=str(item.get("quantity_hint") or ""),
+                    source=str(item.get("source") or "fooddb"),
+                    evidence_role=str(item.get("evidence_role") or "component"),
+                    estimate_basis=str(item.get("estimate_basis") or "fooddb_component"),
+                    confidence_tier=str(item.get("confidence_tier") or "medium"),
+                    estimated_kcal=int(item.get("estimated_kcal") or 0),
+                    protein_g=int(item.get("protein_g") or 0),
+                    carb_g=int(item.get("carb_g") or 0),
+                    fat_g=int(item.get("fat_g") or 0),
+                    evidence_ids_json=list(_list(item.get("evidence_ids_json"))),
+                )
+                for index, item in enumerate(items)
+            ],
         ]
     )
 

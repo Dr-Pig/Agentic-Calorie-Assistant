@@ -121,6 +121,32 @@ def _thread_level_correction_candidate(*, meal_thread_id: int, meal_version_id: 
     )
 
 
+def _whole_meal_removal_candidate(*, meal_thread_id: int, meal_version_id: int) -> CommitRequestCandidate:
+    return CommitRequestCandidate(
+        request_id="correction-uow-remove-meal",
+        manager_intent="food_estimation",
+        meal_thread_id=meal_thread_id,
+        version_reason="correction",
+        meal_title="lunch plate",
+        raw_input="remove that lunch entry",
+        estimated_kcal=0,
+        protein_g=0,
+        carb_g=0,
+        fat_g=0,
+        resolution_status="completed_meal",
+        local_date="2026-05-02",
+        items=[],
+        trace_ref={
+            "correction_operation": "remove_meal",
+            "correction_target_ref": {
+                "meal_thread_id": meal_thread_id,
+                "meal_version_id": meal_version_id,
+                "operation": "remove_meal",
+            },
+        },
+    )
+
+
 def _items_for_version(db: Session, version_id: int) -> list[MealItemRecord]:
     return db.execute(
         select(MealItemRecord)
@@ -291,6 +317,41 @@ def test_explicit_item_removal_creates_new_version_without_deleting_thread_or_no
     ledger = db.execute(select(DayBudgetLedgerRecord)).scalar_one()
     assert ledger.consumed_kcal == 150
     assert ledger.remaining_kcal == 1650
+
+
+def test_whole_meal_removal_supersedes_active_version_and_excludes_it_from_ledger() -> None:
+    db = _session()
+    user = get_or_create_user(db, "correction-uow-remove-meal")
+    initial = commit_meal_payload_to_canonical(db, user=user, candidate=_initial_candidate(), budget_kcal=1800)
+    assert initial is not None
+
+    removal = commit_meal_payload_to_canonical(
+        db,
+        user=user,
+        candidate=_whole_meal_removal_candidate(
+            meal_thread_id=initial.meal_thread_id,
+            meal_version_id=initial.meal_version_id,
+        ),
+        budget_kcal=1800,
+    )
+
+    assert removal is not None
+    assert removal.superseded_version_id == initial.meal_version_id
+    assert removal.consumed_kcal == 0
+    thread = db.get(MealThreadRecord, initial.meal_thread_id)
+    assert thread is not None
+    assert thread.active_version_id == removal.meal_version_id
+    old_version = db.get(MealVersionRecord, initial.meal_version_id)
+    assert old_version is not None
+    assert old_version.version_status == "superseded"
+    removal_version = db.get(MealVersionRecord, removal.meal_version_id)
+    assert removal_version is not None
+    assert removal_version.version_status == "removed"
+    assert removal_version.resolution_status == "removed_meal"
+    assert _items_for_version(db, removal.meal_version_id) == []
+    ledger = db.execute(select(DayBudgetLedgerRecord)).scalar_one()
+    assert ledger.consumed_kcal == 0
+    assert ledger.remaining_kcal == 1800
 
 
 def test_raw_text_remove_without_structured_operation_does_not_remove_item() -> None:

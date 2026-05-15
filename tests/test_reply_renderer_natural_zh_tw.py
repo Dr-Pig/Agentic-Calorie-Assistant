@@ -117,6 +117,40 @@ def test_render_correction_reply_uses_natural_zh_tw_and_states_update() -> None:
     _assert_no_internal_words(text)
 
 
+def test_render_correction_removal_prefers_manager_visible_reply_over_target_evidence_payload() -> None:
+    payload = EstimatePayload(
+        request_id="reply-renderer-remove-meal",
+        meal_title="remove 早餐店鐵板麵套餐",
+        estimated_kcal=0,
+        protein_g=0,
+        carb_g=0,
+        fat_g=0,
+        reply_text="Removed the selected item.",
+        action_taken="correction_applied",
+        route_target="direct_answer",
+        source_decision="ready",
+        trace_contract={
+            "correction_operation": "remove_meal",
+            "target_evidence_contract": {
+                "evidence_type": "target_evidence",
+                "nutrition_evidence_required": False,
+            },
+        },
+    )
+
+    text = render_intake_reply(
+        intent_type="correct_meal",
+        nutrition_payload=payload,
+        persistence_result=_persistence_result(),
+        manager_final_action="correction_applied",
+        remaining_budget=_remaining_budget(remaining_kcal=1180),
+        manager_answer_contract={"reply_text": "已刪除早餐那筆記錄。"},
+    )
+
+    assert text == "已刪除早餐那筆記錄。"
+    _assert_no_internal_words(text)
+
+
 def test_render_no_commit_reply_is_user_facing_zh_tw() -> None:
     text = render_intake_reply(
         intent_type="log_meal",

@@ -6,11 +6,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.budget.infrastructure.models import LedgerEntryRecord
-from app.intake.infrastructure.models import (
-    LegacyMealLogMapRecord,
-    MealThreadRecord,
-    MealVersionRecord,
-)
+from app.intake.infrastructure.models import LegacyMealLogMapRecord, MealThreadRecord, MealVersionRecord
 from app.schemas import CommitRequestCandidate, EstimatePayload
 from app.shared.infra.models import User
 
@@ -31,6 +27,10 @@ from .canonical_commit_support import (
 )
 from .canonical_commit_support import (
     resolved_occurred_at as _resolved_occurred_at,
+)
+from .canonical_meal_removal_persistence import (
+    candidate_requests_whole_meal_removal,
+    remove_meal_thread_from_canonical,
 )
 from .canonical_meal_item_persistence import (
     candidate_with_item_removal_totals,
@@ -102,6 +102,16 @@ def commit_meal_payload_to_canonical(
         assert raw_input is not None or candidate.raw_input
     source_payload = payload
     candidate = candidate_with_item_removal_totals(db, candidate)
+
+    if candidate_requests_whole_meal_removal(candidate):
+        return remove_meal_thread_from_canonical(
+            db,
+            user=user,
+            candidate=candidate,
+            latest_log_id=latest_log_id,
+            persisted_log_id=persisted_log_id,
+            budget_kcal=budget_kcal,
+        )
 
     if candidate.estimated_kcal <= 0:
         return None

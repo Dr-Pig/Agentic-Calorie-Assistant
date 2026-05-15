@@ -5,11 +5,13 @@ from typing import Any
 
 from app.composition.current_shell_golden_set_request_trace_outcomes import (
     approved_nutrition_evidence_present,
-    dogfood_trace_from_request_trace,
     latency_from_request_trace,
-    response_from_request_trace,
     runtime_from_request_trace,
     ui_from_request_trace,
+)
+from app.composition.current_shell_golden_set_response_projection import (
+    dogfood_trace_from_request_trace,
+    response_from_request_trace,
 )
 from app.composition.current_shell_golden_set_request_trace_sources import (
     compact_packets,

@@ -73,6 +73,53 @@ def test_manager_target_validator_accepts_manager_owned_thread_level_correction(
     assert resolved["manager_target_proposal_validation"]["truth_owner"] == "deterministic_target_validator"
 
 
+def test_manager_target_validator_accepts_manager_selected_recent_thread_candidate() -> None:
+    resolved = validate_manager_target_proposal(
+        correction_target={
+            "meal_thread_id": 22,
+            "meal_version_id": 33,
+            "target_resolution_source": "active_meal_view",
+            "thread_candidates": [
+                {"meal_thread_id": 11, "meal_version_id": 12, "meal_title": "breakfast teppan set"},
+                {"meal_thread_id": 22, "meal_version_id": 33, "meal_title": "lunch chicken rice"},
+            ],
+        },
+        proposal={
+            "meal_thread_id": 11,
+            "operation": "remove_meal",
+            "target_proposal_source": "manager_result.semantic_decision.target_attachment",
+        },
+    )
+
+    assert resolved["meal_thread_id"] == 11
+    assert resolved["meal_version_id"] == 12
+    assert resolved["operation"] == "remove_meal"
+    assert resolved["target_resolution_source"] == "manager_target_proposal_validated"
+    assert resolved["manager_target_proposal_validation"]["status"] == "accepted"
+
+
+def test_manager_target_validator_rejects_whole_meal_removal_without_manager_selected_thread_id() -> None:
+    resolved = validate_manager_target_proposal(
+        correction_target={
+            "meal_thread_id": 22,
+            "meal_version_id": 33,
+            "target_resolution_source": "active_meal_view",
+            "thread_candidates": [
+                {"meal_thread_id": 11, "meal_version_id": 12, "meal_title": "breakfast teppan set"},
+                {"meal_thread_id": 22, "meal_version_id": 33, "meal_title": "lunch chicken rice"},
+            ],
+        },
+        proposal={
+            "meal_title": "breakfast",
+            "operation": "remove_meal",
+            "target_proposal_source": "manager_result.semantic_decision.target_attachment",
+        },
+    )
+
+    assert resolved["manager_target_proposal_validation"]["status"] == "rejected"
+    assert resolved["manager_target_proposal_validation"]["failure_family"] == "manager_thread_target_proposal_not_found"
+
+
 def test_manager_target_validator_does_not_treat_thread_id_as_remove_item_target() -> None:
     resolved = validate_manager_target_proposal(
         correction_target={

@@ -13,6 +13,7 @@ from app.intake.infrastructure.models import MealItemRecord
 from app.shared.contracts.common import EstimateRequest
 from app.shared.contracts.correction_operation import (
     structured_correction_operation,
+    structured_payload_requests_remove_meal,
     structured_payload_requests_remove_item,
 )
 from app.shared.contracts.correction_target import validate_correction_target_ref
@@ -23,9 +24,18 @@ def remove_item_target_evidence_ready(*, manager_payload: dict[str, Any], correc
     if str(manager_payload.get("final_action") or "") != "correction_applied":
         return False
     target_operation = structured_correction_operation(correction_target)
-    if not structured_payload_requests_remove_item(manager_payload) and target_operation != "remove_item":
+    manager_requests_remove_item = structured_payload_requests_remove_item(manager_payload)
+    manager_requests_remove_meal = structured_payload_requests_remove_meal(manager_payload)
+    if manager_requests_remove_item or target_operation == "remove_item":
+        required_operation = "remove_item"
+    elif manager_requests_remove_meal or target_operation == "remove_meal":
+        required_operation = "remove_meal"
+    else:
         return False
-    return validate_correction_target_ref(correction_target).get("resolved") is True
+    validation = validate_correction_target_ref(correction_target)
+    if validation.get("resolved") is not True:
+        return False
+    return str(validation.get("operation") or target_operation or "") == required_operation
 
 
 def _remaining_item_totals_after_target_removal(
@@ -85,14 +95,29 @@ def build_remove_item_target_evidence_artifact(
         provider=type("TargetEvidenceRemovalProvider", (), {"readiness": lambda self: {"configured": False}})(),
     )
     target_validation = validate_correction_target_ref(correction_target)
+    operation = str(target_validation.get("operation") or structured_correction_operation(correction_target) or "remove_item")
     canonical_name = str(target_validation.get("canonical_name") or correction_target.get("canonical_name") or "").strip()
-    remaining_totals = _remaining_item_totals_after_target_removal(
-        db,
-        target_item_id=target_validation.get("meal_item_id"),
-    )
+    if operation == "remove_meal":
+        remaining_totals = {
+            "estimated_kcal": 0,
+            "protein_g": 0,
+            "carb_g": 0,
+            "fat_g": 0,
+            "remaining_item_names": [],
+            "removed_item_name": correction_target.get("meal_title") or canonical_name or "meal",
+        }
+        meal_title = f"remove {remaining_totals['removed_item_name']}".strip()
+        kcal_source = "whole_meal_removal"
+    else:
+        remaining_totals = _remaining_item_totals_after_target_removal(
+            db,
+            target_item_id=target_validation.get("meal_item_id"),
+        )
+        meal_title = f"remove {canonical_name}".strip() or "remove item"
+        kcal_source = "canonical_remaining_items"
     payload = EstimatePayload(
         request_id=request_id,
-        meal_title=f"remove {canonical_name}".strip() or "remove item",
+        meal_title=meal_title or "remove item",
         estimated_kcal=int(remaining_totals["estimated_kcal"]),
         protein_g=int(remaining_totals["protein_g"]),
         carb_g=int(remaining_totals["carb_g"]),
@@ -101,17 +126,24 @@ def build_remove_item_target_evidence_artifact(
         answer_mode="direct_answer",
         action_taken="correction_applied",
         route_target="direct_answer",
-        reply_text="Removed the selected item.",
+        reply_text="",
         trace_contract={
             "local_date": local_date,
             "occurred_at": f"{local_date}T12:00:00+08:00",
             "timezone": "Asia/Taipei",
-            "correction_operation": "remove_item",
+            "correction_operation": operation,
             "correction_operation_source": "manager_structured_decision",
             "correction_target_ref": {
                 "meal_thread_id": target_validation.get("meal_thread_id"),
+                "meal_version_id": target_validation.get("meal_version_id"),
                 "meal_item_id": target_validation.get("meal_item_id"),
                 "canonical_name": canonical_name,
+                "operation": operation,
+            },
+            "canonical_write_decision": {
+                "can_write_canonical": True,
+                "source": "validated_target_evidence",
+                "mutation_intent_candidate": "correction_write",
             },
             "canonical_remaining_item_totals": remaining_totals,
             "target_evidence_contract": {
@@ -120,7 +152,7 @@ def build_remove_item_target_evidence_artifact(
                 "nutrition_evidence_required": False,
                 "nutrition_evidence_present": False,
                 "target_evidence_is_nutrition_evidence": False,
-                "kcal_source": "canonical_remaining_items",
+                "kcal_source": kcal_source,
                 "placeholder_kcal_used": False,
                 "manager_semantic_decision": dict(manager_semantic_decision or {}),
             },

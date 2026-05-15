@@ -11,6 +11,7 @@ from app.composition.intake_tool_context import (
     correction_target_resolved,
 )
 from app.composition.intake_read_tools import compare_against_budget_tool
+from app.composition.intake_manager_target_candidates import thread_target_candidates
 from app.composition.intake_tool_evidence_summary import (
     evidence_summary,
     macro_summary,
@@ -39,13 +40,19 @@ def validate_manager_target_proposal(
     operation = structured_correction_operation(proposal)
     proposed_thread_id = proposal.get("meal_thread_id") or proposal.get("target_object_id")
     if structured_payload_requests_thread_level_correction(proposal):
-        current_thread_id = correction_target.get("meal_thread_id")
-        thread_matches = proposed_thread_id is not None and current_thread_id is not None and str(proposed_thread_id) == str(current_thread_id)
-        if thread_matches:
+        thread_candidates = thread_target_candidates(correction_target)
+        matched_thread = None
+        if proposed_thread_id is not None:
+            for candidate in thread_candidates:
+                if str(candidate.get("meal_thread_id")) == str(proposed_thread_id):
+                    matched_thread = candidate
+                    break
+        if matched_thread is not None:
             return {
                 **dict(correction_target),
-                "meal_thread_id": current_thread_id,
-                "meal_version_id": correction_target.get("meal_version_id"),
+                "meal_thread_id": matched_thread.get("meal_thread_id"),
+                "meal_version_id": matched_thread.get("meal_version_id"),
+                "meal_title": matched_thread.get("meal_title") or correction_target.get("meal_title"),
                 "operation": operation,
                 "correction_operation": operation,
                 "target_resolution_source": "manager_target_proposal_validated",
@@ -104,7 +111,6 @@ def validate_manager_target_proposal(
             "proposal_source": str(proposal.get("target_proposal_source") or "manager_structured_output"),
         },
     }
-
 
 def attach_correction_target_ref_to_payload(
     *,
@@ -194,9 +200,7 @@ def apply_final_action_to_payload(
     answer_contract = dict(manager_answer_contract or {})
     semantic_decision = dict(manager_semantic_decision or {})
     target_attachment = dict(semantic_decision.get("target_attachment") or {})
-    correction_operation = str(
-        answer_contract.get("correction_operation") or target_attachment.get("correction_operation") or ""
-    ).strip()
+    correction_operation = str(answer_contract.get("correction_operation") or answer_contract.get("operation") or target_attachment.get("correction_operation") or target_attachment.get("operation") or "").strip()
     if correction_operation:
         trace_contract["correction_operation"] = correction_operation
         trace_contract["correction_operation_source"] = "manager_structured_decision"

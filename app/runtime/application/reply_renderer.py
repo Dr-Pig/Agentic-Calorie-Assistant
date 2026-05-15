@@ -79,6 +79,17 @@ def _user_provided_kcal_reply(*, nutrition_payload: Any, remaining_budget: Any |
     return "".join(parts)
 
 
+def _manager_visible_reply(manager_answer_contract: dict[str, Any] | None) -> str:
+    if not isinstance(manager_answer_contract, dict):
+        return ""
+    return str(manager_answer_contract.get("reply_text") or "").strip()
+
+
+def _correction_operation(nutrition_payload: Any) -> str:
+    trace_contract = dict(getattr(nutrition_payload, "trace_contract", {}) or {})
+    return str(trace_contract.get("correction_operation") or "").strip()
+
+
 def render_intake_reply(
     *,
     intent_type: str,
@@ -88,6 +99,7 @@ def render_intake_reply(
     nutrition_payload: Any | None = None,
     persistence_result: Any | None = None,
     manager_final_action: str | None = None,
+    manager_answer_contract: dict[str, Any] | None = None,
     budget_summary: dict[str, Any] | None = None,
 ) -> str:
     if intent_type == "complete_onboarding" and onboarding_result is not None:
@@ -118,6 +130,9 @@ def render_intake_reply(
     if intent_type in {"log_meal", "correct_meal"} and nutrition_payload is not None:
         if manager_final_action == "no_commit":
             return "這次我沒有記錄到日記裡。你可以再補一句餐點內容，我再幫你估。"
+        manager_reply = _manager_visible_reply(manager_answer_contract)
+        if manager_final_action == "correction_applied" and manager_reply:
+            return manager_reply
         if dict(getattr(nutrition_payload, "trace_contract", {}) or {}).get("source_basis") == "user_provided_kcal":
             return _user_provided_kcal_reply(
                 nutrition_payload=nutrition_payload,
@@ -182,6 +197,11 @@ def render_intake_reply(
             and getattr(nutrition_payload, "reply_text", None)
         ):
             return str(nutrition_payload.reply_text)
+        if manager_final_action == "correction_applied" and _correction_operation(nutrition_payload) in {
+            "remove_item",
+            "remove_meal",
+        }:
+            return "已更新該筆餐點記錄。"
         if getattr(nutrition_payload, "reply_text", None):
             return str(nutrition_payload.reply_text)
         meal_title = nutrition_payload.meal_title or "meal"

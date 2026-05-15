@@ -12,7 +12,7 @@ from app.runtime.agent.manager_system_prompt import (
 
 
 def test_remove_item_target_evidence_reuse_is_static_prompt_policy() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v29"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v30"
     assert "target_evidence_present=true" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "target_evidence_operation='remove_item'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "do not call resolve_correction_target again" in SINGLE_MANAGER_SYSTEM_PROMPT
@@ -28,6 +28,20 @@ def test_remove_item_target_evidence_reuse_is_static_prompt_policy() -> None:
     assert "not nutrition pending_tool_call" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
+def test_whole_meal_removal_is_static_prompt_policy_without_deterministic_semantics() -> None:
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v30"
+    assert "operation='remove_meal'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "whole meal, meal entry, or named meal slot deletion" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "Manager-selected meal_thread_id" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "do not let a stale pending follow-up override the explicit current-turn target" in (
+        SINGLE_MANAGER_SYSTEM_PROMPT
+    )
+    assert "runtime validates that selected thread id against context candidates" in (
+        SINGLE_MANAGER_SYSTEM_PROMPT
+    )
+    assert "must not infer remove_meal from raw text" in SINGLE_MANAGER_SYSTEM_PROMPT
+
+
 def test_remove_item_target_evidence_reuse_is_tool_schema_policy() -> None:
     description = founder_live_manager_tool_description()
     assert "target_evidence_present is true" in description
@@ -36,10 +50,25 @@ def test_remove_item_target_evidence_reuse_is_tool_schema_policy() -> None:
     assert "deterministic raw text routing" in description
 
 
+def test_whole_meal_removal_is_tool_schema_policy() -> None:
+    description = founder_live_manager_tool_description()
+
+    assert "target_evidence_operation remove_meal" in description
+    assert "versioned whole-meal removal" in description
+    assert "Manager-selected meal_thread_id" in description
+    assert "deterministic raw text routing" in description
+
+
 def test_remove_item_target_evidence_reuse_is_evidence_instruction_policy() -> None:
     assert "manager_contract_evidence_state.target_evidence_present=true" in FOUNDER_LIVE_MANAGER_EVIDENCE_INSTRUCTION
     assert "target_evidence_operation='remove_item'" in FOUNDER_LIVE_MANAGER_EVIDENCE_INSTRUCTION
     assert "tool_calls=[]" in FOUNDER_LIVE_MANAGER_EVIDENCE_INSTRUCTION
+
+
+def test_whole_meal_removal_is_evidence_instruction_policy() -> None:
+    assert "target_evidence_operation='remove_meal'" in FOUNDER_LIVE_MANAGER_EVIDENCE_INSTRUCTION
+    assert "versioned whole-meal removal" in FOUNDER_LIVE_MANAGER_EVIDENCE_INSTRUCTION
+    assert "does not require estimate_nutrition" in FOUNDER_LIVE_MANAGER_EVIDENCE_INSTRUCTION
 
 
 def test_remove_item_target_evidence_reuse_is_schema_guidance() -> None:

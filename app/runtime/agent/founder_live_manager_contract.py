@@ -3,8 +3,14 @@ from __future__ import annotations
 from typing import Any
 
 from app.runtime.agent import founder_live_manager_composition_refinement_policy as refinement_policy
+from app.runtime.agent.founder_live_manager_removal_policy import (
+    EXPLICIT_WHOLE_MEAL_REMOVAL_RULE,
+    REMOVAL_CONTRACT_EXAMPLE,
+    payload_requests_removal,
+    target_evidence_requests_removal,
+)
 from app.runtime.agent.nutrition_evidence_state import nutrition_evidence_present
-from app.shared.contracts.correction_operation import structured_correction_operation, structured_payload_requests_remove_item
+from app.shared.contracts.correction_operation import structured_correction_operation
 
 FOUNDER_LIVE_MANAGER_CONTRACT_PROFILE_ID = "founder_live_contract"
 FOUNDER_LIVE_MANAGER_SCHEMA_NAME = "founder_live_manager_contract"
@@ -119,6 +125,7 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY = {
         "runtime_role": "validate_unique_writable_target",
         "forbidden": ["hard_delete", "whole_meal_undo", "raw_text_deterministic_routing"],
     },
+    "explicit_whole_meal_removal_rule": EXPLICIT_WHOLE_MEAL_REMOVAL_RULE,
     "composition_unknown_rule": {
         "workflow_effect": "ask_followup",
         "final_action": "ask_followup",
@@ -151,9 +158,12 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY_SUMMARY = (
     "nutrition-changing correction_applied, or overshoot_note; query-only nutrition questions must answer_only with no mutation; "
     "estimate-basis questions about a prior meal's assumed composition or why/how it was estimated are answer_query/answer_only/no_mutation and must not route_to_intake; "
     "correct_meal must update the prior target with correction_applied/correction_write, not commit as a new meal; "
-    "explicit item removal is a correction-family turn: propose a target item or call resolve_correction_target, "
-    "then let runtime validate target uniqueness/writeability; target evidence is sufficient for remove_item and estimate_nutrition is not required; "
-    "if target_evidence_present=true with target_evidence_operation='remove_item', finalize correction_applied without calling resolve_correction_target again; do not hard-delete or undo a whole meal; "
+    "explicit removal is a correction-family turn: propose a target item/thread or call resolve_correction_target, "
+    "then let runtime validate target uniqueness/writeability; target evidence is sufficient for remove_item or "
+    "versioned whole-meal removal and estimate_nutrition is not required; if target_evidence_present=true with "
+    "target_evidence_operation='remove_item' or target_evidence_operation='remove_meal', finalize correction_applied without "
+    "calling resolve_correction_target again; do not hard-delete, and for whole meal deletion use operation='remove_meal' "
+    "with a Manager-selected meal_thread_id; "
     "self-selected basket, unanchored patterned combo, or composition-unknown meals must ask_followup/no_mutation until components are known "
     "and must not call estimate_nutrition while composition is unknown; manager_action=call_tools is invalid "
     "for composition-unknown baskets because no estimable item list exists yet; "
@@ -168,8 +178,8 @@ FOUNDER_LIVE_MANAGER_EVIDENCE_INSTRUCTION = (
     "would be commit, nutrition-changing correction_applied, or overshoot_note, return manager_action='call_tools' with estimate_nutrition "
     "instead of manager_action='final'. Do not substitute final_action='ask_followup' or no_commit while "
     "semantic_decision.final_action_candidate is commit, correction_applied, or overshoot_note. "
-    "Exception: explicit item removal is correction_applied/remove_item and requires target evidence from resolve_correction_target or a structured target_attachment validated by runtime; "
-    "it does not require estimate_nutrition because existing canonical item calories are used for ledger recompute. If manager_contract_evidence_state.target_evidence_present=true and target_evidence_operation='remove_item', "
+    "Exception: explicit removal is correction_applied/remove_item or correction_applied/remove_meal and requires target evidence from resolve_correction_target or a structured target_attachment validated by runtime; "
+    "it does not require estimate_nutrition because existing canonical item calories or versioned whole-meal removal are used for ledger recompute. If manager_contract_evidence_state.target_evidence_present=true and target_evidence_operation='remove_item' or target_evidence_operation='remove_meal', "
     "return manager_action='final' with final_action='correction_applied' and tool_calls=[]; do not call resolve_correction_target again. "
     "If evidence_posture is requires_tool, evidence_missing, or evidence_pending, or if "
     "semantic_decision.estimation_posture is pending_tool_call or tool_pending, the current response must be "
@@ -277,46 +287,7 @@ FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES = [
         },
     },
     refinement_policy.COMPOSITION_REFINEMENT_AFTER_BASIS_QUERY_EXAMPLE,
-    {
-        "name": "explicit_item_removal_as_correction",
-        "valid": {
-            "manager_action": "call_tools",
-            "tool_calls": [
-                {
-                    "name": "resolve_correction_target",
-                    "arguments": {
-                        "canonical_name": "target_item_name",
-                        "target_proposal_source": "manager_structured_output",
-                    },
-                }
-            ],
-            "semantic_decision": {
-                "current_turn_intent": "correct_meal",
-                "final_action_candidate": "correction_applied",
-                "mutation_intent_candidate": "correction_write",
-                "target_attachment": {"operation": "remove_item"},
-            },
-        },
-        "valid_after_target_evidence": {
-            "manager_action": "final",
-            "final_action": "correction_applied",
-            "target_attachment": {"operation": "remove_item", "meal_item_id": "validated_target"},
-            "semantic_decision": {
-                "current_turn_intent": "correct_meal",
-                "final_action_candidate": "correction_applied",
-                "mutation_intent_candidate": "correction_write",
-                "target_attachment": {"operation": "remove_item"},
-            },
-        },
-        "invalid": {
-            "manager_action": "final",
-            "final_action": "commit",
-            "semantic_decision": {
-                "current_turn_intent": "correct_meal",
-                "mutation_intent_candidate": "canonical_write",
-            },
-        },
-    },
+    REMOVAL_CONTRACT_EXAMPLE,
 ]
 
 def is_founder_live_manager_contract(constraints: dict[str, Any] | None) -> bool:
@@ -375,8 +346,9 @@ def founder_live_manager_tool_description() -> str:
         "call estimate_nutrition first unless user_provided_kcal_evidence is already present. For a named-food kcal conflict such as a whole bowl or plate with suspicious kcal, do not treat it as a kcal-only shortcut. If you set evidence_posture to requires_tool or evidence_missing, use "
         "manager_action call_tools with estimate_nutrition; the invalid evidence-required candidate pattern is "
         "manager_action final while final_action_candidate still points at commit/correction/overshoot. If target_evidence_present is true with target_evidence_operation "
-        "remove_item, finalize correction_applied and do not call resolve_correction_target again; do not "
-        "hard-delete, whole-meal undo, or rely on deterministic raw text routing. For a composition-unknown "
+        "remove_item or target_evidence_operation remove_meal, finalize correction_applied and do not call resolve_correction_target again; "
+        "use versioned whole-meal removal only when the Manager-selected meal_thread_id has been validated; do not "
+        "hard-delete or rely on deterministic raw text routing. For a composition-unknown "
         "self-selected basket or unanchored patterned combo, return final ask_followup directly, use tool_calls=[] for composition-unknown "
         "ask_followup, and do not call estimate_nutrition for composition-unknown baskets; "
         "manager_action call_tools is invalid for composition-unknown baskets. For a "
@@ -414,7 +386,9 @@ def _target_evidence_state(tool_results: list[dict[str, Any]] | None) -> dict[st
         validation = target.get("manager_target_proposal_validation")
         if isinstance(validation, dict) and validation.get("status") == "rejected":
             continue
-        if target.get("meal_thread_id") is not None and target.get("meal_item_id") is not None:
+        if target.get("meal_thread_id") is not None and (
+            target.get("meal_item_id") is not None or operation == "remove_meal"
+        ):
             return {
                 "target_evidence_present": True,
                 "target_evidence_source": "resolve_correction_target",
@@ -429,9 +403,6 @@ def _target_evidence_state(tool_results: list[dict[str, Any]] | None) -> dict[st
 def _target_evidence_present(evidence_state: Any) -> bool:
     return isinstance(evidence_state, dict) and evidence_state.get("target_evidence_present") is True
 
-def _target_evidence_requests_remove_item(evidence_state: Any) -> bool:
-    return _target_evidence_present(evidence_state) and isinstance(evidence_state, dict) and str(evidence_state.get("target_evidence_operation") or "") == "remove_item"
-
 def _final_action_requires_nutrition_evidence(
     *,
     payload: dict[str, Any],
@@ -440,9 +411,7 @@ def _final_action_requires_nutrition_evidence(
 ) -> bool:
     if final_action not in FOUNDER_LIVE_MANAGER_EVIDENCE_REQUIRED_FINAL_ACTIONS:
         return False
-    if final_action == "correction_applied" and (
-        structured_payload_requests_remove_item(payload) or _target_evidence_requests_remove_item(evidence_state)
-    ):
+    if final_action == "correction_applied" and (payload_requests_removal(payload) or target_evidence_requests_removal(evidence_state)):
         return not _target_evidence_present(evidence_state)
     return True
 
@@ -505,11 +474,11 @@ def validate_founder_live_manager_contract_consistency(
         nutrition_evidence_present is False
         and str(payload.get("manager_action") or "") == "final"
         and final_action == "correction_applied"
-        and structured_payload_requests_remove_item(payload)
+        and payload_requests_removal(payload)
         and not _target_evidence_present(evidence_state)
     ):
         raise RuntimeError(
-            "founder live manager contract remove_item finalization requires target evidence before "
+            "founder live manager contract removal finalization requires target evidence before "
             "final_action='correction_applied'; call resolve_correction_target first"
         )
     if (
@@ -533,11 +502,11 @@ def validate_founder_live_manager_contract_consistency(
         nutrition_evidence_present is False
         and str(payload.get("manager_action") or "") == "final"
         and final_action_candidate == "correction_applied"
-        and structured_payload_requests_remove_item(payload)
+        and payload_requests_removal(payload)
         and not _target_evidence_present(evidence_state)
     ):
         raise RuntimeError(
-            "founder live manager contract remove_item finalization requires target evidence before "
+            "founder live manager contract removal finalization requires target evidence before "
             "semantic_decision.final_action_candidate='correction_applied'; call resolve_correction_target first"
         )
     if (

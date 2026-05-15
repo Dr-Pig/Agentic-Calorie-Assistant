@@ -66,3 +66,33 @@ def test_golden_set_e2e_runner_seeds_gs9_recent_committed_meal_as_context_only(
     assert "intent_type" not in context_packet["active_meal_thread_ref"]
     assert "final_action" not in context_packet["active_meal_thread_ref"]
     assert "workflow_effect" not in context_packet["active_meal_thread_ref"]
+
+
+def test_golden_set_e2e_runner_seeds_gs12_current_day_meals_as_context_only(
+    tmp_path: Path,
+) -> None:
+    report = build_current_shell_golden_set_e2e_report(
+        case_ids=["GS12"],
+        db_path=tmp_path / "gs12-e2e.sqlite3",
+        output_path=tmp_path / "gs12-e2e-report.json",
+        trace_artifact_path=tmp_path / "gs12-e2e-trace.json",
+        replay_output_path=tmp_path / "gs12-e2e-replay.json",
+        provider_mode="scripted",
+        local_date="2026-05-14",
+    )
+
+    case_trace = report["trace_artifact"]["cases"][0]
+    context_packet = case_trace["current_turn_context_packet"]
+    runtime_summary = context_packet["current_turn_runtime_summary"]
+    budget_snapshot = context_packet["current_budget_snapshot"]
+
+    assert report["runner_inferred_semantics"] is False
+    assert report["semantic_keyword_oracle_used"] is False
+    assert runtime_summary["recent_committed_meal_count"] >= 2
+    assert runtime_summary["recent_item_target_count"] >= 2
+    assert budget_snapshot["active_meal_count"] >= 2
+    assert budget_snapshot["consumed_kcal"] > 0
+    assert context_packet["recent_committed_meal_refs"][0]["mutation_authority"] is False
+    assert context_packet["recent_committed_meal_refs"][0]["read_only"] is True
+    for forbidden_key in ("intent_type", "final_action", "workflow_effect"):
+        assert forbidden_key not in context_packet["recent_committed_meal_refs"][0]

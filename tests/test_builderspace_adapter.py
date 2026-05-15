@@ -1157,7 +1157,7 @@ def test_founder_live_intake_scope_rejects_correction_candidate_without_target_e
         },
     )
 
-    with pytest.raises(RuntimeError, match="remove_item finalization requires target evidence"):
+    with pytest.raises(RuntimeError, match="removal finalization requires target evidence"):
         adapter._validate_manager_payload("intake_manager_round", payload, constraints)
 
 

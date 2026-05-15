@@ -43,6 +43,14 @@ def test_structured_correction_operation_accepts_manager_correct_meal_alias() ->
     assert structured_payload_requests_thread_level_correction(payload) is True
 
 
+def test_structured_correction_operation_accepts_manager_owned_whole_meal_removal() -> None:
+    payload = {"semantic_decision": {"target_attachment": {"operation": "remove_meal"}}}
+
+    assert structured_correction_operation(payload) == "remove_meal"
+    assert structured_payload_requests_thread_level_correction(payload) is True
+    assert structured_payload_requests_remove_item(payload) is False
+
+
 def test_entry_handoff_preserves_manager_owned_action_type_alias() -> None:
     decision = SimpleNamespace(
         workflow_effect="route_to_intake",
@@ -276,6 +284,34 @@ def test_entry_handoff_preserves_manager_owned_thread_level_correction_operation
                 "deterministic_role": "execute_manager_owned_evidence_requirement_only",
             },
         },
+    ]
+
+
+def test_entry_handoff_preserves_manager_owned_whole_meal_removal_without_nutrition_tool() -> None:
+    decision = SimpleNamespace(
+        workflow_effect="route_to_intake",
+        target_attachment={},
+        semantic_decision={
+            "final_action_candidate": "correction_applied",
+            "mutation_intent_candidate": "correction_write",
+            "estimation_posture": "target_evidence_needed",
+            "target_attachment": {
+                "meal_thread_id": 3,
+                "meal_version_id": 4,
+                "operation": "remove_meal",
+            },
+        },
+    )
+
+    assert entry_handoff_tool_calls(decision) == [
+        {
+            "name": "resolve_correction_target",
+            "arguments": {
+                "meal_thread_id": 3,
+                "operation": "remove_meal",
+                "target_proposal_source": "entry_manager_handoff",
+            },
+        }
     ]
 
 

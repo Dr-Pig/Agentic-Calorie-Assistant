@@ -75,6 +75,16 @@ def _resolved_target(*, meal_thread_id: int, item: MealItemRecord) -> dict[str, 
     }
 
 
+def _resolved_thread_target(*, meal_thread_id: int, meal_version_id: int) -> dict[str, object]:
+    return {
+        "meal_thread_id": meal_thread_id,
+        "meal_version_id": meal_version_id,
+        "target_resolution_source": "manager_target_proposal_validated",
+        "correction_operation": "remove_meal",
+        "operation": "remove_meal",
+    }
+
+
 def test_target_validation_preserves_manager_owned_remove_operation_alias() -> None:
     db = _session()
     meal_thread_id, soup = _seed_two_item_meal(db)
@@ -112,6 +122,30 @@ def test_remove_item_target_evidence_ready_can_use_target_evidence_operation() -
     ) is False
 
 
+def test_whole_meal_target_evidence_ready_requires_manager_owned_operation_and_thread_target() -> None:
+    manager_payload = {
+        "final_action": "correction_applied",
+        "semantic_decision": {
+            "target_attachment": {"operation": "remove_meal", "meal_thread_id": 1},
+        },
+    }
+    correction_target = {
+        "meal_thread_id": 1,
+        "meal_version_id": 2,
+        "target_resolution_source": "manager_target_proposal_validated",
+        "correction_operation": "remove_meal",
+    }
+
+    assert remove_item_target_evidence_ready(
+        manager_payload=manager_payload,
+        correction_target=correction_target,
+    ) is True
+    assert remove_item_target_evidence_ready(
+        manager_payload={"final_action": "correction_applied", "raw_user_input": "delete breakfast"},
+        correction_target={**correction_target, "correction_operation": ""},
+    ) is False
+
+
 def test_remove_item_target_evidence_uses_non_nutrition_artifact_and_canonical_remaining_totals() -> None:
     db = _session()
     meal_thread_id, soup = _seed_two_item_meal(db)
@@ -132,6 +166,7 @@ def test_remove_item_target_evidence_uses_non_nutrition_artifact_and_canonical_r
 
     assert isinstance(artifact, TargetEvidenceArtifact)
     assert not isinstance(artifact, EstimatedNutritionArtifact)
+    assert artifact.payload.reply_text == ""
     assert artifact.payload.estimated_kcal == 500
     assert artifact.payload.protein_g == 32
     assert artifact.payload.trace_contract["target_evidence_contract"] == {
@@ -156,6 +191,39 @@ def test_remove_item_target_evidence_uses_non_nutrition_artifact_and_canonical_r
         "remaining_item_names": ["chicken rice"],
         "removed_item_name": "soup",
     }
+
+
+def test_whole_meal_target_evidence_uses_non_nutrition_artifact_without_placeholder_kcal() -> None:
+    db = _session()
+    user = get_or_create_user(db, "remove-target-evidence-user")
+    initial = commit_meal_payload_to_canonical(db, user=user, candidate=_initial_candidate(), budget_kcal=1800)
+    assert initial is not None
+
+    artifact = build_remove_item_target_evidence_artifact(
+        db,
+        user_external_id="remove-target-evidence-user",
+        raw_user_input="delete that lunch entry",
+        local_date="2026-05-02",
+        request_id="remove-meal-target-evidence-turn",
+        correction_target=_resolved_thread_target(
+            meal_thread_id=initial.meal_thread_id,
+            meal_version_id=initial.meal_version_id,
+        ),
+        manager_semantic_decision={
+            "current_turn_intent": "correct_meal",
+            "final_action_candidate": "correction_applied",
+            "target_attachment": {"operation": "remove_meal", "meal_thread_id": initial.meal_thread_id},
+        },
+    )
+
+    assert isinstance(artifact, TargetEvidenceArtifact)
+    assert not isinstance(artifact, EstimatedNutritionArtifact)
+    assert artifact.payload.reply_text == ""
+    assert artifact.payload.estimated_kcal == 0
+    assert artifact.payload.trace_contract["correction_operation"] == "remove_meal"
+    assert artifact.payload.trace_contract["target_evidence_contract"]["kcal_source"] == "whole_meal_removal"
+    assert artifact.payload.trace_contract["target_evidence_contract"]["placeholder_kcal_used"] is False
+    assert artifact.payload.trace_contract["target_evidence_contract"]["nutrition_evidence_required"] is False
 
 
 def test_remove_item_target_evidence_persistence_does_not_use_placeholder_kcal_for_legacy_or_canonical_truth() -> None:
@@ -193,6 +261,48 @@ def test_remove_item_target_evidence_persistence_does_not_use_placeholder_kcal_f
     assert active_version.total_kcal == 500
     ledger = db.execute(select(DayBudgetLedgerRecord)).scalar_one()
     assert ledger.consumed_kcal == 500
+
+
+def test_whole_meal_target_evidence_persistence_versions_removal_without_legacy_kcal_placeholder() -> None:
+    db = _session()
+    user = get_or_create_user(db, "remove-target-evidence-user")
+    initial = commit_meal_payload_to_canonical(db, user=user, candidate=_initial_candidate(), budget_kcal=1800)
+    assert initial is not None
+    artifact = build_remove_item_target_evidence_artifact(
+        db,
+        user_external_id="remove-target-evidence-user",
+        raw_user_input="delete that lunch entry",
+        local_date="2026-05-02",
+        request_id="remove-meal-target-evidence-turn",
+        correction_target=_resolved_thread_target(
+            meal_thread_id=initial.meal_thread_id,
+            meal_version_id=initial.meal_version_id,
+        ),
+        manager_semantic_decision={
+            "current_turn_intent": "correct_meal",
+            "final_action_candidate": "correction_applied",
+            "target_attachment": {"operation": "remove_meal", "meal_thread_id": initial.meal_thread_id},
+        },
+    )
+
+    result = persist_meal_log_tool(
+        db,
+        artifact=artifact,
+        request_id="remove-meal-target-evidence-turn",
+        final_action="correction_applied",
+        manager_semantic_decision={"current_turn_intent": "correct_meal"},
+    )
+
+    assert result.action == "save_completed_log"
+    assert result.persisted_log_id is None
+    assert result.canonical_commit is not None
+    assert result.canonical_commit["consumed_kcal"] == 0
+    removal_version = db.get(MealVersionRecord, result.canonical_commit["meal_version_id"])
+    assert removal_version is not None
+    assert removal_version.version_status == "removed"
+    assert removal_version.resolution_status == "removed_meal"
+    ledger = db.execute(select(DayBudgetLedgerRecord)).scalar_one()
+    assert ledger.consumed_kcal == 0
 
 
 def test_remove_item_target_evidence_tool_output_cannot_be_counted_as_nutrition_payload() -> None:
