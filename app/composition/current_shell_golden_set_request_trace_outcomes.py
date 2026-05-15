@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.composition.current_shell_target_ambiguity_projection import attach_target_ambiguity_validation
+
 from app.composition.current_shell_golden_set_answer_query_projection import (
     attach_answer_query_no_mutation_outcome,
     state_delta_has_no_meal_change,
@@ -126,6 +128,7 @@ def runtime_from_request_trace(
         final_action=final_action,
         mutation_allowed=mutation_allowed,
     )
+    attach_target_ambiguity_validation(runtime, request_trace, manager_final)
     return runtime
 
 
@@ -275,6 +278,7 @@ def _pre_manager_guard_feedback_present(request_trace: dict[str, Any]) -> bool |
     if not manager_pass_1:
         return None
     return bool(manager_pass_1.get("guard_feedback_input"))
+
 
 def _dict(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}

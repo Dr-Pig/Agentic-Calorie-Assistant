@@ -1925,6 +1925,43 @@ def test_founder_live_contract_requires_concrete_ask_followup_shape(
     )
 
 
+def test_founder_live_contract_requires_ask_followup_workflow_effect_for_ask_followup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    payload = _founder_live_payload(
+        manager_action="final",
+        intent_type="correct_meal",
+        final_action="ask_followup",
+        workflow_effect="correction",
+        evidence_posture="target_evidence_rejected_ambiguous",
+        target_attachment={"meal_thread_id": 4, "operation": "remove_meal"},
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "target_attachment": {"meal_thread_id": 4, "operation": "remove_meal"},
+            "workflow_effect": "correction",
+            "final_action_candidate": "ask_followup",
+            "estimation_posture": "no_nutrition_change",
+            "followup_posture": "target_clarification",
+            "mutation_intent_candidate": "no_mutation",
+            "uncertainty_posture": "target_ambiguous",
+            "source": "live_manager_structured_output",
+        },
+        answer_contract={
+            "reply_text": "請確認要刪除哪一筆早餐？",
+            "followup_question": "請確認要刪除哪一筆早餐？",
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="ask_followup requires workflow_effect='ask_followup'"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            payload,
+            constraints=_founder_live_constraints(),
+        )
+
+
 def test_founder_live_contract_policy_names_existing_query_only_and_followup_invariants() -> None:
     from app.runtime.agent.founder_live_manager_contract import (
         FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES,

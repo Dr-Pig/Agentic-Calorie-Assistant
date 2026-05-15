@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v30"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v33"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -139,7 +139,10 @@ _CONTRACT_POLICY_PROMPT = (
     "meal, use operation='remove_item'. If the current turn names a different meal or slot than an open pending follow-up, "
     "do not let a stale pending follow-up override the explicit current-turn target. runtime validates that selected thread id "
     "against context candidates and applies versioned removal; runtime must not infer remove_meal from raw text, slot words, "
-    "or food names. If multiple candidates match, ask a target clarification and do not mutate.\n"
+    "or food names. Do not default to the active/latest meal_thread_id when multiple meal_thread candidates are present "
+    "and the current turn does not uniquely identify one target; ask a target clarification and do not mutate. "
+    "That target clarification must use final_action='ask_followup', workflow_effect='ask_followup', "
+    "mutation_intent_candidate='no_mutation', and no concrete target_attachment.\n"
     "For explicit item removal, set semantic_decision.target_attachment.operation='remove_item' or action_type='remove_item', "
     "mutation_intent_candidate='correction_write', and estimation_posture='target_evidence_needed'; this is not nutrition pending_tool_call.\n"
     "For a portion or removal correction where the active meal context already contains the original components and "
@@ -196,7 +199,9 @@ _USER_FACING_REPLY_PROMPT = (
     "remaining budget as 0. For no-plan budget questions, use final_action='onboarding_required' and "
     "workflow_effect='answer_only' with no mutation. Ask at most one necessary follow-up question for "
     "blocking cases. Do not expose debug, "
-    "trace, provider, request_id, tool_calls, internal schema names, or raw contract labels in reply_text.\n"
+    "trace, provider, request_id, tool_calls, internal schema names, raw contract labels, or internal object IDs "
+    "such as meal_thread_id, meal_version_id, or meal_item_id in reply_text. Do not expose meal_thread_id; "
+    "describe meals by natural names, date, time, or user-visible descriptions instead.\n"
     "Tools only provide evidence or mutation results. Do not assume hidden state.\n"
     "Do not emit freeform internal rationale fields.\n"
 )

@@ -11,7 +11,7 @@ from app.composition.intake_tool_context import (
     correction_target_resolved,
 )
 from app.composition.intake_read_tools import compare_against_budget_tool
-from app.composition.intake_manager_target_candidates import thread_target_candidates
+from app.composition.intake_manager_thread_target_validation import validate_manager_thread_target_proposal
 from app.composition.intake_tool_evidence_summary import (
     evidence_summary,
     macro_summary,
@@ -38,39 +38,8 @@ def validate_manager_target_proposal(
     proposed_id = proposal.get("meal_item_id")
     proposed_name = str(proposal.get("canonical_name") or proposal.get("item_name") or "").strip()
     operation = structured_correction_operation(proposal)
-    proposed_thread_id = proposal.get("meal_thread_id") or proposal.get("target_object_id")
     if structured_payload_requests_thread_level_correction(proposal):
-        thread_candidates = thread_target_candidates(correction_target)
-        matched_thread = None
-        if proposed_thread_id is not None:
-            for candidate in thread_candidates:
-                if str(candidate.get("meal_thread_id")) == str(proposed_thread_id):
-                    matched_thread = candidate
-                    break
-        if matched_thread is not None:
-            return {
-                **dict(correction_target),
-                "meal_thread_id": matched_thread.get("meal_thread_id"),
-                "meal_version_id": matched_thread.get("meal_version_id"),
-                "meal_title": matched_thread.get("meal_title") or correction_target.get("meal_title"),
-                "operation": operation,
-                "correction_operation": operation,
-                "target_resolution_source": "manager_target_proposal_validated",
-                "correction_confidence": "high",
-                "manager_target_proposal_validation": {
-                    "status": "accepted",
-                    "truth_owner": "deterministic_target_validator",
-                    "proposal_source": str(proposal.get("target_proposal_source") or "manager_structured_output"),
-                },
-            }
-        return {
-            **dict(correction_target),
-            "manager_target_proposal_validation": {
-                "status": "rejected",
-                "failure_family": "manager_thread_target_proposal_not_found",
-                "truth_owner": "deterministic_target_validator",
-            },
-        }
+        return validate_manager_thread_target_proposal(correction_target=correction_target, proposal=proposal)
     matched: dict[str, Any] | None = None
     for candidate in candidates:
         id_matches = proposed_id is not None and candidate.get("meal_item_id") == proposed_id

@@ -172,6 +172,10 @@ def _attach_visible_response_quality_flags(
             "evidence_posture",
             "provider",
             "trace",
+            "meal_thread_id",
+            "meal_version_id",
+            "meal_item_id",
+            "request_id",
         )
     )
     if internal_phrase_present:

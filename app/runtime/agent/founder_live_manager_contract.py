@@ -9,6 +9,7 @@ from app.runtime.agent.founder_live_manager_removal_policy import (
     payload_requests_removal,
     target_evidence_requests_removal,
 )
+from app.runtime.agent.founder_live_manager_followup_contract import validate_ask_followup_contract
 from app.runtime.agent.nutrition_evidence_state import nutrition_evidence_present
 from app.shared.contracts.correction_operation import structured_correction_operation
 
@@ -546,24 +547,13 @@ def validate_founder_live_manager_contract_consistency(
     mutation_intent = str(semantic_decision.get("mutation_intent_candidate") or "")
     workflow_effect = str(payload.get("workflow_effect") or semantic_decision.get("workflow_effect") or "")
     estimation_posture = str(semantic_decision.get("estimation_posture") or "")
-    if str(payload.get("manager_action") or "") == "final" and (
-        workflow_effect == "ask_followup" or final_action_candidate == "ask_followup"
-    ):
-        if final_action != "ask_followup":
-            raise RuntimeError(
-                "founder live manager contract ask_followup requires top-level final_action='ask_followup'"
-            )
-        answer_contract = payload.get("answer_contract")
-        answer_followup = (
-            str(answer_contract.get("followup_question") or "").strip()
-            if isinstance(answer_contract, dict)
-            else ""
-        )
-        semantic_followup = str(semantic_decision.get("followup_question") or "").strip()
-        if not (answer_followup or semantic_followup):
-            raise RuntimeError(
-                "founder live manager contract ask_followup requires a concrete followup_question"
-            )
+    validate_ask_followup_contract(
+        payload=payload,
+        semantic_decision=semantic_decision,
+        final_action=final_action,
+        final_action_candidate=final_action_candidate,
+        workflow_effect=workflow_effect,
+    )
     if (
         str(payload.get("manager_action") or "") == "call_tools"
         and workflow_effect == "ask_followup"
