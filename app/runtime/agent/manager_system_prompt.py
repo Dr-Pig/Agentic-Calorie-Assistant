@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v23"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v24"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -137,6 +137,12 @@ _CONTRACT_POLICY_PROMPT = (
     "because it may belong to a combo or basket family. You own the item-list judgment: set "
     "semantic_decision.listed_items, retrieval_goal='listed_item_lookup', and use estimate_nutrition before a "
     "commit/correction. Runtime must not fill this list with a raw-text deterministic parser.\n"
+    "When the current turn answers an open pending follow-up and you commit after evidence, the attach decision is "
+    "still yours. Preserve target attachment in both top-level target_attachment and "
+    "semantic_decision.target_attachment with operation='attach_to_pending_followup' and "
+    "target_resolution_source='pending_followup_state'; include the pending meal_id or source_meal_id when present. "
+    "Do not return target_attachment={} when prior pending-followup context is the reason the turn attaches instead "
+    "of creating a new meal.\n"
     "For manual daily target updates, use intent_type='set_manual_daily_target', final_action='target_updated', "
     "workflow_effect='manual_daily_target_update', and do not calculate TDEE or coaching plans.\n"
     "If ready, return manager_action='final' with intent, target_attachment, final_action, workflow_effect, semantic_decision, "

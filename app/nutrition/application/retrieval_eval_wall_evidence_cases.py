@@ -133,7 +133,7 @@ def build_grounding_cases(
     )
     listed_retrieval = retrieve_fooddb_candidates(
         "\u6ef7\u5473\u6709\u8c46\u5e72\u3001\u6d77\u5e36\u3001\u8ca2\u4e38",
-        retrieval_records=retrieval_records,
+        retrieval_records=retrieval_records, listed_components=["\u8c46\u5e72", "\u6d77\u5e36", "\u8ca2\u4e38"],
     )
     listed_packet = build_food_evidence_recall_packet(
         packet_id="retrieval-eval-wall:listed-luwei",
@@ -226,7 +226,7 @@ def build_negative_cases(
     bare_basket = retrieve_fooddb_candidates("\u6211\u5403\u6ef7\u5473", retrieval_records=retrieval_records)
     listed_unknown = retrieve_fooddb_candidates(
         "\u6ef7\u5473\u6709\u8c46\u5e72\u3001\u672a\u77e5\u4e38",
-        retrieval_records=retrieval_records,
+        retrieval_records=retrieval_records, listed_components=["\u8c46\u5e72", "\u672a\u77e5\u4e38"],
     )
     exact_lane = build_exact_evidence_lane_policy_artifact()
     classifications = websearch_classifications(websearch_pipeline)
