@@ -278,6 +278,88 @@ def test_request_trace_adapter_projects_remaining_query_from_budget_read_model_o
     assert case_trace["ui"]["frontend_remaining_math_allowed"] is False
 
 
+def test_request_trace_adapter_projects_no_plan_degraded_remaining_query() -> None:
+    trace = _gs5_request_trace()
+    trace["request"] = {
+        "user_id": "local-self-use-001",
+        "local_date": "2026-05-14",
+        "text": "今天還剩多少",
+    }
+    trace["state_delta"] = {
+        "meal_logged": False,
+        "canonical_commit": False,
+        "draft_saved": False,
+        "new_meal_version_created": False,
+        "old_version_superseded": False,
+        "ledger_updated": False,
+    }
+    trace["react_trace"] = {
+        "manager_pass_count": 1,
+        "tool_call_count": 0,
+        "manager_pass_1": {
+            "manager_action": "final",
+            "workflow_effect": "answer_only",
+            "final_action": "onboarding_required",
+            "tool_calls": [],
+        },
+        "manager_pass_final": {
+            "manager_action": "final",
+            "workflow_effect": "answer_only",
+            "final_action": "onboarding_required",
+            "tool_calls": [],
+        },
+    }
+    trace["tool_outputs"] = {
+        "remaining_budget": {
+            "status": "onboarding_required",
+            "daily_target_kcal": None,
+            "consumed_kcal": 0,
+            "remaining_kcal": None,
+        }
+    }
+    trace["state_after"] = {
+        "active_body_plan_view": {
+            "body_plan_id": None,
+            "plan_status": "inactive",
+            "profile_status": "missing",
+            "daily_budget_kcal": 0,
+            "estimated_tdee": 0,
+        },
+        "current_budget_view": {
+            "budget_kcal": 0,
+            "consumed_kcal": 0,
+            "remaining_kcal": 0,
+            "source": "current_budget_view",
+        },
+    }
+    trace["manager_final_decision"] = {
+        "workflow_effect": "answer_only",
+        "final_action": "onboarding_required",
+        "answer_contract": {
+            "reply_text": "目前尚未設定每日熱量目標，請先完成設定。",
+            "answer_basis": {"budget_summary": "no active body plan"},
+        },
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "answer_remaining_budget",
+            "target_attachment": {},
+            "workflow_effect": "answer_only",
+            "final_action_candidate": "onboarding_required",
+            "mutation_intent_candidate": "no_mutation",
+            "source": "read_model",
+        },
+    }
+
+    case_trace = build_golden_case_trace_from_request_trace("GS15", trace)
+    grade = grade_golden_case_trace("GS15", case_trace)
+
+    assert case_trace["runtime"]["invented_tdee_or_remaining_allowed"] is False
+    assert case_trace["runtime"]["guide_to_body_setup"] is True
+    assert case_trace["ui"]["today_degraded_state_visible"] is True
+    assert case_trace["ui"]["frontend_remaining_math_allowed"] is False
+    assert grade["status"] == "pass"
+
+
 def test_request_trace_adapter_projects_manager_owned_blocking_basket_outcome() -> None:
     trace = _gs5_request_trace()
     trace.pop("runtime", None)
