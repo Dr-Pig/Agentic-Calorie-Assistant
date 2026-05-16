@@ -227,4 +227,14 @@ def _canonical_component_name(item: object) -> str:
         return _BLACK_TEA
     if _TEPPAN_NOODLE in compact and any(marker in compact for marker in ("一半", "半份")):
         return _TEPPAN_NOODLE_HALF
+    if "\u6ef7\u86cb" in compact or "\u5364\u86cb" in compact:
+        return _BRAISED_EGG_ONE
+    if "\u96de\u817f" in compact or "\u9e21\u817f" in compact:
+        return _CHICKEN_LEG_ONE
+    if "\u9752\u83dc" in compact:
+        return _GREENS_TWO_SERVINGS
+    if "\u767d\u98ef" in compact:
+        if "\u534a" in compact:
+            return _WHITE_RICE_HALF_BOWL
+        return _WHITE_RICE_ONE_BOWL
     return _ALIASES.get(text, text)

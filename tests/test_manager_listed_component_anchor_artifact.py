@@ -74,6 +74,25 @@ def test_common_self_use_basket_components_have_component_anchors() -> None:
     assert sum(item.estimated_kcal for item in estimates) == 600
 
 
+def test_manager_owned_component_matching_tolerates_braised_egg_classifier_variants() -> None:
+    estimates = component_estimates_from_manager_listed_items(
+        [
+            "\u767d\u98ef\u534a\u7897",
+            "\u9e21\u817f\u4e00\u652f",
+            "\u9752\u83dc\u5169\u6a23",
+            "\u6ef7\u86cb\u4e00\u984f",
+        ]
+    )
+
+    assert estimates is not None
+    assert [(item.name, item.estimated_kcal) for item in estimates] == [
+        ("\u767d\u98ef\u534a\u7897", 180),
+        ("\u96de\u817f\u4e00\u652f", 260),
+        ("\u9752\u83dc\u5169\u6a23", 80),
+        ("\u6ef7\u86cb\u4e00\u9846", 80),
+    ]
+
+
 def test_manager_listed_component_half_teppan_modifier_uses_manager_owned_item_text() -> None:
     estimates = component_estimates_from_manager_listed_items(["鐵板麵 (一半)", "荷包蛋"])
 
