@@ -257,6 +257,25 @@ def test_manager_semantic_decision_rejects_non_manager_authority() -> None:
         build_retrieval_intent_from_manager_decision(decision)
 
 
+def test_manager_semantic_decision_accepts_manager_tool_arguments_authority() -> None:
+    decision = B2ManagerSemanticDecision(
+        base_dish="\u9435\u677f\u9eb5",
+        aliases=[],
+        brand_hint=None,
+        size_hint=None,
+        modifier_hints=[],
+        listed_items=["\u9435\u677f\u9eb5", "\u8377\u5305\u86cb"],
+        retrieval_goal="listed_item_lookup",
+        semantic_authority_source="manager_tool_arguments",
+    )
+
+    intent = build_retrieval_intent_from_manager_decision(decision)
+
+    assert intent.base_dish == "\u9435\u677f\u9eb5"
+    assert intent.listed_items == ["\u9435\u677f\u9eb5", "\u8377\u5305\u86cb"]
+    assert intent.retrieval_goal == "listed_item_lookup"
+
+
 def test_manager_semantic_decision_rejects_unknown_retrieval_goal() -> None:
     decision = B2ManagerSemanticDecision(
         base_dish="\u8336\u8449\u86cb",

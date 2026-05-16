@@ -20,6 +20,34 @@ def contract_repair_message(parse_attempt: dict[str, Any]) -> str:
 
 def _semantic_repair_message(parse_attempt: dict[str, Any]) -> str:
     error = str(parse_attempt.get("error") or "")
+    if "listed_item_lookup requires multiple Manager-owned component items" in error:
+        return (
+            "CONTRACT_REPAIR: Your previous listed_item_lookup decision only supplied one component item. "
+            "You, the Manager, must choose a legal route: if it is a single concrete food, use generic or exact "
+            "retrieval instead of listed_item_lookup; if it is a bundle/combo whose components are not known, "
+            "return manager_action='final', final_action='ask_followup', workflow_effect='ask_followup', "
+            "semantic_decision.final_action_candidate='ask_followup', "
+            "semantic_decision.mutation_intent_candidate='no_mutation', tool_calls=[], and ask one concise "
+            "composition question. Do not let runtime infer the missing components. Previous validation error: "
+            f"{parse_attempt.get('error')}"
+        )
+    if "ask_followup requires top-level final_action='ask_followup'" in error:
+        return (
+            "CONTRACT_REPAIR: Your semantic decision chose an ask-followup workflow. Keep that Manager-owned "
+            "meaning and align the structured fields: manager_action='final', final_action='ask_followup', "
+            "workflow_effect='ask_followup', semantic_decision.final_action_candidate='ask_followup', "
+            "semantic_decision.mutation_intent_candidate='no_mutation', tool_calls=[], and include a concrete "
+            "answer_contract.followup_question or semantic_decision.followup_question. Previous validation error: "
+            f"{parse_attempt.get('error')}"
+        )
+    if "ask_followup requires workflow_effect='ask_followup'" in error:
+        return (
+            "CONTRACT_REPAIR: Your final action is ask_followup, so keep the Manager-owned follow-up meaning "
+            "and align workflow_effect='ask_followup' at both top level and semantic_decision. Use "
+            "mutation_intent_candidate='no_mutation', tool_calls=[], and include a concrete followup_question. "
+            "Previous validation error: "
+            f"{parse_attempt.get('error')}"
+        )
     if "ambiguous correction target requires final ask_followup" not in error:
         return ""
     return (
@@ -46,9 +74,14 @@ def _scoped_repair_hint(parse_attempt: dict[str, Any]) -> str:
     error = str(parse_attempt.get("error") or "")
     if "listed_item_lookup requires semantic_decision.listed_items" in error:
         return (
-            "If you chose retrieval_goal='listed_item_lookup', include the concrete food components you, "
-            "the Manager, identified in semantic_decision.listed_items. Do not ask the user for component "
-            "names that were already explicitly supplied; rough portions can remain optional refinement. "
+            "Your previous retrieval_goal='listed_item_lookup' decision is under-specified. You, the Manager, "
+            "must make one legal semantic choice: if you already identified concrete food components, include "
+            "those Manager-owned components in semantic_decision.listed_items and keep "
+            "retrieval_goal='listed_item_lookup'; if you did not identify concrete "
+            "components, change to manager_action='final', final_action='ask_followup', "
+            "workflow_effect='ask_followup', semantic_decision.final_action_candidate='ask_followup', "
+            "semantic_decision.mutation_intent_candidate='no_mutation', and tool_calls=[]. "
+            "Do not let runtime infer components or estimability for you. "
         )
     if "non-empty semantic_decision.listed_items requires retrieval_goal='listed_item_lookup'" in error:
         return (

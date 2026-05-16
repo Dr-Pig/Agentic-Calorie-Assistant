@@ -27,7 +27,7 @@ from .builderspace_transport import (
     is_tool_call_transport_rejection,
 )
 
-MAX_PARSE_RETRIES = 1
+MAX_PARSE_RETRIES = 2
 RETRYABLE_TRANSPORT_ERROR_TYPES = (
     httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout,
     httpx.WriteTimeout, httpx.PoolTimeout,

@@ -128,6 +128,9 @@ def test_contract_repair_message_maps_listed_lookup_to_manager_owned_listed_item
     assert "retrieval_goal='listed_item_lookup'" in message
     assert "semantic_decision.listed_items" in message
     assert "Manager" in message
+    assert "final_action='ask_followup'" in message
+    assert "tool_calls=[]" in message
+    assert "runtime infer components" in message
 
 
 def test_contract_repair_message_maps_nonempty_listed_items_to_listed_lookup() -> None:
@@ -151,6 +154,52 @@ def test_contract_repair_message_maps_nonempty_listed_items_to_listed_lookup() -
     assert "semantic_decision.listed_items" in message
     assert "retrieval_goal='listed_item_lookup'" in message
     assert "do not discard listed items" in message
+
+
+def test_contract_repair_message_maps_single_listed_item_to_manager_owned_route_choice() -> None:
+    message = contract_repair_message(
+        {
+            "error": (
+                "founder live manager contract listed_item_lookup requires multiple "
+                "Manager-owned component items"
+            ),
+            "observed_value": {
+                "intent_type": "log_meal",
+                "semantic_decision": {
+                    "current_turn_intent": "log_meal",
+                    "retrieval_goal": "listed_item_lookup",
+                    "listed_items": ["teppan noodles"],
+                },
+            },
+        }
+    )
+
+    assert message.startswith("CONTRACT_REPAIR")
+    assert "generic or exact retrieval" in message
+    assert "final_action='ask_followup'" in message
+    assert "Do not let runtime infer" in message
+
+
+def test_contract_repair_message_aligns_ask_followup_top_level_fields() -> None:
+    message = contract_repair_message(
+        {
+            "error": "founder live manager contract ask_followup requires top-level final_action='ask_followup'",
+            "observed_value": {
+                "manager_action": "final",
+                "workflow_effect": "ask_followup",
+                "semantic_decision": {
+                    "current_turn_intent": "log_meal",
+                    "final_action_candidate": "ask_followup",
+                    "mutation_intent_candidate": "no_mutation",
+                },
+            },
+        }
+    )
+
+    assert message.startswith("CONTRACT_REPAIR")
+    assert "final_action='ask_followup'" in message
+    assert "tool_calls=[]" in message
+    assert "followup_question" in message
 
 
 def test_contract_repair_message_maps_branded_combo_component_hints_to_listed_items() -> None:
@@ -1267,6 +1316,43 @@ def test_founder_live_contract_rejects_listed_item_lookup_without_manager_owned_
     payload["semantic_decision"]["listed_items"] = ["鐵板麵", "荷包蛋", "豬肉片"]
 
     adapter._validate_manager_payload("intake_manager_round", payload, constraints=constraints)
+
+
+def test_founder_live_contract_rejects_listed_item_lookup_with_single_base_item(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        "manager_contract_profile_id": "founder_live_contract",
+        "manager_contract_schema_name": "founder_live_manager_contract",
+        "manager_contract_schema_version": "v1",
+        "manager_contract_transport_policy": "synthetic_tool_transport",
+        "manager_loop_scope": "turn_entry_or_read_only",
+        "available_tools": [],
+    }
+    payload = _founder_live_payload(
+        manager_action="final",
+        intent_type="log_meal",
+        final_action="no_commit",
+        workflow_effect="route_to_intake",
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {},
+            "workflow_effect": "route_to_intake",
+            "final_action_candidate": "commit",
+            "estimation_posture": "pending_tool_call",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "canonical_write",
+            "uncertainty_posture": "bounded",
+            "source": "live_manager_structured_output",
+            "listed_items": ["teppan noodles"],
+            "retrieval_goal": "listed_item_lookup",
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="requires multiple Manager-owned component items"):
+        adapter._validate_manager_payload("intake_manager_round", payload, constraints=constraints)
 
 
 def test_founder_live_contract_rejects_nonempty_listed_items_with_exact_lookup(
@@ -2807,6 +2893,133 @@ async def test_complete_with_trace_repairs_founder_live_contract_shape_once(
     assert trace["repair_attempt_count"] == 1
     assert trace["transport_attempts"][0]["status"] == "parse_retry"
     assert trace["transport_attempts"][1]["status"] == "success"
+
+
+@pytest.mark.asyncio
+async def test_complete_with_trace_allows_two_bounded_contract_repairs_for_listed_item_route(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    posted_payloads: list[dict[str, object]] = []
+    first = _FakeResponse(
+        payload=_tool_call_envelope(
+            tool_name="manager_structured_decision",
+            arguments=_founder_live_payload(
+                manager_action="call_tools",
+                workflow_effect="route_to_intake",
+                final_action="commit",
+                tool_calls=[{"name": "estimate_nutrition", "arguments": {"retrieval_goal": "listed_item_lookup"}}],
+                semantic_decision={
+                    "semantic_authority": "manager_llm",
+                    "current_turn_intent": "log_meal",
+                    "target_attachment": {},
+                    "workflow_effect": "route_to_intake",
+                    "final_action_candidate": "commit",
+                    "estimation_posture": "pending_tool_call",
+                    "followup_posture": "none",
+                    "mutation_intent_candidate": "canonical_write",
+                    "uncertainty_posture": "medium",
+                    "source": "live_manager_structured_output",
+                    "retrieval_goal": "listed_item_lookup",
+                },
+            ),
+        ),
+        text="first",
+    )
+    second = _FakeResponse(
+        payload=_tool_call_envelope(
+            tool_name="manager_structured_decision",
+            arguments=_founder_live_payload(
+                manager_action="call_tools",
+                workflow_effect="route_to_intake",
+                final_action="commit",
+                tool_calls=[
+                    {
+                        "name": "estimate_nutrition",
+                        "arguments": {
+                            "listed_items": ["teppan noodles"],
+                            "retrieval_goal": "listed_item_lookup",
+                        },
+                    }
+                ],
+                semantic_decision={
+                    "semantic_authority": "manager_llm",
+                    "current_turn_intent": "log_meal",
+                    "target_attachment": {},
+                    "workflow_effect": "route_to_intake",
+                    "final_action_candidate": "commit",
+                    "estimation_posture": "pending_tool_call",
+                    "followup_posture": "none",
+                    "mutation_intent_candidate": "canonical_write",
+                    "uncertainty_posture": "medium",
+                    "source": "live_manager_structured_output",
+                    "listed_items": ["teppan noodles"],
+                    "retrieval_goal": "listed_item_lookup",
+                },
+            ),
+        ),
+        text="second",
+    )
+    third = _FakeResponse(
+        payload=_tool_call_envelope(
+            tool_name="manager_structured_decision",
+            arguments=_founder_live_payload(
+                manager_action="final",
+                workflow_effect="ask_followup",
+                final_action="ask_followup",
+                tool_calls=[],
+                answer_contract={
+                    "reply_text": "請補充這個套餐包含哪些品項。",
+                    "followup_question": "這個套餐包含哪些品項？",
+                },
+                semantic_decision={
+                    "semantic_authority": "manager_llm",
+                    "current_turn_intent": "log_meal",
+                    "target_attachment": {},
+                    "workflow_effect": "ask_followup",
+                    "final_action_candidate": "ask_followup",
+                    "estimation_posture": "composition_unknown_basket",
+                    "followup_posture": "blocking_composition",
+                    "followup_question": "這個套餐包含哪些品項？",
+                    "mutation_intent_candidate": "no_mutation",
+                    "uncertainty_posture": "needs_user_clarification",
+                    "source": "live_manager_structured_output",
+                    "listed_items": [],
+                    "retrieval_goal": "none",
+                },
+            ),
+        ),
+        text="third",
+    )
+    monkeypatch.setenv("AI_BUILDER_TOKEN", "test-token")
+    monkeypatch.setenv("AI_BUILDER_BASE_URL", "https://example.test/backend/v1")
+    monkeypatch.setenv("AI_BUILDER_TRANSPORT_RETRY_COUNT", "0")
+    monkeypatch.setattr(
+        builderspace_adapter_module.httpx,
+        "AsyncClient",
+        lambda **kwargs: _RecordingAsyncClient(
+            responses=[first, second, third],
+            recorder=posted_payloads,
+            **kwargs,
+        ),
+    )
+    adapter = BuilderSpaceAdapter(manager_model_override="grok-4-fast")
+
+    parsed, trace = await adapter.complete_with_trace(
+        system_prompt="Return structured manager payload.",
+        user_payload={"constraints": _founder_live_constraints()},
+        stage="intake_manager_round",
+    )
+
+    assert parsed["final_action"] == "ask_followup"
+    assert len(posted_payloads) == 3
+    assert trace["repair_attempted"] is True
+    assert trace["repair_result"] == "passed_after_repair"
+    assert trace["repair_attempt_count"] == 2
+    assert [attempt["status"] for attempt in trace["transport_attempts"]] == [
+        "parse_retry",
+        "parse_retry",
+        "success",
+    ]
 
 
 @pytest.mark.asyncio

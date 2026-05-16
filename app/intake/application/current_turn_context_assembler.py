@@ -8,6 +8,10 @@ from ...runtime.contracts.phase_a import (
     InteractionEvent,
 )
 from .attachment_resolver import target_reference_opens_correction_workflow
+from .pending_followup_context_targets import (
+    candidate_attachment_targets as build_candidate_attachment_targets,
+    pending_followup_object_ref,
+)
 
 _AMBIGUOUS_TOKENS = {"ok", "okay", "sure", "fine", "good", "yes", "yep"}
 
@@ -212,6 +216,7 @@ def _target_resolution_posture(target_meal_reference: dict[str, Any]) -> dict[st
         "read_only": True,
     }
 
+
 def _session_atomic_blocks(
     *,
     raw_user_input: str,
@@ -229,7 +234,7 @@ def _session_atomic_blocks(
                 "mutation_authority": False,
                 "question": last_system_question,
                 "answer": raw_user_input,
-                "object_ref": {"meal_thread_id": pending_followup.get("meal_thread_id") if pending_followup else None},
+                "object_ref": pending_followup_object_ref(pending_followup),
             }
         )
     if pending_followup is not None:
@@ -240,7 +245,7 @@ def _session_atomic_blocks(
                 "read_only": True,
                 "mutation_authority": False,
                 "pending_question": pending_followup.get("pending_question") or pending_followup.get("question"),
-                "object_ref": {"meal_thread_id": pending_followup.get("meal_thread_id")},
+                "object_ref": pending_followup_object_ref(pending_followup),
             }
         )
     if target_meal_reference.get("meal_thread_id") is not None:
@@ -264,50 +269,6 @@ def _session_atomic_blocks(
             }
         )
     return blocks
-
-
-def _candidate_attachment_targets(
-    *,
-    pending_followup: dict[str, Any] | None,
-    target_meal_reference: dict[str, Any],
-    recent_committed_meals: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    targets: list[dict[str, Any]] = []
-    seen: set[str] = set()
-
-    def add_target(meal_thread_id: Any, *, source: str, confidence: str) -> None:
-        target_id = str(meal_thread_id).strip() if meal_thread_id is not None else ""
-        if not target_id or target_id in seen:
-            return
-        seen.add(target_id)
-        targets.append(
-            {
-                "target_object_type": "meal_thread",
-                "target_object_id": target_id,
-                "source": source,
-                "confidence": confidence,
-                "mutation_authority": False,
-            }
-        )
-
-    if pending_followup is not None:
-        add_target(
-            pending_followup.get("meal_thread_id"),
-            source="pending_followup",
-            confidence="high",
-        )
-    add_target(
-        target_meal_reference.get("meal_thread_id"),
-        source=str(target_meal_reference.get("target_resolution_source") or "target_meal_reference"),
-        confidence=str(target_meal_reference.get("correction_confidence") or "medium"),
-    )
-    for meal in recent_committed_meals:
-        add_target(
-            meal.get("meal_thread_id"),
-            source="recent_committed_meal",
-            confidence="medium",
-        )
-    return targets
 
 
 def build_current_turn_context_v1(
@@ -352,7 +313,7 @@ def build_current_turn_context_v1(
         target_meal_reference=target_meal_reference,
     )
     current_event = interaction_event or build_chat_interaction_event(raw_user_input=raw_user_input)
-    candidate_targets = _candidate_attachment_targets(
+    candidate_targets = build_candidate_attachment_targets(
         pending_followup=pending_followup,
         target_meal_reference=target_meal_reference,
         recent_committed_meals=recent_committed_meals,
