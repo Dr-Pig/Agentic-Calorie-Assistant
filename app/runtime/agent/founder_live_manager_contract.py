@@ -19,6 +19,14 @@ from app.runtime.agent.founder_live_manager_semantic_consistency import (
     validate_body_observation_scope_handoff,
     validate_semantic_field_consistency,
 )
+from app.runtime.agent.founder_live_manager_target_ambiguity import (
+    FOUNDER_LIVE_MANAGER_TARGET_AMBIGUITY_REPAIR_FAMILY,
+    target_ambiguity_repair_required,
+    target_evidence_present,
+    target_evidence_state,
+    target_validation_rejection_state,
+    validate_target_ambiguity_repair,
+)
 from app.runtime.agent.founder_live_manager_tool_description import founder_live_manager_tool_description
 from app.runtime.agent.founder_live_manager_allowed_values import (
     FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS,
@@ -34,7 +42,6 @@ from app.runtime.agent.founder_live_manager_allowed_values import (
     founder_live_manager_tool_names_for_constraints,
 )
 from app.runtime.agent.nutrition_evidence_state import nutrition_evidence_present
-from app.shared.contracts.correction_operation import structured_correction_operation
 
 FOUNDER_LIVE_MANAGER_CONTRACT_PROFILE_ID = "founder_live_contract"
 FOUNDER_LIVE_MANAGER_SCHEMA_NAME = "founder_live_manager_contract"
@@ -188,7 +195,8 @@ def founder_live_manager_contract_constraints(
     tool_results: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     tool_result_names = _tool_result_names(tool_results)
-    target_evidence = _target_evidence_state(tool_results)
+    target_evidence = target_evidence_state(tool_results)
+    target_rejection = target_validation_rejection_state(tool_results)
     return {
         "manager_contract_profile_id": FOUNDER_LIVE_MANAGER_CONTRACT_PROFILE_ID,
         "manager_contract_provider_profile_id": profile_id,
@@ -210,6 +218,11 @@ def founder_live_manager_contract_constraints(
             "target_evidence_present": target_evidence["target_evidence_present"],
             "target_evidence_source": target_evidence["target_evidence_source"],
             "target_evidence_operation": target_evidence["target_evidence_operation"],
+            "target_validation_rejection_present": target_rejection["present"],
+            "target_validation_failure_family": target_rejection["failure_family"],
+            "target_validation_requires_followup": (
+                target_rejection["failure_family"] == FOUNDER_LIVE_MANAGER_TARGET_AMBIGUITY_REPAIR_FAMILY
+            ),
         },
     }
 
@@ -223,41 +236,6 @@ def _tool_result_names(tool_results: list[dict[str, Any]] | None) -> list[str]:
             names.append(name)
     return names
 
-def _target_evidence_state(tool_results: list[dict[str, Any]] | None) -> dict[str, Any]:
-    for item in tool_results or []:
-        if not isinstance(item, dict):
-            continue
-        name = str(item.get("tool_name") or item.get("name") or "").strip()
-        if name != "resolve_correction_target" or item.get("failure_family"):
-            continue
-        provenance = item.get("provenance")
-        evidence = item.get("evidence")
-        target = {}
-        if isinstance(provenance, dict) and isinstance(provenance.get("correction_target"), dict):
-            target = dict(provenance["correction_target"])
-        elif isinstance(evidence, dict) and isinstance(evidence.get("correction_target"), dict):
-            target = dict(evidence["correction_target"])
-        operation = structured_correction_operation(target)
-        validation = target.get("manager_target_proposal_validation")
-        if isinstance(validation, dict) and validation.get("status") == "rejected":
-            continue
-        if target.get("meal_thread_id") is not None and (
-            target.get("meal_item_id") is not None or operation == "remove_meal"
-        ):
-            return {
-                "target_evidence_present": True,
-                "target_evidence_source": "resolve_correction_target",
-                "target_evidence_operation": operation or None,
-            }
-    return {
-        "target_evidence_present": False,
-        "target_evidence_source": None,
-        "target_evidence_operation": None,
-    }
-
-def _target_evidence_present(evidence_state: Any) -> bool:
-    return isinstance(evidence_state, dict) and evidence_state.get("target_evidence_present") is True
-
 def _final_action_requires_nutrition_evidence(
     *,
     payload: dict[str, Any],
@@ -267,7 +245,7 @@ def _final_action_requires_nutrition_evidence(
     if final_action not in FOUNDER_LIVE_MANAGER_EVIDENCE_REQUIRED_FINAL_ACTIONS:
         return False
     if final_action == "correction_applied" and (payload_requests_removal(payload) or target_evidence_requests_removal(evidence_state)):
-        return not _target_evidence_present(evidence_state)
+        return not target_evidence_present(evidence_state)
     return True
 
 def validate_founder_live_manager_contract_consistency(
@@ -326,12 +304,19 @@ def validate_founder_live_manager_contract_consistency(
         if isinstance(evidence_state, dict)
         else None
     )
+    semantic_decision = payload.get("semantic_decision")
+    if isinstance(semantic_decision, dict) and target_ambiguity_repair_required(evidence_state):
+        validate_target_ambiguity_repair(
+            payload=payload,
+            semantic_decision=semantic_decision,
+            final_action=final_action,
+        )
     if (
         nutrition_evidence_present is False
         and str(payload.get("manager_action") or "") == "final"
         and final_action == "correction_applied"
         and payload_requests_removal(payload)
-        and not _target_evidence_present(evidence_state)
+        and not target_evidence_present(evidence_state)
     ):
         raise RuntimeError(
             "founder live manager contract removal finalization requires target evidence before "
@@ -350,7 +335,6 @@ def validate_founder_live_manager_contract_consistency(
             "founder live manager contract requires current-loop nutrition evidence before "
             f"final_action={final_action!r}; call estimate_nutrition first"
         )
-    semantic_decision = payload.get("semantic_decision")
     if not isinstance(semantic_decision, dict):
         return
     validate_founder_live_manager_contract_semantic_field_consistency(payload)
@@ -360,7 +344,7 @@ def validate_founder_live_manager_contract_consistency(
         and str(payload.get("manager_action") or "") == "final"
         and final_action_candidate == "correction_applied"
         and payload_requests_removal(payload)
-        and not _target_evidence_present(evidence_state)
+        and not target_evidence_present(evidence_state)
     ):
         raise RuntimeError(
             "founder live manager contract removal finalization requires target evidence before "

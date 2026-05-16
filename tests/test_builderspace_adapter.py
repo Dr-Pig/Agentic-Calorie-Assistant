@@ -2160,6 +2160,9 @@ def test_founder_live_contract_does_not_count_failed_tool_result_as_evidence() -
         "target_evidence_present": False,
         "target_evidence_source": None,
         "target_evidence_operation": None,
+        "target_validation_rejection_present": False,
+        "target_validation_failure_family": None,
+        "target_validation_requires_followup": False,
     }
 
 
@@ -2191,6 +2194,9 @@ def test_founder_live_contract_constraints_are_compact_dynamic_refs() -> None:
         "target_evidence_present": False,
         "target_evidence_source": None,
         "target_evidence_operation": None,
+        "target_validation_rejection_present": False,
+        "target_validation_failure_family": None,
+        "target_validation_requires_followup": False,
     }
 
 

@@ -4,6 +4,9 @@ from typing import Any
 
 
 def contract_repair_message(parse_attempt: dict[str, Any]) -> str:
+    semantic_repair = _semantic_repair_message(parse_attempt)
+    if semantic_repair:
+        return semantic_repair
     scoped_hint = _scoped_repair_hint(parse_attempt)
     return (
         "CONTRACT_REPAIR: Return the same manager decision using the required structured schema. "
@@ -12,6 +15,21 @@ def contract_repair_message(parse_attempt: dict[str, Any]) -> str:
         "are inconsistent, update both consistently. "
         f"{scoped_hint}"
         f"Previous validation error: {parse_attempt.get('error')}"
+    )
+
+
+def _semantic_repair_message(parse_attempt: dict[str, Any]) -> str:
+    error = str(parse_attempt.get("error") or "")
+    if "ambiguous correction target requires final ask_followup" not in error:
+        return ""
+    return (
+        "CONTRACT_REPAIR: The target validator rejected the correction/removal target because multiple "
+        "candidate meals remain possible. This is a semantic legality repair: ask the user to clarify the "
+        "target, use manager_action='final', final_action='ask_followup', workflow_effect='ask_followup', "
+        "tool_calls=[], semantic_decision.final_action_candidate='ask_followup', and "
+        "semantic_decision.mutation_intent_candidate='no_mutation'. Do not preserve the rejected "
+        "target_attachment as a concrete mutation target. Previous validation error: "
+        f"{parse_attempt.get('error')}"
     )
 
 

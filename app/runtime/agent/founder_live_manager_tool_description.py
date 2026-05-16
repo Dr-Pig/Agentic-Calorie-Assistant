@@ -34,6 +34,7 @@ def founder_live_manager_tool_description() -> str:
         "For named meal-slot removal, select a matching meal_thread_id from provided candidates; target_display_name alone is not enough, and never expose meal_thread_id in user-facing reply_text. "
         "If guard_feedback.failure_family is nutrition_evidence_not_commit_eligible, guard rejected a Manager-proposed commit; choose legal final ask_followup/no_mutation/tool_calls=[] and never commit a fallback value. "
         "If guard_feedback.failure_family is named_food_user_kcal_conflict_requires_confirmation, your own semantic decision marked a named-food kcal conflict; ask the user to confirm the kcal or portion before logging, and do not commit the system estimate. "
+        "If manager_contract_evidence_state.target_validation_failure_family is manager_thread_target_proposal_ambiguous, ask a target clarification with no mutation and do not retry the same rejected target. "
         "If guard_feedback.failure_family is pending_followup_attach_requires_commit, the prior pending target is an unresolved draft; repair by returning log_meal/commit/canonical_write, not correct_meal/correction_applied. "
         + refinement_policy.COMPOSITION_REFINEMENT_AFTER_BASIS_QUERY_DESCRIPTION
         + "If followup_posture is refinement_optional, refinement_not_commit_gate, or size_clarification, include a followup_question. "
