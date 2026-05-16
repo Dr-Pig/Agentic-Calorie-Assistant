@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from app.runtime.agent.manager_fallback_policy import fallback_decision
-from app.runtime.agent.founder_live_manager_contract import validate_founder_live_manager_contract_consistency
+from app.runtime.agent.founder_live_manager_contract import (
+    founder_live_manager_contract_constraints,
+    validate_founder_live_manager_contract_consistency,
+)
 from app.runtime.agent.manager_result_builder import fallback_result, result_from_payload
 from app.runtime.contracts.phase_a import ManagerSemanticDecision
 
@@ -225,6 +228,113 @@ def test_listed_item_tool_arguments_accept_consistent_manager_semantic_decision(
             "manager_contract_evidence_state": {"nutrition_evidence_present": False},
         },
     )
+
+
+def test_target_ambiguity_rejection_blocks_later_correction_applied() -> None:
+    payload = {
+        "manager_action": "final",
+        "intent": "correct meal",
+        "intent_type": "correct_meal",
+        "workflow_effect": "correction",
+        "target_attachment": {"operation": "remove_meal", "meal_thread_id": 2},
+        "exactness": "high",
+        "confidence": "high",
+        "evidence_posture": "target_evidence_present",
+        "tool_calls": [],
+        "final_action": "correction_applied",
+        "repair_ack": False,
+        "answer_contract": {"reply_text": "Removed."},
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "target_attachment": {"operation": "remove_meal", "meal_thread_id": 2},
+            "workflow_effect": "correction",
+            "final_action_candidate": "correction_applied",
+            "estimation_posture": "target_evidence_present",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "correction_write",
+            "uncertainty_posture": "none",
+            "source": "target_evidence",
+        },
+    }
+
+    constraints = founder_live_manager_contract_constraints(
+        "test-profile",
+        tool_results=[
+            {
+                "tool_name": "resolve_correction_target",
+                "provenance": {
+                    "correction_target": {
+                        "manager_target_proposal_validation": {
+                            "status": "rejected",
+                            "failure_family": "manager_thread_target_proposal_ambiguous",
+                            "target_candidates_supplied": True,
+                            "deterministic_target_choice_allowed": False,
+                        }
+                    }
+                },
+            }
+        ],
+    )
+    constraints.update(manager_loop_scope="intake_execution", available_tools=["resolve_correction_target"])
+
+    try:
+        validate_founder_live_manager_contract_consistency(payload, constraints=constraints)
+    except RuntimeError as exc:
+        assert "ambiguous correction target requires final ask_followup" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("ambiguous correction target cannot finalize mutation")
+
+
+def test_target_ambiguity_rejection_allows_manager_target_clarification() -> None:
+    payload = {
+        "manager_action": "final",
+        "intent": "clarify correction target",
+        "intent_type": "correct_meal",
+        "workflow_effect": "ask_followup",
+        "target_attachment": {},
+        "exactness": "unknown",
+        "confidence": "medium",
+        "evidence_posture": "target_ambiguous",
+        "tool_calls": [],
+        "final_action": "ask_followup",
+        "repair_ack": True,
+        "answer_contract": {"followup_question": "Which meal should I remove?"},
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "target_attachment": {},
+            "workflow_effect": "ask_followup",
+            "final_action_candidate": "ask_followup",
+            "estimation_posture": "target_ambiguous",
+            "followup_posture": "target_clarification",
+            "followup_question": "Which meal should I remove?",
+            "mutation_intent_candidate": "no_mutation",
+            "uncertainty_posture": "target_ambiguous",
+            "source": "target_validation_feedback",
+        },
+    }
+    constraints = founder_live_manager_contract_constraints(
+        "test-profile",
+        tool_results=[
+            {
+                "tool_name": "resolve_correction_target",
+                "provenance": {
+                    "correction_target": {
+                        "manager_target_proposal_validation": {
+                            "status": "rejected",
+                            "failure_family": "manager_thread_target_proposal_ambiguous",
+                            "target_candidates_supplied": True,
+                            "deterministic_target_choice_allowed": False,
+                        }
+                    }
+                },
+            }
+        ],
+    )
+    constraints.update(manager_loop_scope="intake_execution", available_tools=["resolve_correction_target"])
+
+    validate_founder_live_manager_contract_consistency(payload, constraints=constraints)
 
 
 def test_missing_semantic_decision_is_non_authoritative_not_derived_from_legacy_fields() -> None:

@@ -7,7 +7,7 @@ from app.runtime.agent.manager_user_facing_reply_prompt import USER_FACING_REPLY
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v41"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v42"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -176,6 +176,12 @@ _CONTRACT_POLICY_PROMPT = (
     "mutation_intent_candidate='no_mutation', source='named_food_user_kcal_conflict', and a user-facing question "
     "asking whether the user's kcal number was a special portion/source or whether to use the evidence-backed "
     "estimate. Do not log, overwrite, or claim the system estimate was recorded before the user confirms.\n"
+    "If manager_contract_evidence_state.target_validation_failure_family is "
+    "'manager_thread_target_proposal_ambiguous', runtime has validated that multiple correction/removal target "
+    "candidates are still possible and deterministic target choice is not allowed. Repair with a target "
+    "clarification: manager_action='final', final_action='ask_followup', workflow_effect='ask_followup', "
+    "mutation_intent_candidate='no_mutation', tool_calls=[], no concrete target_attachment, and one natural "
+    "question asking which candidate the user means. Do not retry the same target as a mutation.\n"
     "Once current-loop nutrition evidence is present for an estimable intake write or correction, intake_execution final mapping "
     "is no longer an entry handoff: do not return workflow_effect='route_to_intake' or final_action='no_commit'. "
     "Use final_action='commit', 'correction_applied', or 'overshoot_note' according to semantic_decision.final_action_candidate, "
