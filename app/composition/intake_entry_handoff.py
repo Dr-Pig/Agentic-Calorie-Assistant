@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any
 
 from app.composition.user_provided_kcal_evidence import manager_owned_user_provided_kcal_from_semantics
+from app.composition.intake_target_identity import (
+    hydrate_manager_selected_target,
+    manager_owned_evidence_base_dish,
+)
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 from app.shared.contracts.correction_operation import structured_correction_operation
 
@@ -34,7 +38,7 @@ def entry_handoff_tool_calls(manager_decision: Any, *, resolved_state: Any | Non
     semantic_decision = dict(getattr(manager_decision, "semantic_decision", {}) or {})
     target = dict(getattr(manager_decision, "target_attachment", {}) or {})
     semantic_target = dict(semantic_decision.get("target_attachment") or {})
-    merged_target = _hydrate_manager_selected_target({**target, **semantic_target}, resolved_state)
+    merged_target = hydrate_manager_selected_target({**target, **semantic_target}, resolved_state)
     final_candidate = str(semantic_decision.get("final_action_candidate") or "")
     operation = structured_correction_operation(merged_target)
     if final_candidate == "correction_applied" and operation in {"remove_item", "remove_meal"}:
@@ -108,11 +112,15 @@ def _nutrition_evidence_handoff_tool_calls(
         return []
     if structured_correction_operation(target) in {"remove_item", "remove_meal"}:
         return []
+    base_dish = manager_owned_evidence_base_dish(
+        semantic_decision=semantic_decision,
+        target=target,
+    )
     arguments = {
         "manager_semantic_decision": {
             key: value
             for key, value in {
-                "base_dish": semantic_decision.get("base_dish") or target.get("canonical_name"),
+                "base_dish": base_dish,
                 "aliases": semantic_decision.get("aliases"),
                 "brand_hint": semantic_decision.get("brand_hint"),
                 "size_hint": semantic_decision.get("size_hint"),
@@ -205,59 +213,3 @@ async def execute_entry_handoff_seed(
             )
         ],
     }
-
-
-def _hydrate_manager_selected_target(target: dict[str, Any], resolved_state: Any | None) -> dict[str, Any]:
-    if resolved_state is None or not _manager_selected_existing_target(target):
-        return target
-    active_meal = _as_dict(getattr(resolved_state, "active_meal", None))
-    if not active_meal or not _target_matches_active_meal(target, active_meal):
-        return target
-    hydrated = dict(target)
-    if not str(hydrated.get("canonical_name") or "").strip():
-        canonical_name = str(active_meal.get("canonical_name") or active_meal.get("meal_title") or "").strip()
-        if canonical_name:
-            hydrated["canonical_name"] = canonical_name
-    for key in ("meal_thread_id", "meal_item_id"):
-        if hydrated.get(key) in (None, "") and active_meal.get(key) not in (None, ""):
-            hydrated[key] = active_meal.get(key)
-    return hydrated
-
-
-def _manager_selected_existing_target(target: dict[str, Any]) -> bool:
-    operation = str(target.get("operation") or target.get("action_type") or "").strip()
-    source = str(target.get("target_resolution_source") or "").strip()
-    return (
-        operation == "attach_to_pending_followup"
-        or source == "pending_followup_state"
-        or any(target.get(key) not in (None, "") for key in ("meal_thread_id", "meal_item_id", "target_meal_id", "source_meal_id"))
-    )
-
-
-def _target_matches_active_meal(target: dict[str, Any], active_meal: dict[str, Any]) -> bool:
-    if not target:
-        return False
-    operation = str(target.get("operation") or target.get("action_type") or "").strip()
-    source = str(target.get("target_resolution_source") or "").strip()
-    if operation == "attach_to_pending_followup" or source == "pending_followup_state":
-        return any(
-            active_meal.get(key) not in (None, "")
-            for key in ("meal_thread_id", "meal_item_id", "canonical_name", "meal_title")
-        )
-    target_ids = {
-        value
-        for key in ("meal_thread_id", "meal_item_id", "target_meal_id", "source_meal_id")
-        if (value := target.get(key)) not in (None, "")
-    }
-    active_ids = {
-        value
-        for key in ("meal_thread_id", "meal_item_id")
-        if (value := active_meal.get(key)) not in (None, "")
-    }
-    if target_ids and active_ids:
-        return bool(target_ids.intersection(active_ids))
-    return False
-
-
-def _as_dict(value: Any) -> dict[str, Any]:
-    return dict(value) if isinstance(value, dict) else {}
