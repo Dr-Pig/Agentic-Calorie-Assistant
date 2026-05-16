@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.runtime.agent.manager_fallback_policy import fallback_decision
+from app.runtime.agent.founder_live_manager_contract import validate_founder_live_manager_contract_consistency
 from app.runtime.agent.manager_result_builder import fallback_result, result_from_payload
 from app.runtime.contracts.phase_a import ManagerSemanticDecision
 
@@ -118,6 +119,112 @@ def test_result_from_payload_derives_missing_final_action_from_manager_semantic_
 
     assert result.final_action == "commit"
     assert result.trace["final_action_source"] == "semantic_decision.final_action_candidate"
+
+
+def test_listed_item_tool_arguments_must_match_manager_semantic_decision() -> None:
+    payload = {
+        "manager_action": "call_tools",
+        "intent": "log meal",
+        "intent_type": "log_meal",
+        "workflow_effect": "pending_tool_call",
+        "target_attachment": {},
+        "exactness": "unknown",
+        "confidence": "medium",
+        "evidence_posture": "requires_tool",
+        "tool_calls": [
+            {
+                "name": "estimate_nutrition",
+                "arguments": {
+                    "manager_semantic_decision": {
+                        "retrieval_goal": "generic_anchor_lookup",
+                    }
+                },
+            }
+        ],
+        "final_action": "commit",
+        "repair_ack": False,
+        "answer_contract": {},
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {},
+            "workflow_effect": "pending_tool_call",
+            "final_action_candidate": "commit",
+            "estimation_posture": "listed_items_ready",
+            "listed_items": ["rice", "chicken leg"],
+            "retrieval_goal": "listed_item_lookup",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "canonical_write",
+            "uncertainty_posture": "bounded_estimate",
+            "source": "single_manager_loop",
+        },
+    }
+
+    try:
+        validate_founder_live_manager_contract_consistency(
+            payload,
+            constraints={
+                "manager_contract_profile_id": "founder_live_contract",
+                "manager_loop_scope": "intake_execution",
+                "available_tools": ["estimate_nutrition", "resolve_correction_target"],
+                "manager_contract_evidence_state": {"nutrition_evidence_present": False},
+            },
+        )
+    except RuntimeError as exc:
+        assert "listed-item estimate_nutrition arguments" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("listed semantic decision cannot request generic nutrition lookup")
+
+
+def test_listed_item_tool_arguments_accept_consistent_manager_semantic_decision() -> None:
+    payload = {
+        "manager_action": "call_tools",
+        "intent": "log meal",
+        "intent_type": "log_meal",
+        "workflow_effect": "pending_tool_call",
+        "target_attachment": {},
+        "exactness": "unknown",
+        "confidence": "medium",
+        "evidence_posture": "requires_tool",
+        "tool_calls": [
+            {
+                "name": "estimate_nutrition",
+                "arguments": {
+                    "manager_semantic_decision": {
+                        "listed_items": ["rice", "chicken leg"],
+                        "retrieval_goal": "listed_item_lookup",
+                    }
+                },
+            }
+        ],
+        "final_action": "commit",
+        "repair_ack": False,
+        "answer_contract": {},
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {},
+            "workflow_effect": "pending_tool_call",
+            "final_action_candidate": "commit",
+            "estimation_posture": "listed_items_ready",
+            "listed_items": ["rice", "chicken leg"],
+            "retrieval_goal": "listed_item_lookup",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "canonical_write",
+            "uncertainty_posture": "bounded_estimate",
+            "source": "single_manager_loop",
+        },
+    }
+
+    validate_founder_live_manager_contract_consistency(
+        payload,
+        constraints={
+            "manager_contract_profile_id": "founder_live_contract",
+            "manager_loop_scope": "intake_execution",
+            "available_tools": ["estimate_nutrition", "resolve_correction_target"],
+            "manager_contract_evidence_state": {"nutrition_evidence_present": False},
+        },
+    )
 
 
 def test_missing_semantic_decision_is_non_authoritative_not_derived_from_legacy_fields() -> None:

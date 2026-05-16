@@ -5,6 +5,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.composition.intake_manager_tool_arguments import manager_semantic_decision_argument_payload
 from app.intake.application.intake_tool_runtime import looks_like_multi_item_input, normalize_live_payload
 from app.nutrition.agent.exact_item_packets import build_exact_item_lane_packet
 from app.nutrition.application.estimate_artifacts import (
@@ -293,7 +294,7 @@ def _attach_web_runtime_trace(payload: EstimatePayload, trace: dict[str, Any]) -
 def manager_semantic_decision_from_tool_arguments(
     arguments: dict[str, Any] | None,
 ) -> B2ManagerSemanticDecision | None:
-    raw = dict((arguments or {}).get("manager_semantic_decision") or {})
+    raw = manager_semantic_decision_argument_payload(arguments)
     if not raw:
         return None
     return B2ManagerSemanticDecision(
