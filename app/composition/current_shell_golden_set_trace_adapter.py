@@ -76,10 +76,12 @@ def _fixture_decisions(
 
 def _manager_semantics_came_from_fixture(trace_artifact: dict[str, Any]) -> bool:
     provider = _copy_mapping(trace_artifact.get("manager_provider"))
+    prompt_registry = _copy_mapping(trace_artifact.get("prompt_registry"))
     provider_name = str(provider.get("provider") or trace_artifact.get("manager_provider_name") or "").lower()
     semantic_owner = str(trace_artifact.get("semantic_owner") or provider.get("semantic_owner") or "").lower()
     semantic_source = str(trace_artifact.get("semantic_source") or provider.get("semantic_source") or "").lower()
-    markers = (provider_name, semantic_owner, semantic_source)
+    prompt_provider = str(prompt_registry.get("provider") or prompt_registry.get("semantic_source") or "").lower()
+    markers = (provider_name, semantic_owner, semantic_source, prompt_provider)
     return any("fixture" in marker or "deterministic_fake_provider" in marker for marker in markers)
 
 

@@ -4,6 +4,7 @@ from app.composition.current_shell_golden_set_grader import (
     grade_golden_case_result,
     load_golden_set_manifest,
 )
+from app.composition.current_shell_golden_set_trace_adapter import grade_golden_case_trace
 
 
 def _base_result(case_id: str) -> dict:
@@ -307,6 +308,28 @@ def test_grader_blocks_browser_ui_case_without_browser_execution() -> None:
 
     assert grade["status"] == "blocked"
     assert "ui.browser_executed_not_true_for_browser_case" in grade["blockers"]
+
+
+def test_grader_blocks_fixture_provider_marker_in_prompt_registry() -> None:
+    result = _base_result("GS19")
+    result["ui"]["browser_executed"] = True
+    trace_artifact = {
+        "case_id": "GS19",
+        "trace_id": result["dogfood_trace"]["trace_id"],
+        "prompt_registry": {"provider": "deterministic_self_use_manager_fixture"},
+        "trace_layers_present": list(result["trace_layers"]),
+        "runtime": result["runtime"],
+        "ui": result["ui"],
+        "response": result["response"],
+        "latency": result["latency"],
+        "dogfood_trace": result["dogfood_trace"],
+        "generalization": result["generalization"],
+    }
+
+    grade = grade_golden_case_trace("GS19", trace_artifact)
+
+    assert grade["status"] == "blocked"
+    assert "fixture_decisions.intent_not_allowed" in grade["blockers"]
 
 
 def test_grader_blocks_gs17_feedback_link_without_real_feedback_record() -> None:
