@@ -18,6 +18,11 @@ _BUBBLE_MILK_TEA_HALF_LARGE = "\u534a\u7cd6\u5927\u676f\u73cd\u73e0\u5976\u8336"
 _DRIED_TOFU = "\u8c46\u5e72"
 _KELP = "\u6d77\u5e36"
 _PORK_BALL = "\u8ca2\u4e38"
+_WHITE_RICE_HALF_BOWL = "\u767d\u98ef\u534a\u7897"
+_WHITE_RICE_ONE_BOWL = "\u767d\u98ef\u4e00\u7897"
+_CHICKEN_LEG_ONE = "\u96de\u817f\u4e00\u652f"
+_GREENS_TWO_SERVINGS = "\u9752\u83dc\u5169\u6a23"
+_BRAISED_EGG_ONE = "\u6ef7\u86cb\u4e00\u9846"
 
 _COMPONENT_FACTS = {
     _TEPPAN_NOODLE: {
@@ -116,10 +121,58 @@ _COMPONENT_FACTS = {
         "carb_g": 7,
         "fat_g": 4,
     },
+    _WHITE_RICE_HALF_BOWL: {
+        "quantity_hint": "half bowl",
+        "estimated_kcal": 180,
+        "protein_g": 3,
+        "carb_g": 40,
+        "fat_g": 0,
+    },
+    _WHITE_RICE_ONE_BOWL: {
+        "quantity_hint": "1 bowl",
+        "estimated_kcal": 360,
+        "protein_g": 6,
+        "carb_g": 80,
+        "fat_g": 1,
+    },
+    _CHICKEN_LEG_ONE: {
+        "quantity_hint": "1 piece",
+        "estimated_kcal": 260,
+        "protein_g": 24,
+        "carb_g": 5,
+        "fat_g": 16,
+    },
+    _GREENS_TWO_SERVINGS: {
+        "quantity_hint": "2 vegetable servings",
+        "estimated_kcal": 80,
+        "protein_g": 4,
+        "carb_g": 12,
+        "fat_g": 3,
+    },
+    _BRAISED_EGG_ONE: {
+        "quantity_hint": "1 egg",
+        "estimated_kcal": 80,
+        "protein_g": 7,
+        "carb_g": 1,
+        "fat_g": 5,
+    },
 }
 
 _ALIASES = {
     _PORK_SLICES: _BREAKFAST_PORK_SLICES,
+    "\u534a\u7897\u767d\u98ef": _WHITE_RICE_HALF_BOWL,
+    "\u767d\u98ef\u534a\u4efd": _WHITE_RICE_HALF_BOWL,
+    "\u767d\u98ef": _WHITE_RICE_ONE_BOWL,
+    "\u767d\u98ef\u4e00\u4efd": _WHITE_RICE_ONE_BOWL,
+    "\u96de\u817f": _CHICKEN_LEG_ONE,
+    "\u96de\u817f\u4e00\u652f": _CHICKEN_LEG_ONE,
+    "\u9e21\u817f": _CHICKEN_LEG_ONE,
+    "\u9e21\u817f\u4e00\u652f": _CHICKEN_LEG_ONE,
+    "\u9752\u83dc": _GREENS_TWO_SERVINGS,
+    "\u70d9\u9752\u83dc": _GREENS_TWO_SERVINGS,
+    "\u6ef7\u86cb": _BRAISED_EGG_ONE,
+    "\u5364\u86cb": _BRAISED_EGG_ONE,
+    "\u6ef7\u86cb\u4e00\u9846": _BRAISED_EGG_ONE,
 }
 
 
