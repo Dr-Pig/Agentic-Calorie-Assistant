@@ -107,6 +107,37 @@ def test_new_meal_followup_context_attaches_completion_to_same_meal_thread() -> 
     assert pack.manager_context["session_atomic_blocks"][0]["role"] == "support_evidence"
 
 
+def test_pending_followup_with_draft_meal_id_exposes_read_only_attachment_candidate() -> None:
+    context = build_current_turn_context_v1(
+        raw_user_input="has noodles, pork, egg, and tea",
+        resolved_state=_state(
+            pending_followup={
+                "is_open": True,
+                "meal_id": 19,
+                "source_meal_id": 19,
+                "pending_question": "What is included in this combo?",
+            },
+            session_summary={"latest_assistant_turns": ["What is included in this combo?"]},
+        ),
+    )
+
+    assert context.open_workflow_type == "meal_followup"
+    assert context.candidate_attachment_targets == [
+        {
+            "target_object_type": "pending_followup",
+            "target_object_id": "19",
+            "source": "pending_followup",
+            "confidence": "high",
+            "mutation_authority": False,
+            "meal_id": 19,
+            "source_meal_id": 19,
+            "pending_question": "What is included in this combo?",
+        }
+    ]
+    assert context.session_atomic_blocks[0]["object_ref"]["meal_id"] == 19
+    assert context.session_atomic_blocks[1]["object_ref"]["source_meal_id"] == 19
+
+
 def test_drink_refinement_promotes_single_item_target_without_mutation_authority() -> None:
     context = build_current_turn_context_v1(
         raw_user_input="半糖大杯",

@@ -5,9 +5,17 @@ from typing import Literal
 
 from .retrieval_intent import RetrievalGoal, RetrievalIntent
 
-SemanticAuthoritySource = Literal["synthetic_manager_structured_fixture", "live_manager_structured_output"]
+SemanticAuthoritySource = Literal[
+    "synthetic_manager_structured_fixture",
+    "live_manager_structured_output",
+    "manager_tool_arguments",
+]
 
-_ALLOWED_SEMANTIC_AUTHORITY_SOURCES = {"synthetic_manager_structured_fixture", "live_manager_structured_output"}
+_ALLOWED_SEMANTIC_AUTHORITY_SOURCES = {
+    "synthetic_manager_structured_fixture",
+    "live_manager_structured_output",
+    "manager_tool_arguments",
+}
 _ALLOWED_RETRIEVAL_GOALS = {
     "generic_anchor_lookup",
     "exact_brand_lookup",
