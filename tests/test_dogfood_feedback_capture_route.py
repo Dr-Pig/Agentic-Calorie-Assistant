@@ -276,6 +276,22 @@ def test_feedback_page_uses_auto_context_without_manual_id_requirement() -> None
     assert "Request ID" not in page
     assert "Message ID" not in page
 
+
+def test_feedback_page_preserves_unsent_draft_across_same_tab_navigation_without_product_storage() -> None:
+    page = Path("static/accurate-intake-feedback.html").read_text(encoding="utf-8")
+
+    assert "feedbackDraftKey()" in page
+    assert "restoreFeedbackDraft();" in page
+    assert "persistFeedbackDraft();" in page
+    assert "clearFeedbackDraft();" in page
+    assert "feedback_draft_ui_only_not_product_truth" in page
+    assert 'el("feedback-text").addEventListener("input", persistFeedbackDraft);' in page
+    assert "window.addEventListener(\"pagehide\", persistFeedbackDraft);" in page
+    assert "clearFeedbackDraft();" in page[page.index("Captured") :]
+    assert "localStorage" not in page
+    assert "sessionStorage" not in page
+
+
 def test_feedback_review_and_data_pages_expose_dogfood_ui_affordances() -> None:
     feedback = Path("static/accurate-intake-feedback.html").read_text(encoding="utf-8")
     review = Path("static/accurate-intake-review.html").read_text(encoding="utf-8")

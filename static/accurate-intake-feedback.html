@@ -261,6 +261,59 @@
     function sourcePage() {
       return params.get("source_page") || CURRENT_PAGE;
     }
+    const FEEDBACK_DRAFT_STORE_KIND = "feedback_draft_ui_only_not_product_truth";
+    function readFeedbackDraftStore() {
+      try {
+        const parsed = JSON.parse(window.name || "{}");
+        if (parsed && parsed.kind === FEEDBACK_DRAFT_STORE_KIND && typeof parsed.drafts === "object") {
+          return parsed;
+        }
+      } catch (error) {
+        return { kind: FEEDBACK_DRAFT_STORE_KIND, drafts: {} };
+      }
+      return { kind: FEEDBACK_DRAFT_STORE_KIND, drafts: {} };
+    }
+    function writeFeedbackDraftStore(store) {
+      try {
+        window.name = JSON.stringify({
+          kind: FEEDBACK_DRAFT_STORE_KIND,
+          drafts: store.drafts || {}
+        });
+      } catch (error) {
+        return;
+      }
+    }
+    function feedbackDraftKey() {
+      return ["feedback", userId(), selectedDate(), sourcePage()].join("|");
+    }
+    function restoreFeedbackDraft() {
+      const store = readFeedbackDraftStore();
+      const draft = store.drafts?.[feedbackDraftKey()];
+      if (draft && !el("feedback-text").value.trim()) {
+        el("feedback-text").value = String(draft.text || "");
+      }
+    }
+    function persistFeedbackDraft() {
+      const store = readFeedbackDraftStore();
+      const key = feedbackDraftKey();
+      const text = el("feedback-text").value;
+      if (text.trim()) {
+        store.drafts[key] = {
+          text,
+          user_id: userId(),
+          local_date: selectedDate(),
+          source_page: sourcePage()
+        };
+      } else {
+        delete store.drafts[key];
+      }
+      writeFeedbackDraftStore(store);
+    }
+    function clearFeedbackDraft() {
+      const store = readFeedbackDraftStore();
+      delete store.drafts[feedbackDraftKey()];
+      writeFeedbackDraftStore(store);
+    }
     function updateScopeContext() {
       el("feedback-scope-context").textContent = `${userId()} / ${selectedDate()}`;
     }
@@ -397,6 +450,7 @@
         el("feedback-status").textContent = "Feedback text is required.";
         return;
       }
+      persistFeedbackDraft();
       setBusy(true);
       try {
         const payload = await requestJson(endpoints.feedback, {
@@ -405,6 +459,7 @@
           body: JSON.stringify(feedbackPayload())
         });
         el("feedback-status").textContent = `Captured ${payload.feedback_id || "feedback"}.`;
+        clearFeedbackDraft();
         el("feedback-text").value = "";
       } catch (error) {
         if (reconnectThroughFriendlyRoute(error)) {
@@ -423,6 +478,9 @@
         updateNavigationLinks();
       });
     });
+    el("feedback-text").addEventListener("input", persistFeedbackDraft);
+    window.addEventListener("pagehide", persistFeedbackDraft);
+    restoreFeedbackDraft();
     updateNavigationLinks();
     updateScopeContext();
     updateCurrentUrl();
