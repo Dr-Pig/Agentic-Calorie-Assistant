@@ -53,6 +53,23 @@ def test_golden_set_manifest_declares_scope_non_claims_and_no_fake_pass_policy()
     }
 
 
+def test_golden_set_manifest_declares_single_suite_inventory() -> None:
+    manifest = _load_manifest()
+
+    assert manifest["suite_inventory"] == {
+        "core_case_count": 19,
+        "holdout_case_count": 6,
+        "websearch_extension_case_count": 4,
+        "core_closeout_case_count": 19,
+        "self_use_closeout_case_count": 25,
+        "total_defined_case_count": 29,
+        "default_runner_scope": "core",
+        "default_replay_scope": "closeout",
+        "websearch_extension_blocking": False,
+        "websearch_extension_status": "paused_pending_stage2_calibration",
+    }
+
+
 def test_golden_set_global_invariants_are_complete_and_enforced_by_cases() -> None:
     manifest = _load_manifest()
 

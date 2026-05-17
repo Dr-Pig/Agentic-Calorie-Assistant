@@ -15,6 +15,25 @@ from scripts.run_current_shell_self_use_golden_set_e2e import (
 from app.composition.current_shell_golden_set_grader import load_golden_set_manifest
 
 
+def test_golden_set_e2e_runner_default_scope_is_core_only() -> None:
+    selected = _select_cases(load_golden_set_manifest(), None)
+
+    assert [case["case_id"] for case in selected] == [f"GS{index}" for index in range(1, 20)]
+
+
+def test_golden_set_e2e_runner_explicit_suite_scopes_are_disjoint() -> None:
+    manifest = load_golden_set_manifest()
+
+    closeout = _select_cases(manifest, None, suite_scope="closeout")
+    websearch = _select_cases(manifest, None, suite_scope="websearch")
+
+    assert [case["case_id"] for case in closeout] == [
+        *[f"GS{index}" for index in range(1, 20)],
+        *[f"GSH{index}" for index in range(1, 7)],
+    ]
+    assert [case["case_id"] for case in websearch] == [f"GSW{index}" for index in range(1, 5)]
+
+
 def test_golden_set_e2e_runner_can_select_websearch_extension_cases() -> None:
     selected = _select_cases(load_golden_set_manifest(), ["GSW1", "GSW3"])
 

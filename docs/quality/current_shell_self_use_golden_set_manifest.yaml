@@ -5,6 +5,17 @@ owner_lane: SharedCurrentShell
 runtime_contract_owner: ManagerRuntime
 downstream_shell_owner: AppShell
 case_count: 19
+suite_inventory:
+  core_case_count: 19
+  holdout_case_count: 6
+  websearch_extension_case_count: 4
+  core_closeout_case_count: 19
+  self_use_closeout_case_count: 25
+  total_defined_case_count: 29
+  default_runner_scope: core
+  default_replay_scope: closeout
+  websearch_extension_blocking: false
+  websearch_extension_status: paused_pending_stage2_calibration
 live_model_policy:
   primary_self_use_gate: grokfast
   kimi_status: non_blocking_cross_model_diagnostic

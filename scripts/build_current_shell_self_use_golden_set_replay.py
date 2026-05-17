@@ -15,6 +15,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.composition.current_shell_golden_set_trace_adapter import grade_golden_case_trace  # noqa: E402
+from app.composition.current_shell_golden_set_manifest_access import (  # noqa: E402
+    assert_golden_set_suite_inventory,
+    golden_set_cases_for_scope,
+    golden_set_suite_inventory,
+)
 
 
 DEFAULT_MANIFEST_PATH = ROOT / "docs" / "quality" / "current_shell_self_use_golden_set_manifest.yaml"
@@ -47,10 +52,12 @@ def build_golden_set_replay(
     *,
     manifest: dict[str, Any],
     trace_artifact: dict[str, Any],
+    suite_scope: str | None = None,
 ) -> dict[str, Any]:
-    core_cases = _core_cases(manifest)
-    websearch_extension_cases = _websearch_extension_cases(manifest)
-    manifest_cases = [*core_cases, *websearch_extension_cases]
+    assert_golden_set_suite_inventory(manifest)
+    inventory = golden_set_suite_inventory(manifest)
+    selected_scope = suite_scope or str(manifest.get("selected_suite_scope") or inventory["default_replay_scope"])
+    manifest_cases = golden_set_cases_for_scope(manifest, selected_scope)
     source_cases = _source_cases_by_id(trace_artifact)
     case_grades = [
         _grade_case(manifest_case, source_cases.get(str(manifest_case.get("case_id") or "")), manifest)
@@ -79,8 +86,8 @@ def build_golden_set_replay(
             "runner_inferred_semantics": False,
             "semantic_keyword_oracle_used": False,
             "summary": {
-                "core_case_count": len(core_cases),
-                "websearch_extension_case_count": len(websearch_extension_cases),
+                **inventory,
+                "selected_suite_scope": selected_scope,
                 "total_closeout_case_count": len(manifest_cases),
                 "manifest_case_count": len(manifest_cases),
                 "source_case_count": len(source_cases),
@@ -148,6 +155,10 @@ def _input_blockers(
         blockers.append("manifest.artifact_type_invalid")
     if int(manifest.get("case_count") or 0) != len(_list(manifest.get("cases"))):
         blockers.append("manifest.case_count_mismatch")
+    try:
+        assert_golden_set_suite_inventory(manifest)
+    except ValueError as exc:
+        blockers.append(str(exc))
     websearch_extension = _dict(manifest.get("websearch_extension"))
     if websearch_extension and int(websearch_extension.get("case_count") or 0) != len(
         _list(websearch_extension.get("cases"))
@@ -161,19 +172,6 @@ def _input_blockers(
     if any(case.get("deterministic_grader_owns_semantics") is True for case in case_grades):
         blockers.append("case_grader_semantic_ownership_violation")
     return sorted(set(blockers))
-
-
-def _manifest_cases(manifest: dict[str, Any]) -> list[dict[str, Any]]:
-    return [*_core_cases(manifest), *_websearch_extension_cases(manifest)]
-
-
-def _core_cases(manifest: dict[str, Any]) -> list[dict[str, Any]]:
-    return [_dict(item) for item in _list(manifest.get("cases"))]
-
-
-def _websearch_extension_cases(manifest: dict[str, Any]) -> list[dict[str, Any]]:
-    websearch_extension = _dict(manifest.get("websearch_extension"))
-    return [_dict(item) for item in _list(websearch_extension.get("cases"))]
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
