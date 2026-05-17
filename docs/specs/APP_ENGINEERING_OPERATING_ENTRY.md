@@ -58,6 +58,43 @@ This entry is an operating layer, not a new semantic owner.
 - Fake providers, test helpers, and local bridges must not become hidden semantic owners.
 - Manager semantic ownership is mandatory for composition sufficiency, estimability, follow-up necessity, target attachment, correction/removal target, and final action. Deterministic runtime may validate, reject, downgrade, hide disallowed facts, block mutation, or request one bounded post-Manager repair round; it must not use raw user text, food names, keyword heuristics, fixture labels, or case IDs to decide those semantics before the Manager pass. Active runtime must not synthesize fallback/shadow 400 kcal or macro packets; missing approved nutrition evidence is represented as evidence unavailable, not as a default estimate.
 
+## Shared Manager / Deterministic Ownership Invariant
+
+LLM / Manager owns:
+
+- composition sufficiency
+- estimability
+- whether to ask follow-up
+- whether to call WebSearch
+- exact/generic/component/basket posture
+- attach target
+- correction/removal target
+- final workflow action
+- user-facing response meaning
+
+Deterministic code may only:
+
+- validate schema
+- validate source eligibility
+- validate target existence / uniqueness
+- enforce mutation legality
+- hide unsupported kcal/macro/source facts
+- reject/downgrade unsafe output
+- request one bounded repair
+
+Deterministic code must not:
+
+- inspect raw user text or food name to decide semantic route
+- classify a meal as unestimable before Manager output exists
+- decide follow-up necessity
+- decide WebSearch need
+- create fallback kcal/macros
+- rewrite Manager action to make a test pass
+
+In short: deterministic code must not inspect raw user text, food name, case ID, or fixture label to decide semantic product behavior.
+
+This invariant is repeated in the intake runtime and Golden Set specs so EDD work cannot drift into deterministic semantic routing when a live model behaves poorly.
+
 ## Read Order
 
 1. `AGENTS.md`

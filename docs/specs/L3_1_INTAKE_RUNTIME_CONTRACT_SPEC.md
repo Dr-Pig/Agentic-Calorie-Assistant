@@ -140,6 +140,43 @@ Provider adapters 不可以：
 - auto-repair manager semantic decisions
 - 把 manager contract violation 降格成 generic provider runtime noise
 
+### 3.2C Shared Manager / Deterministic Ownership Invariant
+
+LLM / Manager owns:
+
+- composition sufficiency
+- estimability
+- whether to ask follow-up
+- whether to call WebSearch
+- exact/generic/component/basket posture
+- attach target
+- correction/removal target
+- final workflow action
+- user-facing response meaning
+
+Deterministic code may only:
+
+- validate schema
+- validate source eligibility
+- validate target existence / uniqueness
+- enforce mutation legality
+- hide unsupported kcal/macro/source facts
+- reject/downgrade unsafe output
+- request one bounded repair
+
+Deterministic code must not:
+
+- inspect raw user text or food name to decide semantic route
+- classify a meal as unestimable before Manager output exists
+- decide follow-up necessity
+- decide WebSearch need
+- create fallback kcal/macros
+- rewrite Manager action to make a test pass
+
+In short: deterministic code must not inspect raw user text, food name, case ID, or fixture label to decide semantic product behavior.
+
+Guard, evidence policy, and validators operate after Manager-owned semantic output exists. They may reject illegal output, but they must not pre-route the turn or hide a Manager failure with deterministic product semantics.
+
 ### 3.3 Tool Batch
 
 合法 tool outputs 包含：

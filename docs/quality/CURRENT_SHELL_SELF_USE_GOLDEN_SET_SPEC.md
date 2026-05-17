@@ -46,6 +46,39 @@ Composition sufficiency, estimability, and follow-up necessity are Manager seman
 
 Deterministic runtime may validate a Manager-proposed action or evidence object after the Manager has produced it. It may reject an illegal commit, hide disallowed evidence fields, downgrade visibility, block mutation, or request one bounded repair round when evidence eligibility or mutation legality fails.
 
+LLM / Manager owns:
+
+- composition sufficiency
+- estimability
+- whether to ask follow-up
+- whether to call WebSearch
+- exact/generic/component/basket posture
+- attach target
+- correction/removal target
+- final workflow action
+- user-facing response meaning
+
+Deterministic code may only:
+
+- validate schema
+- validate source eligibility
+- validate target existence / uniqueness
+- enforce mutation legality
+- hide unsupported kcal/macro/source facts
+- reject/downgrade unsafe output
+- request one bounded repair
+
+Deterministic code must not:
+
+- inspect raw user text or food name to decide semantic route
+- classify a meal as unestimable before Manager output exists
+- decide follow-up necessity
+- decide WebSearch need
+- create fallback kcal/macros
+- rewrite Manager action to make a test pass
+
+In short: deterministic code must not inspect raw user text, food name, case ID, or fixture label to decide semantic product behavior.
+
 The active estimate tool must not fall back to a shadow/stub nutrition estimate. A missing exact, FoodDB, component, or approved web evidence packet is represented as `evidence_unavailable` with `estimated_kcal=0`, macro hidden, and `can_write_canonical=false`. The Manager may use that packet to ask a question or explain missing evidence, but deterministic code cannot turn the missing evidence into a default 400 kcal estimate.
 
 Deterministic runtime must not inspect raw user text, food names, case IDs, fixture labels, keyword lists, or food-family heuristics before the Manager pass to decide:
