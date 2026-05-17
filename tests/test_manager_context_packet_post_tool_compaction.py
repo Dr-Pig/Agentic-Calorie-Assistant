@@ -18,6 +18,38 @@ def test_post_tool_context_reference_compacts_active_day_state_and_hard_pins() -
             "char_truncated": False,
             "token_budget_status": "within_budget",
         },
+        "context_lineage": {
+            "lineage_version": "manager_context_lineage_v1",
+            "context_generation": "manager_context_packet_v1",
+            "context_packet_hash": "a" * 64,
+            "active_workflow_id": "pending_followup:turn-1",
+            "context_reinjected_after_compaction_or_history_trim": False,
+            "source_role": "runtime_context_state_packet",
+            "semantic_owner": "manager_llm",
+            "read_only": True,
+            "mutation_authority": False,
+        },
+        "context_layers": {
+            "current_turn": {
+                "raw_user_input_present": True,
+                "semantic_owner": "manager_llm",
+                "read_only": True,
+                "mutation_authority": False,
+            },
+            "active_workflow": {
+                "pending_followup_present": True,
+                "active_workflow_id": "pending_followup:turn-1",
+                "semantic_owner": "manager_llm",
+                "read_only": True,
+                "mutation_authority": False,
+            },
+            "evidence_state": {
+                "target_candidate_count": 1,
+                "semantic_owner": "manager_llm",
+                "read_only": True,
+                "mutation_authority": False,
+            },
+        },
         "current_turn": {
             "channel": "web_shell",
             "manager_mode": "live_diagnostic",
@@ -86,6 +118,8 @@ def test_post_tool_context_reference_compacts_active_day_state_and_hard_pins() -
     assert "full_prompt_debug_blob" not in rendered
     assert "messages" not in payload["recent_chat_window"]
     assert "for_correction_or_removal" not in payload["target_candidates"]
+    assert payload["context_lineage"]["active_workflow_id"] == "pending_followup:turn-1"
+    assert payload["context_layers"]["active_workflow"]["pending_followup_present"] is True
 
     hard_pins = payload["hard_pins"]
     assert hard_pins["hard_pins_compacted_after_tool_evidence"] is True
