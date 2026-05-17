@@ -1,6 +1,9 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
-from app.providers.builderspace_runtime_contract import manager_loop_schema
+from app.providers.builderspace_runtime_contract import (
+    manager_loop_decision_transport_schema,
+    manager_loop_schema,
+)
 from app.runtime.agent.founder_live_manager_contract import (
     FOUNDER_LIVE_MANAGER_EVIDENCE_INSTRUCTION,
     founder_live_manager_tool_description,
@@ -12,7 +15,7 @@ from app.runtime.agent.manager_system_prompt import (
 
 
 def test_remove_item_target_evidence_reuse_is_static_prompt_policy() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v33"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v46"
     assert "target_evidence_present=true" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "target_evidence_operation='remove_item'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "do not call resolve_correction_target again" in SINGLE_MANAGER_SYSTEM_PROMPT
@@ -29,10 +32,17 @@ def test_remove_item_target_evidence_reuse_is_static_prompt_policy() -> None:
 
 
 def test_whole_meal_removal_is_static_prompt_policy_without_deterministic_semantics() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v33"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v46"
     assert "operation='remove_meal'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "whole meal, meal entry, or named meal slot deletion" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "Manager-selected meal_thread_id" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "早餐/breakfast" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "午餐/中餐/lunch" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "target_display_name, display_name, or meal_title contains that slot" in (
+        SINGLE_MANAGER_SYSTEM_PROMPT
+    )
+    assert "instead of asking the same clarification again" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "answering a target clarification question" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "do not let a stale pending follow-up override the explicit current-turn target" in (
         SINGLE_MANAGER_SYSTEM_PROMPT
     )
@@ -43,6 +53,7 @@ def test_whole_meal_removal_is_static_prompt_policy_without_deterministic_semant
     assert "Do not default to the active/latest meal_thread_id" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "multiple meal_thread candidates" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "current turn does not uniquely identify one target" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "repair by calling resolve_correction_target again" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "target clarification must use final_action='ask_followup'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "workflow_effect='ask_followup'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "Do not expose meal_thread_id" in SINGLE_MANAGER_SYSTEM_PROMPT
@@ -62,6 +73,12 @@ def test_whole_meal_removal_is_tool_schema_policy() -> None:
     assert "target_evidence_operation remove_meal" in description
     assert "versioned whole-meal removal" in description
     assert "Manager-selected meal_thread_id" in description
+    assert "早餐, 午餐, 中餐, 晚餐, or 宵夜" in description
+    assert "instead of repeating the clarification" in description
+    assert "retry resolve_correction_target only when the current turn uniquely identifies one context candidate by meal title/slot/time/item" in (
+        description
+    )
+    assert "one slot-matched meal_thread candidate is unique" in description
     assert "deterministic raw text routing" in description
 
 
@@ -128,3 +145,26 @@ def test_evidence_present_canonical_write_commit_is_schema_guidance() -> None:
     assert "no_commit" not in schema["properties"]["final_action"]["enum"]
     assert "route_to_intake" not in schema["properties"]["workflow_effect"]["enum"]
     assert "Evidence-present intake final mapping" in schema["properties"]["workflow_effect"]["description"]
+
+
+def test_resolve_correction_target_transport_schema_requires_manager_selected_argument() -> None:
+    schema = manager_loop_decision_transport_schema(
+        {
+            "manager_contract_profile_id": "founder_live_contract",
+            "manager_loop_scope": "intake_execution",
+        }
+    )
+
+    item_rules = schema["properties"]["tool_calls"]["items"]["allOf"]
+    resolve_rule = next(
+        rule
+        for rule in item_rules
+        if rule.get("if", {}).get("properties", {}).get("name", {}).get("const")
+        == "resolve_correction_target"
+    )
+    arguments = resolve_rule["then"]["properties"]["arguments"]
+    assert "target_candidates" not in arguments["properties"]
+    assert "user_input" not in arguments["properties"]
+    assert arguments["additionalProperties"] is False
+    assert {"required": ["meal_thread_id"]} in arguments["anyOf"]
+    assert {"required": ["target_display_name"]} in arguments["anyOf"]

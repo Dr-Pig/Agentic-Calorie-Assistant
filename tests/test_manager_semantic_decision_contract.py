@@ -281,7 +281,7 @@ def test_target_ambiguity_rejection_blocks_later_correction_applied() -> None:
     try:
         validate_founder_live_manager_contract_consistency(payload, constraints=constraints)
     except RuntimeError as exc:
-        assert "ambiguous correction target requires final ask_followup" in str(exc)
+        assert "ambiguous correction target requires Manager target retry or final ask_followup" in str(exc)
     else:  # pragma: no cover
         raise AssertionError("ambiguous correction target cannot finalize mutation")
 
@@ -335,6 +335,170 @@ def test_target_ambiguity_rejection_allows_manager_target_clarification() -> Non
     constraints.update(manager_loop_scope="intake_execution", available_tools=["resolve_correction_target"])
 
     validate_founder_live_manager_contract_consistency(payload, constraints=constraints)
+
+
+def test_target_ambiguity_rejection_allows_manager_owned_target_retry() -> None:
+    payload = {
+        "manager_action": "call_tools",
+        "intent": "remove breakfast meal",
+        "intent_type": "correct_meal",
+        "workflow_effect": "correction",
+        "target_attachment": {},
+        "exactness": "medium",
+        "confidence": "medium",
+        "evidence_posture": "target_evidence_needed",
+        "tool_calls": [
+            {
+                "name": "resolve_correction_target",
+                "arguments": {
+                    "operation": "remove_meal",
+                    "meal_thread_id": 1,
+                    "target_proposal_source": "manager_repair_candidate_selection",
+                },
+            }
+        ],
+        "final_action": "correction_applied",
+        "repair_ack": True,
+        "answer_contract": {"reply_text": None},
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "target_attachment": {
+                "operation": "remove_meal",
+                "meal_thread_id": 1,
+                "target_resolution_source": "manager_repair_candidate_selection",
+            },
+            "workflow_effect": "correction",
+            "final_action_candidate": "correction_applied",
+            "estimation_posture": "target_evidence_needed",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "correction_write",
+            "uncertainty_posture": "medium",
+            "source": "context_target_candidate_selection",
+        },
+    }
+    constraints = founder_live_manager_contract_constraints(
+        "test-profile",
+        tool_results=[
+            {
+                "tool_name": "resolve_correction_target",
+                "provenance": {
+                    "correction_target": {
+                        "manager_target_proposal_validation": {
+                            "status": "rejected",
+                            "failure_family": "manager_thread_target_proposal_ambiguous",
+                            "target_candidates_supplied": True,
+                            "deterministic_target_choice_allowed": False,
+                        }
+                    }
+                },
+            }
+        ],
+    )
+    constraints.update(manager_loop_scope="intake_execution", available_tools=["resolve_correction_target"])
+
+    validate_founder_live_manager_contract_consistency(payload, constraints=constraints)
+
+
+def test_nutrition_evidence_present_blocks_repeated_estimate_tool_call() -> None:
+    payload = {
+        "manager_action": "call_tools",
+        "intent": "correct meal",
+        "intent_type": "correct_meal",
+        "workflow_effect": "correction",
+        "target_attachment": {"operation": "update_meal_components", "meal_thread_id": 1},
+        "exactness": "medium",
+        "confidence": "medium",
+        "evidence_posture": "requires_tool",
+        "tool_calls": [{"name": "estimate_nutrition", "arguments": {"listed_items": ["noodles", "egg"]}}],
+        "final_action": "correction_applied",
+        "repair_ack": False,
+        "answer_contract": {"reply_text": None},
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "target_attachment": {"operation": "update_meal_components", "meal_thread_id": 1},
+            "workflow_effect": "correction",
+            "final_action_candidate": "correction_applied",
+            "estimation_posture": "pending_tool_call",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "correction_write",
+            "uncertainty_posture": "medium",
+            "source": "context_correction",
+        },
+    }
+    constraints = founder_live_manager_contract_constraints(
+        "test-profile",
+        tool_results=[
+            {
+                "tool_name": "estimate_nutrition",
+                "evidence": {"nutrition_payload": {"estimated_kcal": 410}},
+                "failure_family": None,
+            }
+        ],
+    )
+    constraints.update(manager_loop_scope="intake_execution", available_tools=["estimate_nutrition"])
+
+    try:
+        validate_founder_live_manager_contract_consistency(payload, constraints=constraints)
+    except RuntimeError as exc:
+        assert "nutrition evidence already present" in str(exc)
+        assert "return manager_action='final'" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("Manager must not repeat estimate_nutrition after current-loop evidence exists")
+
+
+def test_resolve_correction_target_requires_manager_selected_target_argument() -> None:
+    payload = {
+        "manager_action": "call_tools",
+        "intent": "remove breakfast meal",
+        "intent_type": "correct_meal",
+        "workflow_effect": "correction",
+        "target_attachment": {},
+        "exactness": "medium",
+        "confidence": "medium",
+        "evidence_posture": "target_evidence_needed",
+        "tool_calls": [
+            {
+                "name": "resolve_correction_target",
+                "arguments": {
+                    "user_input": "delete breakfast",
+                    "target_candidates": [{"meal_thread_id": 1}, {"meal_thread_id": 2}],
+                    "operation": "remove_meal",
+                },
+            }
+        ],
+        "final_action": "correction_applied",
+        "repair_ack": False,
+        "answer_contract": {"reply_text": None},
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "target_attachment": {},
+            "workflow_effect": "correction",
+            "final_action_candidate": "correction_applied",
+            "estimation_posture": "target_evidence_needed",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "correction_write",
+            "uncertainty_posture": "medium",
+            "source": "context_target_candidate_selection",
+        },
+    }
+
+    try:
+        validate_founder_live_manager_contract_consistency(
+            payload,
+            constraints={
+                "manager_contract_profile_id": "founder_live_contract",
+                "manager_loop_scope": "intake_execution",
+                "available_tools": ["resolve_correction_target"],
+                "manager_contract_evidence_state": {"nutrition_evidence_present": False},
+            },
+        )
+    except RuntimeError as exc:
+        assert "resolve_correction_target requires Manager-selected target argument" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("resolve_correction_target cannot receive only user_input and target_candidates")
 
 
 def test_missing_semantic_decision_is_non_authoritative_not_derived_from_legacy_fields() -> None:

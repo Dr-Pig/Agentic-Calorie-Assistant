@@ -5,9 +5,8 @@ from typing import Any
 
 from app.runtime.agent.manager_user_facing_reply_prompt import USER_FACING_REPLY_PROMPT
 
-
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v43"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v46"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -178,10 +177,13 @@ _CONTRACT_POLICY_PROMPT = (
     "estimate. Do not log, overwrite, or claim the system estimate was recorded before the user confirms.\n"
     "If manager_contract_evidence_state.target_validation_failure_family is "
     "'manager_thread_target_proposal_ambiguous', runtime has validated that multiple correction/removal target "
-    "candidates are still possible and deterministic target choice is not allowed. Repair with a target "
-    "clarification: manager_action='final', final_action='ask_followup', workflow_effect='ask_followup', "
-    "mutation_intent_candidate='no_mutation', tool_calls=[], no concrete target_attachment, and one natural "
-    "question asking which candidate the user means. Do not retry the same target as a mutation.\n"
+    "candidates are still possible and deterministic target choice is not allowed. If the current user turn itself "
+    "uniquely identifies one context candidate by meal title, meal slot, time, or named item, repair by calling "
+    "resolve_correction_target again with that Manager-selected meal_thread_id/meal_item_id/canonical_name. If the "
+    "current turn does not uniquely identify one target, repair with a target clarification: manager_action='final', "
+    "final_action='ask_followup', workflow_effect='ask_followup', mutation_intent_candidate='no_mutation', tool_calls=[], "
+    "no concrete target_attachment, and one natural question asking which candidate the user means. Do not retry the "
+    "same rejected target unless you reselected it from context candidates.\n"
     "Once current-loop nutrition evidence is present for an estimable intake write or correction, intake_execution final mapping "
     "is no longer an entry handoff: do not return workflow_effect='route_to_intake' or final_action='no_commit'. "
     "Use final_action='commit', 'correction_applied', or 'overshoot_note' according to semantic_decision.final_action_candidate, "
@@ -208,7 +210,8 @@ _CONTRACT_POLICY_PROMPT = (
     "Do not ask for facts already available in those context candidates; ask only when the target meal or changed component is still ambiguous.\n"
     "For meal-level component replacement or portion correction, use operation='update_meal_components' in target_attachment; "
     "do not use operation='correct_item' for a whole-meal component list update.\n"
-    "If the user names a meal slot such as breakfast, lunch, dinner, or the recent meal for removal, select that matching meal_thread_id from RECENT_COMMITTED_MEALS_SUMMARY. "
+    "If the user names a meal slot such as 早餐/breakfast, 午餐/中餐/lunch, 晚餐/dinner, 宵夜/late-night snack, or the recent meal for removal, select that matching meal_thread_id from RECENT_COMMITTED_MEALS_SUMMARY. "
+    "If the user is answering a target clarification question and the answer names a different candidate meal, choose the named candidate instead of repeating the same target clarification; a meal slot is unique when exactly one meal_thread context candidate's target_display_name, display_name, or meal_title contains that slot, so call resolve_correction_target with that candidate's meal_thread_id and target_display_name instead of asking the same clarification again. "
     "target_display_name alone is not a valid target; include the concrete meal_thread_id and meal_version_id when they are present in context candidates. "
     "Use final_action='correction_applied', workflow_effect='correction', and mutation_intent_candidate='correction_write' after target validation. "
     "If multiple candidates match the named slot, ask a target clarification. Never expose internal identifiers such as meal_thread_id to the user; do not expose meal_thread_id in reply_text.\n"
@@ -281,10 +284,8 @@ _SINGLE_MANAGER_SYSTEM_PROMPT_SECTIONS = (
     {"section_id": "user_facing_reply_policy", "owner": "ManagerRuntime.ResponsePolicy", "cache_role": "stable_response_policy", "text": _USER_FACING_REPLY_PROMPT},
 )
 
-
 SINGLE_MANAGER_SYSTEM_PROMPT = "".join(str(section["text"]) for section in _SINGLE_MANAGER_SYSTEM_PROMPT_SECTIONS)
 SINGLE_MANAGER_ENTRY_SCOPE_SYSTEM_PROMPT = SINGLE_MANAGER_SYSTEM_PROMPT
-
 
 def single_manager_system_prompt_for_scope(manager_loop_scope: str) -> str:
     return SINGLE_MANAGER_SYSTEM_PROMPT

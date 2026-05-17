@@ -160,10 +160,13 @@ def build_runtime_manager_context_packet_v1(
         user_external_id=user_external_id,
         local_date=local_date,
     )
-    target_candidates = [
-        *active_meal_basis_target_candidates(active_meal_basis),
-        *list(current_turn_context.recent_item_targets or []),
-    ]
+    target_candidates = _dedupe_target_candidates(
+        [
+            *list(current_turn_context.candidate_attachment_targets or []),
+            *active_meal_basis_target_candidates(active_meal_basis),
+            *list(current_turn_context.recent_item_targets or []),
+        ]
+    )
     packet_context = (
         current_turn_context.model_copy(update={"recent_chat_turns": packet_turns})
         if packet_turns
@@ -187,3 +190,32 @@ __all__ = [
     "MANAGER_CONTEXT_RECENT_SCAN_LIMIT",
     "build_runtime_manager_context_packet_v1",
 ]
+
+
+def _dedupe_target_candidates(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        key = _target_candidate_key(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(candidate)
+    return deduped
+
+
+def _target_candidate_key(candidate: dict[str, Any]) -> tuple[str, str]:
+    target_type = str(candidate.get("target_object_type") or "").strip()
+    target_id = str(candidate.get("target_object_id") or "").strip()
+    if target_type and target_id:
+        return target_type, target_id
+    meal_item_id = str(candidate.get("meal_item_id") or "").strip()
+    if meal_item_id:
+        return "meal_item", meal_item_id
+    meal_thread_id = str(candidate.get("meal_thread_id") or "").strip()
+    if meal_thread_id:
+        return "meal_thread", meal_thread_id
+    display_name = str(candidate.get("display_name") or candidate.get("canonical_name") or "").strip()
+    return target_type or "unknown", display_name

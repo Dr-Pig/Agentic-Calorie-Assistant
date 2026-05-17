@@ -110,7 +110,7 @@ def _target_meal_reference(*, active_meal: dict[str, Any] | None, conversation_s
     item_candidates = active_meal.get("item_candidates") if isinstance(active_meal, dict) else None
     source = "active_meal_view" if meal_thread_id is not None else "none"
     confidence = "medium" if meal_thread_id is not None else "low"
-    if getattr(pending_state, "is_open", False):
+    if getattr(pending_state, "is_open", False) and getattr(pending_state, "meal_thread_id", None) is not None:
         source = "pending_followup_state"
         confidence = "high"
     if getattr(active_state, "meal_title", None) and meal_title is None:
