@@ -133,6 +133,35 @@ def test_contract_repair_message_maps_listed_lookup_to_manager_owned_listed_item
     assert "runtime infer components" in message
 
 
+def test_contract_repair_message_maps_component_update_to_manager_owned_updated_list() -> None:
+    message = contract_repair_message(
+        {
+            "error": (
+                "founder live manager contract listed_item_lookup requires "
+                "semantic_decision.listed_items from the Manager-owned semantic decision"
+            ),
+            "observed_value": {
+                "intent_type": "correct_meal",
+                "semantic_decision": {
+                    "current_turn_intent": "correct_meal",
+                    "target_attachment": {
+                        "operation": "update_meal_components",
+                        "meal_thread_id": "meal-1",
+                    },
+                    "mutation_intent_candidate": "correction_write",
+                    "final_action_candidate": "correction_applied",
+                    "retrieval_goal": "listed_item_lookup",
+                },
+            },
+        }
+    )
+
+    assert "update_meal_components" in message
+    assert "semantic_decision.listed_items" in message
+    assert "updated component list" in message
+    assert "Runtime must not infer" in message
+
+
 def test_contract_repair_message_maps_nonempty_listed_items_to_listed_lookup() -> None:
     message = contract_repair_message(
         {
