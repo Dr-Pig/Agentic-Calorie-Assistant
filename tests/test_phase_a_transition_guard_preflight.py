@@ -250,6 +250,88 @@ def test_pending_followup_attach_guard_requests_repair_for_unresolved_draft_corr
     }
 
 
+def test_pending_followup_attach_guard_requires_explicit_target_for_write() -> None:
+    from app.composition.pending_followup_attach_guard import (
+        pending_followup_attach_repair_outcome,
+    )
+
+    outcome = pending_followup_attach_repair_outcome(
+        manager_payload={
+            "final_action": "commit",
+            "workflow_effect": "commit",
+            "target_attachment": {},
+            "semantic_decision": {
+                "current_turn_intent": "log_meal",
+                "mutation_intent_candidate": "canonical_write",
+                "target_attachment": {},
+            },
+        },
+        correction_target={
+            "target_resolution_source": "pending_followup_state",
+            "source_meal_id": "draft-1",
+        },
+    )
+
+    assert outcome is not None
+    assert outcome["failure_family"] == "pending_followup_commit_requires_explicit_target"
+    assert outcome["repair_request"] is True
+    assert "target_attachment={}" in outcome["repair_instruction"]
+
+
+def test_pending_followup_attach_guard_allows_manager_explicit_new_meal_choice() -> None:
+    from app.composition.pending_followup_attach_guard import (
+        pending_followup_attach_repair_outcome,
+    )
+
+    outcome = pending_followup_attach_repair_outcome(
+        manager_payload={
+            "final_action": "commit",
+            "workflow_effect": "commit",
+            "target_attachment": {"mode": "new_meal"},
+            "semantic_decision": {
+                "current_turn_intent": "log_meal",
+                "mutation_intent_candidate": "canonical_write",
+                "target_attachment": {"mode": "new_meal"},
+            },
+        },
+        correction_target={},
+        pending_followup={"is_open": True, "source_meal_id": "draft-1"},
+    )
+
+    assert outcome is None
+
+
+def test_pending_followup_attach_guard_allows_manager_pending_attach_choice() -> None:
+    from app.composition.pending_followup_attach_guard import (
+        pending_followup_attach_repair_outcome,
+    )
+
+    outcome = pending_followup_attach_repair_outcome(
+        manager_payload={
+            "final_action": "commit",
+            "workflow_effect": "commit",
+            "target_attachment": {
+                "operation": "attach_to_pending_followup",
+                "target_resolution_source": "pending_followup_state",
+                "source_meal_id": "draft-1",
+            },
+            "semantic_decision": {
+                "current_turn_intent": "log_meal",
+                "mutation_intent_candidate": "canonical_write",
+                "target_attachment": {
+                    "operation": "attach_to_pending_followup",
+                    "target_resolution_source": "pending_followup_state",
+                    "source_meal_id": "draft-1",
+                },
+            },
+        },
+        correction_target={},
+        pending_followup={"is_open": True, "source_meal_id": "draft-1"},
+    )
+
+    assert outcome is None
+
+
 def test_pending_followup_attach_guard_does_not_block_resolved_committed_refinement() -> None:
     from app.composition.pending_followup_attach_guard import (
         pending_followup_attach_repair_outcome,
