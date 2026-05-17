@@ -19,14 +19,25 @@ def attach_context_lineage(packet: dict[str, Any]) -> dict[str, Any]:
 
 def context_lineage_for_packet(packet: dict[str, Any]) -> dict[str, Any]:
     artifact = dict(packet.get("context_loading_artifact") or {})
+    history_trimmed = bool(
+        artifact.get("history_trimmed")
+        or artifact.get("omitted_count")
+        or artifact.get("char_truncated")
+    )
+    context_reinjected = bool(
+        artifact.get("context_reinjected_after_compaction_or_history_trim")
+        or (
+            history_trimmed
+            and artifact.get("canonical_state_reinjected_after_history_trim")
+        )
+    )
     return {
         "lineage_version": CONTEXT_LINEAGE_VERSION,
         "context_generation": CONTEXT_GENERATION_ID,
         "context_packet_hash": context_packet_hash(packet),
         "active_workflow_id": active_workflow_id_for_packet(packet),
-        "context_reinjected_after_compaction_or_history_trim": bool(
-            artifact.get("context_reinjected_after_compaction_or_history_trim")
-        ),
+        "history_trimmed": history_trimmed,
+        "context_reinjected_after_compaction_or_history_trim": context_reinjected,
         "source_role": "runtime_context_state_packet",
         "semantic_owner": "manager_llm",
         "read_only": True,
