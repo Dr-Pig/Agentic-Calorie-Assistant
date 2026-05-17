@@ -73,6 +73,43 @@ def _scoped_repair_hint(parse_attempt: dict[str, Any]) -> str:
     )
     error = str(parse_attempt.get("error") or "")
     if "listed_item_lookup requires semantic_decision.listed_items" in error:
+        target_attachment = (
+            semantic_decision.get("target_attachment")
+            if isinstance(semantic_decision, dict)
+            else None
+        )
+        target_operation = (
+            str(target_attachment.get("operation") or "")
+            if isinstance(target_attachment, dict)
+            else ""
+        )
+        mutation_intent = (
+            str(semantic_decision.get("mutation_intent_candidate") or "")
+            if isinstance(semantic_decision, dict)
+            else ""
+        )
+        final_candidate = (
+            str(semantic_decision.get("final_action_candidate") or "")
+            if isinstance(semantic_decision, dict)
+            else ""
+        )
+        if (
+            target_operation == "update_meal_components"
+            and mutation_intent == "correction_write"
+            and final_candidate == "correction_applied"
+        ):
+            return (
+                "Your correction selected operation='update_meal_components' with "
+                "retrieval_goal='listed_item_lookup'. Keep that Manager-owned correction meaning, "
+                "but supply the updated component list in semantic_decision.listed_items before "
+                "calling estimate_nutrition. Build that list from the active meal context you were "
+                "given: remove excluded components, apply portion changes in modifier_hints or "
+                "size_hint, and keep unchanged components. If the target meal or changed component "
+                "is still ambiguous, change to manager_action='final', final_action='ask_followup', "
+                "workflow_effect='ask_followup', semantic_decision.final_action_candidate='ask_followup', "
+                "semantic_decision.mutation_intent_candidate='no_mutation', and tool_calls=[]. "
+                "Runtime must not infer or rewrite the updated component list for you. "
+            )
         return (
             "Your previous retrieval_goal='listed_item_lookup' decision is under-specified. You, the Manager, "
             "must make one legal semantic choice: if you already identified concrete food components, include "
