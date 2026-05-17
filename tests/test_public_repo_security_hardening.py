@@ -201,7 +201,7 @@ def test_estimate_error_response_does_not_expose_internal_exception_text(monkeyp
     assert payload == {
         "request_id": payload["request_id"],
         "error": "internal_server_error",
-        "coach_message": "處理這則訊息時發生錯誤，請稍後再試。",
+        "coach_message": "系統剛剛處理失敗，這次沒有幫你記錄。請再送一次。",
         "payload": None,
     }
     assert "internal estimate marker" not in response.text
