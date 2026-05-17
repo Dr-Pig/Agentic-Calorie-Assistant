@@ -20,6 +20,28 @@ def contract_repair_message(parse_attempt: dict[str, Any]) -> str:
 
 def _semantic_repair_message(parse_attempt: dict[str, Any]) -> str:
     error = str(parse_attempt.get("error") or "")
+    if "nutrition evidence already present" in error:
+        return (
+            "CONTRACT_REPAIR: The current manager loop nutrition evidence is already present from a tool result. "
+            "Return manager_action='final' and map the existing evidence into the same Manager-owned "
+            "final_action/workflow_effect/semantic_decision. Do not call estimate_nutrition again. "
+            "Do not change user intent, target_attachment, listed_items, or correction/removal meaning. "
+            "Previous validation error: "
+            f"{parse_attempt.get('error')}"
+        )
+    if "resolve_correction_target requires Manager-selected target argument" in error:
+        return (
+            "CONTRACT_REPAIR: resolve_correction_target is a target validator, not a semantic router. "
+            "You must select one target from context candidates before calling it, and pass a concrete "
+            "meal_thread_id, meal_item_id, canonical_name, or target_display_name. "
+            "When the user is answering a target clarification, a meal slot such as 早餐, 午餐, 中餐, 晚餐, or 宵夜 "
+            "uniquely selects a meal_thread candidate if exactly one candidate target_display_name/display_name/meal_title "
+            "contains that slot; in that case call resolve_correction_target with that candidate meal_thread_id and "
+            "target_display_name. "
+            "do not pass target_candidates or raw user_input for the tool to choose from. If no candidate is "
+            "uniquely identified, ask a target clarification with no mutation. Previous validation error: "
+            f"{parse_attempt.get('error')}"
+        )
     if "listed_item_lookup requires multiple Manager-owned component items" in error:
         return (
             "CONTRACT_REPAIR: Your previous listed_item_lookup decision only supplied one component item. "
@@ -48,15 +70,21 @@ def _semantic_repair_message(parse_attempt: dict[str, Any]) -> str:
             "Previous validation error: "
             f"{parse_attempt.get('error')}"
         )
-    if "ambiguous correction target requires final ask_followup" not in error:
+    if (
+        "ambiguous correction target requires final ask_followup" not in error
+        and "ambiguous correction target requires Manager target retry or final ask_followup" not in error
+    ):
         return ""
     return (
         "CONTRACT_REPAIR: The target validator rejected the correction/removal target because multiple "
-        "candidate meals remain possible. This is a semantic legality repair: ask the user to clarify the "
-        "target, use manager_action='final', final_action='ask_followup', workflow_effect='ask_followup', "
-        "tool_calls=[], semantic_decision.final_action_candidate='ask_followup', and "
-        "semantic_decision.mutation_intent_candidate='no_mutation'. Do not preserve the rejected "
-        "target_attachment as a concrete mutation target. Previous validation error: "
+        "candidate meals remain possible. This is a semantic legality repair. If the current turn uniquely "
+        "identifies one candidate from the provided context, retry with manager_action='call_tools' and "
+        "resolve_correction_target using that Manager-selected target id/name. If it is still ambiguous, ask "
+        "the user to clarify the target, use manager_action='final', final_action='ask_followup', "
+        "workflow_effect='ask_followup', tool_calls=[], semantic_decision.final_action_candidate='ask_followup', "
+        "and semantic_decision.mutation_intent_candidate='no_mutation'. Do not preserve the rejected "
+        "target_attachment as a concrete mutation target unless you reselect it from the context candidates. "
+        "Previous validation error: "
         f"{parse_attempt.get('error')}"
     )
 

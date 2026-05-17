@@ -28,6 +28,7 @@ from app.runtime.agent.founder_live_manager_target_ambiguity import (
     validate_target_ambiguity_repair,
 )
 from app.runtime.agent.founder_live_manager_tool_description import founder_live_manager_tool_description
+from app.runtime.agent.founder_live_manager_tool_call_contract import validate_tool_call_contracts
 from app.runtime.agent.founder_live_manager_allowed_values import (
     FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS,
     FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES,
@@ -56,7 +57,6 @@ FOUNDER_LIVE_MANAGER_REPAIR_REQUIRED_TOOL_BY_FAMILY = {
     FOUNDER_LIVE_MANAGER_COMMIT_WITHOUT_EVIDENCE_REPAIR_FAMILY: "estimate_nutrition",
     FOUNDER_LIVE_MANAGER_BODY_OBSERVATION_MISSING_TOOL_REPAIR_FAMILY: "body.record_observation",
 }
-
 FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS = [
     "manager_action",
     "intent",
@@ -236,6 +236,7 @@ def _tool_result_names(tool_results: list[dict[str, Any]] | None) -> list[str]:
             names.append(name)
     return names
 
+
 def _final_action_requires_nutrition_evidence(
     *,
     payload: dict[str, Any],
@@ -299,11 +300,8 @@ def validate_founder_live_manager_contract_consistency(
     if final_action and final_action not in founder_live_manager_allowed_final_actions_for_constraints(constraints):
         raise RuntimeError(f"founder live manager contract final_action invalid: {final_action!r}")
     evidence_state = constraints.get("manager_contract_evidence_state") if isinstance(constraints, dict) else None
-    nutrition_evidence_present = (
-        evidence_state.get("nutrition_evidence_present")
-        if isinstance(evidence_state, dict)
-        else None
-    )
+    nutrition_present = evidence_state.get("nutrition_evidence_present") if isinstance(evidence_state, dict) else None
+    validate_tool_call_contracts(payload, evidence_state)
     semantic_decision = payload.get("semantic_decision")
     if isinstance(semantic_decision, dict) and target_ambiguity_repair_required(evidence_state):
         validate_target_ambiguity_repair(
@@ -312,7 +310,7 @@ def validate_founder_live_manager_contract_consistency(
             final_action=final_action,
         )
     if (
-        nutrition_evidence_present is False
+        nutrition_present is False
         and str(payload.get("manager_action") or "") == "final"
         and final_action == "correction_applied"
         and payload_requests_removal(payload)
@@ -323,7 +321,7 @@ def validate_founder_live_manager_contract_consistency(
             "final_action='correction_applied'; call resolve_correction_target first"
         )
     if (
-        nutrition_evidence_present is False
+        nutrition_present is False
         and str(payload.get("manager_action") or "") == "final"
         and _final_action_requires_nutrition_evidence(
             payload=payload,
@@ -340,7 +338,7 @@ def validate_founder_live_manager_contract_consistency(
     validate_founder_live_manager_contract_semantic_field_consistency(payload)
     final_action_candidate = str(semantic_decision.get("final_action_candidate") or "")
     if (
-        nutrition_evidence_present is False
+        nutrition_present is False
         and str(payload.get("manager_action") or "") == "final"
         and final_action_candidate == "correction_applied"
         and payload_requests_removal(payload)
@@ -351,7 +349,7 @@ def validate_founder_live_manager_contract_consistency(
             "semantic_decision.final_action_candidate='correction_applied'; call resolve_correction_target first"
         )
     if (
-        nutrition_evidence_present is False
+        nutrition_present is False
         and str(payload.get("manager_action") or "") == "final"
         and _final_action_requires_nutrition_evidence(
             payload=payload,

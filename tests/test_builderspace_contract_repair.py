@@ -8,7 +8,7 @@ def test_target_ambiguity_repair_message_allows_target_clarification() -> None:
         {
             "error": (
                 "founder live manager contract ambiguous correction target requires "
-                "final ask_followup target clarification"
+                "Manager target retry or final ask_followup"
             ),
             "observed_value": {
                 "target_attachment": {"meal_thread_id": 2},
@@ -18,6 +18,54 @@ def test_target_ambiguity_repair_message_allows_target_clarification() -> None:
     )
 
     assert "CONTRACT_REPAIR" in message
+    assert "If the current turn uniquely identifies one candidate" in message
+    assert "resolve_correction_target" in message
     assert "ask the user to clarify the target" in message
     assert "Do not preserve the rejected target_attachment" in message
     assert "Do not change user intent, target_attachment" not in message
+
+
+def test_repeated_nutrition_evidence_repair_message_requires_final_mapping() -> None:
+    message = contract_repair_message(
+        {
+            "error": (
+                "founder live manager contract nutrition evidence already present; "
+                "return manager_action='final'"
+            ),
+            "observed_value": {
+                "manager_action": "call_tools",
+                "tool_calls": [{"name": "estimate_nutrition"}],
+                "semantic_decision": {"current_turn_intent": "correct_meal"},
+            },
+        }
+    )
+
+    assert "CONTRACT_REPAIR" in message
+    assert "nutrition evidence is already present" in message
+    assert "manager_action='final'" in message
+    assert "Do not call estimate_nutrition again" in message
+    assert "Do not change user intent" in message
+
+
+def test_unselected_target_repair_message_requires_manager_selected_candidate() -> None:
+    message = contract_repair_message(
+        {
+            "error": "founder live manager contract resolve_correction_target requires Manager-selected target argument",
+            "observed_value": {
+                "manager_action": "call_tools",
+                "tool_calls": [
+                    {
+                        "name": "resolve_correction_target",
+                        "arguments": {"user_input": "delete breakfast", "target_candidates": []},
+                    }
+                ],
+            },
+        }
+    )
+
+    assert "CONTRACT_REPAIR" in message
+    assert "select one target from context candidates" in message
+    assert "meal_thread_id" in message
+    assert "早餐, 午餐, 中餐, 晚餐, or 宵夜" in message
+    assert "candidate meal_thread_id and target_display_name" in message
+    assert "do not pass target_candidates" in message

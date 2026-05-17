@@ -367,6 +367,7 @@ def test_manager_context_packet_strips_unsafe_interaction_and_target_fields() ->
         "meal_thread_id": 77,
         "meal_version_id": 88,
         "display_name": "soup",
+        "target_display_name": "soup",
         "canonical_name": "soup",
         "eligible": True,
         "removable": True,
