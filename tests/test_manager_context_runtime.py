@@ -80,6 +80,57 @@ def test_runtime_manager_context_packet_loads_last_20_same_day_messages_from_db(
     assert all(not str(message["content"]).startswith("yesterday") for message in messages)
 
 
+def test_runtime_manager_context_packet_marks_trimmed_history_and_reinjects_pinned_workflow_state() -> None:
+    engine, db = _session()
+    try:
+        user = get_or_create_user(db, "context-user")
+        for index in range(25):
+            append_message(
+                db,
+                user,
+                "assistant" if index % 2 else "user",
+                f"long-session-{index:02d}",
+                trace_id=f"long-session-{index}",
+                trace_json={"runtime_turn_trace": {"local_date": "2026-05-04"}},
+            )
+        context = _context().model_copy(
+            update={
+                "pending_followup": {
+                    "runtime_turn_id": "turn-followup",
+                    "meal_thread_id": 77,
+                    "question": "What was in the basket?",
+                }
+            }
+        )
+
+        packet = build_runtime_manager_context_packet_v1(
+            db=db,
+            current_turn_context=context,
+            user_external_id="context-user",
+            local_date="2026-05-04",
+            session_id="session-1",
+        )
+    finally:
+        db.close()
+        engine.dispose()
+
+    artifact = packet["context_loading_artifact"]
+    lineage = packet["context_lineage"]
+    prompt_payload = manager_context_packet_v1_prompt_payload(packet)
+    trace_payload = manager_context_packet_v1_trace_payload(packet)
+
+    assert artifact["omitted_count"] == 5
+    assert artifact["history_trimmed"] is True
+    assert artifact["canonical_state_reinjected_after_history_trim"] is True
+    assert packet["hard_pins"]["pending_followup"]["meal_thread_id"] == 77
+    assert lineage["active_workflow_id"] == "pending_followup:turn-followup"
+    assert lineage["history_trimmed"] is True
+    assert lineage["context_reinjected_after_compaction_or_history_trim"] is True
+    assert prompt_payload["context_lineage"]["context_reinjected_after_compaction_or_history_trim"] is True
+    assert trace_payload["context_lineage"]["history_trimmed"] is True
+    assert trace_payload["context_layers"]["active_workflow"]["pending_followup_present"] is True
+
+
 def test_runtime_manager_context_packet_filters_before_selecting_last_20_same_day_messages() -> None:
     engine, db = _session()
     try:

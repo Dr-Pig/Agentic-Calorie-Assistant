@@ -170,9 +170,20 @@ def _bounded_recent_chat_turns_with_artifact(
         bounded.append(_readonly_copy(turn) or {})
     messages = list(reversed(bounded))
     omitted_count = omitted_by_message_limit + omitted_by_char_cap
+    history_trimmed = omitted_count > 0 or char_truncated
+    canonical_state_reinjected = history_trimmed and any(
+        (
+            pending_followup is not None,
+            pending_draft is not None,
+            bool(list(target_candidates or [])),
+            interaction_event is not None,
+        )
+    )
     artifact = {
         "loaded_message_count": len(messages),
         "omitted_count": omitted_count,
+        "history_trimmed": history_trimmed,
+        "canonical_state_reinjected_after_history_trim": canonical_state_reinjected,
         "loaded_char_count": total_chars,
         "hard_char_cap": max_recent_chars,
         "char_truncated": char_truncated,
