@@ -4,10 +4,16 @@ from typing import Any
 
 from app.composition.commit_boundary_preflight import run_commit_boundary_preflight
 from app.composition.commit_boundary_preflight import NAMED_FOOD_KCAL_CONFLICT_REQUIRES_CONFIRMATION
+from app.shared.contracts.correction_operation import structured_correction_operation
 from app.shared.contracts.intake_results import EstimatePayload
 
 
-def _repair_instruction_for_failure(failure_family: str | None) -> dict[str, Any]:
+def _repair_instruction_for_failure(
+    failure_family: str | None,
+    *,
+    manager_semantic_decision: dict[str, Any],
+    correction_target: Any,
+) -> dict[str, Any]:
     if failure_family == NAMED_FOOD_KCAL_CONFLICT_REQUIRES_CONFIRMATION:
         return {
             "role": "bounded_manager_repair",
@@ -28,6 +34,44 @@ def _repair_instruction_for_failure(failure_family: str | None) -> dict[str, Any
                 }
             ],
         }
+    if _manager_can_repair_component_update_with_listed_item_tool(
+        manager_semantic_decision=manager_semantic_decision,
+        correction_target=correction_target,
+    ):
+        return {
+            "role": "bounded_manager_repair",
+            "deterministic_role": "reject_evidence_ineligible_commit_only",
+            "manager_role": "call estimate_nutrition with Manager-owned updated listed_items",
+            "raw_user_input_used": False,
+            "deterministic_food_classification_used": False,
+            "allowed_repairs": [
+                {
+                    "manager_action": "call_tools",
+                    "final_action": "correction_applied",
+                    "workflow_effect": "correction",
+                    "required_tool": "estimate_nutrition",
+                    "semantic_decision": {
+                        "current_turn_intent": "correct_meal",
+                        "final_action_candidate": "correction_applied",
+                        "mutation_intent_candidate": "correction_write",
+                        "target_attachment": {"operation": "update_meal_components"},
+                        "retrieval_goal": "listed_item_lookup",
+                        "listed_items": "manager_owned_updated_component_list_required",
+                    },
+                },
+                {
+                    "manager_action": "final",
+                    "final_action": "ask_followup",
+                    "workflow_effect": "ask_followup",
+                    "tool_calls": [],
+                    "semantic_decision": {
+                        "final_action_candidate": "ask_followup",
+                        "mutation_intent_candidate": "no_mutation",
+                        "estimation_posture": "composition_unknown_basket",
+                    },
+                },
+            ],
+        }
     return {
         "role": "bounded_manager_repair",
         "deterministic_role": "reject_evidence_ineligible_commit_only",
@@ -46,6 +90,30 @@ def _repair_instruction_for_failure(failure_family: str | None) -> dict[str, Any
             }
         ],
     }
+
+
+def _manager_can_repair_component_update_with_listed_item_tool(
+    *,
+    manager_semantic_decision: dict[str, Any],
+    correction_target: Any,
+) -> bool:
+    decision = dict(manager_semantic_decision or {})
+    target = dict(correction_target or {}) if isinstance(correction_target, dict) else {}
+    if str(decision.get("current_turn_intent") or "") != "correct_meal":
+        return False
+    if str(decision.get("final_action_candidate") or "") != "correction_applied":
+        return False
+    if str(decision.get("mutation_intent_candidate") or "") != "correction_write":
+        return False
+    semantic_target = decision.get("target_attachment")
+    merged_target = {
+        **target,
+        **(semantic_target if isinstance(semantic_target, dict) else {}),
+    }
+    if structured_correction_operation(merged_target) != "update_meal_components":
+        return False
+    item_candidates = target.get("item_candidates")
+    return isinstance(item_candidates, list) and any(isinstance(item, dict) for item in item_candidates)
 
 
 def commit_boundary_guard_repair_outcome(
@@ -85,5 +153,9 @@ def commit_boundary_guard_repair_outcome(
         "deterministic_followup_text": False,
         "phase_a_transition_guard_preflight": dict(transition_preflight_trace or {}),
         "phase_a_commit_boundary_preflight": commit_preflight.trace_payload(),
-        "repair_instruction": _repair_instruction_for_failure(failure_family),
+        "repair_instruction": _repair_instruction_for_failure(
+            failure_family,
+            manager_semantic_decision=dict(manager_semantic_decision or {}),
+            correction_target=correction_target,
+        ),
     }
