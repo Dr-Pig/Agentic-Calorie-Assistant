@@ -21,13 +21,15 @@ def candidate_attachment_targets(
     recent_committed_meals: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     targets: list[dict[str, Any]] = []
-    seen: set[str] = set()
+    seen: set[tuple[str, str]] = set()
 
     def add_target(target: dict[str, Any]) -> None:
         target_id = str(target.get("target_object_id") or "").strip()
-        if not target_id or target_id in seen:
+        target_type = str(target.get("target_object_type") or "").strip()
+        seen_key = (target_type, target_id)
+        if not target_id or seen_key in seen:
             return
-        seen.add(target_id)
+        seen.add(seen_key)
         targets.append(target)
 
     pending_target = _pending_followup_target(pending_followup)
@@ -38,6 +40,8 @@ def candidate_attachment_targets(
             target_meal_reference.get("meal_thread_id"),
             source=str(target_meal_reference.get("target_resolution_source") or "target_meal_reference"),
             confidence=str(target_meal_reference.get("correction_confidence") or "medium"),
+            meal_title=target_meal_reference.get("meal_title"),
+            meal_version_id=target_meal_reference.get("meal_version_id"),
         )
     )
     for meal in recent_committed_meals:
@@ -46,6 +50,10 @@ def candidate_attachment_targets(
                 meal.get("meal_thread_id"),
                 source="recent_committed_meal",
                 confidence="medium",
+                meal_title=meal.get("meal_title"),
+                meal_version_id=meal.get("meal_version_id"),
+                total_kcal=meal.get("total_kcal"),
+                occurred_at=meal.get("occurred_at"),
             )
         )
     return targets
@@ -74,13 +82,34 @@ def _pending_followup_target(pending_followup: dict[str, Any] | None) -> dict[st
     return target
 
 
-def _meal_thread_target(meal_thread_id: Any, *, source: str, confidence: str) -> dict[str, Any]:
-    return _base_target(
+def _meal_thread_target(
+    meal_thread_id: Any,
+    *,
+    source: str,
+    confidence: str,
+    meal_title: Any | None = None,
+    meal_version_id: Any | None = None,
+    total_kcal: Any | None = None,
+    occurred_at: Any | None = None,
+) -> dict[str, Any]:
+    target = _base_target(
         meal_thread_id,
         target_object_type="meal_thread",
         source=source,
         confidence=confidence,
     )
+    if not target:
+        return target
+    for key, value in {
+        "meal_title": meal_title,
+        "display_name": meal_title,
+        "meal_version_id": meal_version_id,
+        "total_kcal": total_kcal,
+        "occurred_at": occurred_at,
+    }.items():
+        if value not in (None, ""):
+            target[key] = value
+    return target
 
 
 def _base_target(

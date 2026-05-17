@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.budget.infrastructure.models import DayBudgetLedgerRecord
 from app.composition.canonical_persistence import commit_meal_payload_to_canonical
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
-from app.composition.state_resolver import resolve_intake_state
+from app.composition.state_resolver import _target_meal_reference, resolve_intake_state
 from app.database import get_or_create_user
 from app.intake.infrastructure.models import MealItemRecord
 from app.models import Base
@@ -133,6 +135,28 @@ def test_recent_committed_meal_summary_exposes_multi_item_candidates_without_sel
             "selected_target": False,
         },
     ]
+
+
+def test_open_target_clarification_without_thread_does_not_promote_active_meal_as_pending_target() -> None:
+    target = _target_meal_reference(
+        active_meal={
+            "meal_thread_id": 20,
+            "meal_version_id": 22,
+            "meal_title": "lunch chicken rice",
+        },
+        conversation_state=SimpleNamespace(
+            pending_followup_state=SimpleNamespace(
+                is_open=True,
+                pending_question="Which meal should I remove?",
+                meal_thread_id=None,
+            ),
+            active_meal_state=SimpleNamespace(meal_title=None),
+        ),
+    )
+
+    assert target["meal_thread_id"] == 20
+    assert target["target_resolution_source"] == "active_meal_view"
+    assert target["correction_confidence"] == "medium"
 
 
 def test_resolved_state_no_plan_budget_snapshot_preserves_no_ledger_posture() -> None:

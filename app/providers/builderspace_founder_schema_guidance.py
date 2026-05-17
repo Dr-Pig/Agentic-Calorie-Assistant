@@ -167,6 +167,7 @@ def _apply_top_level_final_mapping_guidance(properties: dict[str, Any]) -> None:
             "Do not include estimate_nutrition for composition-unknown ask_followup/no_mutation; use final with "
             "tool_calls=[] instead."
         )
+        _apply_tool_call_argument_shape_guidance(tool_calls)
     if isinstance(answer_contract := properties.get("answer_contract"), dict):
         answer_contract["description"] = (
             "Renderer-facing response contract. If semantic_decision.followup_posture is "
@@ -204,6 +205,43 @@ def _apply_semantic_decision_guidance(semantic_properties: dict[str, Any]) -> No
             "refinement_not_commit_gate or size_clarification, and whenever final_action is ask_followup; otherwise "
             "use null or omit by using a non-question posture."
         )
+
+
+def _apply_tool_call_argument_shape_guidance(tool_calls: dict[str, Any]) -> None:
+    items = tool_calls.get("items")
+    if not isinstance(items, dict):
+        return
+    items.setdefault("allOf", []).append(
+        {
+            "if": {
+                "required": ["name"],
+                "properties": {"name": {"const": "resolve_correction_target"}},
+            },
+            "then": {
+                "properties": {
+                    "arguments": {
+                        "type": "object",
+                        "properties": {
+                            "meal_thread_id": {"anyOf": [{"type": "string"}, {"type": "integer"}]},
+                            "meal_item_id": {"anyOf": [{"type": "string"}, {"type": "integer"}]},
+                            "canonical_name": {"type": "string"},
+                            "target_display_name": {"type": "string"},
+                            "meal_version_id": {"anyOf": [{"type": "string"}, {"type": "integer"}]},
+                            "operation": {"type": "string"},
+                            "target_proposal_source": {"type": "string"},
+                        },
+                        "anyOf": [
+                            {"required": ["meal_thread_id"]},
+                            {"required": ["meal_item_id"]},
+                            {"required": ["canonical_name"]},
+                            {"required": ["target_display_name"]},
+                        ],
+                        "additionalProperties": False,
+                    }
+                }
+            },
+        }
+    )
 
 
 def _body_observation_handoff_rule() -> dict[str, Any]:

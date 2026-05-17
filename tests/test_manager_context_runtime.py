@@ -365,6 +365,84 @@ def test_runtime_manager_context_packet_exposes_active_meal_estimate_basis_read_
     assert all(candidate["mutation_authority"] is False for candidate in candidates)
 
 
+def test_runtime_manager_context_packet_preserves_phase_a_meal_thread_candidates() -> None:
+    context = _context().model_copy(
+        update={
+            "candidate_attachment_targets": [
+                {
+                    "target_object_type": "pending_followup",
+                    "target_object_id": "pending-1",
+                    "source": "pending_followup",
+                    "pending_question": "which meal?",
+                    "mutation_authority": False,
+                },
+                {
+                    "target_object_type": "meal_thread",
+                    "target_object_id": "lunch-thread",
+                    "meal_thread_id": "lunch-thread",
+                    "meal_version_id": "lunch-version",
+                    "display_name": "lunch rice",
+                    "source": "active_meal_view",
+                    "confidence": "medium",
+                    "mutation_authority": False,
+                },
+                {
+                    "target_object_type": "meal_thread",
+                    "target_object_id": "breakfast-thread",
+                    "meal_thread_id": "breakfast-thread",
+                    "meal_version_id": "breakfast-version",
+                    "display_name": "breakfast teppan set",
+                    "source": "recent_committed_meal",
+                    "confidence": "medium",
+                    "mutation_authority": False,
+                },
+            ],
+            "recent_item_targets": [
+                {
+                    "target_object_type": "meal_item_candidate",
+                    "target_object_id": "egg-item",
+                    "meal_item_id": "egg-item",
+                    "meal_thread_id": "breakfast-thread",
+                    "meal_version_id": "breakfast-version",
+                    "canonical_name": "egg",
+                    "source": "recent_committed_meal",
+                    "mutation_authority": False,
+                }
+            ],
+        }
+    )
+
+    packet = build_runtime_manager_context_packet_v1(
+        db=None,
+        current_turn_context=context,
+        user_external_id="context-user",
+        local_date="2026-05-04",
+        session_id="session-1",
+    )
+
+    candidates = packet["target_candidates"]["for_correction_or_removal"]
+    assert all(candidate["target_object_type"] != "pending_followup" for candidate in candidates)
+    meal_threads = [
+        candidate for candidate in candidates if candidate["target_object_type"] == "meal_thread"
+    ]
+    assert [candidate["display_name"] for candidate in meal_threads] == [
+        "lunch rice",
+        "breakfast teppan set",
+    ]
+    assert [candidate["meal_thread_id"] for candidate in meal_threads] == [
+        "lunch-thread",
+        "breakfast-thread",
+    ]
+    assert [candidate["target_display_name"] for candidate in meal_threads] == [
+        "lunch rice",
+        "breakfast teppan set",
+    ]
+    assert candidates[2]["target_object_type"] == "meal_item_candidate"
+    assert candidates[2]["canonical_name"] == "egg"
+    assert all(candidate["read_only"] is True for candidate in candidates)
+    assert all(candidate["mutation_authority"] is False for candidate in candidates)
+
+
 def test_runtime_manager_context_packet_hides_llm_only_active_meal_macros() -> None:
     engine, db = _session()
     try:

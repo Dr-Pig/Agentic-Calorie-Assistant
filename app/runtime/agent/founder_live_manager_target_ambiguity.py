@@ -93,10 +93,46 @@ def validate_target_ambiguity_repair(
         and followup_question
     ):
         return
+    if _manager_owned_target_retry_requested(payload=payload, semantic_decision=semantic_decision):
+        return
     raise RuntimeError(
-        "founder live manager contract ambiguous correction target requires final ask_followup "
-        "target clarification with no mutation after target validation rejected multiple candidates"
+        "founder live manager contract ambiguous correction target requires Manager target retry or final "
+        "ask_followup target clarification with no mutation after target validation rejected multiple candidates"
     )
+
+
+def _manager_owned_target_retry_requested(
+    *,
+    payload: dict[str, Any],
+    semantic_decision: dict[str, Any],
+) -> bool:
+    if str(payload.get("manager_action") or "") != "call_tools":
+        return False
+    workflow_effect = str(payload.get("workflow_effect") or semantic_decision.get("workflow_effect") or "")
+    if workflow_effect != "correction":
+        return False
+    if str(semantic_decision.get("current_turn_intent") or "") != "correct_meal":
+        return False
+    if str(semantic_decision.get("final_action_candidate") or "") != "correction_applied":
+        return False
+    if str(semantic_decision.get("mutation_intent_candidate") or "") != "correction_write":
+        return False
+    tool_calls = payload.get("tool_calls")
+    if not isinstance(tool_calls, list):
+        return False
+    return any(_targeted_resolve_correction_target_call(call) for call in tool_calls if isinstance(call, dict))
+
+
+def _targeted_resolve_correction_target_call(call: dict[str, Any]) -> bool:
+    if str(call.get("name") or call.get("tool_name") or "") != "resolve_correction_target":
+        return False
+    arguments = call.get("arguments")
+    if not isinstance(arguments, dict):
+        return False
+    operation = structured_correction_operation(arguments)
+    if operation not in {"remove_meal", "remove_item", "update_meal_components"}:
+        return False
+    return any(arguments.get(key) not in (None, "") for key in ("meal_thread_id", "meal_item_id", "canonical_name"))
 
 
 __all__ = [
