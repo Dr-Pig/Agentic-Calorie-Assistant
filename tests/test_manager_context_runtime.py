@@ -8,6 +8,10 @@ from app.composition.manager_context_runtime import build_runtime_manager_contex
 from app.database import append_message, get_or_create_user
 from app.intake.infrastructure.models import MealItemRecord, MealThreadRecord, MealVersionRecord
 from app.models import Base
+from app.runtime.agent.manager_context_payload import (
+    manager_context_packet_v1_prompt_payload,
+    manager_context_packet_v1_trace_payload,
+)
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, InteractionEvent
 
 
@@ -541,3 +545,113 @@ def test_runtime_manager_context_packet_separates_context_evidence_readonly_from
     assert current_turn["mutation_authority"] is False
     assert current_turn["read_only_scope"] == "context_packet_evidence"
     assert current_turn["mutation_authority_scope"] == "context_packet_not_product_action"
+
+
+def test_runtime_manager_context_packet_adds_traceable_lineage_layers_without_semantic_routing() -> None:
+    context = _context().model_copy(
+        update={
+            "pending_followup": {
+                "runtime_turn_id": "turn-followup",
+                "meal_thread_id": 77,
+                "meal_version_id": 88,
+                "expected_answer_type": "drink_size_sugar",
+                "question": "What size and sugar?",
+            },
+            "active_meal_thread_ref": {
+                "meal_thread_id": 77,
+                "meal_version_id": 88,
+                "display_name": "bubble milk tea",
+            },
+            "current_budget_snapshot": {"status": "ready", "remaining_kcal": 1280},
+            "recent_item_targets": [
+                {
+                    "target_object_type": "meal_item",
+                    "target_object_id": "item-501",
+                    "meal_item_id": "item-501",
+                    "meal_thread_id": 77,
+                    "meal_version_id": 88,
+                    "canonical_name": "bubble milk tea",
+                    "source": "recent_committed_meal",
+                }
+            ],
+        }
+    )
+
+    packet = build_runtime_manager_context_packet_v1(
+        db=None,
+        current_turn_context=context,
+        user_external_id="context-user",
+        local_date="2026-05-04",
+        session_id="session-1",
+    )
+
+    lineage = packet["context_lineage"]
+    assert lineage["lineage_version"] == "manager_context_lineage_v1"
+    assert lineage["context_generation"] == "manager_context_packet_v1"
+    assert lineage["active_workflow_id"] == "pending_followup:turn-followup"
+    assert lineage["context_reinjected_after_compaction_or_history_trim"] is False
+    assert lineage["source_role"] == "runtime_context_state_packet"
+    assert lineage["semantic_owner"] == "manager_llm"
+    assert lineage["read_only"] is True
+    assert lineage["mutation_authority"] is False
+    assert isinstance(lineage["context_packet_hash"], str)
+    assert len(lineage["context_packet_hash"]) == 64
+
+    layers = packet["context_layers"]
+    assert set(layers) == {"current_turn", "active_workflow", "evidence_state"}
+    assert layers["current_turn"]["raw_user_input_present"] is True
+    assert layers["active_workflow"]["pending_followup_present"] is True
+    assert layers["active_workflow"]["active_meal_thread_present"] is True
+    assert layers["evidence_state"]["target_candidate_count"] == 1
+    assert layers["evidence_state"]["budget_summary_present"] is True
+    for layer in layers.values():
+        assert layer["read_only"] is True
+        assert layer["mutation_authority"] is False
+        assert layer["semantic_owner"] == "manager_llm"
+        for forbidden_key in (
+            "intent_type",
+            "final_action",
+            "workflow_effect",
+            "estimability",
+            "followup_required",
+        ):
+            assert forbidden_key not in layer
+
+
+def test_manager_context_prompt_and_trace_payloads_expose_lineage_without_legacy_context_bloat() -> None:
+    context = _context().model_copy(
+        update={
+            "pending_followup": {
+                "runtime_turn_id": "turn-followup",
+                "meal_thread_id": 77,
+                "question": "What size?",
+            },
+            "recent_item_targets": [
+                {
+                    "target_object_type": "meal_item",
+                    "target_object_id": "item-501",
+                    "meal_item_id": "item-501",
+                    "canonical_name": "milk tea",
+                }
+            ],
+        }
+    )
+    packet = build_runtime_manager_context_packet_v1(
+        db=None,
+        current_turn_context=context,
+        user_external_id="context-user",
+        local_date="2026-05-04",
+        session_id="session-1",
+    )
+
+    prompt_payload = manager_context_packet_v1_prompt_payload(packet)
+    trace_payload = manager_context_packet_v1_trace_payload(packet)
+
+    assert prompt_payload["context_lineage"]["active_workflow_id"] == "pending_followup:turn-followup"
+    assert prompt_payload["context_layers"]["active_workflow"]["pending_followup_present"] is True
+    assert prompt_payload["context_layers"]["evidence_state"]["target_candidate_count"] == 1
+    assert trace_payload["context_lineage"]["active_workflow_id"] == "pending_followup:turn-followup"
+    assert trace_payload["context_lineage"]["context_packet_hash"] == packet["context_lineage"]["context_packet_hash"]
+    assert trace_payload["context_layers"]["current_turn"]["raw_user_input_present"] is True
+    assert trace_payload["read_only"] is True
+    assert trace_payload["mutation_authority"] is False

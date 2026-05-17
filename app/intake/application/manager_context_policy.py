@@ -13,6 +13,7 @@ from app.intake.application.manager_context_policy_constants import (
     TARGET_CANDIDATE_BOOL_FIELDS,
     TARGET_CANDIDATE_FIELDS,
 )
+from app.intake.application.manager_context_lineage import attach_context_lineage
 from app.runtime.contracts.phase_a import CurrentTurnContextV1
 
 def build_manager_context_packet_v1(
@@ -67,7 +68,7 @@ def build_manager_context_packet_v1(
     loading_artifact["omitted_context_summary"]["deferred_context_ids"] = [
         item["context_id"] for item in omitted_context
     ]
-    return {
+    packet = {
         "metadata": {
             "user_id": user_id,
             "local_date": local_date,
@@ -116,6 +117,7 @@ def build_manager_context_packet_v1(
             "mutation_authority",
         ],
     }
+    return attach_context_lineage(packet)
 
 
 def _bounded_recent_chat_turns(

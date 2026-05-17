@@ -96,6 +96,8 @@ def manager_context_packet_v1_prompt_payload(
     metadata = dict(packet.get("metadata") or {})
     artifact = dict(packet.get("context_loading_artifact") or {})
     recent_chat_window = dict(packet.get("recent_chat_window") or {})
+    context_lineage = dict(packet.get("context_lineage") or {})
+    context_layers = dict(packet.get("context_layers") or {})
     if _post_tool_context_reference_allowed(tool_results):
         target_candidates = dict(packet.get("target_candidates") or {})
         return {
@@ -105,6 +107,8 @@ def manager_context_packet_v1_prompt_payload(
                 "context_policy_version": metadata.get("context_policy_version"),
                 "claim_scope": metadata.get("claim_scope"),
             },
+            "context_lineage": context_lineage,
+            "context_layers": context_layers,
             "current_turn": _compact_current_turn(dict(packet.get("current_turn") or {})),
             "recent_chat_window": {
                 "loaded_message_count": artifact.get("loaded_message_count"),
@@ -134,6 +138,8 @@ def manager_context_packet_v1_prompt_payload(
             "context_policy_version": metadata.get("context_policy_version"),
             "claim_scope": metadata.get("claim_scope"),
         },
+        "context_lineage": context_lineage,
+        "context_layers": context_layers,
         "current_turn": _compact_current_turn(dict(packet.get("current_turn") or {})),
         "recent_chat_window": {
             "messages": list(recent_chat_window.get("messages") or []),
@@ -190,8 +196,12 @@ def manager_context_packet_v1_trace_payload(packet: dict[str, Any] | None) -> di
     recent_chat_window = dict(packet.get("recent_chat_window") or {})
     policy = dict(recent_chat_window.get("policy") or {})
     target_candidates = dict(packet.get("target_candidates") or {})
+    context_lineage = dict(packet.get("context_lineage") or {})
+    context_layers = dict(packet.get("context_layers") or {})
     return {
         "context_policy_version": metadata.get("context_policy_version"),
+        "context_lineage": context_lineage,
+        "context_layers": context_layers,
         "loaded_context_summary": dict(artifact.get("loaded_context_summary") or {}),
         "omitted_context_summary": dict(artifact.get("omitted_context_summary") or {}),
         "recent_chat_window": {
