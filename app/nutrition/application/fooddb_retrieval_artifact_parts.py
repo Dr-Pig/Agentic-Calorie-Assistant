@@ -74,6 +74,52 @@ def approved_fooddb_trace(
     return trace
 
 
+def optional_refinement_metadata(candidates: list[dict[str, Any]]) -> dict[str, Any]:
+    targets = _optional_refinement_targets(candidates)
+    if not targets:
+        return {}
+    return {
+        "optional_refinement_allowed": True,
+        "optional_refinement_targets": targets,
+        "optional_refinement_question": (
+            "\u8981\u88dc\u4e00\u4e0b\u7cd6\u5ea6\u548c\u676f\u578b\u55ce\uff1f"
+            "\u6211\u53ef\u4ee5\u518d\u5e6b\u4f60\u66f4\u65b0\u4f30\u7b97\u3002"
+        ),
+        "optional_refinement_source": "fooddb_candidate_modifier_hints",
+        "deterministic_final_action": False,
+    }
+
+
+def _optional_refinement_targets(candidates: list[dict[str, Any]]) -> list[str]:
+    targets: list[str] = []
+    for candidate in candidates:
+        if "refinement" not in str(candidate.get("runtime_usage_boundary") or ""):
+            continue
+        modifier_names = [
+            str(modifier.get("name") or "").strip()
+            for modifier in candidate.get("major_modifiers") or []
+            if isinstance(modifier, dict) and str(modifier.get("name") or "").strip()
+        ]
+        if not modifier_names:
+            modifier_names = [
+                _target_from_followup_hint(hint)
+                for hint in candidate.get("followup_hints") or []
+            ]
+        for target in modifier_names:
+            if target and target not in targets:
+                targets.append(target)
+    return targets
+
+
+def _target_from_followup_hint(hint: object) -> str:
+    text = str(hint or "").strip()
+    if text == "ask_sugar_level":
+        return "sugar_level"
+    if text in {"ask_cup_size", "ask_size"}:
+        return "cup_size"
+    return text
+
+
 def build_fooddb_followup_artifact(
     db: Session,
     *,
@@ -196,5 +242,6 @@ __all__ = [
     "candidate_component",
     "component_breakdown_item",
     "fooddb_request_context",
+    "optional_refinement_metadata",
     "source_lane",
 ]

@@ -11,6 +11,7 @@ from app.nutrition.application.fooddb_retrieval_artifact_parts import (
     candidate_component,
     component_breakdown_item,
     fooddb_request_context,
+    optional_refinement_metadata,
     source_lane,
 )
 from app.shared.contracts.intake import EstimatePayload
@@ -168,6 +169,7 @@ def _build_fooddb_candidate_artifact(
             "search_query": None,
             "websearch_evidence_used": False,
             "shadow_stub": False,
+            **optional_refinement_metadata(candidates),
         },
     )
     return EstimatedNutritionArtifact(request=request, runtime_context=runtime_context, payload=payload)

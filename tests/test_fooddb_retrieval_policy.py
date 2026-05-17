@@ -13,6 +13,7 @@ from app.nutrition.application.fooddb_retrieval_artifact_parts import (
     approved_fooddb_trace,
     candidate_component,
     component_breakdown_item,
+    optional_refinement_metadata,
 )
 from app.nutrition.application.retrieval_semantic_decision import B2ManagerSemanticDecision
 from app.composition.intake_estimation_tools import _manager_owned_retrieval_query
@@ -41,6 +42,24 @@ def test_retrieval_policy_resolves_common_aliases_and_modifiers_without_truth_se
     assert result["accepted_candidates"][0]["match_path"] == "alias_expansion_exact"
     assert result["accepted_candidates"][0]["confidence"] == "high"
     assert result["accepted_candidates"][0]["runtime_truth_allowed"] is True
+
+
+def test_retrieval_policy_projects_optional_refinement_metadata_without_followup_decision() -> None:
+    records = build_runtime_retrieval_records_from_small_anchor_payload(_small_anchor_payload())
+    result = retrieve_fooddb_candidates(
+        "\u6211\u559d\u4e86\u4e00\u676f\u73cd\u73e0\u5976\u8336",
+        retrieval_records=records,
+    )
+
+    metadata = optional_refinement_metadata(result["accepted_candidates"])
+
+    assert metadata == {
+        "optional_refinement_allowed": True,
+        "optional_refinement_targets": ["sugar_level", "cup_size"],
+        "optional_refinement_question": "\u8981\u88dc\u4e00\u4e0b\u7cd6\u5ea6\u548c\u676f\u578b\u55ce\uff1f\u6211\u53ef\u4ee5\u518d\u5e6b\u4f60\u66f4\u65b0\u4f30\u7b97\u3002",
+        "optional_refinement_source": "fooddb_candidate_modifier_hints",
+        "deterministic_final_action": False,
+    }
 
 
 def test_retrieval_policy_uses_fuzzy_lexical_for_typos_not_vector_truth() -> None:
