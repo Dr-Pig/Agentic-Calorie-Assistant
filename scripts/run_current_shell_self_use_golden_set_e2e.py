@@ -54,6 +54,11 @@ from app.composition import accurate_intake_debug_routes, intake_chat_turn_route
 from app.composition.current_shell_golden_set_grader import (  # noqa: E402
     load_golden_set_manifest,
 )
+from app.composition.current_shell_golden_set_manifest_access import (  # noqa: E402
+    assert_golden_set_suite_inventory,
+    golden_set_cases_for_scope,
+    golden_set_suite_inventory,
+)
 from app.composition.current_shell_golden_set_request_trace_adapter import (  # noqa: E402
     build_golden_case_trace_from_request_trace,
     build_golden_trace_artifact_from_request_traces,
@@ -315,9 +320,11 @@ def build_current_shell_golden_set_e2e_report(
     local_date: str = DEFAULT_LOCAL_DATE,
     allow_search: bool = False,
     entrypoint_mode: str = "estimate",
+    suite_scope: str = "core",
 ) -> dict[str, Any]:
     manifest = _read_manifest(manifest_path)
-    selected_cases = _select_cases(manifest, case_ids)
+    assert_golden_set_suite_inventory(manifest)
+    selected_cases = _select_cases(manifest, case_ids, suite_scope=suite_scope)
     engine, SessionLocal = _session_factory(db_path)
     provider = _provider_for_mode(provider_mode)
     client = _build_test_client(
@@ -354,7 +361,11 @@ def build_current_shell_golden_set_e2e_report(
         engine.dispose()
 
     trace_artifact = build_golden_trace_artifact_from_request_traces(case_traces)
-    replay_manifest = _manifest_for_selected_cases(manifest, selected_cases)
+    replay_manifest = _manifest_for_selected_cases(
+        manifest,
+        selected_cases,
+        suite_scope="explicit" if case_ids else suite_scope,
+    )
     replay = build_golden_set_replay(manifest=replay_manifest, trace_artifact=trace_artifact)
     report = _json_safe(
         {
@@ -364,6 +375,7 @@ def build_current_shell_golden_set_e2e_report(
             "claim_scope": "real_entrypoint_runtime_projection",
             "entrypoint": "browser_ui" if entrypoint_mode == "browser" else "/estimate",
             "entrypoint_mode": entrypoint_mode,
+            "suite_scope": "explicit" if case_ids else suite_scope,
             "provider_mode": provider_mode,
             "live_invoked_by_runner": _live_invoked(case_traces),
             "runner_inferred_semantics": False,
@@ -372,6 +384,8 @@ def build_current_shell_golden_set_e2e_report(
             "private_self_use_approved": False,
             "whole_product_mvp_claimed": False,
             "summary": {
+                **golden_set_suite_inventory(manifest),
+                "selected_suite_scope": "explicit" if case_ids else suite_scope,
                 "selected_case_count": len(selected_cases),
                 "request_trace_case_count": len(case_traces),
                 "strict_golden_set_replay_passed": replay["summary"][
@@ -2310,8 +2324,13 @@ def _provider_for_mode(provider_mode: str) -> Any | None:
     raise ValueError(f"unsupported provider_mode: {provider_mode}")
 
 
-def _select_cases(manifest: dict[str, Any], case_ids: list[str] | None) -> list[dict[str, Any]]:
-    manifest_cases = _manifest_cases(manifest)
+def _select_cases(
+    manifest: dict[str, Any],
+    case_ids: list[str] | None,
+    *,
+    suite_scope: str = "core",
+) -> list[dict[str, Any]]:
+    manifest_cases = _manifest_cases(manifest, suite_scope="all_defined" if case_ids else suite_scope)
     if not case_ids:
         return manifest_cases
     wanted = {case_id.strip() for case_id in case_ids if case_id.strip()}
@@ -2322,16 +2341,15 @@ def _select_cases(manifest: dict[str, Any], case_ids: list[str] | None) -> list[
     return selected
 
 
-def _manifest_cases(manifest: dict[str, Any]) -> list[dict[str, Any]]:
-    cases = [_dict(item) for item in _list(manifest.get("cases"))]
-    cases.extend(_dict(item) for item in _list(_dict(manifest.get("holdout_extension")).get("cases")))
-    cases.extend(_dict(item) for item in _list(_dict(manifest.get("websearch_extension")).get("cases")))
-    return cases
+def _manifest_cases(manifest: dict[str, Any], *, suite_scope: str = "core") -> list[dict[str, Any]]:
+    return [_dict(item) for item in golden_set_cases_for_scope(manifest, suite_scope)]
 
 
 def _manifest_for_selected_cases(
     manifest: dict[str, Any],
     selected_cases: list[dict[str, Any]],
+    *,
+    suite_scope: str,
 ) -> dict[str, Any]:
     selected_ids = {str(case.get("case_id") or "") for case in selected_cases}
     core_cases = [
@@ -2351,7 +2369,18 @@ def _manifest_for_selected_cases(
         for case in _list(extension.get("cases"))
         if str(_dict(case).get("case_id") or "") in selected_ids
     ]
-    replay_manifest = {**manifest, "cases": core_cases, "case_count": len(core_cases)}
+    replay_manifest = {
+        **manifest,
+        "cases": core_cases,
+        "case_count": len(core_cases),
+        "selected_suite_scope": suite_scope,
+        "suite_inventory": _selected_suite_inventory(
+            manifest,
+            core_case_count=len(core_cases),
+            holdout_case_count=len(holdout_cases),
+            websearch_case_count=len(extension_cases),
+        ),
+    }
     if holdout_extension:
         replay_manifest["holdout_extension"] = {
             **holdout_extension,
@@ -2365,6 +2394,29 @@ def _manifest_for_selected_cases(
             "case_count": len(extension_cases),
         }
     return replay_manifest
+
+
+def _selected_suite_inventory(
+    manifest: dict[str, Any],
+    *,
+    core_case_count: int,
+    holdout_case_count: int,
+    websearch_case_count: int,
+) -> dict[str, Any]:
+    websearch_extension = _dict(manifest.get("websearch_extension"))
+    declared = _dict(manifest.get("suite_inventory"))
+    return {
+        "core_case_count": core_case_count,
+        "holdout_case_count": holdout_case_count,
+        "websearch_extension_case_count": websearch_case_count,
+        "core_closeout_case_count": core_case_count,
+        "self_use_closeout_case_count": core_case_count + holdout_case_count,
+        "total_defined_case_count": core_case_count + holdout_case_count + websearch_case_count,
+        "default_runner_scope": str(declared.get("default_runner_scope") or "core"),
+        "default_replay_scope": str(declared.get("default_replay_scope") or "closeout"),
+        "websearch_extension_blocking": bool(websearch_extension.get("core_closeout_blocking")),
+        "websearch_extension_status": str(websearch_extension.get("status") or ""),
+    }
 
 
 def _script_turns(case: dict[str, Any]) -> list[dict[str, Any]]:
@@ -2433,6 +2485,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--manifest", default=str(DEFAULT_MANIFEST_PATH))
     parser.add_argument("--provider-mode", choices=("configured", "scripted"), default="configured")
     parser.add_argument("--entrypoint-mode", choices=("estimate", "browser"), default="estimate")
+    parser.add_argument("--suite-scope", choices=("core", "holdout", "closeout", "websearch", "all_defined"), default="core")
     parser.add_argument("--local-date", default=DEFAULT_LOCAL_DATE)
     parser.add_argument("--allow-search", action="store_true")
     args = parser.parse_args(argv)
@@ -2445,6 +2498,7 @@ def main(argv: list[str] | None = None) -> int:
         manifest_path=Path(args.manifest),
         provider_mode=str(args.provider_mode),
         entrypoint_mode=str(args.entrypoint_mode),
+        suite_scope=str(args.suite_scope),
         local_date=str(args.local_date),
         allow_search=bool(args.allow_search),
     )

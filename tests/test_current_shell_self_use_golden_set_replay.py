@@ -134,12 +134,14 @@ def test_golden_set_replay_grades_present_runtime_trace_case_without_inferred_se
     assert replay["live_invoked_by_replay"] is False
     assert replay["readiness_claimed"] is False
     assert replay["summary"]["core_case_count"] == 19
+    assert replay["summary"]["holdout_case_count"] == 6
     assert replay["summary"]["websearch_extension_case_count"] == 4
-    assert replay["summary"]["total_closeout_case_count"] == 23
-    assert replay["summary"]["manifest_case_count"] == 23
+    assert replay["summary"]["selected_suite_scope"] == "closeout"
+    assert replay["summary"]["total_closeout_case_count"] == 25
+    assert replay["summary"]["manifest_case_count"] == 25
     assert replay["summary"]["source_case_count"] == 1
-    assert replay["summary"]["missing_case_count"] == 22
-    assert replay["summary"]["failed_case_count"] == 22
+    assert replay["summary"]["missing_case_count"] == 24
+    assert replay["summary"]["failed_case_count"] == 24
     assert replay["summary"]["strict_golden_set_replay_passed"] is False
     assert replay["runner_inferred_semantics"] is False
     assert gs5["status"] == "pass"
@@ -147,13 +149,19 @@ def test_golden_set_replay_grades_present_runtime_trace_case_without_inferred_se
 
 
 def test_golden_set_replay_grades_websearch_extension_case() -> None:
-    replay = build_golden_set_replay(manifest=_manifest(), trace_artifact=_trace_artifact(_gsw1_trace_case()))
+    replay = build_golden_set_replay(
+        manifest=_manifest(),
+        trace_artifact=_trace_artifact(_gsw1_trace_case()),
+        suite_scope="websearch",
+    )
 
     gsw1 = next(case for case in replay["cases"] if case["case_id"] == "GSW1")
     assert replay["summary"]["core_case_count"] == 19
+    assert replay["summary"]["holdout_case_count"] == 6
     assert replay["summary"]["websearch_extension_case_count"] == 4
-    assert replay["summary"]["total_closeout_case_count"] == 23
-    assert replay["summary"]["manifest_case_count"] == 23
+    assert replay["summary"]["selected_suite_scope"] == "websearch"
+    assert replay["summary"]["total_closeout_case_count"] == 4
+    assert replay["summary"]["manifest_case_count"] == 4
     assert gsw1["status"] == "pass"
     assert gsw1["deterministic_grader_owns_semantics"] is False
 
