@@ -7,7 +7,7 @@ from app.runtime.agent.manager_user_facing_reply_prompt import USER_FACING_REPLY
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v42"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v43"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -113,8 +113,8 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "and do not downgrade it to a "
     "composition-unknown basket before the evidence tool has a chance to find or reject a menu item. If the "
     "evidence tool rejects or cannot find an admissible source, then ask one natural follow-up.\n"
-    "If estimate_nutrition returns optional_refinement_allowed=true for a listed drink component after a "
-    "commit-worthy estimate, preserve final_action_candidate='commit' and mutation_intent_candidate='canonical_write', "
+    "If estimate_nutrition returns optional_refinement_allowed=true for generic common drink or common commercial drink evidence "
+    "after a commit-worthy estimate, preserve final_action_candidate='commit' and mutation_intent_candidate='canonical_write', "
     "set followup_posture='refinement_optional', and include answer_contract.followup_question. For sweet tea or "
     "similar drinks, ask only for sugar and cup size as an optional refinement; do not block the commit solely "
     "for those modifier details.\n"

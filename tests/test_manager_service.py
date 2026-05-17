@@ -100,6 +100,7 @@ def test_single_manager_system_prompt_preserves_optional_drink_refinement_after_
     from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
 
     assert "optional_refinement_allowed=true" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "generic common drink or common commercial drink evidence" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "answer_contract.followup_question" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "sugar" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "cup size" in SINGLE_MANAGER_SYSTEM_PROMPT
