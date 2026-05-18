@@ -70,7 +70,7 @@ def active_workflow_state(
             pending_draft,
             active_ref,
             target_ref,
-            keys=("meal_thread_id", "meal_id", "target_object_id"),
+            keys=("meal_thread_id",),
         ),
         "active_version_id": _first_scalar(
             pending_followup,
@@ -86,6 +86,16 @@ def active_workflow_state(
             keys=("commit_status", "resolution_status", "version_status"),
         )
         or "unknown",
+        "legacy_meal_log_id": _first_scalar(
+            pending_followup,
+            pending_draft,
+            keys=("meal_id",),
+        ),
+        "legacy_source_meal_id": _first_scalar(
+            pending_followup,
+            pending_draft,
+            keys=("source_meal_id",),
+        ),
         "pending_type": _pending_type(pending_followup),
         "required_slots": required_slots,
         "optional_slots": optional_slots,
@@ -137,6 +147,10 @@ def _workflow_id(
             item = value.get(key)
             if item not in (None, ""):
                 return f"{prefix}:{item}"
+        for key in ("meal_id", "source_meal_id"):
+            item = value.get(key)
+            if item not in (None, ""):
+                return f"{prefix}:legacy_meal:{item}"
     return None
 
 
