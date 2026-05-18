@@ -160,3 +160,89 @@ def manager_active_workflow_resolution_schema() -> dict[str, Any]:
         ],
         "additionalProperties": False,
     }
+
+
+def validate_active_workflow_resolution_shape(semantic_decision: dict[str, Any]) -> None:
+    resolution = semantic_decision.get("active_workflow_resolution")
+    if not isinstance(resolution, dict):
+        raise RuntimeError(
+            "manager semantic_decision.active_workflow_resolution missing or not object; "
+            "Manager must explicitly resolve active workflow relation"
+        )
+    _require_keys(
+        resolution,
+        [
+            "current_turn_relation",
+            "slot_updates",
+            "still_missing_slots",
+            "attach_target",
+            "final_action",
+            "resolution_basis",
+            "selection_owner",
+            "deterministic_role",
+        ],
+        path="semantic_decision.active_workflow_resolution",
+    )
+    relation = str(resolution.get("current_turn_relation") or "")
+    if relation not in CURRENT_TURN_RELATIONS:
+        raise RuntimeError(f"semantic_decision.active_workflow_resolution.current_turn_relation invalid: {relation!r}")
+    if resolution.get("selection_owner") != "manager":
+        raise RuntimeError("semantic_decision.active_workflow_resolution.selection_owner must be 'manager'")
+    if resolution.get("deterministic_role") != "validate_only":
+        raise RuntimeError("semantic_decision.active_workflow_resolution.deterministic_role must be 'validate_only'")
+    if not isinstance(resolution.get("attach_target"), dict):
+        raise RuntimeError("semantic_decision.active_workflow_resolution.attach_target must be an object")
+    if not isinstance(resolution.get("resolution_basis"), list):
+        raise RuntimeError("semantic_decision.active_workflow_resolution.resolution_basis must be a list")
+    _validate_slot_updates(resolution.get("slot_updates"))
+    _validate_missing_slots(resolution.get("still_missing_slots"))
+
+
+def _require_keys(value: dict[str, Any], keys: list[str], *, path: str) -> None:
+    missing = [key for key in keys if key not in value]
+    if missing:
+        raise RuntimeError(f"{path} missing required fields: {missing}")
+
+
+def _validate_slot_updates(value: Any) -> None:
+    if not isinstance(value, list):
+        raise RuntimeError("semantic_decision.active_workflow_resolution.slot_updates must be a list")
+    for index, item in enumerate(value):
+        path = f"semantic_decision.active_workflow_resolution.slot_updates[{index}]"
+        if not isinstance(item, dict):
+            raise RuntimeError(f"{path} must be an object")
+        _require_keys(
+            item,
+            [
+                "slot_id",
+                "slot_kind",
+                "required_for_commit",
+                "current_value",
+                "source",
+                "resolution_condition",
+                "asked_question",
+            ],
+            path=path,
+        )
+        _validate_slot_kind(item.get("slot_kind"), path=path)
+        if not isinstance(item.get("required_for_commit"), bool):
+            raise RuntimeError(f"{path}.required_for_commit must be boolean")
+
+
+def _validate_missing_slots(value: Any) -> None:
+    if not isinstance(value, list):
+        raise RuntimeError("semantic_decision.active_workflow_resolution.still_missing_slots must be a list")
+    for index, item in enumerate(value):
+        path = f"semantic_decision.active_workflow_resolution.still_missing_slots[{index}]"
+        if not isinstance(item, dict):
+            raise RuntimeError(f"{path} must be an object")
+        _require_keys(item, ["slot_id", "slot_kind", "required_for_commit", "missing_reason"], path=path)
+        _validate_slot_kind(item.get("slot_kind"), path=path)
+        if not isinstance(item.get("required_for_commit"), bool):
+            raise RuntimeError(f"{path}.required_for_commit must be boolean")
+
+
+def _validate_slot_kind(value: Any, *, path: str) -> None:
+    slot_kind = str(value or "")
+    if slot_kind not in SLOT_KINDS:
+        raise RuntimeError(f"{path}.slot_kind invalid: {slot_kind!r}")

@@ -360,6 +360,7 @@ def _founder_live_commit_without_evidence_repair_constraints() -> dict[str, obje
 
 
 def _founder_live_payload(**overrides: object) -> dict[str, object]:
+    override_semantic_decision = overrides.pop("semantic_decision", None)
     payload: dict[str, object] = {
         "manager_action": "final",
         "intent": "log_meal",
@@ -375,6 +376,16 @@ def _founder_live_payload(**overrides: object) -> dict[str, object]:
             "semantic_authority": "manager_llm",
             "current_turn_intent": "log_meal",
             "target_attachment": {"mode": "new_meal"},
+            "active_workflow_resolution": {
+                "current_turn_relation": "unrelated_new_log",
+                "slot_updates": [],
+                "still_missing_slots": [],
+                "attach_target": {"mode": "new_meal"},
+                "final_action": "commit",
+                "resolution_basis": ["current_turn"],
+                "selection_owner": "manager",
+                "deterministic_role": "validate_only",
+            },
             "workflow_effect": "estimate_with_followup",
             "final_action_candidate": "logged_estimate",
             "estimation_posture": "estimable_with_optional_refinement",
@@ -388,6 +399,13 @@ def _founder_live_payload(**overrides: object) -> dict[str, object]:
             "followup_question": "What size and sugar level was it?",
         },
     }
+    if isinstance(override_semantic_decision, dict):
+        override_semantic_decision = dict(override_semantic_decision)
+        override_semantic_decision.setdefault(
+            "active_workflow_resolution",
+            payload["semantic_decision"]["active_workflow_resolution"],
+        )
+        payload["semantic_decision"] = override_semantic_decision
     payload.update(overrides)
     return payload
 
@@ -1729,6 +1747,16 @@ def test_founder_live_manager_contract_payload_accepts_trace_repair_ack_outside_
             "semantic_authority": "manager_llm",
             "current_turn_intent": "log_meal",
             "target_attachment": {"mode": "new_meal"},
+            "active_workflow_resolution": {
+                "current_turn_relation": "unrelated_new_log",
+                "slot_updates": [],
+                "still_missing_slots": [],
+                "attach_target": {"mode": "new_meal"},
+                "final_action": "commit",
+                "resolution_basis": ["current_turn"],
+                "selection_owner": "manager",
+                "deterministic_role": "validate_only",
+            },
             "workflow_effect": "estimate_with_followup",
             "final_action_candidate": "logged_estimate",
             "estimation_posture": "estimable_with_optional_refinement",

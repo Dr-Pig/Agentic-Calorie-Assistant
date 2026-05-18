@@ -10,6 +10,7 @@ from ..runtime.agent.manager_branch_contract import (
     validate_manager_pass1_branch,
 )
 from ..runtime.agent.manager_branch_shapes import manager_semantic_decision_schema
+from ..runtime.agent.manager_active_workflow_resolution_schema import validate_active_workflow_resolution_shape
 from ..runtime.contracts.trace import MANAGER_LOOP_STAGE
 
 
@@ -105,6 +106,9 @@ def validate_manager_payload(stage: str, payload: dict[str, Any], *, constraints
             raise RuntimeError(f"manager payload has unknown fields for {stage}: {unknown}")
     if stage == MANAGER_LOOP_STAGE:
         validate_manager_pass1_branch(payload, constraints)
+        semantic_decision = payload.get("semantic_decision")
+        if isinstance(semantic_decision, dict):
+            validate_active_workflow_resolution_shape(semantic_decision)
 
 
 __all__ = ["ManagerPass1BranchContractError", "response_schema_for_stage", "response_format_request_for_stage", "validate_manager_payload"]

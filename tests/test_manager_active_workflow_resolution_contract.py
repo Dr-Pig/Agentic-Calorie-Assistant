@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from app.providers.builderspace_runtime_contract import manager_loop_schema
+import pytest
+
+from app.providers.builderspace_runtime_contract import manager_loop_schema, validate_manager_payload
 from app.runtime.agent.manager_branch_shapes import manager_semantic_decision_schema
 from app.runtime.agent.manager_result_builder import result_from_payload
 from app.runtime.contracts.phase_a import ManagerSemanticDecision
+from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 
 
 def _active_workflow_resolution(**overrides: object) -> dict[str, object]:
@@ -34,6 +37,34 @@ def _active_workflow_resolution(**overrides: object) -> dict[str, object]:
     return resolution
 
 
+def _manager_payload(*, active_workflow_resolution: dict[str, object] | None = None) -> dict[str, object]:
+    semantic_decision: dict[str, object] = {
+        "semantic_authority": "manager_llm",
+        "current_turn_intent": "log_meal",
+        "target_attachment": {"mode": "new_meal"},
+        "workflow_effect": "commit",
+        "final_action_candidate": "commit",
+        "estimation_posture": "estimable",
+        "followup_posture": "none",
+        "mutation_intent_candidate": "canonical_write",
+        "uncertainty_posture": "bounded",
+        "source": "single_manager_loop",
+    }
+    if active_workflow_resolution is not None:
+        semantic_decision["active_workflow_resolution"] = active_workflow_resolution
+    return {
+        "manager_action": "final",
+        "intent": "log_meal",
+        "workflow_effect": "commit",
+        "target_attachment": {"mode": "new_meal"},
+        "exactness": "estimated",
+        "confidence": "medium",
+        "evidence_posture": "bounded_estimate",
+        "repair_ack": False,
+        "semantic_decision": semantic_decision,
+    }
+
+
 def test_semantic_decision_schema_requires_manager_active_workflow_resolution() -> None:
     schema = manager_semantic_decision_schema()
 
@@ -62,6 +93,28 @@ def test_manager_loop_schema_exposes_active_workflow_resolution_to_provider() ->
 
     assert "active_workflow_resolution" in semantic_schema["properties"]
     assert "active_workflow_resolution" in semantic_schema["required"]
+
+
+def test_runtime_validation_blocks_missing_active_workflow_resolution() -> None:
+    with pytest.raises(RuntimeError, match="active_workflow_resolution missing"):
+        validate_manager_payload(MANAGER_LOOP_STAGE, _manager_payload())
+
+
+def test_runtime_validation_blocks_invalid_active_workflow_resolution_shape() -> None:
+    resolution = _active_workflow_resolution(current_turn_relation="keyword_router_decided")
+
+    with pytest.raises(RuntimeError, match="current_turn_relation invalid"):
+        validate_manager_payload(
+            MANAGER_LOOP_STAGE,
+            _manager_payload(active_workflow_resolution=resolution),
+        )
+
+
+def test_runtime_validation_accepts_manager_owned_active_workflow_resolution_shape() -> None:
+    validate_manager_payload(
+        MANAGER_LOOP_STAGE,
+        _manager_payload(active_workflow_resolution=_active_workflow_resolution()),
+    )
 
 
 def test_manager_semantic_decision_model_preserves_active_workflow_resolution() -> None:

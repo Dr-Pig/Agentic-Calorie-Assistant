@@ -32,6 +32,7 @@ from ..runtime.agent.founder_live_manager_allowed_values import (
     founder_live_manager_tool_names_for_constraints,
 )
 from ..runtime.agent.manager_branch_shapes import manager_semantic_decision_schema
+from ..runtime.agent.manager_active_workflow_resolution_schema import validate_active_workflow_resolution_shape
 from ..runtime.contracts.trace import MANAGER_LOOP_STAGE
 
 
@@ -180,6 +181,10 @@ def validate_manager_payload(stage: str, payload: dict[str, Any], *, constraints
         validate_founder_live_manager_contract_semantic_field_consistency(payload)
         if not is_entry_scope_route_to_intake(payload, constraints):
             validate_founder_live_manager_contract_consistency(payload, constraints=constraints)
+    if stage == MANAGER_LOOP_STAGE:
+        semantic_decision = payload.get("semantic_decision")
+        if isinstance(semantic_decision, dict):
+            validate_active_workflow_resolution_shape(semantic_decision)
 
 
 __all__ = [
