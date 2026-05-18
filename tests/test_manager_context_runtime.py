@@ -701,8 +701,14 @@ def test_manager_context_prompt_and_trace_payloads_expose_lineage_without_legacy
     assert prompt_payload["context_lineage"]["active_workflow_id"] == "pending_followup:turn-followup"
     assert prompt_payload["context_layers"]["active_workflow"]["pending_followup_present"] is True
     assert prompt_payload["context_layers"]["evidence_state"]["target_candidate_count"] == 1
+    assert prompt_payload["active_workflow"]["active_workflow_id"] == "pending_followup:turn-followup"
+    assert prompt_payload["active_workflow"]["meal_thread_id"] == 77
+    assert prompt_payload["active_workflow"]["selection_owner"] == "manager"
+    assert prompt_payload["active_workflow"]["mutation_authority"] is False
     assert trace_payload["context_lineage"]["active_workflow_id"] == "pending_followup:turn-followup"
     assert trace_payload["context_lineage"]["context_packet_hash"] == packet["context_lineage"]["context_packet_hash"]
     assert trace_payload["context_layers"]["current_turn"]["raw_user_input_present"] is True
+    assert trace_payload["active_workflow"]["active_workflow_id"] == "pending_followup:turn-followup"
+    assert trace_payload["active_workflow"]["selection_owner"] == "manager"
     assert trace_payload["read_only"] is True
     assert trace_payload["mutation_authority"] is False
