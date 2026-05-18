@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .manager_active_workflow_resolution_schema import manager_active_workflow_resolution_schema
+
 
 def manager_item_results_schema() -> dict[str, Any]:
     return {
@@ -50,6 +52,7 @@ def manager_semantic_decision_schema() -> dict[str, Any]:
                 ],
             },
             "target_attachment": {"type": "object"},
+            "active_workflow_resolution": manager_active_workflow_resolution_schema(),
             "workflow_effect": {"type": "string"},
             "final_action_candidate": {"type": "string"},
             "estimation_posture": {"type": "string"},
@@ -121,6 +124,7 @@ def manager_semantic_decision_schema() -> dict[str, Any]:
             "semantic_authority",
             "current_turn_intent",
             "target_attachment",
+            "active_workflow_resolution",
             "workflow_effect",
             "final_action_candidate",
             "estimation_posture",

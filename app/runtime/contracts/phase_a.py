@@ -10,7 +10,7 @@ from .phase_a_types import (
     CommitBoundaryIntent, ContextAvailability, HistoryExpansionReason, HistoryExpansionScope, InteractionSource,
     InteractionTargetType, ManagerMutationIntentCandidate, ManagerSemanticAuthority, ManagerSemanticIntent,
     OpenWorkflowType, OwnerAlignment, PredictedMealStatus, RoutingConfidence, ShadowVisibilityPosture, SurfaceMode,
-    TranscriptSnippetRole, TransitionGuardVerdict,
+    TransitionGuardVerdict,
 )
 
 
@@ -76,10 +76,24 @@ class ManagerContextPack(BaseModel):
     promotion_reasons: list[str] = Field(default_factory=list)
 
 
+def default_active_workflow_resolution() -> dict[str, Any]:
+    return {
+        "current_turn_relation": "none",
+        "slot_updates": [],
+        "still_missing_slots": [],
+        "attach_target": {},
+        "final_action": "no_commit",
+        "resolution_basis": [],
+        "selection_owner": "manager",
+        "deterministic_role": "validate_only",
+    }
+
+
 class ManagerSemanticDecision(BaseModel):
     semantic_authority: ManagerSemanticAuthority = "missing"
     current_turn_intent: ManagerSemanticIntent = "unknown"
     target_attachment: dict[str, Any] = Field(default_factory=dict)
+    active_workflow_resolution: dict[str, Any] = Field(default_factory=default_active_workflow_resolution)
     workflow_effect: str = "none"
     final_action_candidate: str = "no_commit"
     estimation_posture: str = "unknown"
@@ -163,4 +177,5 @@ __all__ = [
     "HistoryExpansionScope", "HistoryMealCandidate", "InteractionEvent", "ManagerContextPack",
     "ManagerMutationIntentCandidate", "ManagerSemanticAuthority", "ManagerSemanticDecision", "ManagerSemanticIntent",
     "OwnerAlignment", "PhaseABoundaryProjection", "PredictedMealStatus", "ShadowHypothesis", "ShadowVisibilityPosture", "SurfaceMode", "TranscriptSnippet", "TransitionGuardResult",
+    "default_active_workflow_resolution",
 ]
