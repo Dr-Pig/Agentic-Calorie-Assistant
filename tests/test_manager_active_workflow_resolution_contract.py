@@ -110,10 +110,20 @@ def test_runtime_validation_blocks_invalid_active_workflow_resolution_shape() ->
         )
 
 
+def test_runtime_validation_blocks_active_workflow_final_action_drift() -> None:
+    resolution = _active_workflow_resolution(final_action="correction_applied")
+
+    with pytest.raises(RuntimeError, match="final_action must match semantic_decision.final_action_candidate"):
+        validate_manager_payload(
+            MANAGER_LOOP_STAGE,
+            _manager_payload(active_workflow_resolution=resolution),
+        )
+
+
 def test_runtime_validation_accepts_manager_owned_active_workflow_resolution_shape() -> None:
     validate_manager_payload(
         MANAGER_LOOP_STAGE,
-        _manager_payload(active_workflow_resolution=_active_workflow_resolution()),
+        _manager_payload(active_workflow_resolution=_active_workflow_resolution(final_action="commit")),
     )
 
 
