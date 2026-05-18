@@ -59,7 +59,9 @@ def context_layers_for_packet(packet: dict[str, Any]) -> dict[str, dict[str, Any
     artifact = dict(packet.get("context_loading_artifact") or {})
     recent_chat_window = dict(packet.get("recent_chat_window") or {})
     metadata = dict(packet.get("metadata") or {})
+    queue_state = dict(packet.get("queue_state") or {})
     candidates = list(target_candidates.get("for_correction_or_removal") or [])
+    queued_inputs = list(queue_state.get("queued_inputs") or [])
     return {
         "current_turn": _readonly_layer(
             {
@@ -83,6 +85,15 @@ def context_layers_for_packet(packet: dict[str, Any]) -> dict[str, dict[str, Any
                 )
                 or _object_present(active_day_state.get("active_meal_estimate_basis")),
             }
+        ),
+        "queue_state": _readonly_layer(
+            {
+                "processing_turn_present": bool(queue_state.get("processing_turn_id")),
+                "queued_input_count": len(queued_inputs),
+                "sequence_number": queue_state.get("sequence_number"),
+                "priority": queue_state.get("priority"),
+            },
+            context_role="turn_ordering_only",
         ),
         "evidence_state": _readonly_layer(
             {
@@ -183,11 +194,11 @@ def _meal_thread_workflow_id(value: Any) -> str | None:
     return None
 
 
-def _readonly_layer(values: dict[str, Any]) -> dict[str, Any]:
+def _readonly_layer(values: dict[str, Any], *, context_role: str = "candidate_state_only") -> dict[str, Any]:
     return {
         **values,
         "semantic_owner": "manager_llm",
-        "context_role": "candidate_state_only",
+        "context_role": context_role,
         "read_only": True,
         "mutation_authority": False,
     }

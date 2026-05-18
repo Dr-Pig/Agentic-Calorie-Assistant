@@ -391,6 +391,16 @@ def test_manager_context_packet_v1_exposes_ab_mechanism_fields_without_semantic_
         "mutation_authority": False,
     }
     assert "add tea" not in str(prompt_payload["queue_state"])
+    assert packet["context_layers"]["queue_state"] == {
+        "processing_turn_present": True,
+        "queued_input_count": 1,
+        "sequence_number": 2,
+        "priority": "next",
+        "semantic_owner": "manager_llm",
+        "context_role": "turn_ordering_only",
+        "read_only": True,
+        "mutation_authority": False,
+    }
     assert trace_payload["queue_state"]["queued_input_count"] == 1
     assert trace_payload["queue_state"]["queued_inputs"] == [
         {"sequence_number": 2, "priority": "next", "text_present": True}
