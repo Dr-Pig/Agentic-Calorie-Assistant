@@ -131,6 +131,13 @@ Routing examples:
 
 Do not infer the repair target from the final answer alone.
 
+Runtime trace requirement:
+
+- Manager ReAct traces must expose `react_trace.repair_router`
+- `repair_router.claim_scope` must be diagnostic layer attribution, not product truth
+- `repair_router.deterministic_role` must state trace attribution only; it must not rewrite semantic decisions
+- `repair_router.primary_repair_layer` may point to a mechanism layer, but it is not a pass/fail oracle and cannot make a Golden Set case pass by itself
+
 ## Prompt Architecture Gate For EDD
 
 Golden Set EDD must not use generic prompt line count as the primary prompt quality gate.
