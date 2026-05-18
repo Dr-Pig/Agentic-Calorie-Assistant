@@ -386,6 +386,68 @@ def test_manager_context_packet_v1_exposes_ab_mechanism_fields_without_semantic_
     assert packet["context_lineage"]["reinject_reason"] in {"none", "history_trimmed_with_hard_pins"}
 
 
+def test_manager_context_packet_does_not_promote_legacy_meal_id_to_thread_id() -> None:
+    context = _context()
+    context.pending_followup = {
+        "is_open": True,
+        "meal_id": 1,
+        "source_meal_id": 1,
+        "pending_question": "What size and sugar level was it?",
+    }
+    context.active_meal_thread_ref = {
+        "meal_thread_id": 2,
+        "meal_version_id": 3,
+        "meal_title": "bubble tea",
+        "read_only": True,
+        "mutation_authority": False,
+    }
+    context.candidate_attachment_targets = [
+        {
+            "target_object_type": "pending_followup",
+            "target_object_id": "1",
+            "source": "pending_followup",
+            "meal_id": 1,
+            "source_meal_id": 1,
+            "mutation_authority": False,
+        },
+        {
+            "target_object_type": "meal_thread",
+            "target_object_id": "2",
+            "source": "active_meal_view",
+            "meal_title": "bubble tea",
+            "meal_version_id": 3,
+            "mutation_authority": False,
+        },
+    ]
+
+    packet = build_manager_context_packet_v1(
+        current_turn_context=context,
+        user_id="local-user",
+        local_date="2026-05-04",
+        session_id="session-1",
+    )
+
+    assert packet["hard_pins"]["pending_followup"]["meal_id"] == 1
+    assert "meal_thread_id" not in packet["hard_pins"]["pending_followup"]
+    assert packet["active_workflow"]["meal_thread_id"] == 2
+    assert packet["active_workflow"]["active_version_id"] == 3
+    assert packet["active_workflow"]["legacy_meal_log_id"] == 1
+    assert packet["active_workflow"]["legacy_source_meal_id"] == 1
+    assert packet["active_workflow"]["selection_owner"] == "manager"
+    candidates = packet["target_candidates"]["for_correction_or_removal"]
+    assert all(candidate.get("target_object_type") != "pending_followup" for candidate in candidates)
+    assert any(
+        candidate.get("target_object_type") == "meal_thread"
+        and str(candidate.get("meal_thread_id")) == "2"
+        for candidate in candidates
+    )
+    assert not any(
+        candidate.get("target_object_type") == "meal_thread"
+        and str(candidate.get("meal_thread_id")) == "1"
+        for candidate in candidates
+    )
+
+
 def test_manager_context_packet_exposes_interaction_event_and_targets_as_read_only_support() -> None:
     context = _context()
     context.current_interaction_event = InteractionEvent(

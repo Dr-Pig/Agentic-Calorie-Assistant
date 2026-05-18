@@ -129,3 +129,5 @@ def test_pending_followup_target_attachment_schema_guidance_keeps_manager_as_att
     assert "attach_to_pending_followup" in top_level_description
     assert "Manager-owned attach decision" in semantic_description
     assert "must not be empty" in semantic_description
+    assert "canonical meal_thread_id" in semantic_description
+    assert "legacy meal_id/source_meal_id" in semantic_description
