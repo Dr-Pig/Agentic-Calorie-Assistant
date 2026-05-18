@@ -80,7 +80,10 @@ def build_context_window_diagnostic_artifact() -> dict[str, Any]:
             "recent_chat_messages_loaded": loading["loaded_message_count"],
             "recent_chat_messages_omitted": omitted["recent_chat_messages_omitted"],
             "loaded_char_count": loading["loaded_char_count"],
+            "loaded_estimated_tokens": loading["loaded_estimated_tokens"],
             "hard_char_cap": loading["hard_char_cap"],
+            "token_budget": loading["token_budget"],
+            "token_estimator": loading["token_estimator"],
             "char_limit_applied": loading["char_truncated"] is True
             or loading["token_budget_status"] == "at_hard_cap",
             "pending_followup_hard_pinned": bool(hard_pins.get("pending_followup")),

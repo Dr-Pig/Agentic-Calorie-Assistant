@@ -15,9 +15,13 @@ def test_context_window_diagnostic_reports_limits_pins_and_exclusions() -> None:
     assert artifact["status"] == "generated"
     assert artifact["diagnostic_only"] is True
     assert artifact["context_policy_version"] == "accurate_intake_mvp_context_policy_v1"
-    assert artifact["recent_window_policy"] == {"last_messages": 20, "max_chars": 6000}
+    assert artifact["recent_window_policy"]["mode"] == "token_budgeted"
+    assert artifact["recent_window_policy"]["last_messages"] == 20
+    assert artifact["recent_window_policy"]["max_chars"] == 6000
+    assert artifact["recent_window_policy"]["token_budget"] == 2000
     assert artifact["recent_chat_messages_loaded"] <= 20
     assert artifact["recent_chat_messages_omitted"] > 0
+    assert artifact["loaded_estimated_tokens"] <= artifact["token_budget"]
     assert artifact["char_limit_applied"] is True
     assert artifact["pending_followup_hard_pinned"] is True
     assert artifact["pending_draft_hard_pinned"] is True
