@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from types import SimpleNamespace
 
-from app.composition.state_resolver import _recent_chat_turns
+from app.composition.state_resolver import RECENT_CHAT_SOURCE_TAIL_LIMIT, _recent_chat_turns
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, InteractionEvent
 from app.intake.application.attachment_resolver import resolve_attachment_decision
 from app.intake.application.current_turn_context_assembler import (
@@ -104,6 +104,32 @@ def test_recent_chat_turn_context_is_current_day_only_read_only_evidence() -> No
     assert turns[0]["source"] == "sqlite_message_buffer"
     assert turns[0]["read_only"] is True
     assert turns[0]["mutation_authority"] is False
+
+
+def test_recent_chat_source_tail_feeds_token_budgeted_context_window() -> None:
+    messages = [
+        SimpleNamespace(
+            id=index,
+            role="user" if index % 2 else "assistant",
+            content=f"turn-{index:02d}",
+            created_at=datetime(2026, 4, 29, 12, index % 60, 0),
+            trace_id=f"trace-{index}",
+            linked_meal_log_id=None,
+            trace_json={"runtime_turn_trace": {"local_date": "2026-04-29"}},
+        )
+        for index in range(RECENT_CHAT_SOURCE_TAIL_LIMIT + 5)
+    ]
+
+    turns = _recent_chat_turns(messages, local_date="2026-04-29")
+
+    assert len(turns) == RECENT_CHAT_SOURCE_TAIL_LIMIT
+    assert [turn["message_id"] for turn in turns[:2]] == [5, 6]
+    assert [turn["message_id"] for turn in turns[-2:]] == [
+        RECENT_CHAT_SOURCE_TAIL_LIMIT + 3,
+        RECENT_CHAT_SOURCE_TAIL_LIMIT + 4,
+    ]
+    assert all(turn["read_only"] is True for turn in turns)
+    assert all(turn["mutation_authority"] is False for turn in turns)
 
 
 def test_current_turn_context_uses_token_budgeted_recent_chat_window() -> None:
