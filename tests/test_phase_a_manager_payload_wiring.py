@@ -318,9 +318,17 @@ async def test_run_intake_manager_sends_manager_context_packet_v1_sidecar_withou
     assert payload["manager_context_packet_v1"]["prompt_payload_kind"] == "manager_context_packet_v1_prompt_compact"
     assert payload["manager_context_packet_v1"]["metadata"]["context_policy_version"] == MANAGER_CONTEXT_POLICY_VERSION
     assert payload["manager_context_packet_v1"]["recent_chat_window"]["loaded_message_count"] == 2
+    assert payload["manager_context_packet_v1"]["active_workflow"]["selection_owner"] == "manager"
+    assert payload["manager_context_packet_v1"]["active_workflow"]["mutation_authority"] is False
+    assert (
+        "determine_current_turn_relation_to_active_workflow"
+        in payload["manager_context_packet_v1"]["active_workflow"]["manager_must_decide"]
+    )
     assert "not_claiming" not in payload["manager_context_packet_v1"]
     assert "omitted_context" not in payload["manager_context_packet_v1"]
     assert sidecar_trace["context_policy_version"] == MANAGER_CONTEXT_POLICY_VERSION
+    assert sidecar_trace["active_workflow"]["selection_owner"] == "manager"
+    assert sidecar_trace["active_workflow"]["mutation_authority"] is False
     assert sidecar_trace["loaded_context_summary"]["recent_chat_messages"] == 2
     assert sidecar_trace["omitted_context_summary"]["recent_chat_messages_omitted"] == 0
     assert "messages" not in sidecar_trace["recent_chat_window"]
@@ -364,6 +372,8 @@ async def test_run_intake_manager_uses_packet_primary_progressive_context_disclo
 
     assert packet_payload["prompt_payload_kind"] == "manager_context_packet_v1_prompt_compact"
     assert packet_payload["hard_pins"]["pending_followup"]["meal_thread_id"] == 77
+    assert packet_payload["active_workflow"]["meal_thread_id"] == 77
+    assert packet_payload["active_workflow"]["selection_owner"] == "manager"
     assert packet_payload["target_candidates"]["for_correction_or_removal"]
     assert len(json.dumps(packet_payload, ensure_ascii=False)) < len(json.dumps(packet, ensure_ascii=False))
     progressive = result.manager_rounds[0]["prompt_layer_contract"]["progressive_disclosure"]
@@ -424,6 +434,9 @@ async def test_run_intake_manager_compacts_context_packet_after_tool_evidence() 
     assert first_packet["recent_chat_window"]["messages"]
     assert first_packet["target_candidates"]["for_correction_or_removal"]
     assert second_packet["prompt_payload_kind"] == "manager_context_packet_v1_post_tool_reference"
+    assert first_packet["active_workflow"]["meal_thread_id"] == 77
+    assert second_packet["active_workflow"]["meal_thread_id"] == 77
+    assert second_packet["active_workflow"]["selection_owner"] == "manager"
     assert "messages" not in second_packet["recent_chat_window"]
     assert second_packet["recent_chat_window"]["messages_omitted_after_tool_evidence"] is True
     assert second_packet["target_candidates"]["candidate_count"] == len(

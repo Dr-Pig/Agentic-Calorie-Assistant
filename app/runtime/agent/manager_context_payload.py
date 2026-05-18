@@ -120,6 +120,7 @@ def manager_context_packet_v1_prompt_payload(
                 "messages_omitted_after_tool_evidence": True,
             },
             "hard_pins": compact_hard_pins_after_tool_evidence(packet.get("hard_pins")),
+            "active_workflow": dict(packet.get("active_workflow") or {}),
             "active_day_state": compact_active_day_state_after_tool_evidence(
                 packet.get("active_day_state")
             ),
@@ -153,6 +154,7 @@ def manager_context_packet_v1_prompt_payload(
             "token_budget_status": artifact.get("token_budget_status"),
         },
         "hard_pins": dict(packet.get("hard_pins") or {}),
+        "active_workflow": dict(packet.get("active_workflow") or {}),
         "active_day_state": dict(packet.get("active_day_state") or {}),
         "target_candidates": dict(packet.get("target_candidates") or {}),
         "constraints": list(packet.get("constraints") or []),
@@ -223,6 +225,7 @@ def manager_context_packet_v1_trace_payload(packet: dict[str, Any] | None) -> di
             "pending_followup": bool(dict(packet.get("hard_pins") or {}).get("pending_followup")),
             "pending_draft": bool(dict(packet.get("hard_pins") or {}).get("pending_draft")),
         },
+        "active_workflow": dict(packet.get("active_workflow") or {}),
         "target_candidate_count": len(list(target_candidates.get("for_correction_or_removal") or [])),
         "read_only": True,
         "mutation_authority": False,
