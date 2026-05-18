@@ -170,9 +170,6 @@ def validate_manager_payload(stage: str, payload: dict[str, Any], *, constraints
             raise RuntimeError(f"manager payload has unknown fields for {stage}: {unknown}")
     if stage == MANAGER_LOOP_STAGE:
         validate_manager_pass1_branch(payload, constraints)
-        semantic_decision = payload.get("semantic_decision")
-        if isinstance(semantic_decision, dict):
-            validate_active_workflow_resolution_shape(semantic_decision)
     properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
     for key, spec in properties.items():
         if not isinstance(spec, dict) or "enum" not in spec or key not in payload:
@@ -184,6 +181,10 @@ def validate_manager_payload(stage: str, payload: dict[str, Any], *, constraints
         validate_founder_live_manager_contract_semantic_field_consistency(payload)
         if not is_entry_scope_route_to_intake(payload, constraints):
             validate_founder_live_manager_contract_consistency(payload, constraints=constraints)
+    if stage == MANAGER_LOOP_STAGE:
+        semantic_decision = payload.get("semantic_decision")
+        if isinstance(semantic_decision, dict):
+            validate_active_workflow_resolution_shape(semantic_decision)
 
 
 __all__ = [

@@ -360,6 +360,7 @@ def _founder_live_commit_without_evidence_repair_constraints() -> dict[str, obje
 
 
 def _founder_live_payload(**overrides: object) -> dict[str, object]:
+    override_semantic_decision = overrides.pop("semantic_decision", None)
     payload: dict[str, object] = {
         "manager_action": "final",
         "intent": "log_meal",
@@ -398,6 +399,13 @@ def _founder_live_payload(**overrides: object) -> dict[str, object]:
             "followup_question": "What size and sugar level was it?",
         },
     }
+    if isinstance(override_semantic_decision, dict):
+        override_semantic_decision = dict(override_semantic_decision)
+        override_semantic_decision.setdefault(
+            "active_workflow_resolution",
+            payload["semantic_decision"]["active_workflow_resolution"],
+        )
+        payload["semantic_decision"] = override_semantic_decision
     payload.update(overrides)
     return payload
 
