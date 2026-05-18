@@ -138,9 +138,11 @@ def test_single_manager_prompt_uses_context_for_correction_and_named_removal() -
     assert "apply the user's removal or portion change to the existing item candidates" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "keep unchanged prior components from ACTIVE_MEAL or RECENT_COMMITTED_MEALS_SUMMARY" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "call estimate_nutrition for the updated component list" in SINGLE_MANAGER_SYSTEM_PROMPT
-    assert "If the user names a meal slot such as breakfast, lunch, dinner, or the recent meal" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "If the user names a meal slot such as 早餐/breakfast" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "select that matching meal_thread_id from RECENT_COMMITTED_MEALS_SUMMARY" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "target_display_name, display_name, or meal_title contains that slot" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "target_display_name alone is not a valid target" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "include the concrete meal_thread_id and meal_version_id" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "use operation='update_meal_components'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "do not use operation='correct_item'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "do not expose meal_thread_id" in SINGLE_MANAGER_SYSTEM_PROMPT
