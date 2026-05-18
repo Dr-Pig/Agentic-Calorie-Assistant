@@ -395,6 +395,11 @@ def test_runtime_manager_context_packet_exposes_active_meal_estimate_basis_read_
         "carb_g": 70,
         "fat_g": 22,
         "macro_visibility_status": "present",
+        "macro_guard_reason": "committed_and_aligned",
+        "macro_display_status": "show",
+        "macro_kcal": 574,
+        "macro_kcal_delta": 46,
+        "macro_source_basis": "canonical_item_evidence",
     }
     assert basis["truth_owner"] == "canonical_meal_read_model"
     assert basis["read_only"] is True
@@ -402,6 +407,9 @@ def test_runtime_manager_context_packet_exposes_active_meal_estimate_basis_read_
     assert [item["canonical_name"] for item in basis["items"]] == ["鐵板麵", "荷包蛋"]
     assert basis["items"][0]["estimate_basis"] == "fooddb_generic_component"
     assert basis["items"][0]["evidence_id_count"] == 1
+    assert basis["items"][0]["macro_display_status"] == "show"
+    assert basis["items"][0]["macro_guard_reason"] == "committed_and_aligned"
+    assert basis["items"][0]["macro_source_basis"] == "canonical_item_evidence"
     assert all(item["read_only"] is True for item in basis["items"])
     assert all(item["mutation_authority"] is False for item in basis["items"])
     assert "intent_type" not in basis
@@ -563,6 +571,10 @@ def test_runtime_manager_context_packet_hides_llm_only_active_meal_macros() -> N
         "fat_g": None,
         "macro_visibility_status": "hidden_missing_source",
         "macro_guard_reason": "unsupported_macro_source",
+        "macro_display_status": "hide",
+        "macro_kcal": 0,
+        "macro_kcal_delta": 0,
+        "macro_source_basis": "unavailable",
     }
     assert basis["items"][0]["protein_g"] is None
     assert basis["items"][0]["carb_g"] is None
@@ -570,6 +582,75 @@ def test_runtime_manager_context_packet_hides_llm_only_active_meal_macros() -> N
     assert basis["items"][0]["source"] == "unverified_estimate"
     assert basis["items"][0]["estimate_basis"] == "rough_estimate_without_source"
     assert basis["items"][0]["macro_visibility_status"] == "hidden_missing_source"
+    assert basis["items"][0]["macro_display_status"] == "hide"
+    assert basis["items"][0]["macro_guard_reason"] == "unsupported_macro_source"
+
+
+def test_runtime_manager_context_packet_hides_misaligned_active_meal_macros() -> None:
+    engine, db = _session()
+    try:
+        user = get_or_create_user(db, "context-user")
+        thread = MealThreadRecord(user_id=user.id, title="exact item with bad macro", active_version_id=None)
+        db.add(thread)
+        db.commit()
+        db.refresh(thread)
+        version = MealVersionRecord(
+            meal_thread_id=thread.id,
+            version_status="active",
+            version_reason="new_intake",
+            resolution_status="completed_meal",
+            meal_title="exact item with bad macro",
+            raw_input="exact item with bad macro",
+            local_date="2026-05-04",
+            source_request_id="turn-exact-item",
+            total_kcal=500,
+            protein_g=1,
+            carb_g=1,
+            fat_g=1,
+        )
+        db.add(version)
+        db.commit()
+        db.refresh(version)
+        thread.active_version_id = version.id
+        db.add_all(
+            [
+                thread,
+                MealItemRecord(
+                    meal_version_id=version.id,
+                    item_index=0,
+                    name="exact item with bad macro",
+                    source="fooddb",
+                    evidence_role="exact_item",
+                    estimate_basis="approved_fooddb_exact_item",
+                    confidence_tier="high",
+                    estimated_kcal=500,
+                    protein_g=1,
+                    carb_g=1,
+                    fat_g=1,
+                    evidence_ids_json=["fdb-exact-bad-macro"],
+                ),
+            ]
+        )
+        db.commit()
+
+        packet = build_runtime_manager_context_packet_v1(
+            db=db,
+            current_turn_context=_context(),
+            user_external_id="context-user",
+            local_date="2026-05-04",
+            session_id="session-1",
+        )
+    finally:
+        db.close()
+        engine.dispose()
+
+    basis = packet["active_day_state"]["active_meal_estimate_basis"]
+    assert basis["macro_summary"]["protein_g"] is None
+    assert basis["macro_summary"]["macro_display_status"] == "hide"
+    assert basis["macro_summary"]["macro_guard_reason"] == "macro_alignment_fail"
+    assert basis["items"][0]["protein_g"] is None
+    assert basis["items"][0]["macro_display_status"] == "hide"
+    assert basis["items"][0]["macro_guard_reason"] == "macro_alignment_fail"
 
 
 def test_runtime_manager_context_packet_separates_context_evidence_readonly_from_turn_mutability() -> None:
