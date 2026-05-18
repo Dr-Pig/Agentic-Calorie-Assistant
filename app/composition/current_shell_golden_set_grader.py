@@ -232,15 +232,15 @@ def _matches_prior_optional_followup_attachment(actual_item: Any) -> bool:
     if not isinstance(actual_item, dict):
         return False
     operation = str(actual_item.get("operation") or actual_item.get("mode") or "").strip()
-    source = str(actual_item.get("target_resolution_source") or "").strip()
     has_target_identity = any(
         actual_item.get(field) not in (None, "")
         for field in ("meal_thread_id", "meal_item_id", "target_object_id", "canonical_name")
     )
-    return has_target_identity and (
-        operation in {"attach_to_pending_followup", "refine_item", "same_item_refinement"}
-        or source in {"pending_followup_state", "active_meal_view", "latest_active_meal"}
-    )
+    return has_target_identity and operation in {
+        "attach_to_pending_followup",
+        "refine_item",
+        "same_item_refinement",
+    }
 
 
 def _matches_previous_meal_attachment(actual_item: Any) -> bool:

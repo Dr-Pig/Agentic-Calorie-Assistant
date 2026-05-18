@@ -224,6 +224,44 @@ def test_grader_accepts_tool_result_previous_meal_attachment() -> None:
     assert grade["blockers"] == []
 
 
+def test_grader_accepts_prior_optional_followup_with_manager_operation() -> None:
+    result = _base_result("GS8")
+    result["runtime"]["workflow_effect"] = "canonical_write"
+    result["runtime"]["canonical_commit_status"] = "committed"
+    result["runtime"]["final_action"] = "correction_applied"
+    result["runtime"]["old_version_superseded"] = True
+    result["runtime"]["target_attachment"] = {
+        "meal_thread_id": 2,
+        "meal_item_id": 2,
+        "target_resolution_source": "active_meal_view",
+        "operation": "refine_item",
+    }
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "pass"
+    assert grade["blockers"] == []
+
+
+def test_grader_blocks_prior_optional_followup_source_label_without_manager_operation() -> None:
+    result = _base_result("GS8")
+    result["runtime"]["workflow_effect"] = "canonical_write"
+    result["runtime"]["canonical_commit_status"] = "committed"
+    result["runtime"]["final_action"] = "correction_applied"
+    result["runtime"]["old_version_superseded"] = True
+    result["runtime"]["target_attachment"] = {
+        "meal_thread_id": 2,
+        "meal_item_id": 2,
+        "target_resolution_source": "active_meal_view",
+    }
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "blocked"
+    assert any(blocker.startswith("runtime.target_attachment_expected:") for blocker in grade["blockers"])
+    assert grade["primary_repair_layer"] == "L3_manager_semantics"
+
+
 def test_grader_accepts_structured_whole_meal_removal_attachment() -> None:
     result = _base_result("GS12")
     result["runtime"]["workflow_effect"] = "correction_applied"
