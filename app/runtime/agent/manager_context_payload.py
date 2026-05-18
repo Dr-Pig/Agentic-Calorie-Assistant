@@ -187,8 +187,11 @@ def _post_tool_context_reference_allowed(tool_results: list[dict[str, Any]] | tu
 
 def _compact_current_turn(current_turn: dict[str, Any]) -> dict[str, Any]:
     return {
+        "user_utterance": current_turn.get("user_utterance"),
+        "raw_user_input": current_turn.get("raw_user_input"),
         "channel": current_turn.get("channel"),
         "manager_mode": current_turn.get("manager_mode"),
+        "current_turn_first": current_turn.get("current_turn_first") is True,
         "interaction_event": _compact_interaction_event_prompt_payload(
             current_turn.get("interaction_event")
         ),
