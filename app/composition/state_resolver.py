@@ -15,6 +15,8 @@ from app.composition.state_contracts import V2ResolvedState
 from .conversation_state_loader import load_conversation_state
 from app.text_integrity import sanitize_text_structure, sanitize_text_value
 
+RECENT_CHAT_SOURCE_TAIL_LIMIT = 40
+
 
 def _item_target_reference_for_version(db: Session, *, meal_version_id: int | None) -> dict[str, Any]:
     if meal_version_id is None:
@@ -179,7 +181,12 @@ def _structured_followup_question(message: MessageBuffer) -> str | None:
     return sanitize_text_value(question) if question else None
 
 
-def _recent_chat_turns(messages: list[MessageBuffer], *, local_date: str, limit: int = 6) -> list[dict[str, Any]]:
+def _recent_chat_turns(
+    messages: list[MessageBuffer],
+    *,
+    local_date: str,
+    limit: int = RECENT_CHAT_SOURCE_TAIL_LIMIT,
+) -> list[dict[str, Any]]:
     turns: list[dict[str, Any]] = []
     eligible_messages = [message for message in list(messages or []) if _message_local_date(message) == local_date]
     for message in eligible_messages[-limit:]:
