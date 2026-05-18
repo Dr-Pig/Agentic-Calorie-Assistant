@@ -22,6 +22,9 @@ from scripts.repo_policy import (  # noqa: E402
     normalize_repo_path,
     target_cap_for_repo_path,
 )
+from scripts.check_manager_prompt_architecture_gate import (  # noqa: E402
+    build_manager_prompt_architecture_gate_report,
+)
 from scripts.merge_governance.build_merge_governance_advisory import (  # noqa: E402
     current_shell_metadata_findings,
     extract_track_report,
@@ -91,6 +94,18 @@ def _is_active_python(path: str, policy: dict[str, Any]) -> bool:
     return True
 
 
+def _prompt_architecture_globs(policy: dict[str, Any]) -> list[str]:
+    prompt_architecture = policy.get("prompt_architecture")
+    if not isinstance(prompt_architecture, dict):
+        return []
+    return [str(pattern) for pattern in prompt_architecture.get("prompt_file_globs", [])]
+
+
+def _is_prompt_architecture_file(path: str, policy: dict[str, Any]) -> bool:
+    normalized = normalize_repo_path(path)
+    return any(fnmatch.fnmatch(normalized, pattern) for pattern in _prompt_architecture_globs(policy))
+
+
 def _finding(*, code: str, path: str, message: str, **extra: object) -> dict[str, object]:
     payload: dict[str, object] = {"code": code, "path": path, "message": message}
     payload.update(extra)
@@ -102,6 +117,8 @@ def _evaluate_active_python_size(change: ChangedFile, policy: dict[str, Any]) ->
     warnings: list[dict[str, object]] = []
     path = normalize_repo_path(change.path)
     if change.new_text is None or not _is_active_python(path, policy):
+        return blockers, warnings
+    if _is_prompt_architecture_file(path, policy):
         return blockers, warnings
 
     category = category_for_repo_path(path, policy)
@@ -274,6 +291,41 @@ def _dsa_advisories(change: ChangedFile) -> list[dict[str, object]]:
     return advisories
 
 
+def _evaluate_prompt_architecture_gate(
+    changes: list[ChangedFile],
+    policy: dict[str, Any],
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    changed_prompt_files = [
+        normalize_repo_path(change.path)
+        for change in changes
+        if change.new_text is not None and _is_prompt_architecture_file(change.path, policy)
+    ]
+    if not changed_prompt_files:
+        return [], []
+    report = build_manager_prompt_architecture_gate_report()
+    status = str(report.get("status") or "")
+    if status != "pass":
+        return [
+            _finding(
+                code="prompt_architecture_gate_failed",
+                path=",".join(changed_prompt_files),
+                message="Prompt architecture files changed but the prompt architecture gate failed.",
+                prompt_gate_blockers=list(report.get("blockers") or []),
+            )
+        ], []
+    return [], [
+        _finding(
+            code="prompt_architecture_gate_passed",
+            path=",".join(changed_prompt_files),
+            message=(
+                "Prompt architecture files are governed by section ownership/hash/cache-boundary gate, "
+                "not active-code line count."
+            ),
+            gate_model=dict(report.get("summary") or {}).get("gate_model"),
+        )
+    ]
+
+
 def _run_boundary_command(name: str, command: list[str]) -> tuple[str, dict[str, object] | None]:
     completed = subprocess.run(
         command,
@@ -328,6 +380,9 @@ def build_quality_report_from_changes(
         blockers.extend(_evaluate_protected_growth(change))
         blockers.extend(_evaluate_future_shadow_surface(track, change))
         advisories.extend(_dsa_advisories(change))
+    prompt_blockers, prompt_advisories = _evaluate_prompt_architecture_gate(changes, policy)
+    blockers.extend(prompt_blockers)
+    advisories.extend(prompt_advisories)
 
     boundary_results: list[dict[str, object]] = []
     if run_boundary_checks:

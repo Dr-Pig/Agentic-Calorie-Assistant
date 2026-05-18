@@ -155,6 +155,28 @@ function Test-PolicyHasTransitionOverride {
     return $propertyNames -contains $Path
 }
 
+function Test-PolicyPromptArchitectureFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [object]$Policy
+    )
+
+    if ($null -eq $Policy.prompt_architecture) {
+        return $false
+    }
+
+    $patterns = @($Policy.prompt_architecture.prompt_file_globs)
+    foreach ($pattern in $patterns) {
+        if (Test-RepoPathMatchesPattern -Path $Path -Pattern ([string]$pattern)) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
 function Get-PolicyTransitionOverrideValue {
     param(
         [Parameter(Mandatory = $true)]
@@ -553,8 +575,17 @@ if ($AuditAll) {
         $usesTransitionOverride = [bool]$row.UsesTransitionOverride
 
         if ([string]::IsNullOrWhiteSpace($category)) {
+            if (Test-PolicyPromptArchitectureFile -Path $path -Policy $activeCodePolicy) {
+                Write-Output ("[PROMPT_GATE] {0} lines={1} gate=prompt_architecture" -f $path, $lines)
+                continue
+            }
             Write-Output ("[UNMAPPED] {0} lines={1}" -f $path, $lines)
             $warnings.Add("$path is not mapped to an active code category")
+            continue
+        }
+
+        if (Test-PolicyPromptArchitectureFile -Path $path -Policy $activeCodePolicy) {
+            Write-Output ("[PROMPT_GATE] {0} lines={1} category={2} gate=prompt_architecture" -f $path, $lines, $category)
             continue
         }
 
@@ -625,6 +656,11 @@ if ($StagedOnly) {
                 $headTextForPolicy = Get-HeadText -Path $path
                 $headLinesForPolicy = if ($null -eq $headTextForPolicy) { 0 } else { Get-LineCountFromText -Text ($headTextForPolicy -join "`n") }
                 $stagedLinesForPolicy = Get-LineCountFromText -Text ($stagedBlobForPolicy -join "`n")
+
+                if (Test-PolicyPromptArchitectureFile -Path $path -Policy $activeCodePolicy) {
+                    Write-Output ("- {0}: HEAD={1}, STAGED={2}, GATE=prompt_architecture" -f $path, $headLinesForPolicy, $stagedLinesForPolicy)
+                    continue
+                }
 
                 if ($null -eq $policyCategory) {
                     $violations.Add("$path is an active Python module but is not mapped to any active code category.")

@@ -9,6 +9,12 @@
       "app/**/*.pyc"
     ]
   },
+  "prompt_architecture": {
+    "prompt_file_globs": [
+      "app/runtime/agent/manager_system_prompt.py"
+    ],
+    "gate": "python scripts/check_manager_prompt_architecture_gate.py"
+  },
   "category_caps": {
     "facade_shim": 120,
     "boundary_surface": 200,
