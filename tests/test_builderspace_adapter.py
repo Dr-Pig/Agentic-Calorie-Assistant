@@ -209,6 +209,30 @@ def test_contract_repair_message_maps_nonempty_listed_items_to_listed_lookup() -
     assert "do not discard listed items" in message
 
 
+def test_contract_repair_message_maps_optional_slot_only_followup_to_listed_item_tool_call() -> None:
+    message = contract_repair_message(
+        {
+            "error": (
+                "founder live manager contract listed components with only optional missing slots "
+                "must not downgrade to ask_followup/no_mutation"
+            ),
+            "observed_value": {
+                "intent_type": "log_meal",
+                "semantic_decision": {
+                    "current_turn_intent": "log_meal",
+                    "retrieval_goal": "listed_item_lookup",
+                    "listed_items": ["鐵板麵", "豬肉片", "荷包蛋", "紅茶"],
+                },
+            },
+        }
+    )
+
+    assert "Manager-owned listed items" in message
+    assert "estimate_nutrition" in message
+    assert "optional" in message
+    assert "no_mutation" in message
+
+
 def test_contract_repair_message_maps_single_listed_item_to_manager_owned_route_choice() -> None:
     message = contract_repair_message(
         {
@@ -356,6 +380,14 @@ def _founder_live_commit_without_evidence_repair_constraints() -> dict[str, obje
         **_founder_live_constraints(),
         "guard_feedback_repair_request": True,
         "guard_feedback_failure_family": "commit_without_evidence",
+    }
+
+
+def _founder_live_nutrition_evidence_unavailable_repair_constraints() -> dict[str, object]:
+    return {
+        **_founder_live_constraints(),
+        "guard_feedback_repair_request": True,
+        "guard_feedback_failure_family": "nutrition_evidence_unavailable",
     }
 
 
@@ -1722,6 +1754,30 @@ def test_founder_live_commit_without_evidence_repair_schema_requires_tool_call(
     }
 
 
+def test_founder_live_nutrition_evidence_unavailable_repair_schema_requires_tool_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+
+    schema = adapter._response_schema_for_stage(
+        "intake_manager_round",
+        constraints=_founder_live_nutrition_evidence_unavailable_repair_constraints(),
+    )
+
+    assert schema is not None
+    assert schema["properties"]["manager_action"]["enum"] == ["call_tools"]
+    assert schema["properties"]["final_action"]["enum"] == ["commit", "correction_applied", "overshoot_note"]
+    assert "tool_calls" in schema["required"]
+    assert schema["properties"]["tool_calls"]["minItems"] == 1
+    assert schema["properties"]["tool_calls"]["items"]["properties"]["name"]["enum"] == [
+        "estimate_nutrition"
+    ]
+    assert schema["x-repair-contract"] == {
+        "failure_family": "nutrition_evidence_unavailable",
+        "required_tool": "estimate_nutrition",
+    }
+
+
 def test_founder_live_manager_contract_payload_accepts_trace_repair_ack_outside_payload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1916,6 +1972,143 @@ def test_founder_live_commit_without_evidence_repair_payload_must_call_estimate_
     )
     with pytest.raises(RuntimeError, match="requires tool_calls to include 'estimate_nutrition'"):
         adapter._validate_manager_payload("intake_manager_round", missing_estimate, constraints=constraints)
+
+
+def test_founder_live_nutrition_evidence_unavailable_repair_payload_must_call_estimate_tool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = _founder_live_nutrition_evidence_unavailable_repair_constraints()
+
+    valid = _founder_live_payload(
+        manager_action="call_tools",
+        final_action="correction_applied",
+        workflow_effect="correction",
+        intent_type="correct_meal",
+        tool_calls=[
+            {
+                "name": "estimate_nutrition",
+                "arguments": {
+                    "retrieval_goal": "listed_item_lookup",
+                    "listed_items": ["teppan noodles", "egg"],
+                },
+            }
+        ],
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "target_attachment": {"operation": "update_meal_components"},
+            "workflow_effect": "correction",
+            "final_action_candidate": "correction_applied",
+            "estimation_posture": "pending_tool_call",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "correction_write",
+            "uncertainty_posture": "medium",
+            "source": "live_manager_structured_output",
+            "retrieval_goal": "listed_item_lookup",
+            "listed_items": ["teppan noodles", "egg"],
+        },
+    )
+    adapter._validate_manager_payload("intake_manager_round", valid, constraints=constraints)
+
+    final_payload = _founder_live_payload(
+        manager_action="final",
+        final_action="no_commit",
+        workflow_effect="answer_only",
+        intent_type="correct_meal",
+        tool_calls=[],
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "target_attachment": {"operation": "update_meal_components"},
+            "workflow_effect": "answer_only",
+            "final_action_candidate": "correction_applied",
+            "estimation_posture": "pending_tool_call",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "correction_write",
+            "uncertainty_posture": "medium",
+            "source": "live_manager_structured_output",
+        },
+    )
+    with pytest.raises(RuntimeError, match="manager_action"):
+        adapter._validate_manager_payload("intake_manager_round", final_payload, constraints=constraints)
+
+    missing_estimate = _founder_live_payload(
+        manager_action="call_tools",
+        final_action="correction_applied",
+        tool_calls=[{"name": "compare_against_budget", "arguments": {}}],
+    )
+    with pytest.raises(RuntimeError, match="requires tool_calls to include 'estimate_nutrition'"):
+        adapter._validate_manager_payload("intake_manager_round", missing_estimate, constraints=constraints)
+
+
+def test_founder_live_contract_rejects_listed_components_optional_slot_only_followup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    payload = _founder_live_payload(
+        manager_action="final",
+        final_action="ask_followup",
+        workflow_effect="ask_followup",
+        intent_type="log_meal",
+        tool_calls=[],
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {
+                "operation": "attach_to_pending_followup",
+                "target_resolution_source": "pending_followup_state",
+            },
+            "active_workflow_resolution": {
+                "current_turn_relation": "answers_required_slot",
+                "slot_updates": [
+                    {
+                        "slot_id": "composition_items",
+                        "slot_kind": "composition_items",
+                        "required_for_commit": True,
+                        "current_value": "鐵板麵、豬肉片、荷包蛋、紅茶",
+                        "source": "current_turn",
+                        "resolution_condition": "user_supplied_list",
+                        "asked_question": "組成是什麼？",
+                    }
+                ],
+                "still_missing_slots": [
+                    {
+                        "slot_id": "portion_amount",
+                        "slot_kind": "portion_amount",
+                        "required_for_commit": False,
+                        "missing_reason": "optional_refinement",
+                    }
+                ],
+                "attach_target": {
+                    "operation": "attach_to_pending_followup",
+                    "target_resolution_source": "pending_followup_state",
+                },
+                "final_action": "ask_followup",
+                "resolution_basis": ["current_turn", "pending_followup"],
+                "selection_owner": "manager",
+                "deterministic_role": "validate_only",
+            },
+            "workflow_effect": "ask_followup",
+            "final_action_candidate": "ask_followup",
+            "estimation_posture": "listed_item_lookup",
+            "followup_posture": "refinement_optional",
+            "followup_question": "還有其他配菜或份量詳情可以說明嗎？",
+            "followup_targets": [],
+            "mutation_intent_candidate": "no_mutation",
+            "uncertainty_posture": "medium",
+            "source": "user_provided_list",
+            "listed_items": ["鐵板麵", "豬肉片", "荷包蛋", "紅茶"],
+            "retrieval_goal": "listed_item_lookup",
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="only optional missing slots"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            payload,
+            constraints=_founder_live_constraints(),
+        )
 
 
 def test_founder_live_initial_contract_rejects_final_commit_without_current_evidence(

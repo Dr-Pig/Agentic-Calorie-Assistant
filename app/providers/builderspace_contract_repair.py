@@ -170,6 +170,14 @@ def _scoped_repair_hint(parse_attempt: dict[str, Any]) -> str:
             "Manager-owned listed items, do not discard listed items, and set "
             "retrieval_goal='listed_item_lookup'. "
         )
+    if "listed components with only optional missing slots" in error:
+        return (
+            "You already identified concrete component items and marked the current turn as answering a required "
+            "composition slot while only optional refinement slots remain. Keep the Manager-owned listed items, "
+            "set manager_action='call_tools', call estimate_nutrition with retrieval_goal='listed_item_lookup', "
+            "and preserve optional portion, drink, sugar, or topping details as refinement_optional instead of "
+            "blocking the commit. Runtime must not infer the listed items or rewrite the semantic route for you. "
+        )
     if "branded_combo with manager-identified component hints" in error:
         return (
             "You identified a branded combo and also placed concrete components in modifier_hints. Move those "

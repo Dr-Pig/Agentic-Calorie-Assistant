@@ -4,6 +4,7 @@ import asyncio
 from pathlib import Path
 
 from scripts.run_current_shell_self_use_golden_set_e2e import (
+    _aggregate_runtime,
     _browser_macro_visibility_matches_read_model,
     _browser_meal_list_matches_read_model,
     _browser_read_model_matches_ui,
@@ -265,3 +266,48 @@ def test_golden_set_e2e_runner_aggregates_gs18_long_session_turns(
     assert report["replay"]["summary"]["strict_golden_set_replay_passed"] is False
     gs18 = next(case for case in report["replay"]["cases"] if case["case_id"] == "GS18")
     assert any(blocker.startswith("fixture_decisions.") for blocker in gs18["blockers"])
+
+
+def test_golden_set_e2e_runner_gs18_chain_uses_manager_semantics_not_case_text() -> None:
+    turn_traces = [
+        {
+            "runtime": {"workflow_effect": "ask_followup", "final_action": "ask_followup"},
+            "final_response_basis": {
+                "semantic_decision": {"final_action_candidate": "ask_followup"}
+            },
+        },
+        {
+            "runtime": {"workflow_effect": "answer_only", "final_action": "answer_only"},
+            "final_response_basis": {
+                "semantic_decision": {"current_turn_intent": "answer_query"}
+            },
+        },
+        {
+            "runtime": {"workflow_effect": "commit", "final_action": "commit"},
+            "final_response_basis": {
+                "semantic_decision": {
+                    "final_action_candidate": "commit",
+                    "mutation_intent_candidate": "canonical_write",
+                }
+            },
+        },
+        {
+            "runtime": {"workflow_effect": "correction", "final_action": "correction_applied"},
+            "final_response_basis": {
+                "semantic_decision": {
+                    "current_turn_intent": "correct_meal",
+                    "final_action_candidate": "correction_applied",
+                }
+            },
+        },
+        {
+            "runtime": {"workflow_effect": "answer_only", "final_action": "answer_only"},
+            "final_response_basis": {
+                "semantic_decision": {"current_turn_intent": "answer_remaining_budget"}
+            },
+        },
+    ]
+
+    runtime = _aggregate_runtime(turn_traces)
+
+    assert runtime["pending_then_commit_then_correction_then_budget_query"] is True
