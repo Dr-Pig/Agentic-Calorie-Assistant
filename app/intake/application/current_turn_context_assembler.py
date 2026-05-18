@@ -8,6 +8,7 @@ from ...runtime.contracts.phase_a import (
     InteractionEvent,
 )
 from .attachment_resolver import target_reference_opens_correction_workflow
+from .current_turn_recent_chat import recent_chat_turns_state
 from .pending_followup_context_targets import (
     candidate_attachment_targets as build_candidate_attachment_targets,
     pending_followup_object_ref,
@@ -95,32 +96,6 @@ def _active_meal_thread_state(active_meal: Any) -> tuple[dict[str, Any] | None, 
     if active_meal.get("meal_thread_id") is None:
         return None, "none"
     return dict(active_meal), "present"
-
-
-def _recent_chat_turns_state(recent_chat_turns: Any, *, limit: int = 6) -> tuple[list[dict[str, Any]], str]:
-    if recent_chat_turns is None:
-        return [], "unknown"
-    turns: list[dict[str, Any]] = []
-    for raw_turn in list(recent_chat_turns or [])[-limit:]:
-        if not isinstance(raw_turn, dict):
-            continue
-        turn = {
-            "message_id": raw_turn.get("message_id"),
-            "role": str(raw_turn.get("role") or ""),
-            "content": str(raw_turn.get("content") or ""),
-            "created_at": raw_turn.get("created_at"),
-            "trace_id": raw_turn.get("trace_id"),
-            "linked_meal_log_id": raw_turn.get("linked_meal_log_id"),
-            "local_date": raw_turn.get("local_date"),
-            "read_only": True,
-            "mutation_authority": False,
-            "source": str(raw_turn.get("source") or "sqlite_message_buffer"),
-        }
-        followup_question = str(raw_turn.get("structured_followup_question") or "").strip()
-        if followup_question:
-            turn["structured_followup_question"] = followup_question
-        turns.append(turn)
-    return turns, ("present" if turns else "none")
 
 
 def _current_budget_snapshot(payload: Any, *, has_active_plan: bool) -> dict[str, Any] | None:
@@ -293,7 +268,10 @@ def build_current_turn_context_v1(
     )
     active_meal_thread_ref, active_meal_availability = _active_meal_thread_state(active_meal)
     pending_followup, pending_followup_availability = _pending_followup_state(_as_dict(pending_followup_payload))
-    recent_chat_turns, recent_chat_turns_availability = _recent_chat_turns_state(recent_chat_turns_payload)
+    recent_chat_turns, recent_chat_turns_availability, recent_chat_loading_artifact = recent_chat_turns_state(
+        recent_chat_turns_payload,
+        pending_followup=pending_followup,
+    )
     recent_committed_meals, recent_committed_availability = _recent_committed_state(recent_meals_payload)
     current_budget_snapshot = _current_budget_snapshot(
         budget_payload,
@@ -351,7 +329,14 @@ def build_current_turn_context_v1(
         "recent_chat_turns": _source_view(
             owner="conversation_state/current_session_message_buffer",
             availability=recent_chat_turns_availability,
-            summary={"count": len(recent_chat_turns), "read_only": True},
+            summary={
+                "count": len(recent_chat_turns),
+                "read_only": True,
+                "policy": "token_budgeted",
+                "loaded_estimated_tokens": recent_chat_loading_artifact.get("loaded_estimated_tokens"),
+                "omitted_count": recent_chat_loading_artifact.get("omitted_count"),
+                "token_budget": recent_chat_loading_artifact.get("token_budget"),
+            },
         ),
         "recent_committed_meal_refs": _source_view(
             owner="committed_meal_read_model",
@@ -439,6 +424,8 @@ def build_current_turn_context_v1(
             "onboarding_ready": bool(getattr(resolved_state, "onboarding_ready", False)),
             "pending_followup_open": pending_followup is not None,
             "recent_chat_turn_count": len(recent_chat_turns),
+            "recent_chat_window_policy": "token_budgeted",
+            "recent_chat_loading_artifact": recent_chat_loading_artifact,
             "recent_committed_meal_count": len(recent_committed_meals),
             "target_resolution_source": str(target_meal_reference.get("target_resolution_source") or "none"),
             "has_explicit_interaction_target": bool(current_event.target_object_id),
