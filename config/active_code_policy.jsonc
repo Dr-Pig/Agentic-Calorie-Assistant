@@ -11,7 +11,8 @@
   },
   "prompt_architecture": {
     "prompt_file_globs": [
-      "app/runtime/agent/manager_system_prompt.py"
+      "app/runtime/agent/manager_system_prompt.py",
+      "app/runtime/agent/manager_user_facing_reply_prompt.py"
     ],
     "gate": "python scripts/check_manager_prompt_architecture_gate.py"
   },
