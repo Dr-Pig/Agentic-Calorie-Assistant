@@ -51,8 +51,11 @@ def test_post_tool_context_reference_compacts_active_day_state_and_hard_pins() -
             },
         },
         "current_turn": {
+            "user_utterance": "half sugar, no ice",
+            "raw_user_input": "half sugar, no ice",
             "channel": "web_shell",
             "manager_mode": "live_diagnostic",
+            "current_turn_first": True,
             "interaction_event": {
                 "event_type": "chat_message",
                 "raw_text": "半糖中杯",
@@ -144,6 +147,8 @@ def test_post_tool_context_reference_compacts_active_day_state_and_hard_pins() -
     }
 
     initial_payload = manager_context_packet_v1_prompt_payload(packet)
+    assert initial_payload["current_turn"]["raw_user_input"] == "half sugar, no ice"
+    assert initial_payload["current_turn"]["current_turn_first"] is True
     assert initial_payload["read_model_summary"]["budget"]["remaining_kcal"] == 1280
     assert initial_payload["evidence_state"]["fooddb"] == {"status": "generic_anchor_available"}
     initial_read_evidence = {
@@ -158,6 +163,8 @@ def test_post_tool_context_reference_compacts_active_day_state_and_hard_pins() -
     )
 
     assert payload is not None
+    assert payload["current_turn"]["raw_user_input"] == "half sugar, no ice"
+    assert payload["current_turn"]["current_turn_first"] is True
     rendered = json.dumps(payload, ensure_ascii=False)
     assert len(rendered) < len(json.dumps(packet, ensure_ascii=False))
     assert "debug_blob" not in rendered
