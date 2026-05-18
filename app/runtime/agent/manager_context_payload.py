@@ -4,7 +4,9 @@ from typing import Any
 
 from app.runtime.agent.manager_context_post_tool_projection import (
     compact_active_day_state_after_tool_evidence,
+    compact_evidence_state_for_prompt,
     compact_hard_pins_after_tool_evidence,
+    compact_read_model_summary_for_prompt,
 )
 from app.runtime.agent.manager_payload_utils import json_safe
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
@@ -125,6 +127,8 @@ def manager_context_packet_v1_prompt_payload(
             "active_day_state": compact_active_day_state_after_tool_evidence(
                 packet.get("active_day_state")
             ),
+            "read_model_summary": compact_read_model_summary_for_prompt(packet.get("read_model_summary")),
+            "evidence_state": compact_evidence_state_for_prompt(packet.get("evidence_state")),
             "target_candidates": {
                 "candidate_count": len(list(target_candidates.get("for_correction_or_removal") or [])),
                 "candidates_omitted_after_tool_evidence": True,
@@ -158,6 +162,8 @@ def manager_context_packet_v1_prompt_payload(
         "hard_pins": dict(packet.get("hard_pins") or {}),
         "active_workflow": dict(packet.get("active_workflow") or {}),
         "active_day_state": dict(packet.get("active_day_state") or {}),
+        "read_model_summary": compact_read_model_summary_for_prompt(packet.get("read_model_summary")),
+        "evidence_state": compact_evidence_state_for_prompt(packet.get("evidence_state")),
         "target_candidates": dict(packet.get("target_candidates") or {}),
         "constraints": list(packet.get("constraints") or []),
         "read_only": True,
