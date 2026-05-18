@@ -461,6 +461,7 @@
     const CURRENT_PAGE = "chat";
     const PENDING_MESSAGE = "處理中...";
     let pendingRequestId = null;
+    let activePollingRequestId = null;
     el("user-id").value = params.get("user_id") || el("user-id").value;
     el("local-date").value = params.get("local_date") || todayIso();
 
@@ -672,7 +673,22 @@
       pendingRequestId = latestOpenTurnRequestId(messages);
       setComposerBusy(hasOpenTurn(messages));
     }
-    async function loadHistory() {
+    function resumeOpenTurnPolling(payload = {}) {
+      const messages = Array.isArray(payload.messages) ? payload.messages : [];
+      const requestId = latestOpenTurnRequestId(messages);
+      if (!requestId || activePollingRequestId === requestId) {
+        return;
+      }
+      activePollingRequestId = requestId;
+      waitForTurnCompletion(requestId)
+        .catch((error) => setStatus(`failed ${error.message}`))
+        .finally(() => {
+          if (activePollingRequestId === requestId) {
+            activePollingRequestId = null;
+          }
+        });
+    }
+    async function loadHistory(options = {}) {
       setStatus("loading");
       renderSessionAndContext();
       const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
@@ -680,6 +696,9 @@
       renderHistory(payload);
       renderSessionAndContext(payload);
       setStatus(`loaded ${payload.message_count || 0}`);
+      if (options.resumePolling === true) {
+        resumeOpenTurnPolling(payload);
+      }
     }
     async function submitMessage(event) {
       event.preventDefault();
@@ -749,17 +768,17 @@
     el("local-date").addEventListener("change", () => {
       updateCurrentUrl();
       updateNavigationLinks();
-      loadHistory().catch((error) => setStatus(`failed ${error.message}`));
+      loadHistory({ resumePolling: true }).catch((error) => setStatus(`failed ${error.message}`));
     });
     el("user-id").addEventListener("change", () => {
       updateCurrentUrl();
       updateNavigationLinks();
-      loadHistory().catch((error) => setStatus(`failed ${error.message}`));
+      loadHistory({ resumePolling: true }).catch((error) => setStatus(`failed ${error.message}`));
     });
     updateNavigationLinks();
     renderSessionAndContext();
     fitComposerInput();
-    loadHistory().catch((error) => setStatus(`failed ${error.message}`));
+    loadHistory({ resumePolling: true }).catch((error) => setStatus(`failed ${error.message}`));
   </script>
 </body>
 </html>
