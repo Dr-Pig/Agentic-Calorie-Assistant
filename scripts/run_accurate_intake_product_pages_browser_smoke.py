@@ -40,6 +40,7 @@ from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
 )
 from scripts.run_accurate_intake_mvp_manager_style_smoke import (  # noqa: E402
     DeterministicSelfUseManagerProvider,
+    _smoke_manager_owned_base_dish,
 )
 from scripts.accurate_intake_body_observation_manager_fixture import (  # noqa: E402
     BodyObservationManagerFixtureProvider,
@@ -1239,7 +1240,16 @@ class ClarifyCommitCorrectionFixtureProvider:
         if self.active_turn == "draft_followup":
             return self._ask_followup(), self._trace(stage)
         if round_index == 0 and "estimate_nutrition" in available_tools:
-            calls = [{"name": "estimate_nutrition"}]
+            calls = [
+                {
+                    "name": "estimate_nutrition",
+                    "arguments": {
+                        "retrieval_goal": "exact_brand_lookup",
+                        "base_dish": _smoke_manager_owned_base_dish(str(user_payload.get("raw_user_input") or "")),
+                        "semantic_authority_source": "clarify_commit_correction_browser_fixture",
+                    },
+                }
+            ]
             if "compare_against_budget" in available_tools:
                 calls.append({"name": "compare_against_budget"})
             return {"manager_action": "call_tools", "response_mode": "tool_call", "tool_calls": calls}, self._trace(stage)

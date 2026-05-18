@@ -59,6 +59,27 @@ def _targetless_estimate_nutrition_reason(payload: dict[str, Any]) -> str | None
     return None
 
 
+def _composition_unknown_estimate_tool_reason(payload: dict[str, Any]) -> str | None:
+    semantic_decision = payload.get("semantic_decision")
+    if not isinstance(semantic_decision, dict):
+        return None
+    workflow_effect = str(payload.get("workflow_effect") or semantic_decision.get("workflow_effect") or "")
+    mutation_intent = str(semantic_decision.get("mutation_intent_candidate") or "")
+    estimation_posture = str(semantic_decision.get("estimation_posture") or "")
+    if (
+        str(payload.get("manager_action") or "") == "call_tools"
+        and workflow_effect == "ask_followup"
+        and mutation_intent == "no_mutation"
+        and "composition_unknown" in estimation_posture
+        and payload_requests_estimate_nutrition(payload)
+    ):
+        return (
+            "founder live manager contract composition-unknown ask_followup/no_mutation "
+            "must not call estimate_nutrition before components are known"
+        )
+    return None
+
+
 def validate_tool_call_contracts(payload: dict[str, Any], evidence_state: Any) -> None:
     nutrition_evidence_present = (
         evidence_state.get("nutrition_evidence_present")
@@ -85,6 +106,9 @@ def validate_tool_call_contracts(payload: dict[str, Any], evidence_state: Any) -
             "candidates before calling the tool"
         )
     if str(payload.get("manager_action") or "") == "call_tools":
+        composition_unknown_reason = _composition_unknown_estimate_tool_reason(payload)
+        if composition_unknown_reason is not None:
+            raise RuntimeError(composition_unknown_reason)
         targetless_reason = _targetless_estimate_nutrition_reason(payload)
         if targetless_reason is not None:
             raise RuntimeError(

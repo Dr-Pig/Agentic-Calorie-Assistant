@@ -61,6 +61,12 @@ def _source_supports_resolved_target(candidate: dict[str, object]) -> bool:
     return target_source_supports_resolved_attachment(source=source, confidence=confidence)
 
 
+def _source_is_manager_structured_target(candidate: dict[str, object]) -> bool:
+    source = str(candidate.get("source") or "").strip()
+    confidence = str(candidate.get("confidence") or "").strip()
+    return source == "manager_structured_target" and confidence in {"medium", "high"}
+
+
 def resolve_attachment_decision(current_turn_context: CurrentTurnContextV1) -> AttachmentDecision:
     event = current_turn_context.current_interaction_event
     raw_user_input = current_turn_context.user_utterance
@@ -87,6 +93,17 @@ def resolve_attachment_decision(current_turn_context: CurrentTurnContextV1) -> A
             confidence="medium" if primary_target_id is not None else "low",
             ambiguity_flag=False,
             allowed_transition_class="none",
+        )
+
+    if target_candidates and primary_target_id is not None and _source_is_manager_structured_target(target_candidates[0]):
+        return AttachmentDecision(
+            disposition="target_committed_thread",
+            target_object_type=str(target_candidates[0].get("target_object_type") or "meal_thread"),
+            target_object_id=str(primary_target_id),
+            reason="manager_structured_target",
+            confidence=str(target_candidates[0].get("confidence") or "medium"),
+            ambiguity_flag=False,
+            allowed_transition_class="interpretation_update",
         )
 
     if target_candidates and primary_target_id is not None and _source_supports_resolved_target(target_candidates[0]):

@@ -146,7 +146,16 @@ class DeterministicSelfUseManagerProvider:
     def _execution_decision(self, *, raw: str, available_tools: set[str], round_index: int) -> dict[str, Any]:
         normalized = raw.strip().lower()
         if round_index == 0 and "estimate_nutrition" in available_tools:
-            calls = [{"name": "estimate_nutrition"}]
+            calls = [
+                {
+                    "name": "estimate_nutrition",
+                    "arguments": {
+                        "retrieval_goal": "exact_brand_lookup",
+                        "base_dish": _smoke_manager_owned_base_dish(raw),
+                        "semantic_authority_source": "deterministic_self_use_manager_fixture",
+                    },
+                }
+            ]
             if "compare_against_budget" in available_tools:
                 calls.append({"name": "compare_against_budget"})
             return {"manager_action": "call_tools", "response_mode": "tool_call", "tool_calls": calls}
@@ -216,6 +225,19 @@ class DeterministicSelfUseManagerProvider:
                 "deterministic_role": "fixture_simulates_manager_output_only",
             },
         }
+
+
+def _smoke_manager_owned_base_dish(raw: str) -> str:
+    text = str(raw or "").strip()
+    for suffix in (" keyboard enter", " shift enter"):
+        if suffix in text:
+            text = text.split(suffix, 1)[0].strip()
+    if "\n" in text:
+        text = text.splitlines()[0].strip()
+    marker = " extra "
+    if marker in text:
+        text = text.split(marker, 1)[0].strip()
+    return text or str(raw or "").strip() or "meal"
 
 
 def _seed_body_plan(db: Session, *, user_external_id: str, local_date: str) -> None:

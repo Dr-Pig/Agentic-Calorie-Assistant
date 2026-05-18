@@ -1954,14 +1954,14 @@ def test_founder_live_commit_without_evidence_repair_payload_must_call_estimate_
 
     valid = _founder_live_payload(
         manager_action="call_tools",
-        tool_calls=[{"name": "estimate_nutrition", "arguments": {}}],
+        tool_calls=[{"name": "estimate_nutrition", "arguments": {"base_dish": "breakfast plate"}}],
     )
     adapter._validate_manager_payload("intake_manager_round", valid, constraints=constraints)
 
     final_payload = _founder_live_payload(
         manager_action="final",
         final_action="commit",
-        tool_calls=[{"name": "estimate_nutrition", "arguments": {}}],
+        tool_calls=[{"name": "estimate_nutrition", "arguments": {"base_dish": "breakfast plate"}}],
     )
     with pytest.raises(RuntimeError, match="manager_action"):
         adapter._validate_manager_payload("intake_manager_round", final_payload, constraints=constraints)
@@ -2134,7 +2134,7 @@ def test_founder_live_initial_contract_rejects_final_commit_without_current_evid
 
     call_tools_without_evidence = _founder_live_payload(
         manager_action="call_tools",
-        tool_calls=[{"name": "estimate_nutrition", "arguments": {}}],
+        tool_calls=[{"name": "estimate_nutrition", "arguments": {"base_dish": "breakfast plate"}}],
     )
     adapter._validate_manager_payload(
         "intake_manager_round",
@@ -2300,7 +2300,7 @@ def test_founder_live_contract_requires_tool_calls_for_call_tools_action(
         manager_action="call_tools",
         workflow_effect="pending_evidence",
         evidence_posture="evidence_pending",
-        tool_calls=[{"name": "estimate_nutrition", "arguments": {}}],
+        tool_calls=[{"name": "estimate_nutrition", "arguments": {"base_dish": "breakfast plate"}}],
         semantic_decision=missing_tool_calls["semantic_decision"],
     )
     adapter._validate_manager_payload(
@@ -2346,7 +2346,7 @@ def test_founder_live_schema_keeps_final_action_for_tool_candidates_and_validati
         final_action="commit",
         workflow_effect="pending_evidence",
         evidence_posture="evidence_pending",
-        tool_calls=[{"name": "estimate_nutrition", "arguments": {}}],
+        tool_calls=[{"name": "estimate_nutrition", "arguments": {"base_dish": "breakfast plate"}}],
         semantic_decision={
             **dict(final_without_evidence["semantic_decision"]),
             "final_action_candidate": "commit",
