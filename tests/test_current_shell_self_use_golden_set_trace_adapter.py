@@ -79,6 +79,8 @@ def test_trace_adapter_does_not_infer_runtime_outcome_from_raw_utterance() -> No
 
     assert grade["status"] == "blocked"
     assert "runtime.workflow_effect_expected:ask_followup_actual:None" in grade["blockers"]
+    assert grade["primary_repair_layer"] == "L3_manager_semantics"
+    assert grade["failure_routes"][0]["failure_family"] == "workflow_effect_mismatch"
 
 
 def test_trace_adapter_exposes_fallback_400_commit_fake_pass_to_grader() -> None:
@@ -97,6 +99,11 @@ def test_trace_adapter_exposes_fallback_400_commit_fake_pass_to_grader() -> None
     assert grade["status"] == "blocked"
     assert "runtime.workflow_effect_expected:ask_followup_actual:commit" in grade["blockers"]
     assert "runtime.fallback_400_allowed_expected:False_actual:True" in grade["blockers"]
+    assert any(
+        route["repair_layer"] == "L5_evidence_packets"
+        and route["failure_family"] == "evidence_truth_violation"
+        for route in grade["failure_routes"]
+    )
 
 
 def test_trace_adapter_blocks_fixture_provider_from_counting_as_golden_set_pass() -> None:
@@ -111,3 +118,19 @@ def test_trace_adapter_blocks_fixture_provider_from_counting_as_golden_set_pass(
     assert grade["status"] == "blocked"
     assert "fixture_decisions.intent_not_allowed" in grade["blockers"]
     assert "fixture_decisions.action_not_allowed" in grade["blockers"]
+    assert grade["primary_repair_layer"] == "eval_harness_fake_pass_guard"
+
+
+def test_trace_adapter_routes_missing_context_packet_layer_to_context_repair() -> None:
+    trace = _gs5_trace_artifact()
+    trace.pop("current_turn_context_packet")
+
+    grade = grade_golden_case_trace("GS5", trace)
+
+    assert grade["status"] == "blocked"
+    assert "trace_layers.current_turn_context_packet_missing" in grade["blockers"]
+    assert any(
+        route["repair_layer"] == "L2_context_packet"
+        and route["failure_family"] == "missing_required_trace_layer"
+        for route in grade["failure_routes"]
+    )
