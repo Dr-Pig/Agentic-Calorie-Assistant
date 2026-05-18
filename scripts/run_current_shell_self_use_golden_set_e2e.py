@@ -674,7 +674,7 @@ def _aggregate_runtime(
         runtime["target_attachment"] = _last_mapping(runtimes, "target_attachment")
     if len(runtimes) >= 2 and runtimes[1].get("mutation_allowed") is not None:
         runtime["inquiry_turn_mutates"] = runtimes[1].get("mutation_allowed") is True
-    if _pending_then_commit_then_correction_then_budget_query(runtimes):
+    if _pending_then_commit_then_correction_then_budget_query(turn_traces):
         runtime["pending_then_commit_then_correction_then_budget_query"] = True
     if _old_and_new_versions_not_double_counted(turn_traces):
         runtime["old_and_new_versions_double_counted"] = False
@@ -710,28 +710,40 @@ def _last_mapping(items: list[dict[str, Any]], key: str) -> dict[str, Any]:
     return {}
 
 
-def _pending_then_commit_then_correction_then_budget_query(runtimes: list[dict[str, Any]]) -> bool:
+def _pending_then_commit_then_correction_then_budget_query(turn_traces: list[dict[str, Any]]) -> bool:
+    runtimes = [_dict(trace.get("runtime")) for trace in turn_traces]
+    semantic_decisions = [
+        _dict(_dict(trace.get("final_response_basis")).get("semantic_decision"))
+        for trace in turn_traces
+    ]
     has_pending = any(
         runtime.get("pending_followup_saved") is True
         or runtime.get("final_action") == "ask_followup"
         or runtime.get("workflow_effect") == "ask_followup"
-        for runtime in runtimes
+        or semantic.get("final_action_candidate") == "ask_followup"
+        for runtime, semantic in zip(runtimes, semantic_decisions, strict=False)
     )
     has_commit = any(
         runtime.get("final_action") == "commit"
         or runtime.get("canonical_commit_status") == "committed"
-        for runtime in runtimes
+        or semantic.get("final_action_candidate") == "commit"
+        or semantic.get("mutation_intent_candidate") == "canonical_write"
+        for runtime, semantic in zip(runtimes, semantic_decisions, strict=False)
     )
     has_correction = any(
         runtime.get("final_action") == "correction_applied"
         or runtime.get("workflow_effect") in {"correction", "correction_write", "correction_applied"}
-        for runtime in runtimes
+        or semantic.get("final_action_candidate") == "correction_applied"
+        or semantic.get("current_turn_intent") == "correct_meal"
+        for runtime, semantic in zip(runtimes, semantic_decisions, strict=False)
     )
     has_budget_query = any(
         runtime.get("workflow_effect") in {"answer_query", "budget_query", "remaining_query"}
         or runtime.get("final_action") in {"answer_remaining_budget", "answer_budget_query"}
         or runtime.get("current_turn_intent") in {"budget_query", "remaining_query"}
-        for runtime in runtimes
+        or semantic.get("current_turn_intent") == "answer_remaining_budget"
+        or semantic.get("final_action_candidate") == "answer_remaining_budget"
+        for runtime, semantic in zip(runtimes, semantic_decisions, strict=False)
     )
     return has_pending and has_commit and has_correction and has_budget_query
 

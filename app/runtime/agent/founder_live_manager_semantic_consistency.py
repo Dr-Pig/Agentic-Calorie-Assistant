@@ -66,6 +66,50 @@ def _validate_listed_item_tool_argument_consistency(
             )
 
 
+def _validate_answered_required_slot_with_only_optional_missing(
+    *,
+    payload: dict[str, Any],
+    semantic_decision: dict[str, Any],
+) -> None:
+    workflow_resolution = semantic_decision.get("active_workflow_resolution")
+    if not isinstance(workflow_resolution, dict):
+        return
+    if str(workflow_resolution.get("current_turn_relation") or "") != "answers_required_slot":
+        return
+    if not _non_empty_string_items(semantic_decision.get("listed_items")):
+        return
+    still_missing_slots = workflow_resolution.get("still_missing_slots")
+    if not isinstance(still_missing_slots, list) or not still_missing_slots:
+        return
+    has_required_missing_slot = any(
+        isinstance(slot, dict) and slot.get("required_for_commit") is True
+        for slot in still_missing_slots
+    )
+    has_optional_missing_slot = any(
+        isinstance(slot, dict) and slot.get("required_for_commit") is False
+        for slot in still_missing_slots
+    )
+    if has_required_missing_slot or not has_optional_missing_slot:
+        return
+
+    final_action = str(payload.get("final_action") or "")
+    workflow_effect = str(
+        payload.get("workflow_effect") or semantic_decision.get("workflow_effect") or ""
+    )
+    final_action_candidate = str(semantic_decision.get("final_action_candidate") or "")
+    mutation_intent_candidate = str(semantic_decision.get("mutation_intent_candidate") or "")
+    if (
+        final_action == "ask_followup"
+        or workflow_effect == "ask_followup"
+        or final_action_candidate == "ask_followup"
+        or mutation_intent_candidate == "no_mutation"
+    ):
+        raise RuntimeError(
+            "founder live manager contract listed components with only optional missing slots "
+            "must not downgrade to ask_followup/no_mutation"
+        )
+
+
 def validate_semantic_field_consistency(payload: dict[str, Any]) -> None:
     semantic_decision = payload.get("semantic_decision")
     if not isinstance(semantic_decision, dict):
@@ -109,6 +153,10 @@ def validate_semantic_field_consistency(payload: dict[str, Any]) -> None:
             "founder live manager contract branded_combo with manager-identified component hints "
             "requires semantic_decision.listed_items and retrieval_goal='listed_item_lookup'"
         )
+    _validate_answered_required_slot_with_only_optional_missing(
+        payload=payload,
+        semantic_decision=semantic_decision,
+    )
     _validate_listed_item_tool_argument_consistency(
         payload=payload,
         semantic_decision=semantic_decision,
