@@ -98,6 +98,43 @@ def test_post_tool_context_reference_compacts_active_day_state_and_hard_pins() -
             "read_only": True,
             "mutation_authority": False,
         },
+        "read_model_summary": {
+            "budget": {
+                "status": "ready",
+                "daily_target_kcal": 1800,
+                "consumed_kcal": 520,
+                "remaining_kcal": 1280,
+                "debug_blob": "x" * 5000,
+            },
+            "body_plan": {
+                "status": "ready",
+                "daily_target_kcal": 1800,
+                "tdee_kcal": 2300,
+                "current_weight_kg": 84,
+                "debug_blob": "x" * 5000,
+            },
+            "current_day": {"open_workflow_type": "optional_refinement"},
+            "recent_committed_meals": [{"debug_blob": "x" * 5000}],
+        },
+        "evidence_state": {
+            "fooddb": {"status": "generic_anchor_available", "debug_blob": "x" * 5000},
+            "websearch": {"availability": "available_not_called", "debug_blob": "x" * 5000},
+            "macro": {
+                "macro_evidence_status": "hidden_missing_source",
+                "macro_guard_reason": "no_macro_data",
+                "debug_blob": "x" * 5000,
+            },
+            "selected_extracts": [
+                {
+                    "packet_id": "fdb-1",
+                    "source_type": "fooddb",
+                    "match_posture": "generic_anchor",
+                    "commit_posture": "candidate_only",
+                    "debug_blob": "x" * 5000,
+                }
+            ],
+            "rejected_candidates": [{"debug_blob": "x" * 5000}],
+        },
         "target_candidates": {
             "for_correction_or_removal": [
                 {"meal_thread_id": 77, "meal_item_id": 501, "debug_blob": "x" * 5000}
@@ -105,6 +142,15 @@ def test_post_tool_context_reference_compacts_active_day_state_and_hard_pins() -
         },
         "constraints": ["frontend_cannot_infer_semantics"],
     }
+
+    initial_payload = manager_context_packet_v1_prompt_payload(packet)
+    assert initial_payload["read_model_summary"]["budget"]["remaining_kcal"] == 1280
+    assert initial_payload["evidence_state"]["fooddb"] == {"status": "generic_anchor_available"}
+    initial_read_evidence = {
+        "read_model_summary": initial_payload["read_model_summary"],
+        "evidence_state": initial_payload["evidence_state"],
+    }
+    assert "debug_blob" not in json.dumps(initial_read_evidence, ensure_ascii=False)
 
     payload = manager_context_packet_v1_prompt_payload(
         packet,
@@ -154,3 +200,39 @@ def test_post_tool_context_reference_compacts_active_day_state_and_hard_pins() -
     assert active_day_state["recent_correction_removal_count"] == 1
     assert active_day_state["read_only"] is True
     assert active_day_state["mutation_authority"] is False
+
+    read_model_summary = payload["read_model_summary"]
+    assert read_model_summary["read_model_summary_compact"] is True
+    assert read_model_summary["budget"] == {
+        "status": "ready",
+        "daily_target_kcal": 1800,
+        "consumed_kcal": 520,
+        "remaining_kcal": 1280,
+    }
+    assert read_model_summary["body_plan"] == {
+        "status": "ready",
+        "daily_target_kcal": 1800,
+        "tdee_kcal": 2300,
+        "current_weight_kg": 84,
+    }
+    assert read_model_summary["recent_committed_meal_count"] == 1
+
+    evidence_state = payload["evidence_state"]
+    assert evidence_state["evidence_state_compact"] is True
+    assert evidence_state["selection_owner"] == "manager"
+    assert evidence_state["fooddb"] == {"status": "generic_anchor_available"}
+    assert evidence_state["websearch"] == {"availability": "available_not_called"}
+    assert evidence_state["macro"] == {
+        "macro_evidence_status": "hidden_missing_source",
+        "macro_guard_reason": "no_macro_data",
+    }
+    assert evidence_state["selected_extracts"] == [
+        {
+            "packet_id": "fdb-1",
+            "source_type": "fooddb",
+            "match_posture": "generic_anchor",
+            "commit_posture": "candidate_only",
+        }
+    ]
+    assert evidence_state["selected_extract_count"] == 1
+    assert evidence_state["rejected_candidate_count"] == 1
