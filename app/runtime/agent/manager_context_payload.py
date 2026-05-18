@@ -8,6 +8,10 @@ from app.runtime.agent.manager_context_post_tool_projection import (
     compact_hard_pins_after_tool_evidence,
     compact_read_model_summary_for_prompt,
 )
+from app.runtime.agent.manager_context_queue_projection import (
+    compact_queue_state_for_prompt,
+    compact_queue_state_for_trace,
+)
 from app.runtime.agent.manager_payload_utils import json_safe
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 
@@ -113,6 +117,7 @@ def manager_context_packet_v1_prompt_payload(
             "context_lineage": context_lineage,
             "context_layers": context_layers,
             "current_turn": _compact_current_turn(dict(packet.get("current_turn") or {})),
+            "queue_state": compact_queue_state_for_prompt(packet.get("queue_state")),
             "recent_chat_window": {
                 "loaded_message_count": artifact.get("loaded_message_count"),
                 "omitted_count": artifact.get("omitted_count"),
@@ -150,6 +155,7 @@ def manager_context_packet_v1_prompt_payload(
         "context_lineage": context_lineage,
         "context_layers": context_layers,
         "current_turn": _compact_current_turn(dict(packet.get("current_turn") or {})),
+        "queue_state": compact_queue_state_for_prompt(packet.get("queue_state")),
         "recent_chat_window": {
             "messages": list(recent_chat_window.get("messages") or []),
             "loaded_message_count": artifact.get("loaded_message_count"),
@@ -234,6 +240,7 @@ def manager_context_packet_v1_trace_payload(packet: dict[str, Any] | None) -> di
             "pending_followup": bool(dict(packet.get("hard_pins") or {}).get("pending_followup")),
             "pending_draft": bool(dict(packet.get("hard_pins") or {}).get("pending_draft")),
         },
+        "queue_state": compact_queue_state_for_trace(packet.get("queue_state")),
         "active_workflow": dict(packet.get("active_workflow") or {}),
         "target_candidate_count": len(list(target_candidates.get("for_correction_or_removal") or [])),
         "read_only": True,
