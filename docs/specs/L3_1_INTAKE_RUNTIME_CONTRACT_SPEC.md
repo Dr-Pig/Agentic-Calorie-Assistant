@@ -361,6 +361,8 @@ Slot objects must be concrete:
 
 `required_slots` are missing facts that block commit. `optional_slots` are facts that can improve an already legal estimate. Manager decides whether the current turn answers a required or optional slot. Deterministic code may validate the slot schema, target existence, and mutation legality, but it must not infer optional/blocking posture from raw food name or user text.
 
+If Manager-owned `slot_updates` resolve a `required_for_commit=true` slot and every remaining `still_missing_slot` is `required_for_commit=false`, Manager must not downgrade the turn to `ask_followup` / `no_mutation`. The runtime may reject that structured-output inconsistency and request one bounded repair because it validates Manager-owned fields only; it must not decide from raw text that a specific meal is estimable or that a specific unanswered detail is optional.
+
 Meal version semantics:
 
 - each committed meal thread has one active committed version

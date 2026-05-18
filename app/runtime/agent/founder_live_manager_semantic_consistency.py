@@ -74,9 +74,9 @@ def _validate_answered_required_slot_with_only_optional_missing(
     workflow_resolution = semantic_decision.get("active_workflow_resolution")
     if not isinstance(workflow_resolution, dict):
         return
-    if str(workflow_resolution.get("current_turn_relation") or "") != "answers_required_slot":
-        return
     if not _non_empty_string_items(semantic_decision.get("listed_items")):
+        return
+    if not _manager_resolved_required_slot(workflow_resolution):
         return
     still_missing_slots = workflow_resolution.get("still_missing_slots")
     if not isinstance(still_missing_slots, list) or not still_missing_slots:
@@ -108,6 +108,20 @@ def _validate_answered_required_slot_with_only_optional_missing(
             "founder live manager contract listed components with only optional missing slots "
             "must not downgrade to ask_followup/no_mutation"
         )
+
+
+def _manager_resolved_required_slot(workflow_resolution: dict[str, Any]) -> bool:
+    if str(workflow_resolution.get("current_turn_relation") or "") == "answers_required_slot":
+        return True
+    slot_updates = workflow_resolution.get("slot_updates")
+    if not isinstance(slot_updates, list):
+        return False
+    return any(
+        isinstance(slot, dict)
+        and slot.get("required_for_commit") is True
+        and slot.get("current_value") not in (None, "", [])
+        for slot in slot_updates
+    )
 
 
 def validate_semantic_field_consistency(payload: dict[str, Any]) -> None:
