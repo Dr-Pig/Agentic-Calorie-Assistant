@@ -23,7 +23,10 @@ POLICY = {
         "excluded_globs": ["app/**/__pycache__/**"],
     },
     "prompt_architecture": {
-        "prompt_file_globs": ["app/runtime/agent/manager_system_prompt.py"],
+        "prompt_file_globs": [
+            "app/runtime/agent/manager_system_prompt.py",
+            "app/runtime/agent/manager_user_facing_reply_prompt.py",
+        ],
     },
     "category_caps": {
         "application_orchestration": 10,
@@ -199,6 +202,26 @@ def test_prompt_architecture_file_uses_prompt_gate_not_line_count() -> None:
 
     assert report["status"] == "pass"
     assert "active_python_file_unmapped" not in _blocker_codes(report)
+    assert "active_file_grew_over_target_cap" not in _blocker_codes(report)
+    assert "prompt_architecture_gate_passed" in _advisory_codes(report)
+
+
+def test_user_facing_reply_prompt_uses_prompt_architecture_gate() -> None:
+    report = build_quality_report_from_changes(
+        [
+            ChangedFile(
+                path="app/runtime/agent/manager_user_facing_reply_prompt.py",
+                status="M",
+                old_text=_lines(100),
+                new_text=_lines(120),
+            )
+        ],
+        policy=POLICY,
+        track="CurrentShell",
+        run_boundary_checks=False,
+    )
+
+    assert report["status"] == "pass"
     assert "active_file_grew_over_target_cap" not in _blocker_codes(report)
     assert "prompt_architecture_gate_passed" in _advisory_codes(report)
 

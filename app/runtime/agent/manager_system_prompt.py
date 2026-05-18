@@ -277,11 +277,66 @@ _USER_FACING_REPLY_PROMPT = USER_FACING_REPLY_PROMPT
 
 
 _SINGLE_MANAGER_SYSTEM_PROMPT_SECTIONS = (
-    {"section_id": "base_manager_role_and_react_loop", "owner": "ManagerRuntime.SystemContract", "cache_role": "stable_role_and_output_contract", "text": _BASE_MANAGER_SYSTEM_PROMPT},
-    {"section_id": "product_policy_guidance", "owner": "ManagerRuntime.ProductPolicy", "cache_role": "stable_product_policy", "text": _PRODUCT_POLICY_PROMPT},
-    {"section_id": "runtime_contract_policy", "owner": "ManagerRuntime.RuntimeContract", "cache_role": "stable_guard_and_tool_policy", "text": _CONTRACT_POLICY_PROMPT},
-    {"section_id": "scope_boundary_policy", "owner": "ManagerRuntime.ScopePolicy", "cache_role": "stable_scope_policy", "text": _SCOPE_POLICY_PROMPT},
-    {"section_id": "user_facing_reply_policy", "owner": "ManagerRuntime.ResponsePolicy", "cache_role": "stable_response_policy", "text": _USER_FACING_REPLY_PROMPT},
+    {
+        "section_id": "base_manager_role_and_react_loop",
+        "owner": "ManagerRuntime.SystemContract",
+        "section_kind": "role_and_react_loop",
+        "cache_role": "stable_role_and_output_contract",
+        "allowed_change_type": "contract_wording_only",
+        "source_of_truth_refs": (
+            "docs/specs/MANAGER_RUNTIME_PROMPT_ARCHITECTURE_AND_OWNERSHIP_SPEC.md",
+            "docs/specs/L3_1_INTAKE_RUNTIME_CONTRACT_SPEC.md",
+        ),
+        "text": _BASE_MANAGER_SYSTEM_PROMPT,
+    },
+    {
+        "section_id": "product_policy_guidance",
+        "owner": "ManagerRuntime.ProductPolicy",
+        "section_kind": "product_policy_guidance",
+        "cache_role": "stable_product_policy",
+        "allowed_change_type": "product_policy_contract_update",
+        "source_of_truth_refs": (
+            "docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md",
+            "docs/quality/CURRENT_SHELL_SELF_USE_GOLDEN_SET_SPEC.md",
+        ),
+        "text": _PRODUCT_POLICY_PROMPT,
+    },
+    {
+        "section_id": "runtime_contract_policy",
+        "owner": "ManagerRuntime.RuntimeContract",
+        "section_kind": "runtime_contract_policy",
+        "cache_role": "stable_guard_and_tool_policy",
+        "allowed_change_type": "runtime_contract_update",
+        "source_of_truth_refs": (
+            "docs/specs/L3_1_INTAKE_RUNTIME_CONTRACT_SPEC.md",
+            "docs/specs/L4C_CONTEXT_PACKING_SPEC.md",
+        ),
+        "text": _CONTRACT_POLICY_PROMPT,
+    },
+    {
+        "section_id": "scope_boundary_policy",
+        "owner": "ManagerRuntime.ScopePolicy",
+        "section_kind": "scope_boundary_policy",
+        "cache_role": "stable_scope_policy",
+        "allowed_change_type": "scope_contract_update",
+        "source_of_truth_refs": (
+            "docs/specs/L3_1_INTAKE_RUNTIME_CONTRACT_SPEC.md",
+            "docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md",
+        ),
+        "text": _SCOPE_POLICY_PROMPT,
+    },
+    {
+        "section_id": "user_facing_reply_policy",
+        "owner": "ManagerRuntime.ResponsePolicy",
+        "section_kind": "response_policy",
+        "cache_role": "stable_response_policy",
+        "allowed_change_type": "response_policy_or_rubric_update",
+        "source_of_truth_refs": (
+            "docs/quality/CURRENT_SHELL_SELF_USE_GOLDEN_SET_SPEC.md",
+            "docs/quality/CURRENT_SHELL_AGENTIC_EDD_STANDARD.md",
+        ),
+        "text": _USER_FACING_REPLY_PROMPT,
+    },
 )
 
 SINGLE_MANAGER_SYSTEM_PROMPT = "".join(str(section["text"]) for section in _SINGLE_MANAGER_SYSTEM_PROMPT_SECTIONS)
@@ -296,8 +351,12 @@ def single_manager_system_prompt_section_manifest() -> list[dict[str, Any]]:
         {
             "section_id": str(section["section_id"]),
             "owner": str(section["owner"]),
+            "section_kind": str(section["section_kind"]),
             "layer": "static_prefix",
             "cache_role": str(section["cache_role"]),
+            "allowed_change_type": str(section["allowed_change_type"]),
+            "source_of_truth_refs": list(section["source_of_truth_refs"]),
+            "dynamic_content_allowed": False,
             "provider_overlay_allowed": False,
             "utf8_bytes": len(str(section["text"]).encode("utf-8")),
             "sha256": hashlib.sha256(str(section["text"]).encode("utf-8")).hexdigest(),

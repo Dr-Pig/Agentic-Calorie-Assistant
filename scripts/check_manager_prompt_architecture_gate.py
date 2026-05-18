@@ -24,18 +24,25 @@ from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "manager_prompt_architecture_gate.json"
 GOLDEN_MANIFEST_PATH = ROOT / "docs" / "quality" / "current_shell_self_use_golden_set_manifest.yaml"
 
-CASE_STYLE_PATTERNS = (
-    re.compile(r"\bif\s+user\s+says\s+['\"]", re.IGNORECASE),
-    re.compile(r"\bif\s+the\s+user\s+says\s+['\"]", re.IGNORECASE),
-    re.compile(r"如果使用者說[「『\"']"),
-    re.compile(r"當使用者說[「『\"']"),
-)
-
 DYNAMIC_VALUE_PATTERNS = (
     re.compile(r"\blocal-self-use-\d+", re.IGNORECASE),
     re.compile(r"\btrace[-_][A-Za-z0-9_.:-]+", re.IGNORECASE),
     re.compile(r"\bsession[-_][A-Za-z0-9_.:-]+", re.IGNORECASE),
     re.compile(r"\b20\d{2}-\d{2}-\d{2}T\d{2}:\d{2}"),
+)
+
+CASE_STYLE_PATTERNS = (
+    re.compile(r"\bif\s+user\s+says\s+['\"]", re.IGNORECASE),
+    re.compile(r"\bif\s+the\s+user\s+says\s+['\"]", re.IGNORECASE),
+    re.compile(r"\bwhen\s+user\s+says\s+['\"]", re.IGNORECASE),
+    re.compile(r"\bwhen\s+the\s+user\s+says\s+['\"]", re.IGNORECASE),
+    re.compile(r"如果(?:使用者|用戶|user).{0,12}說[「『\"']"),
+    re.compile(r"GS\d{1,2}\b"),
+)
+
+PROMPT_SOURCE_PATHS = (
+    "app/runtime/agent/manager_system_prompt.py",
+    "app/runtime/agent/manager_user_facing_reply_prompt.py",
 )
 
 
@@ -65,6 +72,7 @@ def build_manager_prompt_architecture_gate_report() -> dict[str, Any]:
             "section_count": len(sections),
             "stable_prompt_utf8_bytes": len(prompt.encode("utf-8")),
             "gate_model": "section_owner_hash_cache_boundary_not_line_count",
+            "prompt_source_files": list(PROMPT_SOURCE_PATHS),
         },
         "cases": cases,
         "best_practice_alignment": {
@@ -72,6 +80,8 @@ def build_manager_prompt_architecture_gate_report() -> dict[str, Any]:
             "dynamic_suffix_last": True,
             "provider_reported_cache_metrics_only": True,
             "prompt_versions_and_section_hashes_required": True,
+            "section_source_of_truth_required": True,
+            "dynamic_runtime_values_forbidden_in_stable_prefix": True,
         },
     }
 
@@ -88,21 +98,40 @@ def _evaluate_section_manifest(sections: list[dict[str, Any]]) -> dict[str, Any]
         seen_ids.add(section_id)
         if str(section.get("owner") or "") == "":
             blockers.append(f"section_{section_id}_missing_owner")
+        if str(section.get("section_kind") or "") == "":
+            blockers.append(f"section_{section_id}_missing_section_kind")
         if str(section.get("cache_role") or "") == "":
             blockers.append(f"section_{section_id}_missing_cache_role")
+        if str(section.get("allowed_change_type") or "") == "":
+            blockers.append(f"section_{section_id}_missing_allowed_change_type")
+        source_refs = section.get("source_of_truth_refs")
+        if not isinstance(source_refs, list) or not all(str(ref).strip() for ref in source_refs):
+            blockers.append(f"section_{section_id}_missing_source_of_truth_refs")
         if section.get("layer") != "static_prefix":
             blockers.append(f"section_{section_id}_not_static_prefix")
+        if section.get("dynamic_content_allowed") is not False:
+            blockers.append(f"section_{section_id}_dynamic_content_allowed")
         if section.get("provider_overlay_allowed") is not False:
             blockers.append(f"section_{section_id}_provider_overlay_allowed")
         if not re.fullmatch(r"[0-9a-f]{64}", str(section.get("sha256") or "")):
             blockers.append(f"section_{section_id}_missing_sha256")
     return {
-        "case_id": "section_manifest_has_owner_hash_and_cache_role",
+        "case_id": "section_manifest_has_owner_source_hash_and_cache_role",
         "status": _status(blockers),
         "blockers": blockers,
         "observed": {
             "section_ids": [str(section.get("section_id") or "") for section in sections],
             "section_count": len(sections),
+            "required_fields": [
+                "owner",
+                "section_kind",
+                "cache_role",
+                "allowed_change_type",
+                "source_of_truth_refs",
+                "dynamic_content_allowed",
+                "provider_overlay_allowed",
+                "sha256",
+            ],
         },
     }
 

@@ -125,6 +125,24 @@ Executable gate:
 
 That gate checks section owner/hash/cache role, provider overlay immutability, absence of Golden Set literal utterances, absence of `if user says X` routing patches, and absence of dynamic runtime values in stable prompt source. It intentionally does not fail solely because a prompt file is long.
 
+Manager prompt content files under this gate:
+
+- `app/runtime/agent/manager_system_prompt.py`
+- `app/runtime/agent/manager_user_facing_reply_prompt.py`
+
+Each stable prompt section must expose machine-readable architecture metadata:
+
+- `section_kind`
+- `owner`
+- `cache_role`
+- `allowed_change_type`
+- `source_of_truth_refs`
+- `dynamic_content_allowed=false`
+- `provider_overlay_allowed=false`
+- `sha256`
+
+Prompt section metadata is a gate input, not documentation decoration. A section with no source-of-truth mapping or no allowed change type is not reviewable enough for Manager Runtime prompt work.
+
 ## 4. Case-Style Prompt Patch Ban
 
 Golden Set cases are examples of failure families, not routing rules.
