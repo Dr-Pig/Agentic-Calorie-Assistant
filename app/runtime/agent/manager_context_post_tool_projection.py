@@ -83,6 +83,22 @@ _EXTRACT_REFERENCE_FIELDS = (
     "commit_posture",
     "admissibility",
 )
+_TARGET_CANDIDATE_REFERENCE_FIELDS = (
+    "candidate_id",
+    "candidate_kind",
+    "target_object_type",
+    "target_object_id",
+    "meal_thread_id",
+    "meal_version_id",
+    "meal_item_id",
+    "item_id",
+    "display_label",
+    "canonical_name",
+    "occurred_at",
+    "meal_slot",
+    "current_status",
+    "source",
+)
 
 
 def compact_hard_pins_after_tool_evidence(value: Any) -> dict[str, Any]:
@@ -194,6 +210,24 @@ def compact_evidence_state_for_prompt(value: Any) -> dict[str, Any]:
     if isinstance(rejected_candidates, list):
         compact["rejected_candidate_count"] = len(rejected_candidates)
     return compact
+
+
+def compact_target_candidates_after_tool_evidence(value: Any) -> dict[str, Any]:
+    target_candidates = dict(value or {}) if isinstance(value, dict) else {}
+    candidates = target_candidates.get("for_correction_or_removal")
+    compact_candidates = [
+        _select_present_fields(dict(item), _TARGET_CANDIDATE_REFERENCE_FIELDS)
+        for item in list(candidates or [])[:5]
+        if isinstance(item, dict)
+    ]
+    return {
+        "target_candidates_compacted_after_tool_evidence": True,
+        "candidate_count": len(list(candidates or [])) if isinstance(candidates, list) else 0,
+        "for_correction_or_removal": compact_candidates,
+        "selection_owner": "manager",
+        "read_only": True,
+        "mutation_authority": False,
+    }
 
 
 def _compact_active_meal_thread_ref(value: Any) -> dict[str, Any]:

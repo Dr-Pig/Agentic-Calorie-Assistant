@@ -163,7 +163,9 @@ def test_post_tool_context_reference_compacts_active_day_state_and_hard_pins() -
     assert "debug_blob" not in rendered
     assert "full_prompt_debug_blob" not in rendered
     assert "messages" not in payload["recent_chat_window"]
-    assert "for_correction_or_removal" not in payload["target_candidates"]
+    assert payload["target_candidates"]["for_correction_or_removal"] == [
+        {"meal_thread_id": 77, "meal_item_id": 501}
+    ]
     assert payload["context_lineage"]["active_workflow_id"] == "pending_followup:turn-1"
     assert payload["context_layers"]["active_workflow"]["pending_followup_present"] is True
 
@@ -236,3 +238,11 @@ def test_post_tool_context_reference_compacts_active_day_state_and_hard_pins() -
     ]
     assert evidence_state["selected_extract_count"] == 1
     assert evidence_state["rejected_candidate_count"] == 1
+
+    target_candidates = payload["target_candidates"]
+    assert target_candidates["target_candidates_compacted_after_tool_evidence"] is True
+    assert target_candidates["for_correction_or_removal"] == [
+        {"meal_thread_id": 77, "meal_item_id": 501}
+    ]
+    assert target_candidates["read_only"] is True
+    assert target_candidates["mutation_authority"] is False

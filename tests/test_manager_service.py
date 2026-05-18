@@ -901,6 +901,18 @@ async def test_run_intake_manager_records_prompt_layer_contract_trace_only() -> 
     assert layer["prompt_cache_profile"]["static_prefix_first"] is True
     assert layer["prompt_cache_profile"]["dynamic_context_last"] is True
     assert layer["prompt_cache_profile"]["cache_metric_field"] == "usage.*.cached_tokens"
+    assert layer["manager_prompt_version"] == layer["system_contract"]["prompt_version"]
+    assert layer["prompt_section_hashes"] == layer["system_contract"]["section_sha256"]
+    assert isinstance(layer["tool_schema_hash"], str)
+    assert len(layer["tool_schema_hash"]) == 64
+    assert isinstance(layer["output_schema_hash"], str)
+    assert len(layer["output_schema_hash"]) == 64
+    assert layer["provider_profile"] == {
+        "owner": "ProviderAdapter",
+        "profile_id": None,
+        "semantic_overlay_allowed": False,
+    }
+    assert layer["cached_tokens"] == "unknown"
     assert layer["prompt_cache_identity"] == {
         "identity_version": "manager_prompt_cache_identity.v1",
         "stable_prefix_sha256": layer["system_contract"]["stable_prefix_sha256"],

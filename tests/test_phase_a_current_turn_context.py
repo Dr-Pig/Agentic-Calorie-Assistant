@@ -610,6 +610,32 @@ def test_resolve_attachment_decision_does_not_pick_recent_meal_from_raw_back_ref
     assert guard.verdict == "answer_only"
 
 
+def test_resolve_attachment_decision_does_not_finalize_manager_context_candidate() -> None:
+    context = build_current_turn_context_v1(
+        raw_user_input="update this one",
+        resolved_state=_resolved_state(
+            target_meal_reference={
+                "meal_thread_id": 77,
+                "meal_version_id": 88,
+                "meal_title": "breakfast plate",
+                "target_resolution_source": "manager_context_candidates",
+                "correction_confidence": "high",
+            },
+        ),
+    )
+
+    decision = resolve_attachment_decision(context)
+    guard = resolve_transition_guard(context, decision)
+
+    assert context.candidate_attachment_targets
+    assert decision.disposition == "answer_only"
+    assert decision.target_object_type == "none"
+    assert decision.target_object_id is None
+    assert decision.reason == "manager_target_candidate_requires_current_turn_resolution"
+    assert decision.allowed_transition_class == "none"
+    assert guard.verdict == "answer_only"
+
+
 def test_current_turn_context_uses_resolved_target_reference_not_correction_keywords() -> None:
     context = build_current_turn_context_v1(
         raw_user_input="half sugar",

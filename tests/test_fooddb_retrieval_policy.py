@@ -16,7 +16,8 @@ from app.nutrition.application.fooddb_retrieval_artifact_parts import (
     optional_refinement_metadata,
 )
 from app.nutrition.application.retrieval_semantic_decision import B2ManagerSemanticDecision
-from app.composition.intake_estimation_tools import _manager_owned_retrieval_query
+from app.composition import intake_estimation_tools
+from app.composition.intake_estimation_manager_target import manager_owned_retrieval_query
 from app.nutrition.infrastructure.small_anchor_store_loader import load_small_anchor_seed_records
 
 
@@ -289,7 +290,7 @@ def test_manager_owned_refinement_query_combines_target_and_user_modifier_text()
         semantic_authority_source="live_manager_structured_output",
     )
 
-    assert _manager_owned_retrieval_query(
+    assert manager_owned_retrieval_query(
         decision,
         raw_user_input="\u4e2d\u676f\u534a\u7cd6",
     ) == "\u73cd\u73e0\u5976\u8336 \u4e2d\u676f \u534a\u7cd6"
@@ -307,10 +308,50 @@ def test_manager_owned_base_query_does_not_append_raw_utterance_as_modifier_text
         semantic_authority_source="live_manager_structured_output",
     )
 
-    assert _manager_owned_retrieval_query(
+    assert manager_owned_retrieval_query(
         decision,
         raw_user_input="\u559d\u4e86\u4e00\u676f\u73cd\u5976",
     ) == "\u73cd\u5976"
+
+
+def test_approved_fooddb_retrieval_refuses_raw_input_fallback_without_manager_target(
+    monkeypatch,
+) -> None:
+    calls: list[str] = []
+
+    monkeypatch.setattr(intake_estimation_tools, "load_small_anchor_seed_records", lambda: [{"anchor_id": "x"}])
+    monkeypatch.setattr(
+        intake_estimation_tools,
+        "build_runtime_retrieval_records_from_small_anchor_payload",
+        lambda _payload: [{"anchor_id": "x"}],
+    )
+    monkeypatch.setattr(
+        intake_estimation_tools,
+        "retrieve_fooddb_candidates",
+        lambda query, **_kwargs: calls.append(str(query)) or {"accepted_candidates": []},
+    )
+    monkeypatch.setattr(
+        intake_estimation_tools,
+        "build_fooddb_retrieval_artifact",
+        lambda *_args, **_kwargs: object(),
+    )
+
+    artifact = intake_estimation_tools._approved_fooddb_retrieval_artifact(
+        None,
+        user_external_id="u1",
+        raw_user_input="breakfast shop teppan combo",
+        local_date="2026-05-18",
+        manager_semantic_decision=None,
+    )
+
+    assert artifact is None
+    assert calls == []
+
+
+def test_estimate_nutrition_tool_does_not_use_raw_text_multi_item_semantic_filter() -> None:
+    source = Path("app/composition/intake_estimation_tools.py").read_text(encoding="utf-8")
+
+    assert "looks_like_multi_item_input(raw_user_input)" not in source
 
 
 def test_semantic_schema_distinguishes_drink_modifiers_from_listed_components() -> None:

@@ -81,6 +81,8 @@ In short: deterministic code must not inspect raw user text, food name, case ID,
 
 The active estimate tool must not fall back to a shadow/stub nutrition estimate. A missing exact, FoodDB, component, or approved web evidence packet is represented as `evidence_unavailable` with `estimated_kcal=0`, macro hidden, and `can_write_canonical=false`. The Manager may use that packet to ask a question or explain missing evidence, but deterministic code cannot turn the missing evidence into a default 400 kcal estimate.
 
+Golden Set replay must also prove that nutrition retrieval was requested from a Manager-owned evidence target. A targetless `estimate_nutrition` call is not a valid path, even if the literal user text names a food. The Manager must provide a usable target shape such as `base_dish`, aliases, exact brand/size identity, or multiple `listed_items`; raw user text must not be the retrieval query and must not select exact/generic/listed posture by itself.
+
 Deterministic runtime must not inspect raw user text, food names, case IDs, fixture labels, keyword lists, or food-family heuristics before the Manager pass to decide:
 
 - the food is not estimable

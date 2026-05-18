@@ -61,13 +61,6 @@ def _source_supports_resolved_target(candidate: dict[str, object]) -> bool:
     return target_source_supports_resolved_attachment(source=source, confidence=confidence)
 
 
-def _resolved_target_disposition(candidate: dict[str, object]) -> str:
-    hint = str(candidate.get("attachment_disposition_hint") or "").strip()
-    if hint in {"attach_existing_thread", "target_committed_thread"}:
-        return hint
-    return "target_committed_thread"
-
-
 def resolve_attachment_decision(current_turn_context: CurrentTurnContextV1) -> AttachmentDecision:
     event = current_turn_context.current_interaction_event
     raw_user_input = current_turn_context.user_utterance
@@ -97,15 +90,14 @@ def resolve_attachment_decision(current_turn_context: CurrentTurnContextV1) -> A
         )
 
     if target_candidates and primary_target_id is not None and _source_supports_resolved_target(target_candidates[0]):
-        disposition = _resolved_target_disposition(target_candidates[0])
         return AttachmentDecision(
-            disposition=disposition,  # type: ignore[arg-type]
-            target_object_type="meal_thread",
-            target_object_id=primary_target_id,
-            reason="resolved_target_reference",
+            disposition="answer_only",
+            target_object_type="none",
+            target_object_id=None,
+            reason="manager_target_candidate_requires_current_turn_resolution",
             confidence="high",
             ambiguity_flag=False,
-            allowed_transition_class="interpretation_update",
+            allowed_transition_class="none",
         )
 
     if _looks_like_back_reference(raw_user_input) and primary_target_id is not None:

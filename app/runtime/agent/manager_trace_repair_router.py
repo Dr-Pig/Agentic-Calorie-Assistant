@@ -15,6 +15,7 @@ TRACE_REPAIR_LAYER_ORDER = (
     "L6_validator_guard",
     "L7_mutation_read_model",
     "L8_response",
+    "L9_ui_same_truth",
 )
 
 
@@ -100,6 +101,14 @@ def build_manager_trace_repair_router(
                 "answer_contract_present": isinstance(final_decision.get("answer_contract"), dict),
             },
         },
+        "L9_ui_same_truth": {
+            "present": isinstance(final_decision.get("ui_same_truth"), dict)
+            or isinstance(final_decision.get("renderer_input_basis"), dict),
+            "evidence": {
+                "ui_same_truth_trace_present": isinstance(final_decision.get("ui_same_truth"), dict),
+                "renderer_input_basis_present": isinstance(final_decision.get("renderer_input_basis"), dict),
+            },
+        },
     }
     primary_layer = _primary_repair_layer(
         layers=layers,
@@ -143,6 +152,8 @@ def _primary_repair_layer(
         return "L4_tool_selection"
     if failure_family in {"commit_without_evidence", "nutrition_evidence_unavailable"}:
         return "L5_evidence_packets"
+    if failure_family in {"ui_same_truth_mismatch", "renderer_read_model_mismatch"}:
+        return "L9_ui_same_truth"
     if failure_family:
         return "L6_validator_guard"
     return None

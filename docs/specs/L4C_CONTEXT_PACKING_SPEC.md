@@ -93,6 +93,22 @@ Rules:
 - summaries are reference-only and cannot decide mutation, target, kcal, macro, or source exactness
 - `trace_id_runtime_only` is Review/trace metadata and should not be exposed to the model unless a concrete UI interaction reference requires it
 
+Code-reference alignment:
+
+- Codex `codex-rs/core/src/state/session.rs` keeps a session-level context manager and reference context item so a later turn can rebuild canonical context instead of relying on a damaged transcript.
+- Codex `codex-rs/core/src/context_manager/history.rs` treats history versioning and reinjection as explicit context mechanics.
+- cc-haha `cc-haha-main/src/utils/messageQueueManager.ts` keeps queued input as ordered runtime state (`now > next > later`) rather than as a prompt-only convention.
+- Hermes `hermes-agent-main/agent/context_references.py` bounds attached context and treats references as context material, not semantic truth.
+- Hermes `hermes-agent-main/agent/memory_manager.py` fences memory and session state so reusable memory does not become current-turn mutation authority.
+
+Post-tool context compaction:
+
+- post-tool context compaction must preserve compact target candidates when a second Manager pass needs attachment, correction, removal, or basis-inquiry context
+- compact target candidates remain read-only references with `selection_owner: manager` and `mutation_authority: false`
+- compacted target candidates may include only stable identifiers, display labels, active version IDs, meal slots, status, and source; they must not decide the target
+- tool evidence packets may be compacted, but compaction must preserve tool call/result pairing, active workflow state, and the last visible assistant question
+- if a candidate block is omitted because of token pressure, trace must record the omission and the next pass must not claim target-selection confidence from missing context
+
 Meal-level macro basis:
 
 - active meal context may expose `active_meal_estimate_basis.macro_summary`

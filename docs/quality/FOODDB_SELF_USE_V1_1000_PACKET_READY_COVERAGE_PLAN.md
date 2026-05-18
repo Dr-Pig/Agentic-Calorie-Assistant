@@ -355,6 +355,8 @@ macro_policy:
 
 FoodDB rows are packet-ready storage, not prompt-shaped evidence packets. A row owns durable source and approval facts:
 
+DB rows are packet-ready storage for packet creation; they are not the model-visible packet itself. Runtime retrieval must use a Manager-owned evidence target. Raw user text must not be a retrieval query, and a FoodDB row must not be treated as if it already decided exact/generic/listed posture for the current turn. In machine-readable tests and implementation notes, use the invariant phrase: raw user text must not be a retrieval query.
+
 - canonical identity and aliases
 - source provenance and source class
 - serving basis and portion basis

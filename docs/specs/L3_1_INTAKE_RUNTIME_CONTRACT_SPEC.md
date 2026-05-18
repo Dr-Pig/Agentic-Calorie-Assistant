@@ -202,6 +202,17 @@ Current-loop tool availability:
 - the Manager must use the existing current-loop tool result and return a `final` mapping; deterministic code must not infer the final action from raw text
 - validators may still reject a repeated tool call, but the preferred path is to prevent the duplicate tool from being model-visible in that loop
 
+Nutrition retrieval target contract:
+
+- `estimate_nutrition` requires a Manager-owned evidence target
+- estimate_nutrition requires a Manager-owned evidence target before runtime retrieval can execute
+- raw user text must not be the retrieval query
+- a Manager-owned retrieval query must be derived from Manager output, such as `base_dish`, aliases, exact brand/size identity, or multiple `listed_items`
+- runtime may validate that the Manager-owned retrieval query is present and shaped correctly
+- runtime must not create a target from food-name keywords, case IDs, fixture labels, or raw transcript snippets
+- if the Manager requests targetless `estimate_nutrition`, runtime rejects the tool call or returns evidence unavailable and asks for one bounded repair; it must not fill in a target for the Manager
+- if evidence is unavailable, the tool packet remains non-authoritative and cannot mutate a meal, show macro, or create fallback kcal
+
 ### 3.3A Domain-Owned Tool Surface
 
 manager 應優先看見 coarse domain tools，而不是大量 micro-tools。

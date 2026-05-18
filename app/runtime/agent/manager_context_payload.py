@@ -7,6 +7,7 @@ from app.runtime.agent.manager_context_post_tool_projection import (
     compact_evidence_state_for_prompt,
     compact_hard_pins_after_tool_evidence,
     compact_read_model_summary_for_prompt,
+    compact_target_candidates_after_tool_evidence,
 )
 from app.runtime.agent.manager_context_queue_projection import (
     compact_queue_state_for_prompt,
@@ -105,7 +106,6 @@ def manager_context_packet_v1_prompt_payload(
     context_lineage = dict(packet.get("context_lineage") or {})
     context_layers = dict(packet.get("context_layers") or {})
     if _post_tool_context_reference_allowed(tool_results):
-        target_candidates = dict(packet.get("target_candidates") or {})
         return {
             "prompt_payload_kind": "manager_context_packet_v1_post_tool_reference",
             "metadata": {
@@ -134,12 +134,9 @@ def manager_context_packet_v1_prompt_payload(
             ),
             "read_model_summary": compact_read_model_summary_for_prompt(packet.get("read_model_summary")),
             "evidence_state": compact_evidence_state_for_prompt(packet.get("evidence_state")),
-            "target_candidates": {
-                "candidate_count": len(list(target_candidates.get("for_correction_or_removal") or [])),
-                "candidates_omitted_after_tool_evidence": True,
-                "read_only": True,
-                "mutation_authority": False,
-            },
+            "target_candidates": compact_target_candidates_after_tool_evidence(
+                packet.get("target_candidates")
+            ),
             "constraints": list(packet.get("constraints") or []),
             "read_only": True,
             "mutation_authority": False,

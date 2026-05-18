@@ -11,6 +11,17 @@ Reference identity:
 - OpenAI Codex repo: `https://github.com/openai/codex.git`
 - Inspected Codex commit: `a2802480211a6b28f3c00c0ca9bbb2838503eba4`
 - Local Claude Code-style archive: `C:\Users\User\Desktop\agent runtime\cc-haha-main.zip`
+- Local Hermes archive: `C:\Users\User\Desktop\agent runtime\hermes-agent-main.zip`
+
+Code-reference implementation anchors:
+
+- `codex-rs/core/src/state/session.rs`: session state owns context manager, reference context item, and previous-turn settings without turning them into semantic product truth.
+- `codex-rs/core/src/context_manager/history.rs` and `codex-rs/core/src/context_manager/updates.rs`: history versioning, context diffing, and baseline reinjection are context mechanisms, not final-answer or routing shortcuts.
+- `codex-rs/core/src/tools/registry.rs`, `codex-rs/core/src/tools/orchestrator.rs`, and `codex-rs/core/src/tools/tool_dispatch_trace.rs`: tool specs, dispatch, retry, sandbox/approval, and invocation/result tracing are centralized and separate from semantic decisions.
+- `cc-haha-main/src/constants/systemPromptSections.ts` and `cc-haha-main/src/constants/prompts.ts`: static prompt sections are memoized, dynamic/uncached sections require an explicit reason, and `SYSTEM_PROMPT_DYNAMIC_BOUNDARY` protects cache identity.
+- `cc-haha-main/src/utils/messageQueueManager.ts`: queued user input is durable turn ordering state with `now > next > later`, not a semantic route.
+- `hermes-agent-main/agent/context_references.py` and `hermes-agent-main/agent/memory_manager.py`: bounded attached context and memory fencing keep reference material separate from active task truth.
+- `hermes-agent-main/agent/prompt_builder.py`: prompt assembly is stateless and screens injection-prone dynamic context before it reaches the model.
 
 This spec defines how Manager Runtime prompt, context, tool execution, and deterministic validation must be arranged before EDD work tries to make individual Golden Set cases pass. The goal is stable product behavior, not prompt patching.
 
@@ -65,9 +76,17 @@ System prompt must be sectioned, versioned, and hashed. A prompt change must be 
 
 - `manager_prompt_version`
 - `manager_prompt_section_hashes`
+- `prompt_section_hashes`
 - `tool_surface_version`
+- `tool_schema_hash`
 - `output_schema_version`
+- `output_schema_hash`
 - `prompt_cache_profile`
+- `prompt_cache_identity`
+- `provider_profile`
+- `cached_tokens`
+
+Provider cache usage must be recorded as provider-reported data. If the provider does not report cached-token usage, trace must record `cached_tokens: unknown`; it must not record `0` as a fake miss and must not fail only because the provider lacks cache telemetry.
 
 The required section order is:
 
@@ -278,6 +297,11 @@ Current Shell adoption:
 - FoodDB and WebSearch packets must not become mutation authority.
 - WebSearch raw snippets and candidate packets remain candidate evidence until the Manager and evidence policy accept a turn-scoped packet.
 - current-loop tool availability is runtime-owned: if the loop already has valid nutrition evidence, `estimate_nutrition` must leave the next pass's dynamic `available_tools` list, while the existing tool result remains visible as evidence for Manager final mapping.
+- `estimate_nutrition` requires a manager-owned evidence target. A targetless `estimate_nutrition` call is invalid even when the raw user text looks food-like.
+- targetless estimate_nutrition is a contract violation, not an opportunity for deterministic code to fill a retrieval target from raw text.
+- A manager-owned evidence target may be a Manager-provided `base_dish`, aliases, exact brand/size identity, or multiple Manager-provided `listed_items`.
+- Raw user text, food-name keyword heuristics, fixture labels, and Golden Set case IDs must not become the retrieval target or exact/generic/listed-item posture.
+- The exact lane is entered from Manager-owned retrieval posture and evidence target shape, not from deterministic raw-text multi-item filters.
 
 ## 8. Reference Mechanisms We Adopt / Do Not Adopt
 

@@ -6,7 +6,12 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.composition.intake_manager_tool_arguments import manager_semantic_decision_argument_payload
-from app.intake.application.intake_tool_runtime import looks_like_multi_item_input, normalize_live_payload
+from app.composition.intake_estimation_manager_target import (
+    manager_exact_lane_allowed,
+    manager_owned_listed_components,
+    manager_owned_retrieval_query,
+)
+from app.intake.application.intake_tool_runtime import normalize_live_payload
 from app.nutrition.agent.exact_item_packets import build_exact_item_lane_packet
 from app.nutrition.application.estimate_artifacts import (
     EstimatedNutritionArtifact,
@@ -35,6 +40,7 @@ from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
 from app.nutrition.infrastructure.small_anchor_store_loader import load_small_anchor_seed_records
 from app.shared.contracts.intake import EstimatePayload
+from app.shared.contracts.manager_evidence_target import has_manager_owned_evidence_target
 from app.shared.time_labels import resolve_local_attribution
 
 
@@ -81,9 +87,32 @@ async def estimate_nutrition_tool(
 ) -> EstimatedNutritionArtifact:
     del request_id
     del manager_provider, provider
-    exact_packet = build_exact_item_lane_packet(raw_user_input, limit=3)
+    if not has_manager_owned_evidence_target(manager_semantic_decision):
+        artifact = build_evidence_unavailable_artifact(
+            db,
+            user_external_id=user_external_id,
+            raw_user_input=raw_user_input,
+            local_date=local_date or datetime.now().date().isoformat(),
+        )
+        _fill_missing_trace_dates(artifact.payload)
+        normalize_live_payload(artifact.payload, raw_user_input=raw_user_input)
+        _attach_web_runtime_trace(
+            artifact.payload,
+            {
+                **_default_web_runtime_trace(),
+                "skip_reason": "targetless_manager_owned_evidence_query",
+                "failure_reason": "estimate_nutrition_requires_manager_owned_evidence_target",
+            },
+        )
+        return artifact
+
+    manager_owned_query = manager_owned_retrieval_query(
+        manager_semantic_decision,
+        raw_user_input=raw_user_input,
+    )
+    exact_packet = build_exact_item_lane_packet(manager_owned_query or "", limit=3)
     top_exact_candidate = exact_packet.get("top_exact_candidate")
-    if isinstance(top_exact_candidate, dict) and not looks_like_multi_item_input(raw_user_input):
+    if isinstance(top_exact_candidate, dict) and manager_exact_lane_allowed(manager_semantic_decision):
         artifact = build_exact_item_artifact(
             db,
             user_external_id=user_external_id,
@@ -209,15 +238,20 @@ def _approved_fooddb_retrieval_artifact(
     if not anchors:
         return None
     retrieval_records = build_runtime_retrieval_records_from_small_anchor_payload({"anchors": anchors})
-    retrieval_query = _manager_owned_retrieval_query(
+    listed_components = manager_owned_listed_components(manager_semantic_decision)
+    retrieval_query = manager_owned_retrieval_query(
         manager_semantic_decision,
         raw_user_input=raw_user_input,
-    ) or raw_user_input
+    )
+    if retrieval_query is None and listed_components:
+        retrieval_query = " ".join(listed_components)
+    if retrieval_query is None:
+        return None
     retrieval_result = retrieve_fooddb_candidates(
         retrieval_query,
         retrieval_records=retrieval_records,
         limit=8,
-        listed_components=_manager_owned_listed_components(manager_semantic_decision),
+        listed_components=listed_components,
     )
     return build_fooddb_retrieval_artifact(
         db,
@@ -226,47 +260,6 @@ def _approved_fooddb_retrieval_artifact(
         local_date=local_date,
         retrieval_result=retrieval_result,
     )
-
-
-def _manager_owned_retrieval_query(
-    manager_semantic_decision: B2ManagerSemanticDecision | None,
-    *,
-    raw_user_input: str | None = None,
-) -> str | None:
-    if manager_semantic_decision is None:
-        return None
-    base_dish = str(getattr(manager_semantic_decision, "base_dish", "") or "").strip()
-    retrieval_goal = str(getattr(manager_semantic_decision, "retrieval_goal", "") or "").strip()
-    if base_dish and retrieval_goal in {"generic_anchor_lookup", "listed_item_lookup"}:
-        modifier_text = _manager_owned_modifier_text(manager_semantic_decision, raw_user_input=raw_user_input)
-        if modifier_text and modifier_text not in base_dish:
-            return f"{base_dish} {modifier_text}"
-        return base_dish
-    return None
-
-
-def _manager_owned_modifier_text(
-    manager_semantic_decision: B2ManagerSemanticDecision,
-    *,
-    raw_user_input: str | None,
-) -> str:
-    del raw_user_input
-    hints = [
-        str(getattr(manager_semantic_decision, "size_hint", "") or "").strip(),
-        *[str(item).strip() for item in getattr(manager_semantic_decision, "modifier_hints", None) or []],
-    ]
-    return " ".join(item for item in hints if item)
-
-
-def _manager_owned_listed_components(
-    manager_semantic_decision: B2ManagerSemanticDecision | None,
-) -> list[str] | None:
-    if manager_semantic_decision is None:
-        return None
-    if str(getattr(manager_semantic_decision, "retrieval_goal", "") or "").strip() != "listed_item_lookup":
-        return None
-    return list(getattr(manager_semantic_decision, "listed_items", None) or []) or None
-
 
 def _default_web_runtime_trace() -> dict[str, Any]:
     return {
