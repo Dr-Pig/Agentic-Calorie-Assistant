@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from app.composition import manager_context_runtime
 from app.composition.manager_context_runtime import build_runtime_manager_context_packet_v1
 from app.database import append_message, get_or_create_user
+from app.intake.application.manager_context_lineage import context_packet_hash
 from app.intake.infrastructure.models import MealItemRecord, MealThreadRecord, MealVersionRecord
 from app.models import Base
 from app.runtime.agent.manager_context_payload import (
@@ -728,6 +729,11 @@ def test_runtime_manager_context_packet_adds_traceable_lineage_layers_without_se
     assert lineage["mutation_authority"] is False
     assert isinstance(lineage["context_packet_hash"], str)
     assert len(lineage["context_packet_hash"]) == 64
+    assert packet["metadata"]["context_generation"] == lineage["context_generation"]
+    assert packet["metadata"]["context_packet_hash"] == lineage["context_packet_hash"]
+    assert packet["metadata"]["active_workflow_id"] == lineage["active_workflow_id"]
+    assert packet["metadata"]["reinject_reason"] == lineage["reinject_reason"]
+    assert context_packet_hash(packet) == lineage["context_packet_hash"]
 
     layers = packet["context_layers"]
     assert set(layers) == {"current_turn", "active_workflow", "evidence_state"}
@@ -780,6 +786,10 @@ def test_manager_context_prompt_and_trace_payloads_expose_lineage_without_legacy
     trace_payload = manager_context_packet_v1_trace_payload(packet)
 
     assert prompt_payload["context_lineage"]["active_workflow_id"] == "pending_followup:turn-followup"
+    assert prompt_payload["metadata"]["context_generation"] == "manager_context_packet_v1"
+    assert prompt_payload["metadata"]["context_packet_hash"] == packet["context_lineage"]["context_packet_hash"]
+    assert prompt_payload["metadata"]["active_workflow_id"] == "pending_followup:turn-followup"
+    assert prompt_payload["metadata"]["reinject_reason"] == "none"
     assert prompt_payload["context_layers"]["active_workflow"]["pending_followup_present"] is True
     assert prompt_payload["context_layers"]["evidence_state"]["target_candidate_count"] == 1
     assert prompt_payload["active_workflow"]["active_workflow_id"] == "pending_followup:turn-followup"
@@ -787,6 +797,10 @@ def test_manager_context_prompt_and_trace_payloads_expose_lineage_without_legacy
     assert prompt_payload["active_workflow"]["selection_owner"] == "manager"
     assert prompt_payload["active_workflow"]["mutation_authority"] is False
     assert trace_payload["context_lineage"]["active_workflow_id"] == "pending_followup:turn-followup"
+    assert trace_payload["context_generation"] == "manager_context_packet_v1"
+    assert trace_payload["context_packet_hash"] == packet["context_lineage"]["context_packet_hash"]
+    assert trace_payload["active_workflow_id"] == "pending_followup:turn-followup"
+    assert trace_payload["reinject_reason"] == "none"
     assert trace_payload["context_lineage"]["context_packet_hash"] == packet["context_lineage"]["context_packet_hash"]
     assert trace_payload["context_layers"]["current_turn"]["raw_user_input_present"] is True
     assert trace_payload["active_workflow"]["active_workflow_id"] == "pending_followup:turn-followup"

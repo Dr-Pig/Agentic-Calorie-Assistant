@@ -13,7 +13,9 @@ def attach_context_lineage(packet: dict[str, Any]) -> dict[str, Any]:
     """Attach traceable context state metadata without making semantic decisions."""
 
     packet["context_layers"] = context_layers_for_packet(packet)
-    packet["context_lineage"] = context_lineage_for_packet(packet)
+    lineage = context_lineage_for_packet(packet)
+    packet["context_lineage"] = lineage
+    _attach_lineage_metadata_aliases(packet, lineage)
     return packet
 
 
@@ -101,7 +103,27 @@ def context_packet_hash(packet: dict[str, Any]) -> str:
     payload = deepcopy(packet)
     payload.pop("context_lineage", None)
     payload.pop("context_layers", None)
+    metadata = payload.get("metadata")
+    if isinstance(metadata, dict):
+        for key in (
+            "context_generation",
+            "context_packet_hash",
+            "active_workflow_id",
+            "reinject_reason",
+        ):
+            metadata.pop(key, None)
     return hashlib.sha256(_stable_json(payload).encode("utf-8")).hexdigest()
+
+
+def _attach_lineage_metadata_aliases(packet: dict[str, Any], lineage: dict[str, Any]) -> None:
+    metadata = packet.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+        packet["metadata"] = metadata
+    metadata["context_generation"] = lineage.get("context_generation")
+    metadata["context_packet_hash"] = lineage.get("context_packet_hash")
+    metadata["active_workflow_id"] = lineage.get("active_workflow_id")
+    metadata["reinject_reason"] = lineage.get("reinject_reason")
 
 
 def active_workflow_id_for_packet(packet: dict[str, Any]) -> str | None:
