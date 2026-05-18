@@ -22,6 +22,9 @@ POLICY = {
         "new_active_python_file_default_cap": 8,
         "excluded_globs": ["app/**/__pycache__/**"],
     },
+    "prompt_architecture": {
+        "prompt_file_globs": ["app/runtime/agent/manager_system_prompt.py"],
+    },
     "category_caps": {
         "application_orchestration": 10,
         "boundary_surface": 6,
@@ -177,6 +180,57 @@ def test_dsa_findings_are_advisory_only() -> None:
     assert report["status"] == "pass"
     assert report["blockers"] == []
     assert report["advisories"]
+
+
+def test_prompt_architecture_file_uses_prompt_gate_not_line_count() -> None:
+    report = build_quality_report_from_changes(
+        [
+            ChangedFile(
+                path="app/runtime/agent/manager_system_prompt.py",
+                status="M",
+                old_text=_lines(100),
+                new_text=_lines(120),
+            )
+        ],
+        policy=POLICY,
+        track="CurrentShell",
+        run_boundary_checks=False,
+    )
+
+    assert report["status"] == "pass"
+    assert "active_python_file_unmapped" not in _blocker_codes(report)
+    assert "active_file_grew_over_target_cap" not in _blocker_codes(report)
+    assert "prompt_architecture_gate_passed" in _advisory_codes(report)
+
+
+def test_prompt_architecture_file_blocks_when_prompt_gate_fails(monkeypatch) -> None:
+    monkeypatch.setattr(
+        pre_pr_quality_gate,
+        "build_manager_prompt_architecture_gate_report",
+        lambda: {
+            "status": "fail",
+            "blockers": ["stable_prompt_has_no_if_user_says_routing.case_style_pattern"],
+            "summary": {"gate_model": "section_owner_hash_cache_boundary_not_line_count"},
+        },
+    )
+
+    report = build_quality_report_from_changes(
+        [
+            ChangedFile(
+                path="app/runtime/agent/manager_system_prompt.py",
+                status="M",
+                old_text=_lines(100),
+                new_text=_lines(120),
+            )
+        ],
+        policy=POLICY,
+        track="CurrentShell",
+        run_boundary_checks=False,
+    )
+
+    assert report["status"] == "fail"
+    assert "prompt_architecture_gate_failed" in _blocker_codes(report)
+    assert "active_file_grew_over_target_cap" not in _blocker_codes(report)
 
 
 def test_future_shadow_active_surface_fails() -> None:
