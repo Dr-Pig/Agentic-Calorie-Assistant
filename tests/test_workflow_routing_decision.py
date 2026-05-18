@@ -212,6 +212,33 @@ def test_workflow_routing_decision_uses_structured_target_reference_to_route_cor
     assert "history_expansion_activation" not in result.phase_a_trace
 
 
+def test_workflow_routing_decision_does_not_treat_pending_state_source_as_manager_decision() -> None:
+    resolved_state = _ResolvedState()
+    resolved_state.injected_context["TARGET_MEAL_REFERENCE"] = {
+        "meal_thread_id": 77,
+        "meal_version_id": 88,
+        "meal_title": "milk tea",
+        "target_resolution_source": "pending_followup_state",
+        "correction_confidence": "high",
+    }
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="half sugar",
+        resolved_state=resolved_state,
+    )
+
+    result = build_workflow_routing_decision(
+        raw_user_input="half sugar",
+        current_turn_context=current_turn_context,
+        resolved_state=resolved_state,
+    )
+
+    assert current_turn_context.candidate_attachment_targets
+    assert result.target_workflow_family == "general_chat"
+    assert result.disposition == "defer"
+    assert result.attachment_decision is not None
+    assert result.attachment_decision.target_object_id is None
+
+
 def test_workflow_routing_decision_does_not_turn_active_meal_basis_question_into_correction() -> None:
     resolved_state = _ResolvedState()
     resolved_state.injected_context["ACTIVE_MEAL"] = {
