@@ -106,6 +106,44 @@ def test_recent_chat_turn_context_is_current_day_only_read_only_evidence() -> No
     assert turns[0]["mutation_authority"] is False
 
 
+def test_current_turn_context_uses_token_budgeted_recent_chat_window() -> None:
+    resolved_state = _resolved_state(
+        pending_followup={
+            "is_open": True,
+            "meal_id": 10,
+            "meal_thread_id": 77,
+            "pending_question": "What portion was it?",
+        }
+    )
+    resolved_state.injected_context["RECENT_CHAT_TURNS"] = [
+        {
+            "message_id": index,
+            "role": "user" if index % 2 else "assistant",
+            "content": f"turn-{index:02d}",
+            "created_at": f"2026-04-29T12:{index:02d}:00+08:00",
+            "trace_id": f"trace-{index}",
+            "local_date": "2026-04-29",
+        }
+        for index in range(25)
+    ]
+
+    context = build_current_turn_context_v1(
+        raw_user_input="half sugar",
+        resolved_state=resolved_state,
+    )
+
+    summary = context.source_views["recent_chat_turns"].summary
+    artifact = context.current_turn_runtime_summary["recent_chat_loading_artifact"]
+    assert [turn["message_id"] for turn in context.recent_chat_turns] == list(range(5, 25))
+    assert all(turn["read_only"] is True for turn in context.recent_chat_turns)
+    assert all(turn["mutation_authority"] is False for turn in context.recent_chat_turns)
+    assert summary["policy"] == "token_budgeted"
+    assert summary["token_budget"] == 2000
+    assert artifact["loaded_message_count"] == 20
+    assert artifact["omitted_count"] == 5
+    assert artifact["canonical_state_reinjected_after_history_trim"] is True
+
+
 def test_build_current_turn_context_v1_maps_repo_truth_context_into_current_turn_surface() -> None:
     active_meal = {
         "meal_thread_id": 77,
