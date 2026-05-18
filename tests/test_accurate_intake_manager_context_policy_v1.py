@@ -5,6 +5,10 @@ from app.intake.application.manager_context_policy import (
     build_manager_context_packet_v1,
 )
 from app.intake.application.manager_context_recent_chat_window import RECENT_CHAT_TOKEN_ESTIMATOR
+from app.runtime.agent.manager_context_payload import (
+    manager_context_packet_v1_prompt_payload,
+    manager_context_packet_v1_trace_payload,
+)
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, InteractionEvent
 
 
@@ -373,6 +377,25 @@ def test_manager_context_packet_v1_exposes_ab_mechanism_fields_without_semantic_
     assert packet["queue_state"]["processing_turn_id"] == "turn-0"
     assert packet["queue_state"]["queued_inputs"][0]["priority"] == "next"
     assert packet["queue_state"]["read_only"] is True
+    prompt_payload = manager_context_packet_v1_prompt_payload(packet)
+    trace_payload = manager_context_packet_v1_trace_payload(packet)
+    assert prompt_payload["queue_state"] == {
+        "processing_turn_id": "turn-0",
+        "sequence_number": 2,
+        "priority": "next",
+        "queued_input_count": 1,
+        "queued_inputs_omitted_from_prompt": True,
+        "context_role": "turn_ordering_only",
+        "semantic_owner": "manager_llm",
+        "read_only": True,
+        "mutation_authority": False,
+    }
+    assert "add tea" not in str(prompt_payload["queue_state"])
+    assert trace_payload["queue_state"]["queued_input_count"] == 1
+    assert trace_payload["queue_state"]["queued_inputs"] == [
+        {"sequence_number": 2, "priority": "next", "text_present": True}
+    ]
+    assert "add tea" not in str(trace_payload["queue_state"])
     assert packet["active_workflow"]["selection_owner"] == "manager"
     assert packet["active_workflow"]["pending_type"] == "blocking_composition"
     assert packet["active_workflow"]["required_slots"][0]["slot_kind"] == "composition_items"
