@@ -84,6 +84,16 @@ async def test_exact_db_hit_bypasses_live_exact_brand_canary() -> None:
         search_port=search_port,
         extract_port=extract_port,
         allow_search=True,
+        manager_semantic_decision=B2ManagerSemanticDecision(
+            base_dish="特盛牛丼",
+            aliases=[],
+            brand_hint="松屋",
+            size_hint="特盛",
+            modifier_hints=[],
+            listed_items=[],
+            retrieval_goal="exact_brand_lookup",
+            semantic_authority_source="synthetic_manager_structured_fixture",
+        ),
     )
 
     assert artifact.payload.best_estimate_mode == "exact_item"
@@ -108,6 +118,16 @@ async def test_exact_db_hit_bypasses_live_exact_brand_canary_for_prefixed_starbu
         search_port=search_port,
         extract_port=extract_port,
         allow_search=True,
+        manager_semantic_decision=B2ManagerSemanticDecision(
+            base_dish="\u51b0\u90a3\u5802",
+            aliases=[],
+            brand_hint="\u661f\u5df4\u514b",
+            size_hint="\u5927\u676f",
+            modifier_hints=[],
+            listed_items=[],
+            retrieval_goal="exact_brand_lookup",
+            semantic_authority_source="synthetic_manager_structured_fixture",
+        ),
     )
 
     assert artifact.payload.best_estimate_mode == "exact_item"

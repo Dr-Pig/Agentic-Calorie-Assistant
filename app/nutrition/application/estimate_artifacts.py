@@ -141,6 +141,7 @@ def build_exact_item_artifact(
         protein_g=protein_g,
         carb_g=carb_g,
         fat_g=fat_g,
+        evidence_ids=[str(exact_candidate.get("item_id") or "")] if exact_candidate.get("item_id") else [],
     )
     payload = EstimatePayload(
         request_id="intake_execution-exact-item",
@@ -154,6 +155,7 @@ def build_exact_item_artifact(
         macro_breakdown=display_macro_breakdown,
         raw_macro_breakdown=display_macro_breakdown,
         display_macro_breakdown=display_macro_breakdown,
+        evidence_ids_used=[str(exact_candidate.get("item_id") or "")] if exact_candidate.get("item_id") else [],
         reply_text=f"{title} {kcal} kcal.",
         action_taken="direct_answer",
         route_target="direct_answer",

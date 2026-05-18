@@ -20,8 +20,12 @@ from app.shared.contracts.correction_operation import (
 def _item_records_from_payload(version_id: int, payload: EstimatePayload) -> list[MealItemRecord]:
     items: list[MealItemRecord] = []
     macro_persistence_allowed = payload_authorizes_macro_persistence(payload)
+    payload_macro_evidence_ids = _display_macro_evidence_ids(payload)
     if payload.component_estimates:
         for index, component in enumerate(payload.component_estimates):
+            component_evidence_ids = list(component.evidence_ids)
+            if macro_persistence_allowed and not component_evidence_ids:
+                component_evidence_ids = payload_macro_evidence_ids
             items.append(
                 MealItemRecord(
                     meal_version_id=version_id,
@@ -36,12 +40,13 @@ def _item_records_from_payload(version_id: int, payload: EstimatePayload) -> lis
                     protein_g=component.protein_g if macro_persistence_allowed else 0,
                     carb_g=component.carb_g if macro_persistence_allowed else 0,
                     fat_g=component.fat_g if macro_persistence_allowed else 0,
-                    evidence_ids_json=list(component.evidence_ids),
+                    evidence_ids_json=component_evidence_ids,
                     classification_json={},
                 )
             )
     else:
         protein_g, carb_g, fat_g = canonical_macro_values_from_payload(payload)
+        evidence_ids = list(payload.evidence_ids_used) or payload_macro_evidence_ids
         items.append(
             MealItemRecord(
                 meal_version_id=version_id,
@@ -56,11 +61,21 @@ def _item_records_from_payload(version_id: int, payload: EstimatePayload) -> lis
                 protein_g=protein_g,
                 carb_g=carb_g,
                 fat_g=fat_g,
-                evidence_ids_json=list(payload.evidence_ids_used),
+                evidence_ids_json=evidence_ids,
                 classification_json={},
             )
         )
     return items
+
+
+def _display_macro_evidence_ids(payload: EstimatePayload) -> list[str]:
+    display_macro = dict(payload.display_macro_breakdown or {})
+    if not display_macro:
+        return []
+    macro_source = str(display_macro.get("macro_source") or "").strip()
+    if not macro_source:
+        return []
+    return [f"display_macro_breakdown:{macro_source}"]
 
 
 def _item_record_from_candidate_item(version_id: int, item_index: int, item: Any) -> MealItemRecord:

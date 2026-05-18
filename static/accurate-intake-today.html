@@ -515,7 +515,10 @@
         title.textContent = meal.meal_title || "Meal";
         const meta = document.createElement("div");
         meta.className = "meal-meta";
-        meta.textContent = `${meal.occurred_at || "time unknown"} | ${meal.resolution_status || "recorded"}`;
+        const macroStatus = meal.macro_display_status === "show"
+          ? ` | macro ${meal.consumed_protein ?? 0}P/${meal.consumed_carbs ?? 0}C/${meal.consumed_fat ?? 0}F`
+          : (meal.macro_display_status === "partial" ? " | macro partial" : "");
+        meta.textContent = `${meal.occurred_at || "time unknown"} | ${meal.resolution_status || "recorded"}${macroStatus}`;
         const kcal = document.createElement("strong");
         kcal.textContent = `${meal.total_kcal ?? "--"} kcal`;
         const actions = document.createElement("div");
@@ -544,13 +547,14 @@
       const macroGrid = el("macro-grid");
       const macroGuardReason = payload.macro_guard_reason;
       const showMacro = payload.show_macro === true;
+      const partialMacro = showMacro && macroGuardReason === "partial_day_macro";
       macroPanel.hidden = false;
-      macroPanel.dataset.macroState = showMacro ? "visible" : "guarded";
+      macroPanel.dataset.macroState = partialMacro ? "partial" : (showMacro ? "visible" : "guarded");
       writeText("protein-g", showMacro ? payload.consumed_protein : null);
       writeText("carbs-g", showMacro ? payload.consumed_carbs : null);
       writeText("fat-g", showMacro ? payload.consumed_fat : null);
       el("macro-guard-reason").textContent = typeof macroGuardReason === "string" ? macroGuardReason : "";
-      el("macro-guard-reason").hidden = showMacro;
+      el("macro-guard-reason").hidden = showMacro && !partialMacro;
       macroGrid.hidden = !showMacro;
     }
     async function loadToday() {

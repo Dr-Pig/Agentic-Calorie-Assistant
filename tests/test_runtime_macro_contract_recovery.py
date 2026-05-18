@@ -14,6 +14,7 @@ from app.models import Base
 from app.shared.contracts.intake_results import EstimatePayload
 from app.runtime.application.execution_guard import evaluate_macro_display
 from app.schemas import EstimateRequest
+from app.schemas import CommitRequestCandidate, MealItemPayload
 
 
 def _session() -> Session:
@@ -236,6 +237,118 @@ def test_commit_promotes_explicit_display_macro_breakdown_to_current_budget_trut
     assert current_budget.consumed_fat == 18
     assert current_budget.show_macro is True
     assert current_budget.macro_guard_reason == "committed_and_aligned"
+
+
+def test_current_budget_hides_direct_candidate_macro_without_item_evidence() -> None:
+    db = _session()
+    user = get_or_create_user(db, "macro-direct-candidate-hidden")
+    candidate = CommitRequestCandidate(
+        request_id="req-direct-candidate-macro",
+        manager_intent="food_estimation",
+        version_reason="new_intake",
+        meal_title="breakfast shop combo",
+        raw_input="breakfast shop combo",
+        estimated_kcal=450,
+        protein_g=20,
+        carb_g=50,
+        fat_g=18,
+        resolution_status="completed_meal",
+        local_date="2026-05-09",
+        items=[
+            MealItemPayload(
+                name="breakfast shop combo",
+                estimated_kcal=450,
+                protein_g=20,
+                carb_g=50,
+                fat_g=18,
+            )
+        ],
+    )
+
+    commit_meal_payload_to_canonical(
+        db,
+        user=user,
+        candidate=candidate,
+        budget_kcal=1200,
+    )
+
+    current_budget = build_current_budget_view(db, user_id=user.id, local_date="2026-05-09")
+
+    assert current_budget.consumed_kcal == 450
+    assert current_budget.consumed_protein == 0
+    assert current_budget.consumed_carbs == 0
+    assert current_budget.consumed_fat == 0
+    assert current_budget.show_macro is False
+    assert current_budget.macro_guard_reason == "unsupported_macro_source"
+    assert current_budget.meals[0].macro_display_status == "hide"
+    assert current_budget.meals[0].macro_guard_reason == "unsupported_macro_source"
+
+
+def test_current_budget_shows_partial_day_macro_warning_from_visible_meal_subset() -> None:
+    db = _session()
+    user = get_or_create_user(db, "macro-partial-day")
+    visible = CommitRequestCandidate(
+        request_id="req-visible-macro",
+        manager_intent="food_estimation",
+        version_reason="new_intake",
+        meal_title="exact milk",
+        raw_input="exact milk",
+        estimated_kcal=340,
+        protein_g=20,
+        carb_g=40,
+        fat_g=11,
+        resolution_status="completed_meal",
+        local_date="2026-05-09",
+        items=[
+            MealItemPayload(
+                name="exact milk",
+                source="lookup",
+                evidence_role="exact_truth",
+                estimate_basis="exact",
+                confidence_tier="high",
+                estimated_kcal=340,
+                protein_g=20,
+                carb_g=40,
+                fat_g=11,
+                evidence_ids=["fdb-exact-milk"],
+            )
+        ],
+    )
+    hidden = CommitRequestCandidate(
+        request_id="req-hidden-macro",
+        manager_intent="food_estimation",
+        version_reason="new_intake",
+        meal_title="generic snack",
+        raw_input="generic snack",
+        estimated_kcal=210,
+        protein_g=5,
+        carb_g=28,
+        fat_g=9,
+        resolution_status="completed_meal",
+        local_date="2026-05-09",
+        items=[
+            MealItemPayload(
+                name="generic snack",
+                estimated_kcal=210,
+                protein_g=5,
+                carb_g=28,
+                fat_g=9,
+            )
+        ],
+    )
+
+    commit_meal_payload_to_canonical(db, user=user, candidate=visible, budget_kcal=1200)
+    commit_meal_payload_to_canonical(db, user=user, candidate=hidden, budget_kcal=1200)
+
+    current_budget = build_current_budget_view(db, user_id=user.id, local_date="2026-05-09")
+
+    assert current_budget.consumed_kcal == 550
+    assert current_budget.consumed_protein == 20
+    assert current_budget.consumed_carbs == 40
+    assert current_budget.consumed_fat == 11
+    assert current_budget.show_macro is True
+    assert current_budget.macro_guard_reason == "partial_day_macro"
+    assert [meal.macro_display_status for meal in current_budget.meals] == ["show", "hide"]
 
 
 def test_evaluate_macro_display_uses_canonical_guard_reason_names() -> None:

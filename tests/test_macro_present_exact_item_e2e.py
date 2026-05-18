@@ -22,6 +22,7 @@ from app.database import get_or_create_user
 from app.models import Base
 from app.nutrition.agent.exact_item_packets import build_exact_item_lane_packet
 from app.nutrition.infrastructure.exact_item_search import resolve_exact_item_fts
+from app.nutrition.application.retrieval_semantic_decision import B2ManagerSemanticDecision
 from app.routes import router
 from scripts.run_accurate_intake_mvp_manager_style_smoke import DeterministicSelfUseManagerProvider
 
@@ -106,6 +107,16 @@ def test_macro_present_exact_item_flows_from_fooddb_seed_to_today_render() -> No
             request_id="req-macro-present-exact-item",
             local_date="2026-05-09",
             allow_search=False,
+            manager_semantic_decision=B2ManagerSemanticDecision(
+                base_dish=raw_input,
+                aliases=[],
+                brand_hint="統一",
+                size_hint="400ml",
+                modifier_hints=[],
+                listed_items=[],
+                retrieval_goal="exact_brand_lookup",
+                semantic_authority_source="synthetic_manager_structured_fixture",
+            ),
         )
     )
     payload = artifact.payload
