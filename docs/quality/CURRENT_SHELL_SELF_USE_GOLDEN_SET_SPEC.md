@@ -121,6 +121,19 @@ Cases are defined in the manifest so runners can consume the same truth that hum
 
 Each case is also a representative of a broader failure family. Passing the literal input text is not enough when trace evidence shows keyword routing, fixture-owned semantics, or case-specific prompt patching.
 
+### GS9 Basis-Inquiry Rule
+
+GS9 is an estimate-basis inquiry, not a correction or re-estimation request. The expected answer must be grounded in stored runtime basis:
+
+- active meal/version estimate basis
+- evidence packet summary
+- selected or rejected candidates
+- prior tool result compact packet
+- mutation/read-model state
+- final response basis trace
+
+Manager action should be `estimate_basis_inquiry` or an equivalent answer-only path. Mutation is forbidden. A tool call is normally unnecessary; it is allowed only when the stored basis is missing and a read/review tool is needed. The response must explain the basis in zh-TW, without correction, re-estimate, or new commit unless the user explicitly asks for it.
+
 ## Holdout Browser Variants
 
 Core GS1-GS19 pass is necessary but not sufficient for self-use closeout. The manifest also defines a small holdout extension that must run through the same browser entrypoint before closeout. Holdouts use different natural wording for the same product capabilities instead of new semantics:

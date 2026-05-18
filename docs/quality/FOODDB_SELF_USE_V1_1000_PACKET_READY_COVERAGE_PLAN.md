@@ -351,6 +351,37 @@ macro_policy:
     - macro_visible_when_show_macro_false
 ```
 
+## DB Row vs Turn Evidence Packet
+
+FoodDB rows are packet-ready storage, not prompt-shaped evidence packets. A row owns durable source and approval facts:
+
+- canonical identity and aliases
+- source provenance and source class
+- serving basis and portion basis
+- kcal range or point
+- source-backed macro fields when available
+- runtime truth allowance and runtime usage boundary
+- approval metadata
+
+The per-turn evidence packet is a model-visible projection produced for the current user utterance. It owns:
+
+- `packet_id`
+- `source_type`: FoodDB, WebSearch, user fact, or Manager generic prior
+- `matched_user_text`
+- `matched_record_ref`
+- `match_posture`
+- `serving_applicability`
+- `kcal_basis`
+- `macro_evidence_status`
+- `source_exactness`
+- `manager_allowed_use`
+- `commit_posture`
+- rejected or weaker candidates
+
+Generic anchors must be shaped so Manager can interpret portion and uncertainty without treating the row as exact label truth. If no adequate FoodDB anchor exists, Manager may use a generic prior only as an uncertain range. Macro remains hidden unless source-backed values are present and pass macro display policy.
+
+Macro display policy must preserve the existing alignment rule: compute `macro_kcal = protein_g*4 + carbs_g*4 + fat_g*9`; if macro kcal is missing, zero, or diverges from committed kcal beyond policy tolerance, hide macro with `macro_alignment_fail`.
+
 ## Runtime Handoff Gates
 
 ManagerRuntime may consume the 1000-record target only through the approved packet-ready artifact.

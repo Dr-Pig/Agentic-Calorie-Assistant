@@ -81,7 +81,7 @@ def test_short_term_context_runtime_replay_validator_rejects_missing_required_co
 
     assert "remove_named_item.candidate_target_missing" in blockers
     assert "pending_followup_answer.pending_followup_missing" in blockers
-    assert "pending_followup_answer.pending_followup_attachment_missing" in blockers
+    assert "pending_followup_answer.pending_followup_manager_resolution_missing" in blockers
 
 
 def test_short_term_context_runtime_replay_validator_rejects_semantic_or_mutation_drift() -> None:

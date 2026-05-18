@@ -103,7 +103,55 @@ Each failure must be classified before fixing:
 
 The fix must target the family mechanism. If the change only makes the literal input pass, it is not an EDD fix.
 
+## Trace As Repair Router
+
+Trace must identify which layer should be fixed before code changes begin.
+
+Layer map:
+
+- `L1_prompt_architecture`: prompt version, section hashes, output schema hash, provider profile
+- `L2_context_packet`: context generation, context packet hash, hard pins, active workflow, target candidates, queue state
+- `L3_manager_semantics`: intent, active workflow resolution, slot updates, attach target, final action
+- `L4_tool_selection`: requested tools, skipped-tools reason, tool args
+- `L5_evidence_packets`: FoodDB/WebSearch hit or miss, source posture, admissibility, macro evidence
+- `L6_validator_guard`: schema valid, source eligible, mutation allowed, repair requested
+- `L7_mutation_read_model`: version transition, ledger recompute, active version only
+- `L8_response`: final response basis, zh-TW natural wording, no debug/internal text
+- `L9_ui_same_truth`: Chat/Today/Body/Feedback/Review match backend truth
+
+Routing examples:
+
+- wrong attach/correction -> `L2_context_packet` or `L3_manager_semantics`
+- wrong WebSearch call -> `L4_tool_selection` or `L5_evidence_packets`
+- fallback kcal or invented macro -> `L5_evidence_packets` or `L6_validator_guard`
+- illegal commit -> `L6_validator_guard` or `L7_mutation_read_model`
+- ugly or contradictory answer -> `L8_response`
+- UI mismatch -> `L9_ui_same_truth`
+- stochastic isolated pass/fail -> `L1_prompt_architecture`, `L2_context_packet`, schema, or provider profile
+
+Do not infer the repair target from the final answer alone.
+
+## Prompt Architecture Gate For EDD
+
+Golden Set EDD must not use generic prompt line count as the primary prompt quality gate.
+
+Required prompt-source checks:
+
+- stable prompt sections have owner, cache role, section hash, and provider-overlay prohibition
+- dynamic context is delivered through runtime payload/context packet, not interpolated into the stable prefix
+- Golden Set literal utterances are absent from stable prompt source
+- `if user says X then Y` case-routing patches are absent from stable prompt source
+- prompt cache metrics are provider-reported only; missing cache metrics remain unknown, not zero
+
+Executable gate:
+
+- `scripts/check_manager_prompt_architecture_gate.py`
+
+This gate protects against prompt-patch overfitting while allowing a long prompt source when it is sectioned, versioned, traceable, and cache-boundary-safe.
+
 ## Reference-Calibrated Implementation Standard
+
+Code references are required for implementation-sensitive mechanisms.
 
 Before broad EDD, compare the mechanism against code references:
 

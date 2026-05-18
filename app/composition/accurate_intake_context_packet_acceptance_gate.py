@@ -141,7 +141,7 @@ def _validate(scenarios: list[dict[str, Any]]) -> list[str]:
         blockers.append("half_sugar_resolved_target.attachment_reason_drift")
     if pending_followup["target_workflow_family"] != "intake" or pending_followup["disposition"] != "continue":
         blockers.append("pending_followup_answer.runtime_posture_drift")
-    if pending_followup["attachment_reason"] != "pending_followup_answer":
+    if pending_followup["attachment_reason"] != "pending_followup_requires_manager_resolution":
         blockers.append("pending_followup_answer.attachment_reason_drift")
     if ui_target["target_workflow_family"] != "intake" or ui_target["disposition"] != "continue":
         blockers.append("ui_explicit_target_action.runtime_posture_drift")

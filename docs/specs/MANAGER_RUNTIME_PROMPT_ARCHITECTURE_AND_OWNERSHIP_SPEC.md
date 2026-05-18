@@ -14,6 +14,35 @@ Reference identity:
 
 This spec defines how Manager Runtime prompt, context, tool execution, and deterministic validation must be arranged before EDD work tries to make individual Golden Set cases pass. The goal is stable product behavior, not prompt patching.
 
+## 0. Model-Independent Contract And Provider Profile Overlay
+
+The product contract is model-independent. Grokfast, Kimi, OpenAI, or any later provider may require a different transport/profile overlay, but they must not change product semantics.
+
+Provider profile overlays may tune only:
+
+- structured-output strictness and repair attempt count
+- timeout, retry, and backoff policy
+- max context budget
+- prompt wording density
+- tool-call formatting tolerance
+- response naturalness tuning
+- latency and cost budget
+
+Provider profile overlays must not change:
+
+- whether exact items can use model memory as official truth
+- whether generic estimates may invent macro facts
+- whether deterministic code may decide follow-up need
+- whether WebSearch candidates become runtime truth
+- whether UI can compute kcal, macro, or remaining budget
+- mutation legality
+
+Generic-food policy:
+
+- Exact item: model built-in knowledge may recognize an entity or lookup need, but it cannot become official kcal, macro, source, or label truth.
+- Generic food with a FoodDB anchor: FoodDB anchor wins; model may help interpret portion language and uncertainty, but must not override the anchor as truth.
+- Generic food without an adequate FoodDB anchor: Manager may use model generic prior only as an uncertain rough range. It must label the basis as a generic prior and must not claim official/exact/source-backed or macro truth.
+
 ## 1. Prompt Is Not Product Truth
 
 Prompt text is a delivery mechanism for canonical runtime contracts. It may explain the role, expose tools, describe evidence policy, and instruct response style, but it must not become a hidden source of product truth.
@@ -68,6 +97,33 @@ Prompt cache optimization must follow product architecture rather than drive it:
 This follows the cc-haha mechanism in `cc-haha-main/src/constants/prompts.ts`, where `SYSTEM_PROMPT_DYNAMIC_BOUNDARY` separates static/global prompt blocks from session-specific sections, and `cc-haha-main/src/constants/systemPromptSections.ts`, where `systemPromptSection(...)` is memoized while `DANGEROUS_uncachedSystemPromptSection(...)` requires an explicit reason because it can fragment the prompt cache.
 
 Our parallel mechanism is `app/runtime/agent/manager_prompt_layer_contract.py`, which already tracks prompt layer identity. Future prompt work must extend that registry rather than adding free-form prompt strings.
+
+## 3A. Prompt Source Gate Is Not A Line-Count Gate
+
+Prompt source files are governed by prompt architecture gates, not by generic fat-file line count as the primary quality signal.
+
+The normative basis is:
+
+- OpenAI Prompt Caching: cache hits require exact prefix matches; static/repeated content belongs at the beginning, dynamic user-specific content belongs at the end; usage `cached_tokens` is the provider-reported cache truth.
+- OpenAI Prompt Engineering / Reasoning guidance: instructions should be clear, direct, delimited, and specific; examples should align with instructions and not contradict them.
+- Anthropic Prompt Caching: static content such as tools, system instructions, context, and examples should be placed before dynamic content; explicit cache breakpoints should end reusable content.
+- LangSmith Prompt Management: prompts are versioned assets with owners, commit history, environments, and promotion/rollback semantics.
+
+Therefore:
+
+- prompt files may be long when they are sectioned, owner-mapped, hash-traced, and cache-boundary-safe
+- line count is advisory for prompt sources, not the acceptance gate
+- compiled/generated prompt artifacts may exceed normal file-size expectations if they are not hand-edited
+- stable prompt source must not contain Golden Set literal utterances
+- stable prompt source must not contain `if user says X then Y` routing patches
+- stable prompt source must not contain dynamic runtime values such as user IDs, trace IDs, dates, session IDs, FoodDB packets, WebSearch extracts, or queued inputs
+- provider profile overlays must not change stable prompt sections or product semantics
+
+Executable gate:
+
+- `scripts/check_manager_prompt_architecture_gate.py`
+
+That gate checks section owner/hash/cache role, provider overlay immutability, absence of Golden Set literal utterances, absence of `if user says X` routing patches, and absence of dynamic runtime values in stable prompt source. It intentionally does not fail solely because a prompt file is long.
 
 ## 4. Case-Style Prompt Patch Ban
 

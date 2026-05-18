@@ -316,10 +316,10 @@ def _validate_handoff_scenarios(scenarios: list[dict[str, Any]]) -> list[str]:
             if scenario.get("pre_attachment_disposition") != "answer_only":
                 blockers.append(f"{scenario_id}.manager_review_not_answer_only")
         if target_status == "pending_followup_answer":
-            if scenario.get("pre_attachment_reason") != "pending_followup_answer":
-                blockers.append(f"{scenario_id}.pending_followup_reason_missing")
-            if scenario.get("pre_attachment_disposition") != "attach_existing_thread":
-                blockers.append(f"{scenario_id}.pending_followup_not_attached")
+            if scenario.get("pre_attachment_reason") != "pending_followup_requires_manager_resolution":
+                blockers.append(f"{scenario_id}.pending_followup_manager_resolution_reason_missing")
+            if scenario.get("pre_attachment_disposition") != "answer_only":
+                blockers.append(f"{scenario_id}.pending_followup_not_manager_owned")
         if target_status == "query_supported":
             if scenario.get("query_no_mutation") is not True:
                 blockers.append(f"{scenario_id}.query_no_mutation_missing")

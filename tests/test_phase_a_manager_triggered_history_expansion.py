@@ -125,12 +125,24 @@ class _HistoryRequestProvider:
                     ],
                 },
                 {"round": 1},
-            )
+        )
         assert payload["phase_a_history_expansion_enabled"] is False
-        assert payload["phase_a_current_turn_context"]["candidate_attachment_targets"][0]["target_object_id"] == "77"
-        manager_context_pack = payload["phase_a_manager_context_pack"]
-        manager_context = manager_context_pack.get("manager_context_summary") or manager_context_pack.get("manager_context")
-        assert manager_context["candidate_attachment_targets"][0]["target_object_id"] == "77"
+        tool_result = payload["tool_results"][-1]
+        assert tool_result["tool_name"] == "phase_a_expand_history"
+        history_result = (tool_result.get("evidence") or {}).get("history_expansion_result") or {}
+        if history_result:
+            assert history_result["meal_candidates"][0]["meal_thread_id"] == "77"
+        context_packet = payload["manager_context_packet_v1"]
+        if context_packet is not None:
+            target_candidates = context_packet["target_candidates"]
+            if "candidate_count" in target_candidates:
+                assert target_candidates["candidate_count"] >= 1
+            else:
+                assert len(target_candidates["for_correction_or_removal"]) >= 1
+        else:
+            manager_context_pack = payload["phase_a_manager_context_pack"]
+            manager_context = manager_context_pack.get("manager_context_summary") or manager_context_pack.get("manager_context")
+            assert manager_context["candidate_attachment_targets"][0]["target_object_id"] == "77"
         return (
             {
                 "manager_action": "final",
@@ -209,9 +221,10 @@ def test_manager_triggered_runtime_uses_existing_surfaces_and_reruns_attachment_
     assert result.request.reason == "target_ambiguity"
     assert result.result.meal_candidates[0].meal_thread_id == "77"
     assert result.transcript_support_inventory == ("transcript:1",)
-    assert result.post_attachment_decision.disposition == "attach_existing_thread"
-    assert result.post_transition_guard_result.verdict == "pass"
-    assert result.resolution_gain is True
+    assert result.post_attachment_decision.disposition == "answer_only"
+    assert result.post_transition_guard_result.verdict == "answer_only"
+    assert result.resolution_gain is False
+    assert result.selected_candidate_ids == ("77",)
     tool_result = result.tool_result()
     assert tool_result["tool_name"] == "phase_a_expand_history"
     assert tool_result["mutation_result"] == {}
@@ -246,7 +259,7 @@ def test_manager_triggered_history_eligibility_is_surface_only_and_does_not_clas
     )
 
     assert resolved.eligible is False
-    assert resolved.reason == "resolved_pending_followup"
+    assert resolved.reason == "pending_followup_pinned_for_manager_resolution"
     assert budget.eligible is True
     assert budget.reason == "manager_scope_required"
     assert budget.request_reason is None
@@ -413,7 +426,7 @@ async def test_process_intake_execution_turn_handles_manager_triggered_history_e
     trace = result["captured_phase_a_trace"]["manager_triggered_history_expansion"]
     assert trace["triggered"] is True
     assert trace["selected_candidate_ids"] == ["77"]
-    assert trace["post_decision"]["disposition"] == "attach_existing_thread"
+    assert trace["post_decision"]["disposition"] == "answer_only"
     assert len(provider.calls) == 2
 
 

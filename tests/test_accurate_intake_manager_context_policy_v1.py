@@ -55,7 +55,14 @@ def test_manager_context_packet_bounds_recent_chat_and_records_policy_version() 
     )
 
     assert packet["metadata"]["context_policy_version"] == MANAGER_CONTEXT_POLICY_VERSION
-    assert packet["recent_chat_window"]["policy"] == {"last_messages": 8, "max_chars": 1000}
+    assert packet["recent_chat_window"]["policy"] == {
+        "mode": "token_budgeted",
+        "max_messages_safety_cap": 8,
+        "last_messages": 8,
+        "max_chars": 1000,
+        "hard_pins_preserved": True,
+        "summary_role": "reference_only",
+    }
     assert [turn["message_id"] for turn in packet["recent_chat_window"]["messages"]] == list(range(4, 12))
     assert all(turn["read_only"] is True for turn in packet["recent_chat_window"]["messages"])
     assert all(turn["mutation_authority"] is False for turn in packet["recent_chat_window"]["messages"])
@@ -75,7 +82,14 @@ def test_manager_context_packet_defaults_to_last_20_messages_and_6000_char_cap()
     )
 
     artifact = packet["context_loading_artifact"]
-    assert packet["recent_chat_window"]["policy"] == {"last_messages": 20, "max_chars": 6000}
+    assert packet["recent_chat_window"]["policy"] == {
+        "mode": "token_budgeted",
+        "max_messages_safety_cap": 20,
+        "last_messages": 20,
+        "max_chars": 6000,
+        "hard_pins_preserved": True,
+        "summary_role": "reference_only",
+    }
     assert [turn["message_id"] for turn in packet["recent_chat_window"]["messages"]] == list(range(5, 25))
     assert artifact["loaded_message_count"] == 20
     assert artifact["omitted_count"] == 5
@@ -255,6 +269,86 @@ def test_manager_context_packet_structures_target_candidates_without_authority()
         "mutation_authority": False,
     }
     assert packet["target_candidates"]["mutation_authority"] is False
+
+
+def test_manager_context_packet_v1_exposes_ab_mechanism_fields_without_semantic_authority() -> None:
+    context = _context(recent_chat_turns=[
+        {"message_id": "m1", "role": "user", "content": "breakfast combo"},
+        {"message_id": "m2", "role": "assistant", "content": "What is included?"},
+    ])
+    context.pending_followup.update(
+        {
+            "pending_type": "blocking_composition",
+            "required_slots": [
+                {
+                    "slot_id": "composition_items",
+                    "slot_kind": "composition_items",
+                    "required_for_commit": True,
+                    "current_value": None,
+                    "source": "manager_pending_followup",
+                    "resolution_condition": "user lists concrete items",
+                    "asked_question": "What is included?",
+                }
+            ],
+            "optional_slots": [
+                {
+                    "slot_id": "drink_sugar",
+                    "slot_kind": "sugar_level",
+                    "required_for_commit": False,
+                    "current_value": None,
+                    "source": "manager_pending_followup",
+                    "resolution_condition": "user states sugar level",
+                    "asked_question": "Optional drink refinement",
+                }
+            ],
+        }
+    )
+
+    packet = build_manager_context_packet_v1(
+        current_turn_context=context,
+        user_id="local-user",
+        local_date="2026-05-04",
+        local_time="08:15:00",
+        timezone="Asia/Taipei",
+        session_id="session-1",
+        turn_id="turn-1",
+        trace_id_runtime_only="trace-1",
+        queue_state={
+            "processing_turn_id": "turn-0",
+            "queued_inputs": [{"sequence_number": 2, "text": "add tea", "priority": "next"}],
+            "sequence_number": 2,
+            "priority": "next",
+        },
+        evidence_state={
+            "fooddb": {"status": "generic_anchor_available"},
+            "websearch": {"availability": "available_not_called"},
+            "macro": {"macro_evidence_status": "hidden_missing_source"},
+            "selected_extracts": [],
+            "rejected_candidates": [],
+        },
+    )
+
+    assert packet["metadata"]["turn_id"] == "turn-1"
+    assert packet["metadata"]["trace_id_runtime_only"] == "trace-1"
+    assert packet["metadata"]["local_time"] == "08:15:00"
+    assert packet["metadata"]["timezone"] == "Asia/Taipei"
+    assert packet["current_turn"]["user_utterance"] == context.user_utterance
+    assert packet["current_turn"]["current_turn_first"] is True
+    assert packet["recent_chat_window"]["policy"]["mode"] == "token_budgeted"
+    assert packet["queue_state"]["processing_turn_id"] == "turn-0"
+    assert packet["queue_state"]["queued_inputs"][0]["priority"] == "next"
+    assert packet["queue_state"]["read_only"] is True
+    assert packet["active_workflow"]["selection_owner"] == "manager"
+    assert packet["active_workflow"]["pending_type"] == "blocking_composition"
+    assert packet["active_workflow"]["required_slots"][0]["slot_kind"] == "composition_items"
+    assert packet["active_workflow"]["optional_slots"][0]["slot_kind"] == "sugar_level"
+    assert "determine_current_turn_relation_to_active_workflow" in packet["active_workflow"]["manager_must_decide"]
+    assert packet["target_candidates"]["selection_owner"] == "manager"
+    assert packet["target_candidates"]["mutation_authority"] is False
+    assert packet["read_model_summary"]["budget"]["truth_owner"] == "budget_read_model"
+    assert packet["evidence_state"]["fooddb"]["status"] == "generic_anchor_available"
+    assert packet["evidence_state"]["macro"]["macro_evidence_status"] == "hidden_missing_source"
+    assert packet["context_lineage"]["reinject_reason"] in {"none", "history_trimmed_with_hard_pins"}
 
 
 def test_manager_context_packet_exposes_interaction_event_and_targets_as_read_only_support() -> None:

@@ -174,8 +174,9 @@ def test_workflow_routing_decision_exposes_phase_a_trace_surfaces_from_current_t
     assert result.disposition == "continue"
     assert result.attachment_decision is not None
     assert result.transition_guard_result is not None
-    assert result.attachment_decision.disposition == "attach_existing_thread"
-    assert result.transition_guard_result.verdict == "pass"
+    assert result.attachment_decision.disposition == "answer_only"
+    assert result.attachment_decision.reason == "pending_followup_requires_manager_resolution"
+    assert result.transition_guard_result.verdict == "answer_only"
     assert set(result.phase_a_trace.keys()) == {
         "current_turn_context",
         "interaction_event",

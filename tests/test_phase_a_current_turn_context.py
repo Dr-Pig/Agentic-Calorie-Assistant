@@ -370,7 +370,7 @@ def test_current_turn_context_builds_bounded_session_atomic_blocks_as_support_ev
             "mutation_authority": False,
             "question": "甜度是多少?",
             "answer": "半糖",
-            "object_ref": {"meal_thread_id": 77},
+            "object_ref": {"meal_thread_id": 77, "meal_id": 10},
         },
         {
             "block_type": "pending_followup",
@@ -378,7 +378,7 @@ def test_current_turn_context_builds_bounded_session_atomic_blocks_as_support_ev
             "read_only": True,
             "mutation_authority": False,
             "pending_question": "甜度是多少?",
-            "object_ref": {"meal_thread_id": 77},
+            "object_ref": {"meal_thread_id": 77, "meal_id": 10},
         },
         {
             "block_type": "correction_target_reference",
@@ -427,7 +427,7 @@ def test_build_current_turn_context_v1_preserves_unknown_vs_none() -> None:
     assert context.source_views["last_system_question"].availability == "unknown"
 
 
-def test_resolve_attachment_decision_attaches_pending_followup_answers_to_existing_thread() -> None:
+def test_resolve_attachment_decision_keeps_pending_followup_answers_manager_owned() -> None:
     context = build_current_turn_context_v1(
         raw_user_input="half bowl of rice",
         resolved_state=_resolved_state(
@@ -451,12 +451,13 @@ def test_resolve_attachment_decision_attaches_pending_followup_answers_to_existi
     decision = resolve_attachment_decision(context)
     guard = resolve_transition_guard(context, decision)
 
-    assert decision.disposition == "attach_existing_thread"
-    assert decision.target_object_type == "meal_thread"
-    assert decision.target_object_id == "77"
-    assert decision.allowed_transition_class == "interpretation_update"
+    assert decision.disposition == "answer_only"
+    assert decision.target_object_type == "none"
+    assert decision.target_object_id is None
+    assert decision.reason == "pending_followup_requires_manager_resolution"
+    assert decision.allowed_transition_class == "none"
     assert decision.ambiguity_flag is False
-    assert guard.verdict == "pass"
+    assert guard.verdict == "answer_only"
 
 
 def test_resolve_attachment_decision_keeps_active_meal_back_reference_manager_owned() -> None:
@@ -526,7 +527,7 @@ def test_current_turn_context_uses_resolved_target_reference_not_correction_keyw
                 "meal_thread_id": 55,
                 "meal_version_id": 56,
                 "meal_title": "milk tea",
-                "target_resolution_source": "history_expansion",
+                "target_resolution_source": "manager_structured_target",
                 "correction_confidence": "high",
             },
         ),

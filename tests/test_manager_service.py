@@ -1226,6 +1226,52 @@ def test_compact_tool_results_suppresses_shadow_stub_kcal_as_allowed_fact() -> N
     assert prompt_nutrition["disallowed_fact_policy"] == "nutrition_payload_values_hidden_until_commit_eligible"
 
 
+def test_compact_tool_results_keeps_history_expansion_candidates_manager_owned() -> None:
+    compact = compact_tool_results_prompt_payload(
+        [
+            {
+                "tool_name": "phase_a_expand_history",
+                "evidence": {
+                    "history_expansion_request": {"reason": "target_ambiguity", "scope": "recent_meals"},
+                    "history_expansion_result": {
+                        "meal_candidates": [
+                            {
+                                "meal_thread_id": "77",
+                                "meal_version_id": "88",
+                                "label": "milk tea",
+                                "occurred_at": "2026-04-29T09:00:00Z",
+                                "reason": "history_expansion",
+                                "debug_blob": "x" * 10_000,
+                            }
+                        ],
+                        "transcript_snippets": [{"content": "debug transcript"}],
+                    },
+                },
+                "mutation_result": {},
+                "confidence": "available",
+                "failure_family": None,
+            }
+        ]
+    )
+
+    evidence = compact[0]["evidence"]
+    assert evidence["history_expansion_request"] == {"reason": "target_ambiguity", "scope": "recent_meals"}
+    assert evidence["history_expansion_result"]["candidate_count"] == 1
+    assert evidence["history_expansion_result"]["selection_owner"] == "manager"
+    assert evidence["history_expansion_result"]["mutation_authority"] is False
+    assert evidence["history_expansion_result"]["meal_candidates"][0] == {
+        "meal_thread_id": "77",
+        "meal_version_id": "88",
+        "label": "milk tea",
+        "occurred_at": "2026-04-29T09:00:00Z",
+        "reason": "history_expansion",
+        "selection_owner": "manager",
+        "mutation_authority": False,
+    }
+    assert "debug_blob" not in str(compact)
+    assert "debug transcript" not in str(compact)
+
+
 @pytest.mark.asyncio
 async def test_run_intake_manager_max_rounds_is_hard_failure() -> None:
     provider = FakeLoopProvider([])

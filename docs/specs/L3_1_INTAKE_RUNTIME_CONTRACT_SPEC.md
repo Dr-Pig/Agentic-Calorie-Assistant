@@ -330,6 +330,37 @@ Active intake runtime must not produce shadow/stub fallback nutrition facts. Whe
 - sidecar 不得假裝已 commit
 - macro 在不可信時不得顯示
 
+#### 5.1A Active Workflow Resolution And Slot Contract
+
+Manager output must include an explicit `active_workflow_resolution` whenever a pending follow-up, active meal thread, target candidate, correction/removal candidate, or queued continuation is present.
+
+Required fields:
+
+- `current_turn_relation`: one of `answers_required_slot`, `answers_optional_slot`, `basis_inquiry`, `correction`, `removal`, `unrelated_new_log`, or `ambiguous`
+- `slot_updates`
+- `still_missing_slots`
+- `attach_target`
+- `final_action`
+
+Slot objects must be concrete:
+
+- `slot_id`
+- `slot_kind`: `composition_items`, `portion_amount`, `drink_size`, `sugar_level`, `topping`, `cooking_method`, or `missing_component_confirmation`
+- `required_for_commit`
+- `current_value`
+- `source`
+- `resolution_condition`
+- `asked_question`
+
+`required_slots` are missing facts that block commit. `optional_slots` are facts that can improve an already legal estimate. Manager decides whether the current turn answers a required or optional slot. Deterministic code may validate the slot schema, target existence, and mutation legality, but it must not infer optional/blocking posture from raw food name or user text.
+
+Meal version semantics:
+
+- each committed meal thread has one active committed version
+- correction and removal create traceable version transitions
+- ledger/read-model truth counts active included items only
+- old versions remain review/debug evidence, not active nutrition truth
+
 ### 5.2 Correction
 
 correction contract 必須保證：

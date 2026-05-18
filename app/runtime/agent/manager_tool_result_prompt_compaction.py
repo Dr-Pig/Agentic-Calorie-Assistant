@@ -90,6 +90,14 @@ _MUTATION_RESULT_PROMPT_FIELDS = (
     "body_plan_mutated",
     "ledger_mutated",
 )
+_HISTORY_EXPANSION_REQUEST_PROMPT_FIELDS = ("reason", "scope")
+_HISTORY_EXPANSION_CANDIDATE_PROMPT_FIELDS = (
+    "meal_thread_id",
+    "meal_version_id",
+    "label",
+    "occurred_at",
+    "reason",
+)
 
 
 def compact_tool_results_prompt_payload(tool_results: Any) -> list[dict[str, Any]]:
@@ -127,6 +135,15 @@ def _compact_tool_evidence_prompt_payload(evidence: dict[str, Any]) -> dict[str,
     target_evidence_payload = _object_mapping(evidence.get("target_evidence_payload"))
     if target_evidence_payload:
         compact["target_evidence_payload"] = target_evidence_payload
+    history_request = _object_mapping(evidence.get("history_expansion_request"))
+    if history_request:
+        compact["history_expansion_request"] = _select_prompt_fields(
+            history_request,
+            _HISTORY_EXPANSION_REQUEST_PROMPT_FIELDS,
+        )
+    history_result = _object_mapping(evidence.get("history_expansion_result"))
+    if history_result:
+        compact["history_expansion_result"] = _compact_history_expansion_result(history_result)
     if evidence.get("latest_weight_status") not in (None, ""):
         compact["latest_weight_status"] = _json_safe(evidence["latest_weight_status"])
     latest_weight = _object_mapping(evidence.get("latest_weight_observation"))
@@ -140,6 +157,29 @@ def _compact_tool_evidence_prompt_payload(evidence: dict[str, Any]) -> dict[str,
             recorded, _RECORDED_BODY_OBSERVATION_PROMPT_FIELDS
         )
     return compact
+
+
+def _compact_history_expansion_result(payload: dict[str, Any]) -> dict[str, Any]:
+    candidates = payload.get("meal_candidates")
+    compact_candidates: list[dict[str, Any]] = []
+    if isinstance(candidates, list):
+        for candidate in candidates[:5]:
+            if not isinstance(candidate, dict):
+                continue
+            compact_candidate = _select_prompt_fields(
+                candidate,
+                _HISTORY_EXPANSION_CANDIDATE_PROMPT_FIELDS,
+            )
+            if compact_candidate:
+                compact_candidate["selection_owner"] = "manager"
+                compact_candidate["mutation_authority"] = False
+                compact_candidates.append(compact_candidate)
+    return {
+        "meal_candidates": compact_candidates,
+        "candidate_count": len(candidates) if isinstance(candidates, list) else 0,
+        "selection_owner": "manager",
+        "mutation_authority": False,
+    }
 
 
 def _compact_nutrition_payload_prompt_payload(payload: dict[str, Any]) -> dict[str, Any]:
