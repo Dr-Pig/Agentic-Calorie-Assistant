@@ -113,6 +113,7 @@ Therefore:
 
 - prompt files may be long when they are sectioned, owner-mapped, hash-traced, and cache-boundary-safe
 - line count is advisory for prompt sources, not the acceptance gate
+- Python runtime files that assemble context, validate contracts, execute tools, or mutate state remain subject to the normal fat-file and responsibility-boundary gates; only prompt source quality is judged primarily by the prompt architecture gate
 - compiled/generated prompt artifacts may exceed normal file-size expectations if they are not hand-edited
 - stable prompt source must not contain Golden Set literal utterances
 - stable prompt source must not contain English or zh-TW `if user says X then Y` routing patches, including `如果使用者說 X` or `當用戶輸入 X` variants
