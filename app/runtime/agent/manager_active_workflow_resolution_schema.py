@@ -162,7 +162,11 @@ def manager_active_workflow_resolution_schema() -> dict[str, Any]:
     }
 
 
-def validate_active_workflow_resolution_shape(semantic_decision: dict[str, Any]) -> None:
+def validate_active_workflow_resolution_shape(
+    semantic_decision: dict[str, Any],
+    *,
+    expected_final_action: str | None = None,
+) -> None:
     resolution = semantic_decision.get("active_workflow_resolution")
     if not isinstance(resolution, dict):
         raise RuntimeError(
@@ -194,6 +198,18 @@ def validate_active_workflow_resolution_shape(semantic_decision: dict[str, Any])
         raise RuntimeError("semantic_decision.active_workflow_resolution.attach_target must be an object")
     if not isinstance(resolution.get("resolution_basis"), list):
         raise RuntimeError("semantic_decision.active_workflow_resolution.resolution_basis must be a list")
+    active_relation_requires_final_action_alignment = relation not in {
+        "none",
+        "unrelated_new_log",
+        "ambiguous",
+    }
+    expected = str(expected_final_action or semantic_decision.get("final_action_candidate") or "").strip()
+    actual = str(resolution.get("final_action") or "").strip()
+    if active_relation_requires_final_action_alignment and expected and actual != expected:
+        raise RuntimeError(
+            "semantic_decision.active_workflow_resolution.final_action must match "
+            "semantic_decision.final_action_candidate"
+        )
     _validate_slot_updates(resolution.get("slot_updates"))
     _validate_missing_slots(resolution.get("still_missing_slots"))
 
