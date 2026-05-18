@@ -33,7 +33,7 @@ _RUNTIME_PAYLOAD_LAYER_KEYS = {
         "phase_a_shadow_hypothesis_role",
         "phase_a_shadow_hypothesis_instruction",
     ),
-    "tool_surface": ("available_tools", "manager_scope_policy"),
+    "tool_surface": ("available_tools", "manager_scope_policy", "current_loop_tool_policy"),
     "tool_evidence": ("tool_results",),
     "contract_constraints": (
         "constraints",

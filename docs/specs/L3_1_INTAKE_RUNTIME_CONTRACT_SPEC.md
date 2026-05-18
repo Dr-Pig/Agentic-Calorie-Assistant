@@ -195,6 +195,13 @@ Guard, evidence policy, and validators operate after Manager-owned semantic outp
 - `confidence`
 - `failure_family`（若失敗）
 
+Current-loop tool availability:
+
+- once the current Manager loop already has valid nutrition evidence from `estimate_nutrition` or `user_provided_kcal_evidence`, runtime must remove `estimate_nutrition` from the next Manager pass's visible `available_tools`
+- this is a loop-state tool orchestration rule, not semantic routing
+- the Manager must use the existing current-loop tool result and return a `final` mapping; deterministic code must not infer the final action from raw text
+- validators may still reject a repeated tool call, but the preferred path is to prevent the duplicate tool from being model-visible in that loop
+
 ### 3.3A Domain-Owned Tool Surface
 
 manager 應優先看見 coarse domain tools，而不是大量 micro-tools。

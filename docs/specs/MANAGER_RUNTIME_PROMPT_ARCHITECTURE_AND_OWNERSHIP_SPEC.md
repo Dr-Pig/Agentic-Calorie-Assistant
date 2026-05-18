@@ -276,6 +276,7 @@ Current Shell adoption:
 - `ToolDispatchTrace` equivalent must map Manager-requested tool call, runtime-filtered plan, executed tool, compact packet, and pass2 basis.
 - FoodDB and WebSearch packets must not become mutation authority.
 - WebSearch raw snippets and candidate packets remain candidate evidence until the Manager and evidence policy accept a turn-scoped packet.
+- current-loop tool availability is runtime-owned: if the loop already has valid nutrition evidence, `estimate_nutrition` must leave the next pass's dynamic `available_tools` list, while the existing tool result remains visible as evidence for Manager final mapping.
 
 ## 8. Reference Mechanisms We Adopt / Do Not Adopt
 

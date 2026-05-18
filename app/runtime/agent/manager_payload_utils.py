@@ -7,6 +7,7 @@ from typing import Any, Awaitable
 from app.runtime.agent.manager_tool_result_prompt_compaction import (
     compact_tool_results_prompt_payload as _compact_tool_results_prompt_payload,
 )
+from app.runtime.agent.nutrition_evidence_state import nutrition_evidence_present
 
 
 def json_safe(value: Any) -> Any:
@@ -178,3 +179,44 @@ def stable_available_tools(raw_tools: tuple[str, ...] | list[str] | Any) -> tupl
         seen.add(name)
         normalized.append(name)
     return tuple(sorted(normalized))
+
+
+def current_loop_available_tools(raw_tools: tuple[str, ...] | list[str] | Any, tool_results: Any) -> tuple[str, ...]:
+    normalized = stable_available_tools(raw_tools)
+    if not isinstance(tool_results, list) or not nutrition_evidence_present(tool_results):
+        return normalized
+    return tuple(tool for tool in normalized if tool != "estimate_nutrition")
+
+
+def current_loop_tool_policy_payload(raw_tools: tuple[str, ...] | list[str] | Any, tool_results: Any) -> dict[str, Any]:
+    normalized = stable_available_tools(raw_tools)
+    visible_tools = current_loop_available_tools(normalized, tool_results)
+    visible = set(visible_tools)
+    unavailable = [tool for tool in normalized if tool not in visible]
+    return {
+        "policy_id": "current_loop_tool_availability.v1",
+        "source": "runtime_loop_state",
+        "semantic_owner": "manager",
+        "deterministic_role": "tool_availability_only_no_raw_text_or_food_semantics",
+        "available_tools": list(visible_tools),
+        "unavailable_tools_due_to_current_loop_evidence": unavailable,
+        "current_loop_nutrition_evidence_present": "estimate_nutrition" in unavailable,
+        "manager_requirement": (
+            "When a tool is unavailable because its current-loop evidence is already present, "
+            "use existing tool_results and return manager_action='final'."
+        )
+        if unavailable
+        else None,
+    }
+
+
+def current_loop_tool_surface(
+    raw_tools: tuple[str, ...] | list[str] | Any,
+    tool_results: Any,
+    constraints: dict[str, Any] | None,
+    manager_loop_scope: str,
+) -> tuple[tuple[str, ...], dict[str, Any], dict[str, Any]]:
+    visible_tools = current_loop_available_tools(raw_tools, tool_results)
+    effective_constraints = dict(constraints or {})
+    effective_constraints.update(manager_loop_scope=manager_loop_scope, available_tools=list(visible_tools))
+    return visible_tools, current_loop_tool_policy_payload(raw_tools, tool_results), effective_constraints
