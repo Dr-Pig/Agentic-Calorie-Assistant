@@ -122,7 +122,16 @@ def test_today_macro_runtime_mirror_gate_cli_writes_artifact_from_payload_json(t
     output_path = tmp_path / "today-macro-runtime-mirror-gate.json"
     payload_path.write_text(json.dumps(_current_budget_payload(show_macro=True)), encoding="utf-8")
 
-    exit_code = main(["--current-budget-json", str(payload_path), "--output", str(output_path)])
+    exit_code = main(
+        [
+            "--current-budget-json",
+            str(payload_path),
+            "--renderer-source-map-json",
+            str(tmp_path / "absent-renderer-source-map.json"),
+            "--output",
+            str(output_path),
+        ]
+    )
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
 
     assert exit_code == 0
