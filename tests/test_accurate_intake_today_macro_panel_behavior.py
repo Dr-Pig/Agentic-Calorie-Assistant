@@ -122,3 +122,24 @@ def test_render_macro_panel_hides_backend_macro_values_when_guarded() -> None:
     assert result["proteinText"] != "31"
     assert result["carbsText"] != "44"
     assert result["fatText"] != "12"
+
+
+def test_render_macro_panel_surfaces_partial_day_warning_with_backend_values() -> None:
+    result = _run_render_macro_panel(
+        {
+            "show_macro": True,
+            "macro_guard_reason": "partial_day_macro",
+            "consumed_protein": 20,
+            "consumed_carbs": 40,
+            "consumed_fat": 11,
+        }
+    )
+
+    assert result["macroPanelHidden"] is False
+    assert result["macroState"] == "partial"
+    assert result["macroGridHidden"] is False
+    assert result["macroGuardReasonHidden"] is False
+    assert result["macroGuardReasonText"] == "partial_day_macro"
+    assert result["proteinText"] == "20"
+    assert result["carbsText"] == "40"
+    assert result["fatText"] == "11"

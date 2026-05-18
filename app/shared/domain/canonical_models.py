@@ -83,6 +83,12 @@ class CurrentBudgetMealSummary(BaseModel):
     meal_version_id: int | None = None
     meal_title: str = ""
     total_kcal: int = 0
+    consumed_protein: int = 0
+    consumed_carbs: int = 0
+    consumed_fat: int = 0
+    macro_display_status: str = "hide"
+    macro_guard_reason: str | None = None
+    macro_source_basis: str | None = None
     occurred_at: datetime | None = None
     resolution_status: str = "completed_meal"
     manager_intent: str | None = None
