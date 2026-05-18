@@ -21,7 +21,6 @@ _BACK_REFERENCE_TOKENS = (
 )
 RESOLVED_TARGET_SOURCES = frozenset(
     {
-        "pending_followup_state",
         "manager_structured_target",
         "manager_context_candidates",
     }

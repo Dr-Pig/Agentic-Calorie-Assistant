@@ -524,6 +524,33 @@ def test_resolve_attachment_decision_keeps_pending_followup_answers_manager_owne
     assert guard.verdict == "answer_only"
 
 
+def test_resolve_attachment_decision_keeps_stale_pending_target_reference_manager_owned() -> None:
+    context = build_current_turn_context_v1(
+        raw_user_input="half bowl of rice",
+        resolved_state=_resolved_state(
+            target_meal_reference={
+                "meal_thread_id": 77,
+                "meal_version_id": 88,
+                "meal_title": "chicken rice",
+                "target_resolution_source": "pending_followup_state",
+                "correction_confidence": "high",
+            },
+        ),
+    )
+
+    decision = resolve_attachment_decision(context)
+    guard = resolve_transition_guard(context, decision)
+
+    assert context.pending_followup is None
+    assert context.candidate_attachment_targets
+    assert context.open_workflow_type != "meal_correction"
+    assert decision.disposition == "answer_only"
+    assert decision.target_object_type == "none"
+    assert decision.target_object_id is None
+    assert decision.allowed_transition_class == "none"
+    assert guard.verdict == "answer_only"
+
+
 def test_resolve_attachment_decision_keeps_active_meal_back_reference_manager_owned() -> None:
     context = build_current_turn_context_v1(
         raw_user_input="actually change that meal to a half bowl",
