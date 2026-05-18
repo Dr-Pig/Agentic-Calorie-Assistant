@@ -66,6 +66,9 @@ class ManagerTriggeredHistoryExpansionResult:
             "provenance": {
                 "phase_a_owner": "intake/application",
                 "primary_truth": "structured_candidates",
+                "semantic_selection_owner": "manager",
+                "deterministic_role": "retrieval_rank_candidates_only",
+                "deterministic_target_choice_allowed": False,
                 "transcript_support_inventory": list(self.transcript_support_inventory),
             },
             "confidence": "available" if self.attempted and self.result is not None else "none",
@@ -92,6 +95,8 @@ class ManagerTriggeredHistoryExpansionResult:
             "post_transition_guard_result": self.post_transition_guard_result.model_dump(mode="json"),
             "resolution_gain": self.resolution_gain,
             "selected_candidate_ids": list(self.selected_candidate_ids),
+            "semantic_selection_owner": "manager",
+            "deterministic_target_choice_allowed": False,
             "ambiguity_detected": self.ambiguity_detected,
             "transcript_support_inventory": list(self.transcript_support_inventory),
             "failure_family": self.failure_family,

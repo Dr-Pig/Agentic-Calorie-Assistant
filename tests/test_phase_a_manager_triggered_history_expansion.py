@@ -225,12 +225,24 @@ def test_manager_triggered_runtime_uses_existing_surfaces_and_reruns_attachment_
     assert result.post_transition_guard_result.verdict == "answer_only"
     assert result.resolution_gain is False
     assert result.selected_candidate_ids == ("77",)
+    highlighted_candidate = result.enriched_current_turn_context.candidate_attachment_targets[0]
+    assert highlighted_candidate["target_object_id"] == "77"
+    assert highlighted_candidate["source"] == "manager_triggered_history_expansion_candidate"
+    assert highlighted_candidate["candidate_source"] == "retrieved_meal_record"
+    assert highlighted_candidate["selection_owner"] == "manager"
+    assert highlighted_candidate["mutation_authority"] is False
+    assert highlighted_candidate["deterministic_target_choice_allowed"] is False
     tool_result = result.tool_result()
     assert tool_result["tool_name"] == "phase_a_expand_history"
     assert tool_result["mutation_result"] == {}
     assert tool_result["provenance"]["primary_truth"] == "structured_candidates"
+    assert tool_result["provenance"]["semantic_selection_owner"] == "manager"
+    assert tool_result["provenance"]["deterministic_target_choice_allowed"] is False
     assert tool_result["evidence"]["history_expansion_result"]["meal_candidates"][0]["meal_thread_id"] == "77"
     assert tool_result["evidence"]["history_expansion_result"]["transcript_snippets"] == []
+    trace = result.trace_payload()
+    assert trace["semantic_selection_owner"] == "manager"
+    assert trace["deterministic_target_choice_allowed"] is False
 
 
 def test_manager_triggered_history_eligibility_is_surface_only_and_does_not_classify_budget_text() -> None:

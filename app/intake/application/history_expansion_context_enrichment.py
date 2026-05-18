@@ -18,8 +18,13 @@ def enrich_current_turn_context(
         selected_entry = {
             "target_object_type": "meal_thread",
             "target_object_id": selected_target_id,
-            "source": str(selected_candidate.get("source") or "history_expansion"),
-            "confidence": "high",
+            "source": "manager_triggered_history_expansion_candidate",
+            "candidate_source": str(selected_candidate.get("source") or "history_expansion"),
+            "confidence": "medium",
+            "selection_owner": "manager",
+            "mutation_authority": False,
+            "deterministic_target_choice_allowed": False,
+            "candidate_rank_reason": "history_expansion_single_candidate_highlight",
         }
         if attachment_disposition_hint:
             selected_entry["attachment_disposition_hint"] = attachment_disposition_hint
