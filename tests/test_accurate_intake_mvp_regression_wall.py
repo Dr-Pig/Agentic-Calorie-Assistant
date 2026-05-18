@@ -166,8 +166,20 @@ def test_drink_refinement_promotes_single_item_target_without_mutation_authority
     )
     pack = build_manager_context_pack(current_turn_context=context)
 
-    assert context.open_workflow_type == "meal_correction"
-    assert pack.manager_context["recent_item_targets"] == [
+    assert context.open_workflow_type == "none"
+    assert pack.manager_context["candidate_attachment_targets"] == [
+        {
+            "target_object_type": "meal_thread",
+            "target_object_id": "50",
+            "source": "active_meal_view",
+            "confidence": "medium",
+            "mutation_authority": False,
+            "meal_title": "珍珠奶茶",
+            "display_name": "珍珠奶茶",
+            "meal_version_id": 60,
+        }
+    ]
+    assert context.recent_item_targets == [
         {
             "target_object_type": "meal_item",
             "meal_thread_id": 50,
@@ -179,7 +191,7 @@ def test_drink_refinement_promotes_single_item_target_without_mutation_authority
             "item_resolution_source": "single_active_item",
         }
     ]
-    assert pack.manager_context["target_resolution_posture"]["mutation_authority"] is False
+    assert context.target_resolution_posture["mutation_authority"] is False
 
 
 def test_multi_item_recent_meal_exposes_candidates_and_ambiguity_without_selected_target() -> None:

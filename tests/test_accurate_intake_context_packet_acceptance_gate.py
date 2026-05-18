@@ -49,7 +49,7 @@ def test_context_packet_acceptance_gate_proves_context_changes_runtime_routing()
 
     assert pending_followup["target_workflow_family"] == "intake"
     assert pending_followup["disposition"] == "continue"
-    assert pending_followup["attachment_reason"] == "pending_followup_answer"
+    assert pending_followup["attachment_reason"] == "pending_followup_requires_manager_resolution"
     assert pending_followup["open_workflow_type"] == "meal_followup"
 
     assert ui_target["target_workflow_family"] == "intake"

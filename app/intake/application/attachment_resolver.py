@@ -24,7 +24,6 @@ RESOLVED_TARGET_SOURCES = frozenset(
         "pending_followup_state",
         "manager_structured_target",
         "manager_context_candidates",
-        "history_expansion",
     }
 )
 
@@ -89,13 +88,13 @@ def resolve_attachment_decision(current_turn_context: CurrentTurnContextV1) -> A
 
     if current_turn_context.pending_followup is not None and raw_user_input.strip():
         return AttachmentDecision(
-            disposition="attach_existing_thread",
-            target_object_type="meal_thread",
-            target_object_id=primary_target_id,
-            reason="pending_followup_answer",
-            confidence="high" if primary_target_id is not None else "medium",
+            disposition="answer_only",
+            target_object_type="none",
+            target_object_id=None,
+            reason="pending_followup_requires_manager_resolution",
+            confidence="medium" if primary_target_id is not None else "low",
             ambiguity_flag=False,
-            allowed_transition_class="interpretation_update",
+            allowed_transition_class="none",
         )
 
     if target_candidates and primary_target_id is not None and _source_supports_resolved_target(target_candidates[0]):

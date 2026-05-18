@@ -111,6 +111,8 @@ def manager_history_expansion_eligibility(
         return ManagerHistoryExpansionEligibility(False, "explicit_ui_target")
     if event.target_object_type == "proposal" or current_turn_context.open_workflow_type == "proposal":
         return ManagerHistoryExpansionEligibility(False, "non_meal_primary_route")
+    if current_turn_context.pending_followup is not None and current_turn_context.candidate_attachment_targets:
+        return ManagerHistoryExpansionEligibility(False, "pending_followup_pinned_for_manager_resolution")
     if current_turn_context.pending_followup is not None and attachment_decision.target_object_id is not None:
         return ManagerHistoryExpansionEligibility(False, "resolved_pending_followup")
     if transition_guard_result.verdict == "pass":

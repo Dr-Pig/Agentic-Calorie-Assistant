@@ -10,9 +10,17 @@ from app.intake.application.manager_context_policy_constants import (
     INTERACTION_EVENT_FIELDS,
     MANAGER_CONTEXT_POLICY_VERSION,
     POLICY_EXCLUDED_CONTEXT_IDS,
-    TARGET_CANDIDATE_BOOL_FIELDS,
-    TARGET_CANDIDATE_FIELDS,
 )
+from app.intake.application.manager_context_packet_read_model_sections import (
+    evidence_state as build_evidence_state,
+    read_model_summary as build_read_model_summary,
+)
+from app.intake.application.manager_context_packet_sections import (
+    active_workflow_state,
+    candidate_context as build_candidate_context,
+    queue_state as build_queue_state,
+)
+from app.intake.application.manager_context_target_candidates import target_candidates as build_target_candidates
 from app.intake.application.manager_context_lineage import attach_context_lineage
 from app.runtime.contracts.phase_a import CurrentTurnContextV1
 
@@ -21,13 +29,19 @@ def build_manager_context_packet_v1(
     current_turn_context: CurrentTurnContextV1,
     user_id: str,
     local_date: str,
+    local_time: str | None = None,
+    timezone: str = "Asia/Taipei",
     session_id: str,
+    turn_id: str | None = None,
+    trace_id_runtime_only: str | None = None,
     channel: str = "web_shell",
     manager_mode: str = "fixture",
     max_recent_messages: int = 20,
     max_recent_chars: int = 6000,
+    queue_state: dict[str, Any] | None = None,
     pending_draft: dict[str, Any] | None = None,
     active_day_state: dict[str, Any] | None = None,
+    evidence_state: dict[str, Any] | None = None,
     target_candidates: list[dict[str, Any]] | None = None,
     max_target_candidates: int = 10,
     debug_artifacts: Any | None = None,
@@ -55,13 +69,14 @@ def build_manager_context_packet_v1(
         "rescue_context": rescue_context,
         "recommendation_context": recommendation_context,
     }
+    candidate_context = build_candidate_context(current_turn_context, target_candidates)
     recent_chat_messages, loading_artifact = _bounded_recent_chat_turns_with_artifact(
         current_turn_context.recent_chat_turns,
         max_recent_messages=max_recent_messages,
         max_recent_chars=max_recent_chars,
         pending_followup=current_turn_context.pending_followup,
         pending_draft=pending_draft,
-        target_candidates=target_candidates or current_turn_context.recent_item_targets,
+        target_candidates=candidate_context,
         interaction_event=current_turn_context.current_interaction_event,
     )
     omitted_context = _omitted_context(deferred_inputs)
@@ -72,20 +87,35 @@ def build_manager_context_packet_v1(
         "metadata": {
             "user_id": user_id,
             "local_date": local_date,
+            "local_time": local_time,
+            "timezone": timezone,
             "session_id": session_id,
+            "turn_id": turn_id,
+            "trace_id_runtime_only": trace_id_runtime_only,
             "context_policy_version": MANAGER_CONTEXT_POLICY_VERSION,
             "claim_scope": "current_session_current_day_manager_input_evidence",
         },
         "current_turn": {
+            "user_utterance": current_turn_context.user_utterance,
             "raw_user_input": current_turn_context.user_utterance,
             "channel": channel,
             "manager_mode": manager_mode,
+            "current_turn_first": True,
             **current_turn_context_evidence_scope_flags(),
             "interaction_event": _interaction_event_snapshot(current_turn_context.current_interaction_event),
         },
+        "queue_state": build_queue_state(queue_state),
         "recent_chat_window": {
-            "policy": {"last_messages": max_recent_messages, "max_chars": max_recent_chars},
+            "policy": {
+                "mode": "token_budgeted",
+                "max_messages_safety_cap": max_recent_messages,
+                "last_messages": max_recent_messages,
+                "max_chars": max_recent_chars,
+                "hard_pins_preserved": True,
+                "summary_role": "reference_only",
+            },
             "messages": recent_chat_messages,
+            "omitted_summary": loading_artifact["omitted_context_summary"],
         },
         "context_loading_artifact": loading_artifact,
         "hard_pins": {
@@ -93,13 +123,21 @@ def build_manager_context_packet_v1(
             "pending_draft": _readonly_copy(pending_draft),
             "last_assistant_question": current_turn_context.last_system_question,
         },
+        "active_workflow": active_workflow_state(
+            current_turn_context=current_turn_context,
+            pending_draft=pending_draft,
+        ),
         "active_day_state": _active_day_state(current_turn_context, active_day_state),
+        "read_model_summary": build_read_model_summary(current_turn_context),
+        "evidence_state": build_evidence_state(evidence_state),
         "target_candidates": {
-            "for_correction_or_removal": _target_candidates(
-                target_candidates or current_turn_context.recent_item_targets,
+            "selection_owner": "manager",
+            "for_correction_or_removal": build_target_candidates(
+                candidate_context,
                 max_target_candidates=max_target_candidates,
             ),
             "mutation_authority": False,
+            "read_only": True,
         },
         "constraints": [
             "frontend_cannot_infer_semantics",
@@ -118,19 +156,6 @@ def build_manager_context_packet_v1(
         ],
     }
     return attach_context_lineage(packet)
-
-
-def _bounded_recent_chat_turns(
-    turns: list[dict[str, Any]],
-    *,
-    max_recent_messages: int,
-    max_recent_chars: int,
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    return _bounded_recent_chat_turns_with_artifact(
-        turns,
-        max_recent_messages=max_recent_messages,
-        max_recent_chars=max_recent_chars,
-    )
 
 
 def _bounded_recent_chat_turns_with_artifact(
@@ -252,46 +277,6 @@ def _active_day_state(
     state["read_only"] = True
     state["mutation_authority"] = False
     return state
-
-
-def _target_candidates(
-    candidates: list[dict[str, Any]],
-    *,
-    max_target_candidates: int,
-) -> list[dict[str, Any]]:
-    normalized: list[dict[str, Any]] = []
-    for candidate in list(candidates or []):
-        if len(normalized) >= max_target_candidates:
-            break
-        if not isinstance(candidate, dict):
-            continue
-        if str(candidate.get("target_object_type") or "") == "pending_followup":
-            continue
-        item = {
-            key: candidate[key]
-            for key in TARGET_CANDIDATE_FIELDS
-            if key in candidate and _safe_scalar(candidate[key])
-        }
-        if (
-            item.get("target_object_type") == "meal_thread"
-            and item.get("meal_thread_id") in (None, "")
-            and item.get("target_object_id") not in (None, "")
-        ):
-            item["meal_thread_id"] = item["target_object_id"]
-        if (
-            item.get("target_object_type") in {"meal_thread", "meal_item", "meal_item_candidate"}
-            and item.get("target_display_name") in (None, "")
-            and item.get("display_name") not in (None, "")
-        ):
-            item["target_display_name"] = item["display_name"]
-        for key in TARGET_CANDIDATE_BOOL_FIELDS:
-            if isinstance(candidate.get(key), bool):
-                item[key] = candidate[key]
-        item.setdefault("uniqueness_status", "candidate")
-        item["read_only"] = True
-        item["mutation_authority"] = False
-        normalized.append(item)
-    return normalized
 
 
 def _readonly_copy(value: Any) -> Any:

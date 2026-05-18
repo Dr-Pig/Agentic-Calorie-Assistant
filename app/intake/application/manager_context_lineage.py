@@ -31,6 +31,7 @@ def context_lineage_for_packet(packet: dict[str, Any]) -> dict[str, Any]:
             and artifact.get("canonical_state_reinjected_after_history_trim")
         )
     )
+    reinject_reason = "history_trimmed_with_hard_pins" if context_reinjected else "none"
     return {
         "lineage_version": CONTEXT_LINEAGE_VERSION,
         "context_generation": CONTEXT_GENERATION_ID,
@@ -38,6 +39,9 @@ def context_lineage_for_packet(packet: dict[str, Any]) -> dict[str, Any]:
         "active_workflow_id": active_workflow_id_for_packet(packet),
         "history_trimmed": history_trimmed,
         "context_reinjected_after_compaction_or_history_trim": context_reinjected,
+        "prior_context_generation": packet.get("context_lineage", {}).get("context_generation"),
+        "reinject_reason": reinject_reason,
+        "compacted_summary_ref": None,
         "source_role": "runtime_context_state_packet",
         "semantic_owner": "manager_llm",
         "read_only": True,

@@ -14,6 +14,35 @@ Reference identity:
 
 This spec defines how Manager Runtime prompt, context, tool execution, and deterministic validation must be arranged before EDD work tries to make individual Golden Set cases pass. The goal is stable product behavior, not prompt patching.
 
+## 0. Model-Independent Contract And Provider Profile Overlay
+
+The product contract is model-independent. Grokfast, Kimi, OpenAI, or any later provider may require a different transport/profile overlay, but they must not change product semantics.
+
+Provider profile overlays may tune only:
+
+- structured-output strictness and repair attempt count
+- timeout, retry, and backoff policy
+- max context budget
+- prompt wording density
+- tool-call formatting tolerance
+- response naturalness tuning
+- latency and cost budget
+
+Provider profile overlays must not change:
+
+- whether exact items can use model memory as official truth
+- whether generic estimates may invent macro facts
+- whether deterministic code may decide follow-up need
+- whether WebSearch candidates become runtime truth
+- whether UI can compute kcal, macro, or remaining budget
+- mutation legality
+
+Generic-food policy:
+
+- Exact item: model built-in knowledge may recognize an entity or lookup need, but it cannot become official kcal, macro, source, or label truth.
+- Generic food with a FoodDB anchor: FoodDB anchor wins; model may help interpret portion language and uncertainty, but must not override the anchor as truth.
+- Generic food without an adequate FoodDB anchor: Manager may use model generic prior only as an uncertain rough range. It must label the basis as a generic prior and must not claim official/exact/source-backed or macro truth.
+
 ## 1. Prompt Is Not Product Truth
 
 Prompt text is a delivery mechanism for canonical runtime contracts. It may explain the role, expose tools, describe evidence policy, and instruct response style, but it must not become a hidden source of product truth.

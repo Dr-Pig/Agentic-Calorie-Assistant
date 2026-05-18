@@ -55,9 +55,11 @@ def test_fake_provider_context_smoke_reuses_live_shape_without_live_provider() -
     assert named["deterministic_selected_target"] is False
 
     pending = by_id["pending_followup_answer"]
-    assert pending["pre_attachment_disposition"] == "attach_existing_thread"
-    assert pending["shadow_created"] is False
-    assert pending["shadow_skip_reason"] == "resolved_pending_followup"
+    assert pending["pre_attachment_disposition"] == "answer_only"
+    assert pending["pre_attachment_reason"] == "pending_followup_requires_manager_resolution"
+    assert pending["shadow_created"] is True
+    assert pending["shadow_role"] == "tentative_non_authoritative"
+    assert pending["shadow_candidate_target_object_id"] == "51"
 
     query = by_id["previous_drink_calorie_query"]
     assert query["fixture_manager_workflow_effect"] == "query_no_mutation"

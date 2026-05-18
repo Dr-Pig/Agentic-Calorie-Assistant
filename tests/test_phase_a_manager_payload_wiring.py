@@ -771,7 +771,11 @@ async def test_process_intake_execution_turn_validates_manager_final_target_atta
     assert preflight["blocked"] is False
     assert preflight["correction_target_resolved"] is True
     assert preflight["correction_target_validation"]["meal_item_id"] == 11
-    assert trace_contract["correction_target_ref"] == {
+    assert {
+        "meal_thread_id": trace_contract["correction_target_ref"]["meal_thread_id"],
+        "meal_item_id": trace_contract["correction_target_ref"]["meal_item_id"],
+        "canonical_name": trace_contract["correction_target_ref"]["canonical_name"],
+    } == {
         "meal_thread_id": 1,
         "meal_item_id": 11,
         "canonical_name": "chicken rice",

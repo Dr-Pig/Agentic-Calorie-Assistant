@@ -378,8 +378,10 @@ def _validate_scenarios(scenarios: list[dict[str, Any]]) -> list[str]:
         if expected_posture == "pending_followup_pinned":
             if scenario.get("pending_followup_present") is not True:
                 blockers.append(f"{scenario_id}.pending_followup_missing")
-            if scenario.get("runtime_attachment_reason") != "pending_followup_answer":
-                blockers.append(f"{scenario_id}.pending_followup_attachment_missing")
+            if scenario.get("runtime_attachment_reason") != "pending_followup_requires_manager_resolution":
+                blockers.append(f"{scenario_id}.pending_followup_manager_resolution_missing")
+            if scenario.get("runtime_attachment_disposition") != "answer_only":
+                blockers.append(f"{scenario_id}.pending_followup_not_manager_owned")
         if expected_posture == "pending_draft_pinned_despite_recent_window":
             if scenario.get("pending_draft_present") is not True:
                 blockers.append(f"{scenario_id}.pending_draft_missing")
@@ -387,8 +389,10 @@ def _validate_scenarios(scenarios: list[dict[str, Any]]) -> list[str]:
                 blockers.append(f"{scenario_id}.recent_chat_window_not_bounded")
             if int(scenario.get("recent_chat_messages_omitted") or 0) <= 0:
                 blockers.append(f"{scenario_id}.recent_chat_omission_not_recorded")
-            if scenario.get("runtime_attachment_reason") != "resolved_target_reference":
-                blockers.append(f"{scenario_id}.pending_draft_attachment_missing")
+            if int(scenario.get("target_candidate_count") or 0) < 1:
+                blockers.append(f"{scenario_id}.pending_draft_candidate_missing")
+            if scenario.get("runtime_attachment_target_object_id") is not None:
+                blockers.append(f"{scenario_id}.pending_draft_runtime_selected_target")
     return list(dict.fromkeys(blockers))
 
 
@@ -396,13 +400,11 @@ def build_short_term_context_runtime_replay_artifact() -> dict[str, Any]:
     scenarios = [_scenario_result(spec) for spec in _scenario_specs()]
     gap_scenarios = [scenario for scenario in scenarios if scenario["gap_signals"]]
     blockers = _validate_scenarios(scenarios)
-    status = (
-        "fail"
-        if blockers
-        else "diagnostic_has_known_context_gaps"
-        if gap_scenarios
-        else "runtime_replay_diagnostic_pass"
-    )
+    status = "runtime_replay_diagnostic_pass"
+    if blockers:
+        status = "fail"
+    elif gap_scenarios:
+        status = "diagnostic_has_known_context_gaps"
     return _json_safe(
         {
             "artifact_schema_version": "1.0",
@@ -432,17 +434,14 @@ def build_short_term_context_runtime_replay_artifact() -> dict[str, Any]:
             "summary": {
                 "scenario_count": len(scenarios),
                 "pending_pin_scenarios": sum(
-                    1
-                    for scenario in scenarios
-                    if scenario["pending_followup_present"] or scenario["pending_draft_present"]
+                    1 for scenario in scenarios if scenario["pending_followup_present"]
+                    or scenario["pending_draft_present"]
                 ),
                 "target_candidate_scenarios": sum(
                     1 for scenario in scenarios if scenario["target_candidate_count"] > 0
                 ),
                 "current_gap_scenarios": len(gap_scenarios),
-                "known_gap_signals": sorted(
-                    {signal for scenario in scenarios for signal in scenario["gap_signals"]}
-                ),
+                "known_gap_signals": sorted({signal for scenario in scenarios for signal in scenario["gap_signals"]}),
             },
             "scenarios": scenarios,
         }

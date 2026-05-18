@@ -143,6 +143,27 @@ def build_workflow_routing_decision(
             phase_a_trace=phase_a_trace,
         )
 
+    if (
+        attachment_decision is not None
+        and attachment_decision.reason == "pending_followup_requires_manager_resolution"
+        and current_turn_context is not None
+        and current_turn_context.pending_followup is not None
+    ):
+        return WorkflowRoutingResult(
+            target_workflow_family="intake",
+            disposition="continue",
+            routing_confidence=attachment_decision.confidence,
+            ambiguity_posture="allow_uncertain",
+            reasoning_summary=(
+                "pending intake follow-up is active; runtime routes to intake manager "
+                "without selecting attach target or final workflow action"
+            ),
+            required_read_surfaces=[],
+            attachment_decision=attachment_decision,
+            transition_guard_result=transition_guard_result,
+            phase_a_trace=phase_a_trace,
+        )
+
     return WorkflowRoutingResult(
         target_workflow_family="general_chat",
         disposition="defer",
