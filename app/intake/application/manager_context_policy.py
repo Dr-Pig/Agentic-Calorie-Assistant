@@ -20,6 +20,10 @@ from app.intake.application.manager_context_packet_sections import (
     candidate_context as build_candidate_context,
     queue_state as build_queue_state,
 )
+from app.intake.application.manager_context_recent_chat_window import (
+    build_recent_chat_window,
+    recent_chat_window_policy,
+)
 from app.intake.application.manager_context_target_candidates import target_candidates as build_target_candidates
 from app.intake.application.manager_context_lineage import attach_context_lineage
 from app.runtime.contracts.phase_a import CurrentTurnContextV1
@@ -38,6 +42,7 @@ def build_manager_context_packet_v1(
     manager_mode: str = "fixture",
     max_recent_messages: int = 20,
     max_recent_chars: int = 6000,
+    max_recent_tokens: int = 2000,
     queue_state: dict[str, Any] | None = None,
     pending_draft: dict[str, Any] | None = None,
     active_day_state: dict[str, Any] | None = None,
@@ -70,16 +75,20 @@ def build_manager_context_packet_v1(
         "recommendation_context": recommendation_context,
     }
     candidate_context = build_candidate_context(current_turn_context, target_candidates)
-    recent_chat_messages, loading_artifact = _bounded_recent_chat_turns_with_artifact(
+    recent_chat_messages, loading_artifact = build_recent_chat_window(
         current_turn_context.recent_chat_turns,
         max_recent_messages=max_recent_messages,
         max_recent_chars=max_recent_chars,
+        max_recent_tokens=max_recent_tokens,
         pending_followup=current_turn_context.pending_followup,
         pending_draft=pending_draft,
         target_candidates=candidate_context,
         interaction_event=current_turn_context.current_interaction_event,
     )
     omitted_context = _omitted_context(deferred_inputs)
+    loading_artifact["omitted_context_summary"]["policy_excluded_context_ids"] = list(
+        POLICY_EXCLUDED_CONTEXT_IDS
+    )
     loading_artifact["omitted_context_summary"]["deferred_context_ids"] = [
         item["context_id"] for item in omitted_context
     ]
@@ -106,14 +115,11 @@ def build_manager_context_packet_v1(
         },
         "queue_state": build_queue_state(queue_state),
         "recent_chat_window": {
-            "policy": {
-                "mode": "token_budgeted",
-                "max_messages_safety_cap": max_recent_messages,
-                "last_messages": max_recent_messages,
-                "max_chars": max_recent_chars,
-                "hard_pins_preserved": True,
-                "summary_role": "reference_only",
-            },
+            "policy": recent_chat_window_policy(
+                max_recent_messages=max_recent_messages,
+                max_recent_chars=max_recent_chars,
+                max_recent_tokens=max_recent_tokens,
+            ),
             "messages": recent_chat_messages,
             "omitted_summary": loading_artifact["omitted_context_summary"],
         },
@@ -156,78 +162,6 @@ def build_manager_context_packet_v1(
         ],
     }
     return attach_context_lineage(packet)
-
-
-def _bounded_recent_chat_turns_with_artifact(
-    turns: list[dict[str, Any]],
-    *,
-    max_recent_messages: int,
-    max_recent_chars: int,
-    pending_followup: dict[str, Any] | None = None,
-    pending_draft: dict[str, Any] | None = None,
-    target_candidates: list[dict[str, Any]] | None = None,
-    interaction_event: Any | None = None,
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    max_recent_messages = max(0, int(max_recent_messages or 0))
-    max_recent_chars = max(0, int(max_recent_chars or 0))
-    all_turns = [dict(turn) for turn in list(turns or []) if isinstance(turn, dict)]
-    selected = all_turns[-max_recent_messages:] if max_recent_messages else []
-    omitted_by_message_limit = max(len(all_turns) - len(selected), 0)
-    bounded: list[dict[str, Any]] = []
-    total_chars = 0
-    omitted_by_char_cap = 0
-    char_truncated = False
-    for turn in reversed(selected):
-        content = str(turn.get("content") or "")
-        if max_recent_chars == 0:
-            omitted_by_char_cap += 1
-            char_truncated = True
-            continue
-        if bounded and total_chars + len(content) > max_recent_chars:
-            omitted_by_char_cap += 1
-            char_truncated = True
-            continue
-        if not bounded and len(content) > max_recent_chars:
-            turn["content"] = content[-max_recent_chars:]
-            content = str(turn["content"])
-            char_truncated = True
-        total_chars += len(content)
-        bounded.append(_readonly_copy(turn) or {})
-    messages = list(reversed(bounded))
-    omitted_count = omitted_by_message_limit + omitted_by_char_cap
-    history_trimmed = omitted_count > 0 or char_truncated
-    canonical_state_reinjected = history_trimmed and any(
-        (
-            pending_followup is not None,
-            pending_draft is not None,
-            bool(list(target_candidates or [])),
-            interaction_event is not None,
-        )
-    )
-    artifact = {
-        "loaded_message_count": len(messages),
-        "omitted_count": omitted_count,
-        "history_trimmed": history_trimmed,
-        "canonical_state_reinjected_after_history_trim": canonical_state_reinjected,
-        "loaded_char_count": total_chars,
-        "hard_char_cap": max_recent_chars,
-        "char_truncated": char_truncated,
-        "token_budget_status": "at_hard_cap" if char_truncated or total_chars >= max_recent_chars > 0 else "within_budget",
-        "loaded_context_summary": {
-            "recent_chat_messages": len(messages),
-            "pending_followup_present": pending_followup is not None,
-            "pending_draft_present": pending_draft is not None,
-            "target_candidate_count": len(list(target_candidates or [])),
-            "interaction_event_present": interaction_event is not None,
-        },
-        "omitted_context_summary": {
-            "recent_chat_messages_omitted": omitted_count,
-            "omitted_by_message_limit": omitted_by_message_limit,
-            "omitted_by_char_cap": omitted_by_char_cap,
-            "policy_excluded_context_ids": list(POLICY_EXCLUDED_CONTEXT_IDS),
-        },
-    }
-    return messages, artifact
 
 
 def _interaction_event_snapshot(event: Any | None) -> dict[str, Any] | None:

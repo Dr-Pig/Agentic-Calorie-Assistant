@@ -4,6 +4,7 @@ from app.intake.application.manager_context_policy import (
     MANAGER_CONTEXT_POLICY_VERSION,
     build_manager_context_packet_v1,
 )
+from app.intake.application.manager_context_recent_chat_window import RECENT_CHAT_TOKEN_ESTIMATOR
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, InteractionEvent
 
 
@@ -60,6 +61,8 @@ def test_manager_context_packet_bounds_recent_chat_and_records_policy_version() 
         "max_messages_safety_cap": 8,
         "last_messages": 8,
         "max_chars": 1000,
+        "token_budget": 2000,
+        "token_estimator": RECENT_CHAT_TOKEN_ESTIMATOR,
         "hard_pins_preserved": True,
         "summary_role": "reference_only",
     }
@@ -87,6 +90,8 @@ def test_manager_context_packet_defaults_to_last_20_messages_and_6000_char_cap()
         "max_messages_safety_cap": 20,
         "last_messages": 20,
         "max_chars": 6000,
+        "token_budget": 2000,
+        "token_estimator": RECENT_CHAT_TOKEN_ESTIMATOR,
         "hard_pins_preserved": True,
         "summary_role": "reference_only",
     }
@@ -94,6 +99,9 @@ def test_manager_context_packet_defaults_to_last_20_messages_and_6000_char_cap()
     assert artifact["loaded_message_count"] == 20
     assert artifact["omitted_count"] == 5
     assert artifact["loaded_char_count"] == sum(len(f"message-{i:02d}") for i in range(5, 25))
+    assert artifact["loaded_estimated_tokens"] > 0
+    assert artifact["token_budget"] == 2000
+    assert artifact["token_estimator"] == RECENT_CHAT_TOKEN_ESTIMATOR
     assert artifact["char_truncated"] is False
     assert artifact["token_budget_status"] == "within_budget"
     assert artifact["loaded_context_summary"] == {
@@ -137,9 +145,36 @@ def test_manager_context_packet_records_char_truncation_and_omitted_count() -> N
     assert artifact["loaded_message_count"] == 2
     assert artifact["omitted_count"] == 1
     assert artifact["loaded_char_count"] == 6000
+    assert artifact["loaded_estimated_tokens"] <= artifact["token_budget"]
     assert artifact["char_truncated"] is True
     assert artifact["token_budget_status"] == "at_hard_cap"
     assert artifact["omitted_context_summary"]["recent_chat_messages_omitted"] == 1
+    assert artifact["omitted_context_summary"]["omitted_by_char_cap"] == 1
+
+
+def test_manager_context_packet_uses_token_budget_before_message_count() -> None:
+    turns = [
+        {"message_id": 1, "role": "user", "content": "a" * 20},
+        {"message_id": 2, "role": "assistant", "content": "b" * 20},
+        {"message_id": 3, "role": "user", "content": "c" * 20},
+    ]
+
+    packet = build_manager_context_packet_v1(
+        current_turn_context=_context(recent_chat_turns=turns),
+        user_id="local-user",
+        local_date="2026-05-04",
+        session_id="session-1",
+        max_recent_messages=20,
+        max_recent_chars=6000,
+        max_recent_tokens=10,
+    )
+
+    artifact = packet["context_loading_artifact"]
+    assert [turn["message_id"] for turn in packet["recent_chat_window"]["messages"]] == [2, 3]
+    assert artifact["loaded_estimated_tokens"] == 10
+    assert artifact["token_budget"] == 10
+    assert artifact["token_budget_status"] == "at_hard_cap"
+    assert artifact["omitted_context_summary"]["omitted_by_token_budget"] == 1
 
 
 def test_manager_context_packet_hard_pins_pending_followup_and_draft() -> None:
