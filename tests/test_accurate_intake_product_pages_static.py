@@ -255,6 +255,11 @@ def test_chat_composer_supports_enter_send_and_shift_enter_multiline() -> None:
     assert "function hasOpenTurn(messages)" in html
     assert "status === \"queued\"" in html
     assert "can keep sending; new messages are queued" in html
+    assert "let activePollingRequestId = null;" in html
+    assert "function resumeOpenTurnPolling(payload = {})" in html
+    assert "if (!requestId || activePollingRequestId === requestId)" in html
+    assert "waitForTurnCompletion(requestId)" in html
+    assert "loadHistory({ resumePolling: true })" in html
     assert "waiting for" not in html
     assert 'el("message-input").disabled = isBusy;' not in html
     assert "function fitComposerInput()" in html
