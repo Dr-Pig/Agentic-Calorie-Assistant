@@ -93,6 +93,15 @@ Rules:
 - summaries are reference-only and cannot decide mutation, target, kcal, macro, or source exactness
 - `trace_id_runtime_only` is Review/trace metadata and should not be exposed to the model unless a concrete UI interaction reference requires it
 
+Meal-level macro basis:
+
+- active meal context may expose `active_meal_estimate_basis.macro_summary`
+- macro summary must carry `macro_display_status`, `macro_guard_reason`, `macro_kcal`, `macro_kcal_delta`, and `macro_source_basis`
+- `macro_display_status=show` is allowed only when canonical meal/item evidence exists and macro kcal aligns with committed kcal policy
+- hidden macro remains `protein_g=null`, `carb_g=null`, and `fat_g=null` in Manager context even if legacy row columns contain unsupported hints
+- `macro_alignment_fail` hides macro at the Manager context layer and must not be repaired by model guessing
+- Manager may explain visible or hidden macro only from this basis, evidence packets, or read-model truth
+
 ---
 
 ## 3. Standard Context Pack Shape
