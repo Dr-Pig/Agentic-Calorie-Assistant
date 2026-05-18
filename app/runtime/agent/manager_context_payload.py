@@ -106,6 +106,7 @@ def manager_context_packet_v1_prompt_payload(
                 "local_date": metadata.get("local_date"),
                 "context_policy_version": metadata.get("context_policy_version"),
                 "claim_scope": metadata.get("claim_scope"),
+                **_context_lineage_metadata(metadata, context_lineage),
             },
             "context_lineage": context_lineage,
             "context_layers": context_layers,
@@ -140,6 +141,7 @@ def manager_context_packet_v1_prompt_payload(
             "local_date": metadata.get("local_date"),
             "context_policy_version": metadata.get("context_policy_version"),
             "claim_scope": metadata.get("claim_scope"),
+            **_context_lineage_metadata(metadata, context_lineage),
         },
         "context_lineage": context_lineage,
         "context_layers": context_layers,
@@ -206,6 +208,7 @@ def manager_context_packet_v1_trace_payload(packet: dict[str, Any] | None) -> di
     context_layers = dict(packet.get("context_layers") or {})
     return {
         "context_policy_version": metadata.get("context_policy_version"),
+        **_context_lineage_metadata(metadata, context_lineage),
         "context_lineage": context_lineage,
         "context_layers": context_layers,
         "loaded_context_summary": dict(artifact.get("loaded_context_summary") or {}),
@@ -275,6 +278,22 @@ def manager_context_trace_payload(
             }
         )
     return trace
+
+
+def _context_lineage_metadata(
+    metadata: dict[str, Any],
+    context_lineage: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "context_generation": metadata.get("context_generation")
+        or context_lineage.get("context_generation"),
+        "context_packet_hash": metadata.get("context_packet_hash")
+        or context_lineage.get("context_packet_hash"),
+        "active_workflow_id": metadata.get("active_workflow_id")
+        or context_lineage.get("active_workflow_id"),
+        "reinject_reason": metadata.get("reinject_reason")
+        or context_lineage.get("reinject_reason"),
+    }
 
 
 __all__ = [
