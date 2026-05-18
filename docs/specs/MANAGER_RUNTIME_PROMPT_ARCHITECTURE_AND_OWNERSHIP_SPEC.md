@@ -98,6 +98,33 @@ This follows the cc-haha mechanism in `cc-haha-main/src/constants/prompts.ts`, w
 
 Our parallel mechanism is `app/runtime/agent/manager_prompt_layer_contract.py`, which already tracks prompt layer identity. Future prompt work must extend that registry rather than adding free-form prompt strings.
 
+## 3A. Prompt Source Gate Is Not A Line-Count Gate
+
+Prompt source files are governed by prompt architecture gates, not by generic fat-file line count as the primary quality signal.
+
+The normative basis is:
+
+- OpenAI Prompt Caching: cache hits require exact prefix matches; static/repeated content belongs at the beginning, dynamic user-specific content belongs at the end; usage `cached_tokens` is the provider-reported cache truth.
+- OpenAI Prompt Engineering / Reasoning guidance: instructions should be clear, direct, delimited, and specific; examples should align with instructions and not contradict them.
+- Anthropic Prompt Caching: static content such as tools, system instructions, context, and examples should be placed before dynamic content; explicit cache breakpoints should end reusable content.
+- LangSmith Prompt Management: prompts are versioned assets with owners, commit history, environments, and promotion/rollback semantics.
+
+Therefore:
+
+- prompt files may be long when they are sectioned, owner-mapped, hash-traced, and cache-boundary-safe
+- line count is advisory for prompt sources, not the acceptance gate
+- compiled/generated prompt artifacts may exceed normal file-size expectations if they are not hand-edited
+- stable prompt source must not contain Golden Set literal utterances
+- stable prompt source must not contain `if user says X then Y` routing patches
+- stable prompt source must not contain dynamic runtime values such as user IDs, trace IDs, dates, session IDs, FoodDB packets, WebSearch extracts, or queued inputs
+- provider profile overlays must not change stable prompt sections or product semantics
+
+Executable gate:
+
+- `scripts/check_manager_prompt_architecture_gate.py`
+
+That gate checks section owner/hash/cache role, provider overlay immutability, absence of Golden Set literal utterances, absence of `if user says X` routing patches, and absence of dynamic runtime values in stable prompt source. It intentionally does not fail solely because a prompt file is long.
+
 ## 4. Case-Style Prompt Patch Ban
 
 Golden Set cases are examples of failure families, not routing rules.

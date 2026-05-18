@@ -131,6 +131,24 @@ Routing examples:
 
 Do not infer the repair target from the final answer alone.
 
+## Prompt Architecture Gate For EDD
+
+Golden Set EDD must not use generic prompt line count as the primary prompt quality gate.
+
+Required prompt-source checks:
+
+- stable prompt sections have owner, cache role, section hash, and provider-overlay prohibition
+- dynamic context is delivered through runtime payload/context packet, not interpolated into the stable prefix
+- Golden Set literal utterances are absent from stable prompt source
+- `if user says X then Y` case-routing patches are absent from stable prompt source
+- prompt cache metrics are provider-reported only; missing cache metrics remain unknown, not zero
+
+Executable gate:
+
+- `scripts/check_manager_prompt_architecture_gate.py`
+
+This gate protects against prompt-patch overfitting while allowing a long prompt source when it is sectioned, versioned, traceable, and cache-boundary-safe.
+
 ## Reference-Calibrated Implementation Standard
 
 Code references are required for implementation-sensitive mechanisms.
