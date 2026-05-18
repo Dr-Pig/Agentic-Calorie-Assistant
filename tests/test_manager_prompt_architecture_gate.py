@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from scripts.check_manager_prompt_architecture_gate import build_manager_prompt_architecture_gate_report
+from scripts.check_manager_prompt_architecture_gate import (
+    _evaluate_no_case_style_routing,
+    build_manager_prompt_architecture_gate_report,
+)
 
 
 def test_manager_prompt_architecture_gate_passes() -> None:
@@ -20,6 +23,20 @@ def test_manager_prompt_architecture_gate_blocks_case_style_prompt_patches() -> 
     assert cases["stable_prompt_has_no_golden_set_literal_utterance"]["status"] == "pass"
     assert cases["stable_prompt_has_no_if_user_says_routing"]["status"] == "pass"
     assert cases["stable_prompt_has_no_dynamic_runtime_values"]["status"] == "pass"
+
+
+def test_manager_prompt_architecture_gate_blocks_zh_tw_case_style_prompt_patches() -> None:
+    case = _evaluate_no_case_style_routing("如果使用者說「早餐吃鐵板麵套餐」就問組成。")
+
+    assert case["status"] == "fail"
+    assert any("case_style_pattern" in blocker for blocker in case["blockers"])
+
+
+def test_manager_prompt_architecture_gate_blocks_zh_tw_user_input_case_style_prompt_patches() -> None:
+    case = _evaluate_no_case_style_routing("當用戶輸入「自助餐」時直接追問。")
+
+    assert case["status"] == "fail"
+    assert any("case_style_pattern" in blocker for blocker in case["blockers"])
 
 
 def test_manager_prompt_architecture_gate_uses_sections_not_line_count() -> None:

@@ -115,7 +115,7 @@ Therefore:
 - line count is advisory for prompt sources, not the acceptance gate
 - compiled/generated prompt artifacts may exceed normal file-size expectations if they are not hand-edited
 - stable prompt source must not contain Golden Set literal utterances
-- stable prompt source must not contain `if user says X then Y` routing patches
+- stable prompt source must not contain English or zh-TW `if user says X then Y` routing patches, including `如果使用者說 X` or `當用戶輸入 X` variants
 - stable prompt source must not contain dynamic runtime values such as user IDs, trace IDs, dates, session IDs, FoodDB packets, WebSearch extracts, or queued inputs
 - provider profile overlays must not change stable prompt sections or product semantics
 
@@ -123,7 +123,7 @@ Executable gate:
 
 - `scripts/check_manager_prompt_architecture_gate.py`
 
-That gate checks section owner/hash/cache role, provider overlay immutability, absence of Golden Set literal utterances, absence of `if user says X` routing patches, and absence of dynamic runtime values in stable prompt source. It intentionally does not fail solely because a prompt file is long.
+That gate checks section owner/hash/cache role, provider overlay immutability, absence of Golden Set literal utterances, absence of English/zh-TW `if user says X` routing patches, and absence of dynamic runtime values in stable prompt source. It intentionally does not fail solely because a prompt file is long.
 
 Manager prompt content files under this gate:
 

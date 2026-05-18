@@ -140,7 +140,7 @@ Required prompt-source checks:
 - stable prompt sections have owner, cache role, section hash, and provider-overlay prohibition
 - dynamic context is delivered through runtime payload/context packet, not interpolated into the stable prefix
 - Golden Set literal utterances are absent from stable prompt source
-- `if user says X then Y` case-routing patches are absent from stable prompt source
+- English and zh-TW `if user says X then Y` case-routing patches are absent from stable prompt source
 - prompt cache metrics are provider-reported only; missing cache metrics remain unknown, not zero
 
 Executable gate:

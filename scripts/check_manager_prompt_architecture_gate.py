@@ -36,7 +36,7 @@ CASE_STYLE_PATTERNS = (
     re.compile(r"\bif\s+the\s+user\s+says\s+['\"]", re.IGNORECASE),
     re.compile(r"\bwhen\s+user\s+says\s+['\"]", re.IGNORECASE),
     re.compile(r"\bwhen\s+the\s+user\s+says\s+['\"]", re.IGNORECASE),
-    re.compile(r"如果(?:使用者|用戶|user).{0,12}說[「『\"']"),
+    re.compile(r"(?:如果|若|假如|當)(?:使用者|用戶|user).{0,12}(?:說|輸入|提到)[「『\"']"),
     re.compile(r"GS\d{1,2}\b"),
 )
 
