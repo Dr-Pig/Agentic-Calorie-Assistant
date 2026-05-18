@@ -225,8 +225,7 @@ def _matches_pending_followup_attachment(actual_item: Any) -> bool:
     if not isinstance(actual_item, dict):
         return False
     operation = str(actual_item.get("operation") or actual_item.get("mode") or "").strip()
-    source = str(actual_item.get("target_resolution_source") or "").strip()
-    return operation in {"attach_to_pending_followup", "draft_followup"} or source == "pending_followup_state"
+    return operation in {"attach_to_pending_followup", "draft_followup"}
 
 
 def _matches_prior_optional_followup_attachment(actual_item: Any) -> bool:
