@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.runtime.agent.manager_payload_utils import json_safe
+from app.runtime.agent.manager_trace_repair_router import build_manager_trace_repair_router
 
 
 MANAGER_REACT_TRACE_SCHEMA_VERSION = "manager_react_trace.v1"
@@ -145,6 +146,14 @@ def build_manager_react_trace(
         "manager_pass_final": final_round_summary,
         "guard_result": json_safe(dict(guard_outcome or {})),
         "request_failure_family": failure_family,
+        "repair_router": build_manager_trace_repair_router(
+            manager_rounds=manager_rounds,
+            tool_results=tool_results,
+            guard_outcome=guard_outcome,
+            failure_family=failure_family,
+            requested_tools=requested_tools,
+            executed_tools=executed_tools,
+        ),
     }
 
 

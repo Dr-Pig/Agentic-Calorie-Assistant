@@ -381,6 +381,7 @@ async def test_run_intake_manager_executes_tools_and_feeds_results_into_next_rou
         "tool_call_count",
         "repair_round_used",
         "call_topology",
+        "repair_router",
     }
     static_trace = {key: value for key, value in react_trace.items() if key not in dynamic_observability_fields}
     assert static_trace == {
