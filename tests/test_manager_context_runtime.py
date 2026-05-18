@@ -736,10 +736,13 @@ def test_runtime_manager_context_packet_adds_traceable_lineage_layers_without_se
     assert context_packet_hash(packet) == lineage["context_packet_hash"]
 
     layers = packet["context_layers"]
-    assert set(layers) == {"current_turn", "active_workflow", "evidence_state"}
+    assert set(layers) == {"current_turn", "active_workflow", "queue_state", "evidence_state"}
     assert layers["current_turn"]["raw_user_input_present"] is True
     assert layers["active_workflow"]["pending_followup_present"] is True
     assert layers["active_workflow"]["active_meal_thread_present"] is True
+    assert layers["queue_state"]["queued_input_count"] == 0
+    assert layers["queue_state"]["processing_turn_present"] is False
+    assert layers["queue_state"]["context_role"] == "turn_ordering_only"
     assert layers["evidence_state"]["target_candidate_count"] == 1
     assert layers["evidence_state"]["budget_summary_present"] is True
     for layer in layers.values():
