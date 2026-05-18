@@ -9,6 +9,7 @@ from app.composition.current_shell_golden_set_correction_matchers import (
     matches_remove_meal_workflow,
     matches_unique_recent_or_named_slot_attachment,
 )
+from app.composition.current_shell_golden_set_failure_routing import failure_routes_for_blockers
 from app.composition.current_shell_golden_set_manifest_access import (
     fake_pass_generalization_blockers,
     golden_case_by_id,
@@ -55,12 +56,15 @@ def grade_golden_case_result(
 
 
 def _grade_result(*, case_id: str, blockers: list[str], warnings: list[str]) -> dict[str, Any]:
+    failure_routes = failure_routes_for_blockers(blockers)
     return {
         "artifact_type": "current_shell_self_use_golden_case_grade",
         "case_id": case_id,
         "status": "blocked" if blockers else "pass",
         "blockers": blockers,
         "warnings": warnings,
+        "failure_routes": failure_routes,
+        "primary_repair_layer": failure_routes[0]["repair_layer"] if failure_routes else None,
         "deterministic_grader_owns_semantics": False,
     }
 
