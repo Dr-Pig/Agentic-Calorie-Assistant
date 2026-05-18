@@ -257,3 +257,75 @@ def test_runtime_turn_message_trace_links_pending_followup_to_chat_messages() ->
     assert runtime_trace["manager_context_packet_v1"]["metadata"]["context_policy_version"] == (
         MANAGER_CONTEXT_POLICY_VERSION
     )
+
+
+def test_runtime_turn_message_upsert_preserves_queue_lifecycle_after_completion() -> None:
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=engine)
+    session_local = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+    db = session_local()
+    try:
+        record_runtime_turn_messages(
+            db,
+            user_external_id="trace-user",
+            request_id="turn-queued",
+            local_date="2026-04-29",
+            raw_user_input="second turn",
+            assistant_message="queued",
+            state_before=_state(),
+            state_after=_state(),
+            current_turn_context=None,
+            phase_a_trace={
+                "runtime_turn_status": "queued",
+                "queued_after_request_id": "turn-first",
+                "queue_lifecycle": {
+                    "enqueued_after_request_id": "turn-first",
+                    "enqueued_at": "2026-04-29T00:00:01+00:00",
+                },
+            },
+            result={
+                "manager_decision": {"intent_type": "pending", "workflow_effect": "queued"},
+                "intake_execution_manager": {
+                    "final": {"final_action": "queued", "workflow_effect": "queued"},
+                    "persistence_result": None,
+                },
+                "state_delta": {},
+                "sidecar": {"runtime_turn_status": "queued", "queued_after_request_id": "turn-first"},
+            },
+        )
+        record_runtime_turn_messages(
+            db,
+            user_external_id="trace-user",
+            request_id="turn-queued",
+            local_date="2026-04-29",
+            raw_user_input="second turn",
+            assistant_message="completed",
+            state_before=_state(),
+            state_after=_state(),
+            current_turn_context=None,
+            result={
+                "manager_decision": {"intent_type": "general_chat", "workflow_effect": "answer_only"},
+                "intake_execution_manager": {
+                    "final": {"final_action": "answer_only", "workflow_effect": "answer_only"},
+                    "persistence_result": None,
+                },
+                "state_delta": {},
+                "sidecar": {},
+            },
+        )
+        messages = db.query(MessageBuffer).order_by(MessageBuffer.id.asc()).all()
+    finally:
+        db.close()
+        engine.dispose()
+
+    assert [message.role for message in messages] == ["user", "assistant"]
+    assert messages[1].content == "completed"
+    runtime_trace = messages[1].trace_json["runtime_turn_trace"]
+    lifecycle = runtime_trace["runtime_turn_lifecycle"]
+    assert lifecycle["status"] == "completed"
+    assert lifecycle["initial_status"] == "queued"
+    assert lifecycle["was_queued"] is True
+    assert lifecycle["queued_after_request_id"] == "turn-first"
+    assert lifecycle["enqueued_at"] == "2026-04-29T00:00:01+00:00"
+    assert lifecycle["dequeued_at"]
+    assert lifecycle["terminal_state"] is True
