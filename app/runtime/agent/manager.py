@@ -25,6 +25,7 @@ from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 from app.runtime.agent.manager_payload_utils import (
     compact_manager_product_policy_hints_prompt_payload as compact_policy_hints,
     compact_resolved_state_prompt_payload, compact_tool_results_prompt_payload,
+    current_loop_tool_surface,
     json_safe,
     maybe_await,
     stable_available_tools,
@@ -84,8 +85,7 @@ async def run_intake_manager(
     observability = ManagerLoopObservability()
 
     for round_index in range(len(manager_rounds), max_rounds):
-        effective_constraints = dict(constraints or {})
-        effective_constraints.update(manager_loop_scope=effective_manager_loop_scope, available_tools=list(normalized_available_tools))
+        current_available_tools, current_tool_policy, effective_constraints = current_loop_tool_surface(normalized_available_tools, tool_results, constraints, effective_manager_loop_scope)
         manager_product_policy_hints = effective_constraints.pop("manager_product_policy_hints", None)
         if isinstance(guard_feedback, dict):
             effective_constraints["guard_feedback_failure_family"] = str(guard_feedback.get("failure_family") or "")
@@ -122,11 +122,12 @@ async def run_intake_manager(
             "phase_a_shadow_hypothesis": json_safe(phase_a_shadow_hypothesis),
             "phase_a_shadow_hypothesis_role": manager_context_trace["phase_a_shadow_hypothesis_role"],
             "phase_a_shadow_hypothesis_instruction": shadow_hypothesis_instruction(phase_a_shadow_hypothesis),
-            "available_tools": list(normalized_available_tools),
+            "available_tools": list(current_available_tools),
             "tool_results": json_safe(compact_tool_results_prompt_payload(tool_results)),
             "round_index": round_index,
             "manager_loop_scope": effective_manager_loop_scope,
-            "manager_scope_policy": manager_scope_policy_payload(effective_manager_loop_scope, normalized_available_tools),
+            "manager_scope_policy": manager_scope_policy_payload(effective_manager_loop_scope, current_available_tools),
+            "current_loop_tool_policy": current_tool_policy,
             "constraints": effective_constraints,
             "manager_product_policy_hints": json_safe(compact_policy_hints(manager_product_policy_hints)),
             "guard_feedback": guard_feedback,
@@ -170,7 +171,7 @@ async def run_intake_manager(
             boundary = tool_call_scope_boundary(
                 payload=parsed,
                 calls=calls,
-                available_tools=normalized_available_tools,
+                available_tools=current_available_tools,
                 manager_loop_scope=effective_manager_loop_scope,
             )
             if boundary is not None:

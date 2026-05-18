@@ -495,6 +495,61 @@ async def test_run_intake_manager_forwards_product_policy_hints_as_payload_conte
 
 
 @pytest.mark.asyncio
+async def test_run_intake_manager_hides_consumed_nutrition_tool_after_current_loop_evidence() -> None:
+    provider = FakeLoopProvider(
+        [
+            {
+                "manager_action": "final",
+                "intent": "log_meal",
+                "final_action": "commit",
+                "workflow_effect": "commit",
+                "target_attachment": {"mode": "none"},
+                "exactness": "rough",
+                "confidence": "medium",
+                "evidence_posture": "evidence_present",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "ok"},
+            },
+        ]
+    )
+    initial_tool_results = [
+        {
+            "tool_name": "estimate_nutrition",
+            "evidence": {"nutrition_payload": {"meal_title": "珍珠奶茶", "estimated_kcal": 450}},
+            "failure_family": None,
+        }
+    ]
+
+    await manager_service.run_intake_manager(
+        provider=provider,
+        raw_user_input="中杯半糖",
+        resolved_state=SimpleNamespace(onboarding_ready=True),
+        available_tools=("resolve_correction_target", "estimate_nutrition", "compare_against_budget"),
+        initial_tool_results=initial_tool_results,
+        manager_loop_scope="intake_execution",
+    )
+
+    payload = provider.calls[0]["user_payload"]
+    assert "estimate_nutrition" not in payload["available_tools"]
+    assert payload["constraints"]["available_tools"] == ["compare_against_budget", "resolve_correction_target"]
+    assert payload["current_loop_tool_policy"] == {
+        "policy_id": "current_loop_tool_availability.v1",
+        "source": "runtime_loop_state",
+        "semantic_owner": "manager",
+        "deterministic_role": "tool_availability_only_no_raw_text_or_food_semantics",
+        "available_tools": ["compare_against_budget", "resolve_correction_target"],
+        "unavailable_tools_due_to_current_loop_evidence": ["estimate_nutrition"],
+        "current_loop_nutrition_evidence_present": True,
+        "manager_requirement": (
+            "When a tool is unavailable because its current-loop evidence is already present, "
+            "use existing tool_results and return manager_action='final'."
+        ),
+    }
+    assert payload["tool_results"][0]["tool_name"] == "estimate_nutrition"
+    assert payload["current_loop_tool_policy"]["deterministic_role"].endswith("no_raw_text_or_food_semantics")
+
+
+@pytest.mark.asyncio
 async def test_run_intake_manager_forwards_manager_loop_scope_for_latency_attribution() -> None:
     provider = FakeLoopProvider(
         [
