@@ -42,11 +42,9 @@ def hydrate_manager_selected_target(target: dict[str, Any], resolved_state: Any 
 
 def manager_selected_existing_target(target: dict[str, Any]) -> bool:
     operation = str(target.get("operation") or target.get("action_type") or "").strip()
-    source = str(target.get("target_resolution_source") or "").strip()
     target_object_type = str(target.get("target_object_type") or "").strip()
     return (
         operation in {"attach_to_pending_followup", "attach_to_active_meal"}
-        or source == "pending_followup_state"
         or target_object_type in {"meal_thread", "meal_item"}
         or any(
             target.get(key) not in (None, "")
@@ -72,8 +70,7 @@ def _target_matches_active_meal(target: dict[str, Any], active_meal: dict[str, A
     if not target:
         return False
     operation = str(target.get("operation") or target.get("action_type") or "").strip()
-    source = str(target.get("target_resolution_source") or "").strip()
-    if operation == "attach_to_pending_followup" or source == "pending_followup_state":
+    if operation == "attach_to_pending_followup":
         return any(
             active_meal.get(key) not in (None, "")
             for key in ("meal_thread_id", "meal_item_id", "canonical_name", "meal_title")

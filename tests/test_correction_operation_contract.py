@@ -3,6 +3,10 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from app.composition.intake_entry_handoff import entry_handoff_tool_calls
+from app.composition.intake_target_identity import (
+    hydrate_manager_selected_target,
+    manager_selected_existing_target,
+)
 from app.shared.contracts.correction_operation import (
     structured_correction_operation,
     structured_payload_requests_remove_item,
@@ -207,6 +211,45 @@ def test_entry_handoff_hydrates_pending_followup_legacy_target_to_active_thread(
     assert calls[0]["arguments"]["meal_item_id"] == 4
     assert calls[1]["name"] == "estimate_nutrition"
     assert calls[1]["arguments"]["manager_semantic_decision"]["base_dish"] == "\u73cd\u73e0\u5976\u8336"
+
+
+def test_pending_followup_source_label_alone_is_not_manager_selected_target() -> None:
+    resolved_state = SimpleNamespace(
+        active_meal={
+            "meal_thread_id": 3,
+            "meal_item_id": 4,
+            "meal_title": "\u73cd\u73e0\u5976\u8336",
+            "canonical_name": "\u73cd\u73e0\u5976\u8336",
+        },
+    )
+    target = {"target_resolution_source": "pending_followup_state"}
+
+    hydrated = hydrate_manager_selected_target(target, resolved_state)
+
+    assert manager_selected_existing_target(target) is False
+    assert hydrated == target
+
+
+def test_pending_followup_operation_keeps_manager_selected_target_hydration() -> None:
+    resolved_state = SimpleNamespace(
+        active_meal={
+            "meal_thread_id": 3,
+            "meal_item_id": 4,
+            "meal_title": "\u73cd\u73e0\u5976\u8336",
+            "canonical_name": "\u73cd\u73e0\u5976\u8336",
+        },
+    )
+    target = {
+        "operation": "attach_to_pending_followup",
+        "target_resolution_source": "pending_followup_state",
+    }
+
+    hydrated = hydrate_manager_selected_target(target, resolved_state)
+
+    assert manager_selected_existing_target(target) is True
+    assert hydrated["meal_thread_id"] == 3
+    assert hydrated["meal_item_id"] == 4
+    assert hydrated["validated_canonical_name"] == "\u73cd\u73e0\u5976\u8336"
 
 
 def test_entry_handoff_uses_validated_active_target_identity_for_refinement_evidence() -> None:
