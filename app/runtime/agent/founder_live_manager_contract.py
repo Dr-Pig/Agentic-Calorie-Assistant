@@ -233,7 +233,6 @@ def _tool_result_names(tool_results: list[dict[str, Any]] | None) -> list[str]:
             names.append(name)
     return names
 
-
 def _final_action_requires_nutrition_evidence(
     *,
     payload: dict[str, Any],
@@ -298,8 +297,10 @@ def validate_founder_live_manager_contract_consistency(
         raise RuntimeError(f"founder live manager contract final_action invalid: {final_action!r}")
     evidence_state = constraints.get("manager_contract_evidence_state") if isinstance(constraints, dict) else None
     nutrition_present = evidence_state.get("nutrition_evidence_present") if isinstance(evidence_state, dict) else None
-    validate_tool_call_contracts(payload, evidence_state)
     semantic_decision = payload.get("semantic_decision")
+    if isinstance(semantic_decision, dict):
+        validate_founder_live_manager_contract_semantic_field_consistency(payload)
+    validate_tool_call_contracts(payload, evidence_state)
     if isinstance(semantic_decision, dict) and target_ambiguity_repair_required(evidence_state):
         validate_target_ambiguity_repair(
             payload=payload,
@@ -332,7 +333,6 @@ def validate_founder_live_manager_contract_consistency(
         )
     if not isinstance(semantic_decision, dict):
         return
-    validate_founder_live_manager_contract_semantic_field_consistency(payload)
     final_action_candidate = str(semantic_decision.get("final_action_candidate") or "")
     if (
         nutrition_present is False

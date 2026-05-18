@@ -42,6 +42,16 @@ def _semantic_repair_message(parse_attempt: dict[str, Any]) -> str:
             "uniquely identified, ask a target clarification with no mutation. Previous validation error: "
             f"{parse_attempt.get('error')}"
         )
+    if "estimate_nutrition requires Manager-owned evidence target" in error:
+        return (
+            "CONTRACT_REPAIR: estimate_nutrition requires a Manager-owned evidence target. "
+            "Keep the user intent, but make one legal Manager decision: provide semantic_decision.base_dish "
+            "for a generic/exact dish, provide brand_hint and size_hint or aliases for an exact product, "
+            "provide multiple listed_items with retrieval_goal='listed_item_lookup' for component lookup, "
+            "or ask a follow-up by returning final ask_followup with tool_calls=[] if you cannot identify the target. "
+            "Runtime must not infer the target from raw user text. Previous validation error: "
+            f"{parse_attempt.get('error')}"
+        )
     if "listed_item_lookup requires multiple Manager-owned component items" in error:
         return (
             "CONTRACT_REPAIR: Your previous listed_item_lookup decision only supplied one component item. "

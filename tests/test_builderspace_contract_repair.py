@@ -69,3 +69,25 @@ def test_unselected_target_repair_message_requires_manager_selected_candidate() 
     assert "早餐, 午餐, 中餐, 晚餐, or 宵夜" in message
     assert "candidate meal_thread_id and target_display_name" in message
     assert "do not pass target_candidates" in message
+
+
+def test_targetless_estimate_repair_message_requires_manager_owned_evidence_target() -> None:
+    message = contract_repair_message(
+        {
+            "error": (
+                "founder live manager contract estimate_nutrition requires Manager-owned "
+                "evidence target"
+            ),
+            "observed_value": {
+                "manager_action": "call_tools",
+                "tool_calls": [{"name": "estimate_nutrition", "arguments": {}}],
+            },
+        }
+    )
+
+    assert "CONTRACT_REPAIR" in message
+    assert "estimate_nutrition requires a Manager-owned evidence target" in message
+    assert "base_dish" in message
+    assert "multiple listed_items" in message
+    assert "ask a follow-up" in message
+    assert "Runtime must not infer the target from raw user text" in message

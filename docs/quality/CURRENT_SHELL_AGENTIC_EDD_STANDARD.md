@@ -131,6 +131,8 @@ Routing examples:
 
 Do not infer the repair target from the final answer alone.
 
+The trace repair router is diagnostic attribution only. An isolated pass cannot be reported as full suite pass, and a router layer label cannot make a case pass without the underlying Manager trace, mutation/read-model truth, and UI same-truth evidence.
+
 Runtime trace requirement:
 
 - Manager ReAct traces must expose `react_trace.repair_router`
@@ -160,12 +162,39 @@ This gate protects against prompt-patch overfitting while allowing a long prompt
 
 Code references are required for implementation-sensitive mechanisms.
 
+### Code-Reference-First Bootstrap
+
+Mechanism-sensitive slices use code-reference-first bootstrap:
+
+1. repo truth first
+2. implementation code references for the mechanism class
+3. official docs as normative API/framework evidence
+4. product mechanism map and ownership decision
+5. targeted tests or EDD loop
+
+Treat "official docs are normative API/framework evidence" as the rule: they are not mechanism implementation proof. Do not make official-doc-only best-practice claims for prompt architecture, context engineering, memory/session state, queueing, compaction, trace routing, tool dispatch, retrieval/source selection, semantic routing, mutation, or UI same-truth work unless no suitable code reference is available and that absence is recorded.
+
+Every mechanism-sensitive plan must record:
+
+```yaml
+code_references_inspected:
+reference_mechanisms_compared:
+adopted_mechanisms:
+rejected_mechanisms:
+product_variant_rationale:
+```
+
 Before broad EDD, compare the mechanism against code references:
 
 - Codex context/history/version/diff/reinjection mechanisms
+- Codex session-state mechanism in `codex-rs/core/src/state/session.rs`
 - Codex tool router/registry/orchestrator/dispatch trace mechanisms
+- Codex tool dispatch registry in `codex-rs/core/src/tools/registry.rs`
 - cc-haha stable prompt prefix, dynamic boundary, prompt section memoization, and cache-breaking annotation
 - cc-haha tool-result budget, microcompact/autocompact, and queued command mechanisms
+- cc-haha queue semantics in `cc-haha-main/src/utils/messageQueueManager.ts`
+- Hermes bounded context references in `hermes-agent-main/agent/context_references.py`
+- Hermes memory fencing in `hermes-agent-main/agent/memory_manager.py`
 
 Reference code informs implementation shape. It does not override this product's domain ownership: nutrition truth remains FoodDB/evidence/read-model owned, and semantic food decisions remain Manager-owned.
 

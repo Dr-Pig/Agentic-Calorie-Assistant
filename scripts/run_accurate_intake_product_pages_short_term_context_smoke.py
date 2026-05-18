@@ -34,6 +34,7 @@ from scripts.run_accurate_intake_product_pages_browser_smoke import (  # noqa: E
     _is_visible_product_text_clean,
     _open_page,
     _page_url,
+    _smoke_manager_owned_base_dish,
     _wait_for_chat_kcal_reply,
 )
 
@@ -137,7 +138,16 @@ class _ShortTermContextManagerProvider:
         if self.active_turn == "bare_basket_followup":
             return self._ask_followup(), self._trace(stage)
         if round_index == 0 and "estimate_nutrition" in available_tools:
-            calls = [{"name": "estimate_nutrition"}]
+            calls = [
+                {
+                    "name": "estimate_nutrition",
+                    "arguments": {
+                        "retrieval_goal": "exact_brand_lookup",
+                        "base_dish": _smoke_manager_owned_base_dish(str(user_payload.get("raw_user_input") or "")),
+                        "semantic_authority_source": "short_term_context_fake_manager_fixture",
+                    },
+                }
+            ]
             if "compare_against_budget" in available_tools:
                 calls.append({"name": "compare_against_budget"})
             return {"manager_action": "call_tools", "response_mode": "tool_call", "tool_calls": calls}, self._trace(stage)

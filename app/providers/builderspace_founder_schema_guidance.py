@@ -242,6 +242,59 @@ def _apply_tool_call_argument_shape_guidance(tool_calls: dict[str, Any]) -> None
             },
         }
     )
+    items.setdefault("allOf", []).append(
+        {
+            "if": {
+                "required": ["name"],
+                "properties": {"name": {"const": "estimate_nutrition"}},
+            },
+            "then": {
+                "properties": {
+                    "arguments": {
+                        "type": "object",
+                        "properties": {
+                            "manager_semantic_decision": {
+                                "type": "object",
+                                "description": (
+                                    "Manager-owned evidence target for estimate_nutrition. "
+                                    "Do not rely on raw user text. Provide base_dish, aliases, "
+                                    "brand_hint plus size_hint, or multiple listed_items."
+                                ),
+                                "properties": {
+                                    "base_dish": {"type": "string"},
+                                    "aliases": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "minItems": 1,
+                                    },
+                                    "brand_hint": {"type": "string"},
+                                    "size_hint": {"type": "string"},
+                                    "listed_items": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "minItems": 2,
+                                    },
+                                    "retrieval_goal": {"type": "string"},
+                                    "semantic_authority_source": {"type": "string"},
+                                },
+                                "anyOf": [
+                                    {"required": ["base_dish"]},
+                                    {"required": ["aliases"]},
+                                    {"required": ["brand_hint", "size_hint"]},
+                                    {"required": ["listed_items"]},
+                                ],
+                                "additionalProperties": True,
+                            },
+                            "handoff_source": {"type": "string"},
+                            "deterministic_role": {"type": "string"},
+                        },
+                        "required": ["manager_semantic_decision"],
+                        "additionalProperties": True,
+                    }
+                }
+            },
+        }
+    )
 
 
 def _body_observation_handoff_rule() -> dict[str, Any]:

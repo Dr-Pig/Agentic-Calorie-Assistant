@@ -4,44 +4,19 @@ import hashlib
 import json
 from typing import Any
 
+from app.runtime.agent.manager_prompt_trace_fields import (
+    PROVIDER_OVERLAY_OWNER,
+    build_manager_prompt_trace_fields,
+)
+from app.runtime.agent.manager_prompt_runtime_layers import (
+    RUNTIME_PAYLOAD_LAYER_KEYS,
+    runtime_payload_layer_plan as build_runtime_payload_layer_plan,
+)
 from app.runtime.agent.manager_system_prompt import single_manager_system_prompt_section_contract
 
 MANAGER_PROMPT_LAYER_CONTRACT_VERSION = "manager_prompt_layer_contract.v1"
 MANAGER_PROMPT_CACHE_PROFILE_ID = "manager_prompt_prefix_cache_profile.v1"
 MANAGER_SYSTEM_CONTRACT_OWNER = "ManagerRuntime"
-PROVIDER_OVERLAY_OWNER = "ProviderAdapter"
-_RUNTIME_PAYLOAD_LAYER_ORDER = (
-    "turn_state", "context_engineering", "tool_surface", "tool_evidence", "contract_constraints", "loop_control", "guard_repair"
-)
-_RUNTIME_PAYLOAD_LAYER_KEYS = {
-    "turn_state": (
-        "raw_user_input",
-        "resolved_state",
-        "resolved_state_role",
-        "onboarding_payload",
-    ),
-    "context_engineering": (
-        "phase_a_current_turn_context",
-        "phase_a_manager_context_pack",
-        "manager_context_packet_v1",
-        "phase_a_manager_context_pack_role",
-        "phase_a_surface_mode",
-        "phase_a_context_pack_version",
-        "phase_a_history_expansion_policy",
-        "phase_a_history_expansion_enabled",
-        "phase_a_shadow_hypothesis",
-        "phase_a_shadow_hypothesis_role",
-        "phase_a_shadow_hypothesis_instruction",
-    ),
-    "tool_surface": ("available_tools", "manager_scope_policy", "current_loop_tool_policy"),
-    "tool_evidence": ("tool_results",),
-    "contract_constraints": (
-        "constraints",
-        "manager_product_policy_hints",
-    ),
-    "loop_control": ("round_index", "manager_loop_scope"),
-    "guard_repair": ("guard_feedback",),
-}
 
 
 def build_manager_prompt_layer_contract(
@@ -55,10 +30,16 @@ def build_manager_prompt_layer_contract(
     dynamic_payload_keys = sorted(str(key) for key in user_payload)
     system_prompt_sha256 = hashlib.sha256(system_prompt.encode("utf-8")).hexdigest()
     dynamic_suffix_sha256 = hashlib.sha256(_json_text(user_payload).encode("utf-8")).hexdigest()
-    runtime_payload_layer_plan = _runtime_payload_layer_plan(dynamic_payload_keys)
+    runtime_payload_layer_plan = build_runtime_payload_layer_plan(dynamic_payload_keys)
     system_section_contract = single_manager_system_prompt_section_contract()
     return {
         "contract_version": MANAGER_PROMPT_LAYER_CONTRACT_VERSION,
+        **build_manager_prompt_trace_fields(
+            system_prompt_version=str(system_prompt_version),
+            system_section_contract=system_section_contract,
+            user_payload=user_payload,
+            tool_surface_keys=RUNTIME_PAYLOAD_LAYER_KEYS["tool_surface"],
+        ),
         "manager_loop_scope": str(manager_loop_scope),
         "system_prompt_layer": "static_prefix",
         "runtime_payload_layer": "dynamic_suffix",
@@ -109,26 +90,6 @@ def build_manager_prompt_layer_contract(
         },
         "progressive_disclosure": _progressive_disclosure(user_payload),
 }
-
-
-def _runtime_payload_layer_plan(dynamic_payload_keys: list[str]) -> dict[str, Any]:
-    remaining = set(dynamic_payload_keys)
-    sections: list[dict[str, Any]] = []
-    for section_id in _RUNTIME_PAYLOAD_LAYER_ORDER:
-        section_keys = [key for key in _RUNTIME_PAYLOAD_LAYER_KEYS[section_id] if key in remaining]
-        remaining.difference_update(section_keys)
-        sections.append(
-            {
-                "section_id": section_id,
-                "owner": _runtime_payload_section_owner(section_id),
-                "keys": section_keys,
-            }
-        )
-    return {
-        "suffix_order": list(_RUNTIME_PAYLOAD_LAYER_ORDER),
-        "sections": sections,
-        "uncategorized_dynamic_keys": sorted(remaining),
-    }
 
 
 def _prompt_footprint(
@@ -211,16 +172,6 @@ def _largest_dynamic_key(dynamic_sections: list[dict[str, Any]]) -> dict[str, An
             if largest is None or candidate["utf8_bytes"] > int(largest.get("utf8_bytes") or 0):
                 largest = candidate
     return largest
-
-
-def _runtime_payload_section_owner(section_id: str) -> str:
-    if section_id == "context_engineering":
-        return "ManagerRuntime.ContextEngineering"
-    if section_id == "tool_evidence":
-        return "ManagerRuntime.ToolLoop"
-    if section_id == "guard_repair":
-        return "ManagerRuntime.Guard"
-    return "ManagerRuntime"
 
 
 def _progressive_disclosure(user_payload: dict[str, Any]) -> dict[str, Any]:

@@ -147,6 +147,21 @@ def test_entry_handoff_executes_manager_owned_nutrition_evidence_requirement() -
     ]
 
 
+def test_entry_handoff_does_not_execute_targetless_nutrition_requirement() -> None:
+    decision = SimpleNamespace(
+        workflow_effect="route_to_intake",
+        target_attachment={},
+        semantic_decision={
+            "final_action_candidate": "commit",
+            "mutation_intent_candidate": "canonical_write",
+            "estimation_posture": "pending_tool_call",
+            "target_attachment": {"mode": "new_meal"},
+        },
+    )
+
+    assert entry_handoff_tool_calls(decision) == []
+
+
 def test_entry_handoff_hydrates_manager_selected_target_name_from_state() -> None:
     decision = SimpleNamespace(
         workflow_effect="route_to_intake",

@@ -9,6 +9,7 @@ from app.composition.intake_target_identity import (
 )
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 from app.shared.contracts.correction_operation import structured_correction_operation
+from app.shared.contracts.manager_evidence_target import has_manager_owned_evidence_target
 
 _NUTRITION_EVIDENCE_REQUIRED_FINAL_ACTIONS = {
     "commit",
@@ -116,21 +117,24 @@ def _nutrition_evidence_handoff_tool_calls(
         semantic_decision=semantic_decision,
         target=target,
     )
+    manager_semantic_decision = {
+        key: value
+        for key, value in {
+            "base_dish": base_dish,
+            "aliases": semantic_decision.get("aliases"),
+            "brand_hint": semantic_decision.get("brand_hint"),
+            "size_hint": semantic_decision.get("size_hint"),
+            "modifier_hints": semantic_decision.get("modifier_hints"),
+            "listed_items": semantic_decision.get("listed_items"),
+            "retrieval_goal": _handoff_retrieval_goal(semantic_decision),
+            "semantic_authority_source": _handoff_semantic_authority_source(semantic_decision),
+        }.items()
+        if value not in (None, "", [])
+    }
+    if not has_manager_owned_evidence_target(manager_semantic_decision):
+        return []
     arguments = {
-        "manager_semantic_decision": {
-            key: value
-            for key, value in {
-                "base_dish": base_dish,
-                "aliases": semantic_decision.get("aliases"),
-                "brand_hint": semantic_decision.get("brand_hint"),
-                "size_hint": semantic_decision.get("size_hint"),
-                "modifier_hints": semantic_decision.get("modifier_hints"),
-                "listed_items": semantic_decision.get("listed_items"),
-                "retrieval_goal": _handoff_retrieval_goal(semantic_decision),
-                "semantic_authority_source": _handoff_semantic_authority_source(semantic_decision),
-            }.items()
-            if value not in (None, "", [])
-        },
+        "manager_semantic_decision": manager_semantic_decision,
         "handoff_source": "entry_manager_semantic_decision",
         "deterministic_role": "execute_manager_owned_evidence_requirement_only",
     }

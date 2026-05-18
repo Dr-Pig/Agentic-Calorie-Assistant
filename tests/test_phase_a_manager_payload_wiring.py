@@ -442,7 +442,16 @@ async def test_run_intake_manager_compacts_context_packet_after_tool_evidence() 
     assert second_packet["target_candidates"]["candidate_count"] == len(
         first_packet["target_candidates"]["for_correction_or_removal"]
     )
-    assert "for_correction_or_removal" not in second_packet["target_candidates"]
+    assert second_packet["target_candidates"]["for_correction_or_removal"] == [
+        {
+            "target_object_type": "meal_thread",
+            "target_object_id": "77",
+            "meal_thread_id": "77",
+            "source": "pending_followup",
+        }
+    ]
+    assert second_packet["target_candidates"]["selection_owner"] == "manager"
+    assert second_packet["target_candidates"]["mutation_authority"] is False
     assert second_packet["hard_pins"]["pending_followup"]["meal_thread_id"] == 77
     assert result.final_action == "no_commit"
 
