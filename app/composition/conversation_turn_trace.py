@@ -5,9 +5,10 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.composition.dogfood_trace_policy import (
-    build_manager_mode_policy,
-    build_unsupported_intent_policy,
+from app.composition.dogfood_trace_policy import build_dogfood_turn_trace_policy
+from app.composition.runtime_turn_lifecycle import (
+    apply_runtime_turn_lifecycle_merge,
+    build_runtime_turn_lifecycle,
 )
 from app.database import append_message, get_or_create_user
 from app.shared.infra.models import MessageBuffer
@@ -157,29 +158,6 @@ def _persistence_evidence_present(value: Any) -> bool:
     return _evidence_summary_content_present(persistence.get("evidence_summary"))
 
 
-def _dogfood_trace_policy(manager_decision: Any) -> dict[str, Any]:
-    decision = _object_dict(manager_decision)
-    unsupported_family = str(decision.get("unsupported_intent_family") or "").strip()
-    manager_mode = str(decision.get("manager_mode") or "fixture").strip() or "fixture"
-    provider_profile = decision.get("provider_profile")
-    model_id = decision.get("model_id")
-    return {
-        "lifecycle_status": "raw_trace",
-        "raw_trace_is_truth": False,
-        "review_candidate_can_be_auto_proposed": True,
-        "canonical_eval_requires_human_approval": True,
-        "unsupported_intent_policy": (
-            build_unsupported_intent_policy(unsupported_family) if unsupported_family else None
-        ),
-        "manager_mode_policy": build_manager_mode_policy(
-            manager_mode=manager_mode,
-            provider_profile=str(provider_profile) if provider_profile is not None else None,
-            live_call_used=bool(decision.get("live_call_used") is True),
-            model_id=str(model_id) if model_id is not None else None,
-        ),
-    }
-
-
 def build_runtime_turn_trace(
     *,
     request_id: str,
@@ -201,6 +179,7 @@ def build_runtime_turn_trace(
     sidecar = dict(payload.get("sidecar") or {})
     final_mapping = dict(intake_execution_manager.get("final") or {})
     final_action = str(final_mapping.get("final_action") or "")
+    phase_a_payload = dict(phase_a_trace or payload.get("phase_a_trace") or {})
     tool_outputs = {
         "manager_rounds": intake_execution_manager.get("manager_rounds") or [],
         "persistence_result": intake_execution_manager.get("persistence_result"),
@@ -231,7 +210,7 @@ def build_runtime_turn_trace(
             "manager_context_packet_v1": _json_safe(manager_context_packet_v1),
             "state_before": _state_snapshot(state_before),
             "state_after": _state_snapshot(state_after) if state_after is not None else None,
-            "phase_a_trace": _json_safe(phase_a_trace or payload.get("phase_a_trace") or {}),
+            "phase_a_trace": _json_safe(phase_a_payload),
         },
         "user_message": {
             "raw_text": raw_user_input,
@@ -253,7 +232,14 @@ def build_runtime_turn_trace(
             "state_after_present": state_after is not None,
         },
         "manager_decision": _json_safe(manager_decision),
-        "dogfood_trace_policy": _json_safe(_dogfood_trace_policy(manager_decision)),
+        "dogfood_trace_policy": _json_safe(build_dogfood_turn_trace_policy(manager_decision)),
+        "runtime_turn_lifecycle": _json_safe(
+            build_runtime_turn_lifecycle(
+                phase_a_trace=phase_a_payload,
+                final_mapping=final_mapping,
+                sidecar=sidecar,
+            )
+        ),
         "evidence_packet": _json_safe(tool_outputs),
         "final_mapping": _json_safe(final_mapping),
         "state_delta": _json_safe(state_delta),
@@ -325,6 +311,7 @@ def record_runtime_turn_messages(
     phase_a_trace: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     user = get_or_create_user(db, user_external_id)
+    existing = _messages_for_trace(db, user_id=user.id, request_id=request_id)
     trace = build_runtime_turn_trace(
         request_id=request_id,
         local_date=local_date,
@@ -337,8 +324,8 @@ def record_runtime_turn_messages(
         state_after=state_after,
         phase_a_trace=phase_a_trace,
     )
+    apply_runtime_turn_lifecycle_merge(trace, existing_messages=existing)
     linked_meal_log_id = _linked_meal_log_id(result)
-    existing = _messages_for_trace(db, user_id=user.id, request_id=request_id)
     user_message = next((message for message in existing if message.role == "user"), None)
     assistant_message_row = next((message for message in existing if message.role == "assistant"), None)
     if user_message is None and raw_user_input:

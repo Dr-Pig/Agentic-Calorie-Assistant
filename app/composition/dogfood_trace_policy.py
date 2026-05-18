@@ -287,10 +287,32 @@ def build_manager_mode_policy(
     }
 
 
+def build_dogfood_turn_trace_policy(manager_decision: Any) -> dict[str, Any]:
+    decision = dict(manager_decision) if isinstance(manager_decision, dict) else {}
+    unsupported_family = str(decision.get("unsupported_intent_family") or "").strip()
+    manager_mode = str(decision.get("manager_mode") or "fixture").strip() or "fixture"
+    provider_profile = decision.get("provider_profile")
+    model_id = decision.get("model_id")
+    return {
+        "lifecycle_status": "raw_trace",
+        "raw_trace_is_truth": False,
+        "review_candidate_can_be_auto_proposed": True,
+        "canonical_eval_requires_human_approval": True,
+        "unsupported_intent_policy": (
+            build_unsupported_intent_policy(unsupported_family) if unsupported_family else None
+        ),
+        "manager_mode_policy": build_manager_mode_policy(
+            manager_mode=manager_mode,
+            provider_profile=str(provider_profile) if provider_profile is not None else None,
+            live_call_used=bool(decision.get("live_call_used") is True),
+            model_id=str(model_id) if model_id is not None else None,
+        ),
+    }
+
+
 __all__ = [
-    "CHAT_TURN_ROUTE_CONTRACT",
-    "build_dogfood_review_record",
-    "build_manager_mode_policy",
+    "CHAT_TURN_ROUTE_CONTRACT", "build_dogfood_turn_trace_policy",
+    "build_dogfood_review_record", "build_manager_mode_policy",
     "build_session_date_policy",
     "build_unsupported_intent_policy",
     "build_user_correction_feedback_event",
