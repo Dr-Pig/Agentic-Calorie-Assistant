@@ -173,6 +173,22 @@ def test_grader_accepts_structured_pending_teppan_combo_attachment() -> None:
     assert grade["blockers"] == []
 
 
+def test_grader_blocks_pending_followup_source_label_without_manager_operation() -> None:
+    result = _base_result("GS10")
+    result["runtime"]["workflow_effect"] = "canonical_write"
+    result["runtime"]["canonical_commit_status"] = "committed"
+    result["runtime"]["final_action"] = "commit"
+    result["runtime"]["target_attachment"] = {
+        "target_resolution_source": "pending_followup_state",
+    }
+
+    grade = grade_golden_case_result(result)
+
+    assert grade["status"] == "blocked"
+    assert any(blocker.startswith("runtime.target_attachment_expected:") for blocker in grade["blockers"])
+    assert grade["primary_repair_layer"] == "L3_manager_semantics"
+
+
 def test_grader_accepts_structured_previous_teppan_meal_attachment() -> None:
     result = _base_result("GS11")
     result["runtime"]["workflow_effect"] = "correction_applied"
